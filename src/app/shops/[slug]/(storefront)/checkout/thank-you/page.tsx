@@ -391,47 +391,56 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     redirect(`/shops/${slug}/checkout?error=order_not_found`);
   }
   
-  // Get order items with product images if missing
+  // Get order items
   const rawItems = await db
     .select()
     .from(orderItems)
     .where(eq(orderItems.orderId, order.id));
   
-  // Fetch product images for items that don't have imageUrl
-  const itemsWithImages = await Promise.all(
-    rawItems.map(async (item) => {
-      let imageUrl = item.imageUrl;
-      
-      // If no imageUrl, fetch from product
-      if (!imageUrl && item.productId) {
-        const [productImage] = await db
-          .select({ url: productImages.url })
-          .from(productImages)
-          .where(
-            and(
-              eq(productImages.productId, item.productId),
-              eq(productImages.isPrimary, true)
-            )
-          )
-          .limit(1);
-        
-        imageUrl = productImage?.url || null;
-      }
-      
-      return {
-        id: item.id,
-        productId: item.productId,
-        name: item.name,
-        variantTitle: item.variantTitle,
-        quantity: item.quantity,
-        price: item.price,
-        total: item.total,
-        imageUrl,
-      };
-    })
-  );
+  // Fetch product images for items that don't have imageUrl (in parallel for speed)
+  const productIdsNeedingImages = rawItems
+    .filter(item => !item.imageUrl && item.productId)
+    .map(item => item.productId!);
   
-  const items = itemsWithImages;
+  let productImageMap = new Map<string, string>();
+  
+  if (productIdsNeedingImages.length > 0) {
+    try {
+      const images = await db
+        .select({ 
+          productId: productImages.productId,
+          url: productImages.url 
+        })
+        .from(productImages)
+        .where(
+          and(
+            eq(productImages.isPrimary, true)
+          )
+        );
+      
+      // Filter to only products we need and create map
+      productImageMap = new Map(
+        images
+          .filter(img => productIdsNeedingImages.includes(img.productId))
+          .map(img => [img.productId, img.url])
+      );
+    } catch (error) {
+      console.error('Failed to fetch product images:', error);
+      // Continue without images - not critical
+    }
+  }
+  
+  // Map items with images
+  const items = rawItems.map(item => ({
+    id: item.id,
+    productId: item.productId,
+    name: item.name,
+    variantTitle: item.variantTitle,
+    quantity: item.quantity,
+    price: item.price,
+    total: item.total,
+    imageUrl: item.imageUrl || (item.productId ? productImageMap.get(item.productId) || null : null),
+  }));
 
   const basePath = `/shops/${slug}`;
 
