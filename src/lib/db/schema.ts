@@ -1567,6 +1567,33 @@ export const pendingPaymentsRelations = relations(pendingPayments, ({ one }) => 
   }),
 }));
 
+export const storeMembersRelations = relations(storeMembers, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeMembers.storeId],
+    references: [stores.id],
+  }),
+  user: one(users, {
+    fields: [storeMembers.userId],
+    references: [users.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [storeMembers.invitedBy],
+    references: [users.id],
+    relationName: 'invitedBy',
+  }),
+}));
+
+export const teamInvitationsRelations = relations(teamInvitations, ({ one }) => ({
+  store: one(stores, {
+    fields: [teamInvitations.storeId],
+    references: [stores.id],
+  }),
+  invitedByUser: one(users, {
+    fields: [teamInvitations.invitedBy],
+    references: [users.id],
+  }),
+}));
+
 // ============ TYPES ============
 
 export type User = typeof users.$inferSelect;
