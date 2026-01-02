@@ -120,7 +120,7 @@ async function createOrderFromPendingPayment(
     .set({ orderCounter: currentCounter + 1 })
     .where(eq(stores.id, store.id));
   
-  // Get or create customer
+  // Get or create customer - ALWAYS create a customer record for orders
   let customerId = pendingPayment.customerId;
   
   if (!customerId && pendingPayment.customerEmail) {
@@ -138,6 +138,39 @@ async function createOrderFromPendingPayment(
     
     if (existingCustomer) {
       customerId = existingCustomer.id;
+      // Update customer info if needed
+      await db.update(customers)
+        .set({
+          lastOrderAt: new Date(),
+          orderCount: sql`${customers.orderCount} + 1`,
+          totalSpent: sql`${customers.totalSpent} + ${cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)}`,
+        })
+        .where(eq(customers.id, existingCustomer.id));
+    } else {
+      // Create new customer from order info
+      const orderDataTyped = orderData as {
+        customer?: { name?: string; phone?: string };
+        shippingAddress?: { firstName?: string; lastName?: string; address?: string; city?: string; zipCode?: string };
+      };
+      const customerName = orderDataTyped.customer?.name || 
+        `${orderDataTyped.shippingAddress?.firstName || ''} ${orderDataTyped.shippingAddress?.lastName || ''}`.trim();
+      
+      const [newCustomer] = await db.insert(customers).values({
+        storeId: pendingPayment.storeId,
+        email: pendingPayment.customerEmail,
+        firstName: orderDataTyped.shippingAddress?.firstName || customerName.split(' ')[0] || '',
+        lastName: orderDataTyped.shippingAddress?.lastName || customerName.split(' ').slice(1).join(' ') || '',
+        phone: orderDataTyped.customer?.phone || '',
+        address: orderDataTyped.shippingAddress?.address || '',
+        city: orderDataTyped.shippingAddress?.city || '',
+        zipCode: orderDataTyped.shippingAddress?.zipCode || '',
+        orderCount: 1,
+        totalSpent: String(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)),
+        lastOrderAt: new Date(),
+      }).returning();
+      
+      customerId = newCustomer.id;
+      console.log(`PayPlus callback: Created new customer ${customerId} for email ${pendingPayment.customerEmail}`);
     }
   }
   
