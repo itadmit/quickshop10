@@ -18,10 +18,41 @@ import {
   paymentProviders,
   giftCards,
   giftCardTransactions,
+  products,
+  productVariants,
 } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getConfiguredProvider } from '@/lib/payments';
 import type { TransactionStatus } from '@/lib/payments/types';
+import { sendOrderConfirmationEmail } from '@/lib/email';
+import { emitOrderCreated, emitLowStock } from '@/lib/events';
+
+// Decrement inventory helper (same as in thank-you page)
+async function decrementInventory(cartItems: Array<{
+  productId: string;
+  variantId?: string;
+  quantity: number;
+}>) {
+  for (const item of cartItems) {
+    if (item.variantId) {
+      // Decrement variant inventory
+      await db
+        .update(productVariants)
+        .set({
+          inventory: sql`GREATEST(0, ${productVariants.inventory} - ${item.quantity})`,
+        })
+        .where(eq(productVariants.id, item.variantId));
+    } else {
+      // Decrement product inventory
+      await db
+        .update(products)
+        .set({
+          inventory: sql`GREATEST(0, ${products.inventory} - ${item.quantity})`,
+        })
+        .where(eq(products.id, item.productId));
+    }
+  }
+}
 
 // Order creation helper
 async function createOrderFromPendingPayment(
@@ -136,7 +167,7 @@ async function createOrderFromPendingPayment(
     paidAt: new Date(),
   }).returning();
   
-  // Create order items
+  // Create order items and decrement inventory
   if (cartItems.length > 0) {
     await db.insert(orderItems).values(
       cartItems.map(item => ({
@@ -151,6 +182,51 @@ async function createOrderFromPendingPayment(
         imageUrl: item.image || null,
       }))
     );
+    
+    // Decrement inventory (non-blocking for speed)
+    decrementInventory(cartItems).catch(err => {
+      console.error('Failed to decrement inventory:', err);
+    });
+    
+    // Check for low stock and emit events (non-blocking, fire-and-forget)
+    // Note: We check inventory AFTER decrement, so we need to account for the decrement
+    Promise.all(
+      cartItems.map(async (item) => {
+        try {
+          if (item.variantId) {
+            const [variant] = await db
+              .select({ id: productVariants.id, inventory: productVariants.inventory })
+              .from(productVariants)
+              .where(eq(productVariants.id, item.variantId))
+              .limit(1);
+            
+            if (variant && variant.inventory !== null) {
+              const [product] = await db
+                .select({ id: products.id, name: products.name })
+                .from(products)
+                .where(eq(products.id, item.productId))
+                .limit(1);
+              
+              if (product) {
+                emitLowStock(pendingPayment.storeId, product.id, product.name, variant.inventory);
+              }
+            }
+          } else {
+            const [product] = await db
+              .select({ id: products.id, name: products.name, inventory: products.inventory })
+              .from(products)
+              .where(eq(products.id, item.productId))
+              .limit(1);
+            
+            if (product && product.inventory !== null) {
+              emitLowStock(pendingPayment.storeId, product.id, product.name, product.inventory);
+            }
+          }
+        } catch (err) {
+          console.error(`Failed to check low stock for item ${item.productId}:`, err);
+        }
+      })
+    ).catch(err => console.error('Failed to check low stock:', err));
   }
   
   // Handle gift card if used
@@ -191,6 +267,47 @@ async function createOrderFromPendingPayment(
       });
     }
   }
+  
+  // Send order confirmation email (fire-and-forget for speed)
+  const customerName = (orderData.customer as { firstName?: string; lastName?: string }) 
+    ? `${(orderData.customer as { firstName?: string }).firstName || ''} ${(orderData.customer as { lastName?: string }).lastName || ''}`.trim()
+    : order.customerName || 'לקוח יקר';
+  
+  sendOrderConfirmationEmail({
+    orderNumber,
+    customerName,
+    customerEmail: order.customerEmail || '',
+    items: cartItems.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+      image: item.image,
+      variantTitle: item.variantTitle,
+    })),
+    subtotal,
+    shippingAmount: shippingCost,
+    discountAmount,
+    creditUsed,
+    total: totalAmount,
+    shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
+    storeName: store.name,
+    storeSlug: store.slug,
+    paymentInfo: {
+      lastFour: cardInfo.lastFour,
+      brand: cardInfo.brand,
+      approvalNum: approvalNumber,
+    },
+  }).catch(err => console.error('Failed to send order confirmation email:', err));
+  
+  // Emit order.created event (fire-and-forget, non-blocking)
+  emitOrderCreated(
+    pendingPayment.storeId,
+    order.id,
+    orderNumber,
+    order.customerEmail || '',
+    totalAmount,
+    cartItems.length
+  );
   
   return order;
 }
