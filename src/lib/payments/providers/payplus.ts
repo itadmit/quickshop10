@@ -164,8 +164,39 @@ export class PayPlusProvider extends BasePaymentProvider {
         body: body ? JSON.stringify(body) : undefined,
       });
       
-      const data = await response.json() as T;
-      this.log(`Response from ${endpoint}`, data);
+      // Check content type before parsing
+      const contentType = response.headers.get('content-type') || '';
+      const responseText = await response.text();
+      
+      // Log raw response for debugging
+      this.log(`Response from ${endpoint}`, {
+        status: response.status,
+        statusText: response.statusText,
+        contentType,
+        bodyPreview: responseText.substring(0, 200),
+      });
+      
+      // Check if response is JSON
+      if (!contentType.includes('application/json') && !responseText.trim().startsWith('{')) {
+        this.logError(`Non-JSON response from ${endpoint}`, {
+          contentType,
+          responseText: responseText.substring(0, 500),
+        });
+        throw new Error(`PayPlus API returned non-JSON response: ${response.status} ${response.statusText}. Response: ${responseText.substring(0, 100)}`);
+      }
+      
+      let data: T;
+      try {
+        data = JSON.parse(responseText) as T;
+      } catch (error) {
+        this.logError(`Failed to parse JSON response from ${endpoint}`, {
+          error: error instanceof Error ? error.message : String(error),
+          responseText: responseText.substring(0, 500),
+        });
+        throw new Error(`Invalid JSON response from PayPlus: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      this.log(`Parsed response from ${endpoint}`, data);
       
       return data;
     } catch (error) {
