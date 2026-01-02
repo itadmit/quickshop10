@@ -46,22 +46,47 @@ async function decrementInventory(cartItems: Array<{
   quantity: number;
 }>) {
   for (const item of cartItems) {
-    if (item.variantId) {
-      // Decrement variant inventory
-      await db
-        .update(productVariants)
-        .set({
-          inventory: sql`GREATEST(0, ${productVariants.inventory} - ${item.quantity})`,
-        })
-        .where(eq(productVariants.id, item.variantId));
-    } else {
-      // Decrement product inventory
-      await db
-        .update(products)
-        .set({
-          inventory: sql`GREATEST(0, ${products.inventory} - ${item.quantity})`,
-        })
-        .where(eq(products.id, item.productId));
+    try {
+      if (item.variantId) {
+        // Decrement variant inventory
+        const [updated] = await db
+          .update(productVariants)
+          .set({
+            inventory: sql`GREATEST(0, ${productVariants.inventory} - ${item.quantity})`,
+          })
+          .where(eq(productVariants.id, item.variantId))
+          .returning({ id: productVariants.id, inventory: productVariants.inventory });
+        
+        console.log(`Thank you page: Decremented variant inventory`, {
+          variantId: item.variantId,
+          quantity: item.quantity,
+          updated: updated ? { id: updated.id, inventory: updated.inventory } : null,
+        });
+      } else {
+        // Decrement product inventory
+        const [updated] = await db
+          .update(products)
+          .set({
+            inventory: sql`GREATEST(0, ${products.inventory} - ${item.quantity})`,
+          })
+          .where(eq(products.id, item.productId))
+          .returning({ id: products.id, name: products.name, inventory: products.inventory });
+        
+        console.log(`Thank you page: Decremented product inventory`, {
+          productId: item.productId,
+          productName: updated?.name,
+          quantity: item.quantity,
+          updated: updated ? { id: updated.id, name: updated.name, inventory: updated.inventory } : null,
+        });
+      }
+    } catch (error) {
+      console.error(`Thank you page: Failed to decrement inventory for item`, {
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error; // Re-throw to ensure we know about failures
     }
   }
 }
