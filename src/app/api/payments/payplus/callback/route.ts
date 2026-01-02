@@ -34,6 +34,12 @@ async function decrementInventory(cartItems: Array<{
   quantity: number;
 }>) {
   for (const item of cartItems) {
+    // Skip if productId is missing
+    if (!item.productId) {
+      console.warn(`PayPlus callback: Skipping inventory decrement - missing productId`, item);
+      continue;
+    }
+    
     try {
       if (item.variantId) {
         // Decrement variant inventory
