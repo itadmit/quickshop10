@@ -11,7 +11,7 @@
 
 import { db } from '@/lib/db';
 import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircleIcon, PackageIcon, CreditCardIcon, MapPinIcon, ArrowLeftIcon, TagIcon, GiftIcon } from '@/components/admin/icons';
@@ -414,15 +414,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         .from(productImages)
         .where(
           and(
-            eq(productImages.isPrimary, true)
+            eq(productImages.isPrimary, true),
+            inArray(productImages.productId, productIdsNeedingImages)
           )
         );
       
-      // Filter to only products we need and create map
+      // Create map from fetched images
       productImageMap = new Map(
-        images
-          .filter(img => productIdsNeedingImages.includes(img.productId))
-          .map(img => [img.productId, img.url])
+        images.map(img => [img.productId, img.url])
       );
     } catch (error) {
       console.error('Failed to fetch product images:', error);
