@@ -104,6 +104,21 @@ export function CheckoutForm({
   const errorParam = searchParams.get('error');
   const paymentError = errorParam === 'payment_failed' || errorParam === 'payment_error' || errorParam === 'payment_cancelled';
   const [step, setStep] = useState<'details' | 'shipping' | 'payment'>('details');
+  
+  // Clear error from URL after showing it (to prevent it from showing again)
+  useEffect(() => {
+    if (paymentError && step === 'payment') {
+      // Clear error from URL after a short delay to allow user to see the message
+      const timer = setTimeout(() => {
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('error');
+        const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''}`;
+        router.replace(newUrl, { scroll: false });
+      }, 5000); // Clear after 5 seconds
+      
+      return () => clearTimeout(timer);
+    }
+  }, [paymentError, step, searchParams, router]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
   const [orderError, setOrderError] = useState<string | null>(null);
