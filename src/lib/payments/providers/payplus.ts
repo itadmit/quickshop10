@@ -406,34 +406,62 @@ export class PayPlusProvider extends BasePaymentProvider {
    * Parse callback/webhook body from PayPlus
    */
   parseCallback(body: unknown): ParsedCallback {
-    const data = body as PayPlusCallbackBody;
+    // Handle both JSON and form data formats
+    let data: PayPlusCallbackBody;
+    
+    if (typeof body === 'object' && body !== null) {
+      // Check if it's already an object (from JSON.parse)
+      data = body as PayPlusCallbackBody;
+    } else if (typeof body === 'string') {
+      // Try to parse as JSON string
+      try {
+        data = JSON.parse(body) as PayPlusCallbackBody;
+      } catch {
+        // If that fails, treat as empty object
+        this.logError('Failed to parse callback body', { body });
+        data = {} as PayPlusCallbackBody;
+      }
+    } else {
+      data = {} as PayPlusCallbackBody;
+    }
+    
+    // Log raw data for debugging
+    this.log('Parsing callback body', { 
+      hasData: !!data,
+      keys: Object.keys(data || {}),
+      statusCode: data?.status_code,
+      transactionUid: data?.transaction_uid,
+      pageRequestUid: data?.page_request_uid,
+      moreInfo: data?.more_info,
+    });
     
     // Determine success based on status_code
-    const status = this.mapStatusCode(data.status_code);
+    const statusCode = data?.status_code || '';
+    const status = this.mapStatusCode(statusCode);
     const isSuccess = status === 'success';
     
     return {
       success: isSuccess,
       status,
-      providerTransactionId: data.transaction_uid,
-      providerRequestId: data.page_request_uid,
-      approvalNumber: data.approval_num || data.voucher_num,
-      amount: data.amount,
-      currency: data.currency_code || 'ILS',
+      providerTransactionId: data?.transaction_uid || '',
+      providerRequestId: data?.page_request_uid,
+      approvalNumber: data?.approval_num || data?.voucher_num,
+      amount: data?.amount ? Number(data.amount) : 0,
+      currency: data?.currency_code || 'ILS',
       
       // Our reference stored in more_info
-      orderReference: data.more_info,
+      orderReference: data?.more_info,
       
       // Card info
-      cardBrand: data.brand_name,
-      cardLastFour: data.four_digits,
+      cardBrand: data?.brand_name,
+      cardLastFour: data?.four_digits,
       
       // Error info if failed
-      errorCode: data.error?.error_code,
-      errorMessage: data.error?.error_message,
+      errorCode: data?.error?.error_code,
+      errorMessage: data?.error?.error_message,
       
       // Raw data for logging
-      rawData: data as unknown as Record<string, unknown>,
+      rawData: (data || {}) as unknown as Record<string, unknown>,
     };
   }
   

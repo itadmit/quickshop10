@@ -195,11 +195,17 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 minutes expiry
     
+    // Add orderReference to orderData for fallback lookup
+    const orderDataWithReference = {
+      ...body.orderData,
+      orderReference,
+    };
+    
     await db.insert(pendingPayments).values({
       storeId: store.id,
       provider: provider.providerType,
       providerRequestId: response.providerRequestId!,
-      orderData: body.orderData,
+      orderData: orderDataWithReference,
       cartItems: body.items,
       customerEmail: body.customer.email,
       amount: String(body.amount),

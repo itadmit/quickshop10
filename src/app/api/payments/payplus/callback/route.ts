@@ -226,15 +226,37 @@ export async function POST(request: NextRequest) {
     }
     
     // Get raw body for hash validation
-    const bodyText = await request.text();
+    // PayPlus might send JSON or form data, try both
     let body: unknown;
+    let bodyText = '';
     
     try {
-      body = JSON.parse(bodyText);
-    } catch {
-      console.error('PayPlus callback: Invalid JSON body');
-      return NextResponse.json({ success: false, error: 'Invalid JSON' }, { status: 400 });
+      bodyText = await request.text();
+      
+      // Try to parse as JSON first
+      try {
+        body = JSON.parse(bodyText);
+      } catch {
+        // If JSON parsing fails, try to parse as URL-encoded form data
+        const formData = new URLSearchParams(bodyText);
+        const bodyObj: Record<string, unknown> = {};
+        formData.forEach((value, key) => {
+          bodyObj[key] = value;
+        });
+        body = bodyObj;
+        console.log('PayPlus callback: Parsed as form data instead of JSON');
+      }
+    } catch (error) {
+      console.error('PayPlus callback: Failed to parse body', {
+        error: error instanceof Error ? error.message : String(error),
+        bodyPreview: bodyText.substring(0, 200),
+        contentType: request.headers.get('content-type'),
+      });
+      return NextResponse.json({ success: false, error: 'Invalid body format' }, { status: 400 });
     }
+    
+    // Log raw body for debugging
+    console.log('PayPlus callback raw body:', JSON.stringify(body, null, 2));
     
     // Get headers
     const headers: Record<string, string> = {};
@@ -264,50 +286,89 @@ export async function POST(request: NextRequest) {
       requestId: parsed.providerRequestId,
       orderReference: parsed.orderReference,
       amount: parsed.amount,
+      rawBody: body,
     });
     
-    // Find pending payment
-    const [pendingPayment] = await db
-      .select()
-      .from(pendingPayments)
-      .where(
-        and(
-          eq(pendingPayments.storeId, store.id),
-          eq(pendingPayments.providerRequestId, parsed.providerRequestId || ''),
-          eq(pendingPayments.status, 'pending')
+    // Find pending payment - try by requestId first, then by orderReference
+    let pendingPayment = null;
+    
+    if (parsed.providerRequestId) {
+      // Normal flow - find by requestId
+      const [found] = await db
+        .select()
+        .from(pendingPayments)
+        .where(
+          and(
+            eq(pendingPayments.storeId, store.id),
+            eq(pendingPayments.providerRequestId, parsed.providerRequestId),
+            eq(pendingPayments.status, 'pending')
+          )
         )
-      )
-      .limit(1);
+        .limit(1);
+      
+      pendingPayment = found || null;
+    }
+    
+    // Fallback: try to find by orderReference if requestId not found
+    if (!pendingPayment && parsed.orderReference) {
+      console.log(`PayPlus callback: No requestId, trying to find by orderReference: ${parsed.orderReference}`);
+      
+      const allPending = await db
+        .select()
+        .from(pendingPayments)
+        .where(
+          and(
+            eq(pendingPayments.storeId, store.id),
+            eq(pendingPayments.status, 'pending')
+          )
+        )
+        .limit(100);
+      
+      // Try to match by orderReference in orderData
+      const matchingPayment = allPending.find(p => {
+        const orderData = p.orderData as Record<string, unknown>;
+        const orderRef = (orderData as { orderReference?: string })?.orderReference;
+        return orderRef === parsed.orderReference;
+      });
+      
+      if (matchingPayment) {
+        console.log(`PayPlus callback: Found pending payment by orderReference: ${matchingPayment.id}`);
+        pendingPayment = matchingPayment;
+      }
+    }
     
     if (!pendingPayment) {
-      // Try to find by more_info (order reference)
-      if (parsed.orderReference) {
-        console.log(`PayPlus callback: Pending payment not found by requestId, trying orderReference: ${parsed.orderReference}`);
-      }
-      console.error(`PayPlus callback: Pending payment not found for requestId: ${parsed.providerRequestId}`);
+      console.error(`PayPlus callback: Pending payment not found`, {
+        requestId: parsed.providerRequestId,
+        orderReference: parsed.orderReference,
+        storeId: store.id,
+      });
       return NextResponse.json({ success: false, error: 'Pending payment not found' }, { status: 404 });
     }
     
     // Update transaction record
     const transactionStatus: TransactionStatus = parsed.success ? 'success' : 'failed';
+    const requestIdToUse = parsed.providerRequestId || pendingPayment.providerRequestId;
     
-    await db
-      .update(paymentTransactions)
-      .set({
-        status: transactionStatus,
-        providerTransactionId: parsed.providerTransactionId,
-        providerApprovalNum: parsed.approvalNumber,
-        providerResponse: parsed.rawData,
-        errorCode: parsed.errorCode,
-        errorMessage: parsed.errorMessage,
-        processedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(paymentTransactions.storeId, store.id),
-          eq(paymentTransactions.providerRequestId, parsed.providerRequestId || '')
-        )
-      );
+    if (requestIdToUse) {
+      await db
+        .update(paymentTransactions)
+        .set({
+          status: transactionStatus,
+          providerTransactionId: parsed.providerTransactionId || undefined,
+          providerApprovalNum: parsed.approvalNumber,
+          providerResponse: parsed.rawData,
+          errorCode: parsed.errorCode,
+          errorMessage: parsed.errorMessage,
+          processedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(paymentTransactions.storeId, store.id),
+            eq(paymentTransactions.providerRequestId, requestIdToUse)
+          )
+        );
+    }
     
     // Handle successful payment
     if (parsed.success) {
@@ -349,17 +410,19 @@ export async function POST(request: NextRequest) {
         .where(eq(pendingPayments.id, pendingPayment.id));
       
       // Update transaction with order ID
-      await db
-        .update(paymentTransactions)
-        .set({
-          orderId: order.id,
-        })
-        .where(
-          and(
-            eq(paymentTransactions.storeId, store.id),
-            eq(paymentTransactions.providerRequestId, parsed.providerRequestId || '')
-          )
-        );
+      if (requestIdToUse) {
+        await db
+          .update(paymentTransactions)
+          .set({
+            orderId: order.id,
+          })
+          .where(
+            and(
+              eq(paymentTransactions.storeId, store.id),
+              eq(paymentTransactions.providerRequestId, requestIdToUse)
+            )
+          );
+      }
       
       // Update provider stats
       await db
