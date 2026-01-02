@@ -139,6 +139,21 @@ export async function POST(request: NextRequest) {
       } as typeof body.items[0] & { isShipping: boolean });
     }
     
+    // Add discount as negative item if exists (PayPlus supports negative prices)
+    // This ensures the final amount matches what customer should pay
+    if (body.discountAmount && body.discountAmount > 0) {
+      const discountName = body.discountCode 
+        ? `הנחה - ${body.discountCode}`
+        : 'הנחה';
+      
+      allItems.push({
+        name: discountName,
+        quantity: 1,
+        price: -body.discountAmount, // Negative price for discount
+        isShipping: false,
+      } as typeof body.items[0] & { isShipping: boolean });
+    }
+    
     // Calculate total amount from items (PayPlus requires amount = sum of items)
     // This ensures PayPlus validation passes: global-price-is-not-equal-to-total-items-sum
     const calculatedAmount = allItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -151,6 +166,7 @@ export async function POST(request: NextRequest) {
       itemsTotal: allItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       discountAmount: body.discountAmount,
       shippingCost: body.shipping?.cost || 0,
+      itemsBreakdown: allItems.map(item => ({ name: item.name, price: item.price, quantity: item.quantity })),
     });
     
     // Build payment request
