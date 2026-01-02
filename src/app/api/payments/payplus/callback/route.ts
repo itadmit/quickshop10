@@ -20,6 +20,7 @@ import {
   giftCardTransactions,
   products,
   productVariants,
+  discounts,
 } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getConfiguredProvider } from '@/lib/payments';
@@ -247,6 +248,24 @@ async function createOrderFromPendingPayment(
             imageUrl: item.image || item.imageUrl || null,
       }))
     );
+    
+    // Increment discount usage count (for reports/influencers)
+    if (pendingPayment.discountCode) {
+      db.update(discounts)
+        .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
+        .where(
+          and(
+            eq(discounts.storeId, pendingPayment.storeId),
+            eq(discounts.code, pendingPayment.discountCode)
+          )
+        )
+        .then(() => {
+          console.log(`PayPlus callback: Incremented usage count for coupon ${pendingPayment.discountCode}`);
+        })
+        .catch(err => {
+          console.error(`PayPlus callback: Failed to increment coupon usage:`, err);
+        });
+    }
     
     // Decrement inventory (non-blocking for speed - fire and forget)
     // Note: We don't await to keep response fast, but we log errors

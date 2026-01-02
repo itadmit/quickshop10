@@ -10,7 +10,7 @@
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -344,6 +344,24 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             imageUrl: item.image || item.imageUrl || null,
           }))
         );
+        
+        // Increment discount usage count (for reports/influencers)
+        if (pendingPayment.discountCode) {
+          db.update(discounts)
+            .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
+            .where(
+              and(
+                eq(discounts.storeId, store.id),
+                eq(discounts.code, pendingPayment.discountCode)
+              )
+            )
+            .then(() => {
+              console.log(`Thank you page: Incremented usage count for coupon ${pendingPayment.discountCode}`);
+            })
+            .catch(err => {
+              console.error(`Thank you page: Failed to increment coupon usage:`, err);
+            });
+        }
         
         // Decrement inventory (non-blocking for speed - fire and forget)
         decrementInventory(cartItems).catch(err => {
