@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1767297420288,
+      "tag": "0000_add_team_pages_media_activity",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1767359003563,
+      "tag": "0001_add_influencer_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1735833600000,
+      "tag": "0002_add_payment_providers",
+      "breakpoints": true
+    }
+  ]
+}

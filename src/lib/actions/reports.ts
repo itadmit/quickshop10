@@ -1,0 +1,803 @@
+'use server';
+
+import { db } from '@/lib/db';
+import { 
+  orders, orderItems, customers, products, categories,
+  analyticsEvents, searchQueries, abandonedCarts,
+  giftCards, influencers, influencerSales, refunds,
+  customerCreditTransactions, productImages
+} from '@/lib/db/schema';
+import { eq, and, gte, lte, desc, asc, sql, count, sum } from 'drizzle-orm';
+import { cache } from 'react';
+
+// ============ TYPES ============
+
+export type DateRange = {
+  from: Date;
+  to: Date;
+};
+
+export type SalesOverview = {
+  totalRevenue: number;
+  totalOrders: number;
+  averageOrderValue: number;
+  totalCustomers: number;
+  newCustomers: number;
+  returningCustomers: number;
+  conversionRate: number;
+};
+
+export type SalesByDay = {
+  date: string;
+  revenue: number;
+  orders: number;
+};
+
+export type TopProduct = {
+  id: string;
+  name: string;
+  image: string | null;
+  revenue: number;
+  quantity: number;
+  orders: number;
+};
+
+export type TrafficSource = {
+  source: string;
+  sessions: number;
+  orders: number;
+  revenue: number;
+  conversionRate: number;
+};
+
+export type CustomerSegment = {
+  segment: string;
+  count: number;
+  revenue: number;
+  percentage: number;
+};
+
+// ============ HELPER FUNCTIONS ============
+
+function getDateRange(period: '7d' | '30d' | '90d' | 'custom', customRange?: DateRange): DateRange {
+  const to = new Date();
+  to.setHours(23, 59, 59, 999);
+  
+  let from: Date;
+  switch (period) {
+    case '7d':
+      from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      break;
+    case '30d':
+      from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      break;
+    case '90d':
+      from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      break;
+    case 'custom':
+      return customRange || { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to };
+  }
+  from.setHours(0, 0, 0, 0);
+  return { from, to };
+}
+
+// ============ SALES REPORTS ============
+
+// Main overview - cached per request
+export const getSalesOverview = cache(async (
+  storeId: string, 
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+  
+  // Use SQL aggregations for speed - single query
+  const [salesStats] = await db
+    .select({
+      totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+      totalOrders: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+      avgOrderValue: sql<number>`COALESCE(AVG(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric END), 0)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ));
+
+  // Customer stats - parallel query
+  const [customerStats] = await db
+    .select({
+      total: sql<number>`COUNT(DISTINCT ${customers.id})`,
+      newCustomers: sql<number>`COUNT(DISTINCT CASE WHEN ${customers.createdAt} >= ${from} THEN ${customers.id} END)`,
+    })
+    .from(customers)
+    .where(eq(customers.storeId, storeId));
+
+  // Sessions for conversion rate
+  const [sessionStats] = await db
+    .select({
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to)
+    ));
+
+  const totalOrders = Number(salesStats?.totalOrders || 0);
+  const sessions = Number(sessionStats?.sessions || 1);
+
+  return {
+    totalRevenue: Number(salesStats?.totalRevenue || 0),
+    totalOrders,
+    averageOrderValue: Number(salesStats?.avgOrderValue || 0),
+    totalCustomers: Number(customerStats?.total || 0),
+    newCustomers: Number(customerStats?.newCustomers || 0),
+    returningCustomers: Number(customerStats?.total || 0) - Number(customerStats?.newCustomers || 0),
+    conversionRate: sessions > 0 ? (totalOrders / sessions) * 100 : 0,
+  };
+});
+
+// Sales by day - for charts
+export const getSalesByDay = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
+      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+      orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ))
+    .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`)
+    .orderBy(asc(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`));
+
+  return result.map(r => ({
+    date: String(r.date),
+    revenue: parseFloat(String(r.revenue)) || 0,
+    orders: parseInt(String(r.orderCount)) || 0,
+  }));
+});
+
+// Top products
+export const getTopProducts = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  limit = 10,
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      image: productImages.url,
+      revenue: sql<number>`COALESCE(SUM(${orderItems.total}::numeric), 0)`,
+      quantity: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`,
+      orders: sql<number>`COUNT(DISTINCT ${orders.id})`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(products, eq(orderItems.productId, products.id))
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      sql`${orders.status} != 'cancelled'`
+    ))
+    .groupBy(products.id, products.name, productImages.url)
+    .orderBy(desc(sql`SUM(${orderItems.total}::numeric)`))
+    .limit(limit);
+
+  return result.map(r => ({
+    id: r.id,
+    name: r.name,
+    image: r.image,
+    revenue: Number(r.revenue),
+    quantity: Number(r.quantity),
+    orders: Number(r.orders),
+  }));
+});
+
+// Sales by category
+export const getSalesByCategory = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      id: categories.id,
+      name: categories.name,
+      revenue: sql<number>`COALESCE(SUM(${orderItems.total}::numeric), 0)`,
+      quantity: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`,
+      orders: sql<number>`COUNT(DISTINCT ${orders.id})`,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .innerJoin(products, eq(orderItems.productId, products.id))
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      sql`${orders.status} != 'cancelled'`
+    ))
+    .groupBy(categories.id, categories.name)
+    .orderBy(desc(sql`SUM(${orderItems.total}::numeric)`));
+
+  return result.map(r => ({
+    id: r.id,
+    name: r.name,
+    revenue: Number(r.revenue),
+    quantity: Number(r.quantity),
+    orders: Number(r.orders),
+  }));
+});
+
+// ============ TRAFFIC REPORTS ============
+
+export const getTrafficSources = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  // Sessions by source
+  const sessions = await db
+    .select({
+      source: sql<string>`COALESCE(${analyticsEvents.utmSource}, 'direct')`,
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to)
+    ))
+    .groupBy(sql`COALESCE(${analyticsEvents.utmSource}, 'direct')`)
+    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`));
+
+  // Purchases by source
+  const purchases = await db
+    .select({
+      source: sql<string>`COALESCE(${analyticsEvents.utmSource}, 'direct')`,
+      orders: sql<number>`COUNT(*)`,
+      revenue: sql<number>`COALESCE(SUM(${analyticsEvents.orderValue}::numeric), 0)`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'purchase'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to)
+    ))
+    .groupBy(sql`COALESCE(${analyticsEvents.utmSource}, 'direct')`);
+
+  // Merge data
+  const purchaseMap = new Map(purchases.map(p => [p.source, { orders: Number(p.orders), revenue: Number(p.revenue) }]));
+
+  return sessions.map(s => {
+    const purchase = purchaseMap.get(s.source) || { orders: 0, revenue: 0 };
+    const sessionCount = Number(s.sessions);
+    return {
+      source: s.source,
+      sessions: sessionCount,
+      orders: purchase.orders,
+      revenue: purchase.revenue,
+      conversionRate: sessionCount > 0 ? (purchase.orders / sessionCount) * 100 : 0,
+    };
+  });
+});
+
+export const getDeviceStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      deviceType: analyticsEvents.deviceType,
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      pageViews: sql<number>`COUNT(*)`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to)
+    ))
+    .groupBy(analyticsEvents.deviceType);
+
+  return result.map(r => ({
+    deviceType: r.deviceType || 'unknown',
+    sessions: Number(r.sessions),
+    pageViews: Number(r.pageViews),
+  }));
+});
+
+export const getLandingPages = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  limit = 10,
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      page: analyticsEvents.landingPage,
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to),
+      sql`${analyticsEvents.landingPage} IS NOT NULL`
+    ))
+    .groupBy(analyticsEvents.landingPage)
+    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .limit(limit);
+
+  return result.map(r => ({
+    page: r.page || '/',
+    sessions: Number(r.sessions),
+  }));
+});
+
+// ============ CUSTOMER REPORTS ============
+
+export const getCustomerSegments = cache(async (storeId: string) => {
+  // Get customer segments using SQL for speed
+  const result = await db
+    .select({
+      vip: sql<number>`COUNT(CASE WHEN ${customers.totalSpent}::numeric >= 3000 THEN 1 END)`,
+      regular: sql<number>`COUNT(CASE WHEN ${customers.totalOrders} >= 2 AND ${customers.totalSpent}::numeric < 3000 THEN 1 END)`,
+      new: sql<number>`COUNT(CASE WHEN ${customers.totalOrders} <= 1 AND ${customers.createdAt} >= NOW() - INTERVAL '30 days' THEN 1 END)`,
+      atRisk: sql<number>`COUNT(CASE WHEN ${customers.totalOrders} >= 1 AND ${customers.createdAt} < NOW() - INTERVAL '90 days' THEN 1 END)`,
+      total: sql<number>`COUNT(*)`,
+    })
+    .from(customers)
+    .where(eq(customers.storeId, storeId));
+
+  const stats = result[0];
+  const total = Number(stats?.total || 1);
+
+  return [
+    { segment: 'VIP', count: Number(stats?.vip || 0), revenue: 0, percentage: (Number(stats?.vip || 0) / total) * 100 },
+    { segment: 'חוזרים', count: Number(stats?.regular || 0), revenue: 0, percentage: (Number(stats?.regular || 0) / total) * 100 },
+    { segment: 'חדשים', count: Number(stats?.new || 0), revenue: 0, percentage: (Number(stats?.new || 0) / total) * 100 },
+    { segment: 'בסיכון', count: Number(stats?.atRisk || 0), revenue: 0, percentage: (Number(stats?.atRisk || 0) / total) * 100 },
+  ];
+});
+
+export const getTopCustomers = cache(async (
+  storeId: string,
+  limit = 10
+) => {
+  const result = await db
+    .select({
+      id: customers.id,
+      firstName: customers.firstName,
+      lastName: customers.lastName,
+      email: customers.email,
+      totalOrders: customers.totalOrders,
+      totalSpent: customers.totalSpent,
+      createdAt: customers.createdAt,
+    })
+    .from(customers)
+    .where(eq(customers.storeId, storeId))
+    .orderBy(desc(sql`${customers.totalSpent}::numeric`))
+    .limit(limit);
+
+  return result.map(c => ({
+    ...c,
+    totalSpent: Number(c.totalSpent || 0),
+  }));
+});
+
+export const getNewVsReturning = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      date: sql<string>`DATE(${orders.createdAt})`,
+      newCustomers: sql<number>`COUNT(DISTINCT CASE WHEN c.total_orders = 1 THEN ${orders.customerId} END)`,
+      returningCustomers: sql<number>`COUNT(DISTINCT CASE WHEN c.total_orders > 1 THEN ${orders.customerId} END)`,
+    })
+    .from(orders)
+    .innerJoin(
+      sql`(SELECT id, total_orders FROM customers) c`,
+      sql`c.id = ${orders.customerId}`
+    )
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      sql`${orders.status} != 'cancelled'`
+    ))
+    .groupBy(sql`DATE(${orders.createdAt})`)
+    .orderBy(asc(sql`DATE(${orders.createdAt})`));
+
+  return result.map(r => ({
+    date: String(r.date),
+    newCustomers: Number(r.newCustomers),
+    returningCustomers: Number(r.returningCustomers),
+  }));
+});
+
+// ============ BEHAVIOR REPORTS ============
+
+export const getConversionFunnel = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      eventType: analyticsEvents.eventType,
+      count: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to)
+    ))
+    .groupBy(analyticsEvents.eventType);
+
+  const eventMap = new Map(result.map(r => [r.eventType, Number(r.count)]));
+  
+  const pageViews = eventMap.get('page_view') || 0;
+  const productViews = eventMap.get('product_view') || 0;
+  const addToCart = eventMap.get('add_to_cart') || 0;
+  const beginCheckout = eventMap.get('begin_checkout') || 0;
+  const purchase = eventMap.get('purchase') || 0;
+
+  return [
+    { step: 'צפיות בדף', count: pageViews, rate: 100 },
+    { step: 'צפיות במוצר', count: productViews, rate: pageViews > 0 ? (productViews / pageViews) * 100 : 0 },
+    { step: 'הוספה לסל', count: addToCart, rate: pageViews > 0 ? (addToCart / pageViews) * 100 : 0 },
+    { step: 'התחלת תשלום', count: beginCheckout, rate: pageViews > 0 ? (beginCheckout / pageViews) * 100 : 0 },
+    { step: 'רכישה', count: purchase, rate: pageViews > 0 ? (purchase / pageViews) * 100 : 0 },
+  ];
+});
+
+export const getTopSearches = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  limit = 20,
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      query: searchQueries.query,
+      searches: sql<number>`COUNT(*)`,
+      clickRate: sql<number>`AVG(CASE WHEN ${searchQueries.clickedProductId} IS NOT NULL THEN 1 ELSE 0 END) * 100`,
+      avgResults: sql<number>`AVG(${searchQueries.resultsCount})`,
+    })
+    .from(searchQueries)
+    .where(and(
+      eq(searchQueries.storeId, storeId),
+      gte(searchQueries.createdAt, from),
+      lte(searchQueries.createdAt, to)
+    ))
+    .groupBy(searchQueries.query)
+    .orderBy(desc(sql`COUNT(*)`))
+    .limit(limit);
+
+  return result.map(r => ({
+    query: r.query,
+    searches: Number(r.searches),
+    clickRate: Number(r.clickRate || 0),
+    avgResults: Number(r.avgResults || 0),
+  }));
+});
+
+export const getAbandonedCartsStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const [stats] = await db
+    .select({
+      total: sql<number>`COUNT(*)`,
+      totalValue: sql<number>`COALESCE(SUM(${abandonedCarts.subtotal}::numeric), 0)`,
+      recovered: sql<number>`COUNT(CASE WHEN ${abandonedCarts.recoveredAt} IS NOT NULL THEN 1 END)`,
+      recoveredValue: sql<number>`COALESCE(SUM(CASE WHEN ${abandonedCarts.recoveredAt} IS NOT NULL THEN ${abandonedCarts.subtotal}::numeric ELSE 0 END), 0)`,
+      remindersSent: sql<number>`COUNT(CASE WHEN ${abandonedCarts.reminderSentAt} IS NOT NULL THEN 1 END)`,
+    })
+    .from(abandonedCarts)
+    .where(and(
+      eq(abandonedCarts.storeId, storeId),
+      gte(abandonedCarts.createdAt, from),
+      lte(abandonedCarts.createdAt, to)
+    ));
+
+  const total = Number(stats?.total || 0);
+  const recovered = Number(stats?.recovered || 0);
+
+  return {
+    total,
+    totalValue: Number(stats?.totalValue || 0),
+    recovered,
+    recoveredValue: Number(stats?.recoveredValue || 0),
+    recoveryRate: total > 0 ? (recovered / total) * 100 : 0,
+    remindersSent: Number(stats?.remindersSent || 0),
+  };
+});
+
+export const getRecentAbandonedCarts = cache(async (
+  storeId: string,
+  limit = 10
+) => {
+  const result = await db
+    .select({
+      id: abandonedCarts.id,
+      email: abandonedCarts.email,
+      subtotal: abandonedCarts.subtotal,
+      checkoutStep: abandonedCarts.checkoutStep,
+      reminderSentAt: abandonedCarts.reminderSentAt,
+      recoveredAt: abandonedCarts.recoveredAt,
+      createdAt: abandonedCarts.createdAt,
+      items: abandonedCarts.items,
+    })
+    .from(abandonedCarts)
+    .where(and(
+      eq(abandonedCarts.storeId, storeId),
+      sql`${abandonedCarts.recoveredAt} IS NULL`
+    ))
+    .orderBy(desc(abandonedCarts.createdAt))
+    .limit(limit);
+
+  return result.map(r => ({
+    ...r,
+    subtotal: Number(r.subtotal || 0),
+    items: r.items as Array<{ productName: string; quantity: number }>,
+  }));
+});
+
+// ============ FINANCIAL REPORTS ============
+
+export const getGiftCardStats = cache(async (storeId: string) => {
+  const [stats] = await db
+    .select({
+      totalIssued: sql<number>`COUNT(*)`,
+      totalValue: sql<number>`COALESCE(SUM(${giftCards.initialBalance}::numeric), 0)`,
+      activeCards: sql<number>`COUNT(CASE WHEN ${giftCards.status} = 'active' THEN 1 END)`,
+      activeBalance: sql<number>`COALESCE(SUM(CASE WHEN ${giftCards.status} = 'active' THEN ${giftCards.currentBalance}::numeric ELSE 0 END), 0)`,
+      usedValue: sql<number>`COALESCE(SUM(${giftCards.initialBalance}::numeric - ${giftCards.currentBalance}::numeric), 0)`,
+    })
+    .from(giftCards)
+    .where(eq(giftCards.storeId, storeId));
+
+  return {
+    totalIssued: Number(stats?.totalIssued || 0),
+    totalValue: Number(stats?.totalValue || 0),
+    activeCards: Number(stats?.activeCards || 0),
+    activeBalance: Number(stats?.activeBalance || 0),
+    usedValue: Number(stats?.usedValue || 0),
+  };
+});
+
+export const getInfluencerStats = cache(async (storeId: string) => {
+  const result = await db
+    .select({
+      id: influencers.id,
+      name: influencers.name,
+      couponCode: influencers.couponCode,
+      totalSales: influencers.totalSales,
+      totalCommission: influencers.totalCommission,
+      totalOrders: influencers.totalOrders,
+      isActive: influencers.isActive,
+    })
+    .from(influencers)
+    .where(eq(influencers.storeId, storeId))
+    .orderBy(desc(sql`${influencers.totalSales}::numeric`));
+
+  const totals = result.reduce((acc, inf) => ({
+    totalSales: acc.totalSales + Number(inf.totalSales || 0),
+    totalCommission: acc.totalCommission + Number(inf.totalCommission || 0),
+    totalOrders: acc.totalOrders + Number(inf.totalOrders || 0),
+  }), { totalSales: 0, totalCommission: 0, totalOrders: 0 });
+
+  return {
+    influencers: result.map(i => ({
+      ...i,
+      totalSales: Number(i.totalSales || 0),
+      totalCommission: Number(i.totalCommission || 0),
+    })),
+    totals,
+  };
+});
+
+export const getRefundStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const [stats] = await db
+    .select({
+      total: sql<number>`COUNT(*)`,
+      totalAmount: sql<number>`COALESCE(SUM(${refunds.amount}::numeric), 0)`,
+      pending: sql<number>`COUNT(CASE WHEN ${refunds.status} = 'pending' THEN 1 END)`,
+      approved: sql<number>`COUNT(CASE WHEN ${refunds.status} = 'approved' THEN 1 END)`,
+      completed: sql<number>`COUNT(CASE WHEN ${refunds.status} = 'completed' THEN 1 END)`,
+      rejected: sql<number>`COUNT(CASE WHEN ${refunds.status} = 'rejected' THEN 1 END)`,
+    })
+    .from(refunds)
+    .where(and(
+      eq(refunds.storeId, storeId),
+      gte(refunds.createdAt, from),
+      lte(refunds.createdAt, to)
+    ));
+
+  return {
+    total: Number(stats?.total || 0),
+    totalAmount: Number(stats?.totalAmount || 0),
+    pending: Number(stats?.pending || 0),
+    approved: Number(stats?.approved || 0),
+    completed: Number(stats?.completed || 0),
+    rejected: Number(stats?.rejected || 0),
+  };
+});
+
+export const getStoreCreditStats = cache(async (storeId: string) => {
+  const [stats] = await db
+    .select({
+      totalIssued: sql<number>`COALESCE(SUM(CASE WHEN ${customerCreditTransactions.type} = 'credit' THEN ${customerCreditTransactions.amount}::numeric ELSE 0 END), 0)`,
+      totalUsed: sql<number>`COALESCE(SUM(CASE WHEN ${customerCreditTransactions.type} = 'debit' THEN ABS(${customerCreditTransactions.amount}::numeric) ELSE 0 END), 0)`,
+      transactions: sql<number>`COUNT(*)`,
+    })
+    .from(customerCreditTransactions)
+    .where(eq(customerCreditTransactions.storeId, storeId));
+
+  // Get total outstanding balance from customers
+  const [balanceStats] = await db
+    .select({
+      outstandingBalance: sql<number>`COALESCE(SUM(${customers.creditBalance}::numeric), 0)`,
+      customersWithCredit: sql<number>`COUNT(CASE WHEN ${customers.creditBalance}::numeric > 0 THEN 1 END)`,
+    })
+    .from(customers)
+    .where(eq(customers.storeId, storeId));
+
+  return {
+    totalIssued: Number(stats?.totalIssued || 0),
+    totalUsed: Number(stats?.totalUsed || 0),
+    outstandingBalance: Number(balanceStats?.outstandingBalance || 0),
+    customersWithCredit: Number(balanceStats?.customersWithCredit || 0),
+    transactions: Number(stats?.transactions || 0),
+  };
+});
+
+// ============ INVENTORY REPORTS ============
+
+export const getInventoryStats = cache(async (storeId: string) => {
+  const [stats] = await db
+    .select({
+      totalProducts: sql<number>`COUNT(*)`,
+      totalInventory: sql<number>`COALESCE(SUM(${products.inventory}), 0)`,
+      lowStock: sql<number>`COUNT(CASE WHEN ${products.inventory} > 0 AND ${products.inventory} <= 5 AND ${products.trackInventory} = true THEN 1 END)`,
+      outOfStock: sql<number>`COUNT(CASE WHEN ${products.inventory} = 0 AND ${products.trackInventory} = true THEN 1 END)`,
+      tracked: sql<number>`COUNT(CASE WHEN ${products.trackInventory} = true THEN 1 END)`,
+    })
+    .from(products)
+    .where(and(
+      eq(products.storeId, storeId),
+      eq(products.isActive, true)
+    ));
+
+  return {
+    totalProducts: Number(stats?.totalProducts || 0),
+    totalInventory: Number(stats?.totalInventory || 0),
+    lowStock: Number(stats?.lowStock || 0),
+    outOfStock: Number(stats?.outOfStock || 0),
+    tracked: Number(stats?.tracked || 0),
+  };
+});
+
+export const getLowStockProducts = cache(async (
+  storeId: string,
+  threshold = 5,
+  limit = 20
+) => {
+  const result = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      sku: products.sku,
+      inventory: products.inventory,
+      image: productImages.url,
+    })
+    .from(products)
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
+    .where(and(
+      eq(products.storeId, storeId),
+      eq(products.isActive, true),
+      eq(products.trackInventory, true),
+      sql`${products.inventory} <= ${threshold}`
+    ))
+    .orderBy(asc(products.inventory))
+    .limit(limit);
+
+  return result;
+});
+
+// ============ COMBINED DASHBOARD ============
+
+export const getReportsDashboard = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  // Run all queries in parallel for maximum speed
+  const [
+    salesOverview,
+    salesByDay,
+    topProducts,
+    trafficSources,
+    conversionFunnel,
+    customerSegments,
+    inventoryStats,
+  ] = await Promise.all([
+    getSalesOverview(storeId, period, customRange),
+    getSalesByDay(storeId, period, customRange),
+    getTopProducts(storeId, period, 5, customRange),
+    getTrafficSources(storeId, period, customRange),
+    getConversionFunnel(storeId, period, customRange),
+    getCustomerSegments(storeId),
+    getInventoryStats(storeId),
+  ]);
+
+  return {
+    salesOverview,
+    salesByDay,
+    topProducts,
+    trafficSources,
+    conversionFunnel,
+    customerSegments,
+    inventoryStats,
+  };
+});
+

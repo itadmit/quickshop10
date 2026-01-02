@@ -1,0 +1,764 @@
+'use client';
+
+import { useState } from 'react';
+
+// ============================================
+// Section Settings - Right Panel (Shopify Style) - עברית
+// ============================================
+
+interface Section {
+  id: string;
+  type: string;
+  title: string | null;
+  subtitle: string | null;
+  content: Record<string, unknown>;
+  settings: Record<string, unknown>;
+}
+
+interface SectionSettingsProps {
+  section: Section;
+  onUpdate: (updates: Partial<Section>) => void;
+  onRemove: () => void;
+}
+
+export function SectionSettings({ section, onUpdate, onRemove }: SectionSettingsProps) {
+  const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
+
+  const getSectionTitle = () => {
+    const titles: Record<string, string> = {
+      hero: 'באנר ראשי',
+      categories: 'רשימת קטגוריות',
+      products: 'מוצרים נבחרים',
+      newsletter: 'ניוזלטר',
+      video_banner: 'באנר וידאו',
+      split_banner: 'תמונה עם טקסט',
+    };
+    return titles[section.type] || 'סקשן';
+  };
+
+  return (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Header with tabs */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900">{getSectionTitle()}</h3>
+          <button className="p-1 hover:bg-gray-100 rounded">
+            <MoreIcon />
+          </button>
+        </div>
+        
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('content')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'content' ? 'bg-white shadow-sm' : 'text-gray-600'
+            }`}
+          >
+            תוכן
+          </button>
+          <button
+            onClick={() => setActiveTab('design')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'design' ? 'bg-white shadow-sm' : 'text-gray-600'
+            }`}
+          >
+            עיצוב
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-auto">
+        {activeTab === 'content' ? (
+          <ContentSettings section={section} onUpdate={onUpdate} />
+        ) : (
+          <DesignSettings section={section} onUpdate={onUpdate} />
+        )}
+      </div>
+
+      {/* Remove Section */}
+      <div className="p-4 border-t border-gray-200">
+        <button
+          onClick={onRemove}
+          className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+        >
+          <TrashIcon />
+          <span className="text-sm">הסר סקשן</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Content Settings (varies by section type)
+function ContentSettings({ 
+  section, 
+  onUpdate 
+}: { 
+  section: Section; 
+  onUpdate: (updates: Partial<Section>) => void;
+}) {
+  const handleTitleChange = (value: string) => {
+    onUpdate({ title: value || null });
+  };
+
+  const handleSubtitleChange = (value: string) => {
+    onUpdate({ subtitle: value || null });
+  };
+
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({
+      content: { ...section.content, [key]: value }
+    });
+  };
+
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({
+      settings: { ...section.settings, [key]: value }
+    });
+  };
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* Section Header */}
+      <SettingsGroup title="כותרת סקשן">
+        <TextField
+          label="כותרת"
+          value={section.title || ''}
+          onChange={handleTitleChange}
+          placeholder="הזן כותרת"
+        />
+        <TextField
+          label="תת-כותרת"
+          value={section.subtitle || ''}
+          onChange={handleSubtitleChange}
+          multiline
+          placeholder="הזן תת-כותרת"
+        />
+        <TextField
+          label="תיאור"
+          value={(section.content.description as string) || ''}
+          onChange={(v) => updateContent('description', v)}
+          multiline
+          placeholder="הזן תיאור"
+        />
+        <ToggleField
+          label="יישור טקסט"
+          options={['שמאל', 'מרכז']}
+          value={(section.settings.textAlign as string) === 'Left' ? 'שמאל' : 'מרכז'}
+          onChange={(v) => updateSettings('textAlign', v === 'שמאל' ? 'Left' : 'Center')}
+        />
+      </SettingsGroup>
+
+      {/* Type-specific content */}
+      {section.type === 'hero' && (
+        <HeroContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'categories' && (
+        <CategoriesContentSettings />
+      )}
+      {section.type === 'products' && (
+        <ProductsContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'newsletter' && (
+        <NewsletterContentSettings section={section} onUpdate={onUpdate} />
+      )}
+    </div>
+  );
+}
+
+// Design Settings
+function DesignSettings({ 
+  section, 
+  onUpdate 
+}: { 
+  section: Section; 
+  onUpdate: (updates: Partial<Section>) => void;
+}) {
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({
+      settings: { ...section.settings, [key]: value }
+    });
+  };
+
+  return (
+    <div className="p-4 space-y-6">
+      {/* General */}
+      <SettingsGroup title="כללי">
+        <SelectField
+          label="סוג מיכל"
+          value={(section.settings.containerType as string) || 'container'}
+          options={[
+            { value: 'container', label: 'תיבה עם שוליים' },
+            { value: 'full', label: 'רוחב מלא' },
+          ]}
+          onChange={(v) => updateSettings('containerType', v)}
+        />
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+        <SelectField
+          label="פריסה"
+          value={(section.settings.layout as string) || 'standard'}
+          options={[
+            { value: 'standard', label: 'סטנדרטי' },
+            { value: 'grid', label: 'גריד' },
+            { value: 'slider', label: 'סליידר' },
+          ]}
+          onChange={(v) => updateSettings('layout', v)}
+        />
+      </SettingsGroup>
+
+      {/* Card Settings */}
+      {(section.type === 'categories' || section.type === 'products') && (
+        <SettingsGroup title="הגדרות כרטיס">
+          <SelectField
+            label="סגנון כרטיס"
+            value={(section.settings.cardStyle as string) || 'standard'}
+            options={[
+              { value: 'standard', label: 'סטנדרטי' },
+              { value: 'minimal', label: 'מינימלי' },
+              { value: 'overlay', label: 'עם שכבה' },
+            ]}
+            onChange={(v) => updateSettings('cardStyle', v)}
+          />
+          <SelectField
+            label="אפקט ריחוף"
+            value={(section.settings.hoverEffect as string) || 'scale'}
+            options={[
+              { value: 'none', label: 'ללא' },
+              { value: 'scale', label: 'הקטנה' },
+              { value: 'zoom', label: 'זום' },
+              { value: 'lift', label: 'הרמה' },
+            ]}
+            onChange={(v) => updateSettings('hoverEffect', v)}
+          />
+          <SwitchField
+            label="הצג מספר מוצרים"
+            value={(section.settings.showProductCount as boolean) || false}
+            onChange={(v) => updateSettings('showProductCount', v)}
+          />
+          <SwitchField
+            label="תמונות מעוגלות"
+            description="לא עובד טוב עם פריסת 'תוכן בפנים'"
+            value={(section.settings.imageRounded as boolean) || false}
+            onChange={(v) => updateSettings('imageRounded', v)}
+          />
+        </SettingsGroup>
+      )}
+
+      {/* Grid Settings */}
+      <SettingsGroup title="הגדרות גריד">
+        <SliderField
+          label="פריטים בשורה"
+          value={(section.settings.columns as number) || 4}
+          min={1}
+          max={6}
+          onChange={(v) => updateSettings('columns', v)}
+        />
+        <SwitchField
+          label="הפעל סליידר"
+          value={(section.settings.enableSlider as boolean) || false}
+          onChange={(v) => updateSettings('enableSlider', v)}
+        />
+        <SwitchField
+          label="הצג עימוד"
+          value={(section.settings.showPagination as boolean) || false}
+          onChange={(v) => updateSettings('showPagination', v)}
+        />
+        <SwitchField
+          label="הצג ניווט"
+          value={(section.settings.showNavigation as boolean) || false}
+          onChange={(v) => updateSettings('showNavigation', v)}
+        />
+      </SettingsGroup>
+
+      {/* Mobile Settings */}
+      <SettingsGroup title="הגדרות מובייל">
+        <SwitchField
+          label="השבת סליידר"
+          value={(section.settings.mobileDisableSlider as boolean) || false}
+          onChange={(v) => updateSettings('mobileDisableSlider', v)}
+        />
+        <SwitchField
+          label="גלילה אופקית"
+          description="בטל לתצוגת גריד"
+          value={(section.settings.mobileHorizontalScroll as boolean) || false}
+          onChange={(v) => updateSettings('mobileHorizontalScroll', v)}
+        />
+        <SliderField
+          label="רווח עמודות"
+          value={(section.settings.mobileColumnGap as number) || 10}
+          min={0}
+          max={30}
+          suffix="px"
+          onChange={(v) => updateSettings('mobileColumnGap', v)}
+        />
+      </SettingsGroup>
+
+      {/* Section Padding */}
+      <SettingsGroup title="ריווח סקשן">
+        <SliderField
+          label="ריווח עליון"
+          value={(section.settings.paddingTop as number) || 0}
+          min={0}
+          max={100}
+          suffix="px"
+          onChange={(v) => updateSettings('paddingTop', v)}
+        />
+        <SliderField
+          label="ריווח תחתון"
+          value={(section.settings.paddingBottom as number) || 0}
+          min={0}
+          max={100}
+          suffix="px"
+          onChange={(v) => updateSettings('paddingBottom', v)}
+        />
+      </SettingsGroup>
+
+      {/* Custom CSS */}
+      <CollapsibleGroup title="CSS מותאם">
+        <p className="text-xs text-gray-500 mb-2">
+          הוסף סגנונות מותאמים <strong>לסקשן זה בלבד</strong>.
+        </p>
+        <textarea
+          value={(section.settings.customCss as string) || ''}
+          onChange={(e) => updateSettings('customCss', e.target.value)}
+          className="w-full h-24 p-3 text-xs font-mono bg-gray-50 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-blue-500"
+          placeholder="h2 {
+  font-size: 32px;
+}"
+          dir="ltr"
+        />
+      </CollapsibleGroup>
+    </div>
+  );
+}
+
+// Type-specific content settings
+function HeroContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="מדיה">
+        <ImageField
+          label="תמונה"
+          value={(section.content.imageUrl as string) || ''}
+          onChange={(v) => updateContent('imageUrl', v)}
+        />
+        <SliderField
+          label="שקיפות שכבה"
+          value={Math.round(((section.settings.overlay as number) || 0.3) * 100)}
+          min={0}
+          max={100}
+          suffix="%"
+          onChange={(v) => updateSettings('overlay', v / 100)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="כפתור">
+        <TextField
+          label="טקסט כפתור"
+          value={(section.content.buttonText as string) || ''}
+          onChange={(v) => updateContent('buttonText', v)}
+          placeholder="לחנות"
+        />
+        <TextField
+          label="קישור כפתור"
+          value={(section.content.buttonLink as string) || ''}
+          onChange={(v) => updateContent('buttonLink', v)}
+          placeholder="/products"
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+function CategoriesContentSettings() {
+  return (
+    <SettingsGroup title="קטגוריות">
+      <p className="text-sm text-gray-500">
+        הקטגוריות נטענות אוטומטית מהחנות שלך.
+      </p>
+    </SettingsGroup>
+  );
+}
+
+function ProductsContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+
+  return (
+    <SettingsGroup title="מוצרים">
+      <SelectField
+        label="הצג מוצרים"
+        value={(section.content.type as string) || 'all'}
+        options={[
+          { value: 'all', label: 'כל המוצרים' },
+          { value: 'featured', label: 'מוצרים מובחרים' },
+        ]}
+        onChange={(v) => updateContent('type', v)}
+      />
+      <SliderField
+        label="כמות להצגה"
+        value={(section.content.limit as number) || 8}
+        min={1}
+        max={24}
+        onChange={(v) => updateContent('limit', v)}
+      />
+    </SettingsGroup>
+  );
+}
+
+function NewsletterContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+
+  return (
+    <SettingsGroup title="טופס">
+      <TextField
+        label="טקסט placeholder"
+        value={(section.content.placeholder as string) || ''}
+        onChange={(v) => updateContent('placeholder', v)}
+        placeholder="כתובת אימייל"
+      />
+      <TextField
+        label="טקסט כפתור"
+        value={(section.content.buttonText as string) || ''}
+        onChange={(v) => updateContent('buttonText', v)}
+        placeholder="הרשמה"
+      />
+    </SettingsGroup>
+  );
+}
+
+// UI Components
+function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-3">
+      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</h4>
+      {children}
+    </div>
+  );
+}
+
+function CollapsibleGroup({ 
+  title, 
+  children, 
+  defaultOpen = false 
+}: { 
+  title: string; 
+  children: React.ReactNode; 
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="border-t border-gray-100 pt-4">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between py-1"
+      >
+        <h4 className="text-sm font-medium text-gray-900">{title}</h4>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        >
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      {isOpen && <div className="mt-3 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
+function TextField({
+  label,
+  value,
+  onChange,
+  multiline,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  multiline?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      {multiline ? (
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-blue-500"
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+        />
+      )}
+    </div>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <label className="text-sm text-gray-700">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+      >
+        {options.map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function ToggleField({
+  label,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <label className="text-sm text-gray-700">{label}</label>
+      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+        {options.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => onChange(opt)}
+            className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+              value === opt 
+                ? 'bg-gray-900 text-white' 
+                : 'bg-white text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function SwitchField({
+  label,
+  description,
+  value,
+  onChange,
+}: {
+  label: string;
+  description?: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start justify-between">
+      <div>
+        <label className="text-sm text-gray-700">{label}</label>
+        {description && (
+          <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+        )}
+      </div>
+      <button
+        onClick={() => onChange(!value)}
+        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+          value ? 'bg-blue-500' : 'bg-gray-200'
+        }`}
+      >
+        <div
+          className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
+            value ? 'right-1' : 'left-1'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+function SliderField({
+  label,
+  value,
+  min,
+  max,
+  suffix,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  suffix?: string;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <label className="text-sm text-gray-700 shrink-0">{label}</label>
+      <div className="flex items-center gap-3 flex-1">
+        <input
+          type="range"
+          min={min}
+          max={max}
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="flex-1 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-500"
+          dir="ltr"
+        />
+        <div className="flex items-center gap-1 w-16">
+          <input
+            type="number"
+            min={min}
+            max={max}
+            value={value}
+            onChange={(e) => onChange(Number(e.target.value))}
+            className="w-12 px-2 py-1 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-blue-500"
+            dir="ltr"
+          />
+          {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between">
+      <label className="text-sm text-gray-700">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value === 'transparent' ? '#ffffff' : value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
+        />
+        <span className="text-xs text-gray-500">
+          {value === 'transparent' ? 'שקוף' : value}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ImageField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      {value ? (
+        <div className="relative group">
+          <img
+            src={value}
+            alt=""
+            className="w-full h-32 object-cover rounded-lg border border-gray-200"
+          />
+          <button
+            onClick={() => onChange('')}
+            className="absolute top-2 left-2 p-1 bg-white/90 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <TrashIcon />
+          </button>
+        </div>
+      ) : (
+        <div>
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="הזן URL של תמונה"
+            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 mb-2"
+          />
+          <button className="w-full h-24 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors">
+            <UploadIcon />
+            <span className="text-xs text-gray-500 mt-2">בחר תמונה</span>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Icons
+function MoreIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+      <circle cx="5" cy="12" r="1" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500">
+      <path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+    </svg>
+  );
+}
