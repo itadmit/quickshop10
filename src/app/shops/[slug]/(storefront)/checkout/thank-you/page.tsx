@@ -20,6 +20,7 @@ import { PurchaseTracking } from '@/components/purchase-tracking';
 import { ClearCartOnLoad } from './clear-cart';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
+import { ProductImage } from '@/components/product-image';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
@@ -522,21 +523,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 return (
                 <div key={item.id} className="flex gap-4">
                   <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
-                    {imageUrl ? (
-                      <img 
-                        src={imageUrl} 
-                        alt={item.name || ''} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`w-full h-full flex items-center justify-center text-gray-400 text-2xl ${imageUrl ? 'hidden' : ''}`}>
-                      📦
-                    </div>
+                    <ProductImage 
+                      src={imageUrl}
+                      alt={item.name || ''}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
