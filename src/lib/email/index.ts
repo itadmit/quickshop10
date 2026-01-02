@@ -190,9 +190,10 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
       <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
         <div style="display: flex; gap: 12px; direction: rtl; align-items: center;">
           <div style="flex: 1; text-align: right;">
-            <p style="margin: 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
-            ${item.variantTitle ? `<p style="margin: 4px 0 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
-            <p style="margin: 4px 0 0; font-size: 14px; color: #666;">כמות: ${item.quantity} × ₪${item.price.toFixed(0)}</p>
+            <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
+            ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
+            <p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">כמות: ${item.quantity} × ₪${item.price.toFixed(0)}</p>
+            <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">סה״כ: ₪${(item.price * item.quantity).toFixed(0)}</p>
           </div>
           ${imageUrl ? `
           <div style="flex-shrink: 0;">
@@ -205,8 +206,8 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
           `}
         </div>
       </td>
-      <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0; text-align: left; vertical-align: top; white-space: nowrap; width: 100px;">
-        <span style="font-weight: 600; font-size: 16px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+      <td style="padding: 16px 0 16px 16px; border-bottom: 1px solid #f0f0f0; text-align: left; vertical-align: top; white-space: nowrap; width: 120px;">
+        <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
       </td>
     </tr>
   `;
@@ -268,36 +269,36 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
           </table>
           
           <div class="summary">
-            <div class="summary-row">
+            <div class="summary-row" style="margin-bottom: 12px;">
               <span style="color: #666;">סכום ביניים</span>
-              <span>₪${subtotal.toFixed(0)}</span>
+              <span style="font-weight: 500;">₪${subtotal.toFixed(0)}</span>
             </div>
             ${shippingAmount > 0 ? `
-            <div class="summary-row">
+            <div class="summary-row" style="margin-bottom: 12px;">
               <span style="color: #666;">משלוח</span>
-              <span>₪${shippingAmount.toFixed(0)}</span>
+              <span style="font-weight: 500;">₪${shippingAmount.toFixed(0)}</span>
             </div>
             ` : `
-            <div class="summary-row">
+            <div class="summary-row" style="margin-bottom: 12px;">
               <span style="color: #666;">משלוח</span>
-              <span style="color: #22c55e;">חינם</span>
+              <span style="color: #22c55e; font-weight: 500;">חינם</span>
             </div>
             `}
             ${discountAmount > 0 ? `
-            <div class="summary-row" style="color: #22c55e;">
+            <div class="summary-row" style="color: #22c55e; margin-bottom: 12px;">
               <span>הנחה</span>
-              <span>-₪${discountAmount.toFixed(0)}</span>
+              <span style="font-weight: 500;">-₪${discountAmount.toFixed(0)}</span>
             </div>
             ` : ''}
             ${creditUsed > 0 ? `
-            <div class="summary-row" style="color: #22c55e;">
+            <div class="summary-row" style="color: #22c55e; margin-bottom: 12px;">
               <span>קרדיט</span>
-              <span>-₪${creditUsed.toFixed(0)}</span>
+              <span style="font-weight: 500;">-₪${creditUsed.toFixed(0)}</span>
             </div>
             ` : ''}
-            <div class="summary-row total">
-              <span>סה״כ</span>
-              <span>₪${total.toFixed(0)}</span>
+            <div class="summary-row total" style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #ddd;">
+              <span style="font-size: 20px;">סה״כ</span>
+              <span style="font-size: 20px;">₪${total.toFixed(0)}</span>
             </div>
           </div>
           

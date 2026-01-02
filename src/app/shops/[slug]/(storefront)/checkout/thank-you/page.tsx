@@ -130,6 +130,10 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
       .where(eq(orders.orderNumber, orderReference))
       .limit(1);
     order = existingOrder;
+    
+    if (order) {
+      console.log(`Thank you page: Found existing order ${order.orderNumber}, skipping order creation`);
+    }
   }
   
   // If no order found, check pending payments and create order
