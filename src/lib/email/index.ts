@@ -142,6 +142,7 @@ interface OrderConfirmationData {
   subtotal: number;
   shippingAmount: number;
   discountAmount: number;
+  creditUsed?: number;
   total: number;
   shippingAddress?: {
     address?: string;
@@ -168,6 +169,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     subtotal,
     shippingAmount,
     discountAmount,
+    creditUsed = 0,
     total,
     shippingAddress,
     storeName,
@@ -267,6 +269,12 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
             <div class="summary-row" style="color: #22c55e;">
               <span>הנחה</span>
               <span>-₪${discountAmount.toFixed(0)}</span>
+            </div>
+            ` : ''}
+            ${creditUsed > 0 ? `
+            <div class="summary-row" style="color: #22c55e;">
+              <span>קרדיט</span>
+              <span>-₪${creditUsed.toFixed(0)}</span>
             </div>
             ` : ''}
             <div class="summary-row total">

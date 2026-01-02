@@ -10,7 +10,7 @@
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -172,7 +172,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
       const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
       const discountAmount = Number(pendingPayment.discountAmount) || 0;
-      const totalAmount = subtotal + shippingCost - discountAmount;
+      const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
+      const giftCardCode = (orderData as { giftCardCode?: string })?.giftCardCode;
+      const giftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
+      // Note: giftCardAmount is already included in discountAmount, so we don't subtract it twice
+      const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
       
       // Create order
       const [newOrder] = await db.insert(orders).values({
@@ -184,6 +188,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         fulfillmentStatus: 'unfulfilled',
         subtotal: String(subtotal),
         discountAmount: String(discountAmount),
+        creditUsed: String(creditUsed),
         shippingAmount: String(shippingCost),
         taxAmount: '0',
         total: String(totalAmount),
@@ -238,6 +243,45 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         await decrementInventory(cartItems);
       }
       
+      // Handle gift card if used
+      if (giftCardCode && giftCardAmount > 0) {
+        const [giftCard] = await db
+          .select()
+          .from(giftCards)
+          .where(
+            and(
+              eq(giftCards.storeId, store.id),
+              eq(giftCards.code, giftCardCode),
+              eq(giftCards.status, 'active')
+            )
+          )
+          .limit(1);
+        
+        if (giftCard) {
+          const currentBalance = Number(giftCard.currentBalance) || 0;
+          const newBalance = Math.max(0, currentBalance - giftCardAmount);
+          
+          // Update gift card balance
+          await db
+            .update(giftCards)
+            .set({
+              currentBalance: newBalance.toFixed(2),
+              lastUsedAt: new Date(),
+              status: newBalance <= 0 ? 'used' : 'active',
+            })
+            .where(eq(giftCards.id, giftCard.id));
+          
+          // Create gift card transaction
+          await db.insert(giftCardTransactions).values({
+            giftCardId: giftCard.id,
+            orderId: newOrder.id,
+            amount: (-giftCardAmount).toFixed(2),
+            balanceAfter: newBalance.toFixed(2),
+            note: `הזמנה #${orderNumber}`,
+          });
+        }
+      }
+      
       // Update pending payment status
       await db
         .update(pendingPayments)
@@ -262,6 +306,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         subtotal,
         shippingAmount: shippingCost,
         discountAmount,
+        creditUsed,
         total: totalAmount,
         shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
         storeName: store.name,

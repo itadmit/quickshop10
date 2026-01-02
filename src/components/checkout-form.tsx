@@ -313,14 +313,25 @@ export function CheckoutForm({
   const afterAutoDiscounts = cartTotal - memberDiscount - autoProductDiscount;
   const hasFreeShipping = appliedCoupons.some(c => c.type === 'free_shipping');
   
+  // Find gift card if used
+  const giftCardCoupon = appliedCoupons.find(c => c.type === 'gift_card');
+  
   // Calculate total coupon discount
   let couponDiscount = 0;
+  let giftCardAmount = 0;
   let remainingAmount = afterAutoDiscounts;
   for (const coupon of appliedCoupons) {
     if (coupon.type === 'percentage') {
       couponDiscount += (remainingAmount * coupon.value) / 100;
+      remainingAmount -= (remainingAmount * coupon.value) / 100;
     } else if (coupon.type === 'fixed_amount') {
       couponDiscount += Math.min(coupon.value, remainingAmount);
+      remainingAmount -= Math.min(coupon.value, remainingAmount);
+    } else if (coupon.type === 'gift_card') {
+      const giftCardDiscount = Math.min(coupon.value, remainingAmount);
+      giftCardAmount = giftCardDiscount;
+      couponDiscount += giftCardDiscount;
+      remainingAmount -= giftCardDiscount;
     }
     // free_shipping doesn't reduce price, just affects shipping
   }
@@ -395,6 +406,10 @@ export function CheckoutForm({
                   sku: item.productId,
                   image: item.image,
                 })),
+                shipping: {
+                  method: shippingSettings.rates[0]?.name || 'משלוח',
+                  cost: shippingAfterDiscount,
+                },
                 shippingAddress: {
                   firstName: formData.firstName,
                   lastName: formData.lastName,
@@ -408,11 +423,27 @@ export function CheckoutForm({
                   zipCode: formData.zipCode || undefined,
                   phone: formData.phone,
                 },
+                billingAddress: {
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  address: buildFullAddress(),
+                  city: formData.city,
+                  zipCode: formData.zipCode || undefined,
+                  phone: formData.phone,
+                },
                 notes: formData.notes,
                 acceptsMarketing: formData.acceptsMarketing,
                 createAccount: formData.createAccount,
                 password: formData.password,
                 creditUsed,
+                giftCardCode: giftCardCoupon?.code,
+                giftCardAmount,
+                autoDiscounts: autoDiscounts.map(d => ({
+                  id: d.id,
+                  name: d.name,
+                  type: d.type,
+                  value: d.value,
+                })),
               },
             }),
           });

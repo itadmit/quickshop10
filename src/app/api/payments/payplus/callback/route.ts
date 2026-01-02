@@ -16,6 +16,8 @@ import {
   orderItems,
   customers,
   paymentProviders,
+  giftCards,
+  giftCardTransactions,
 } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getConfiguredProvider } from '@/lib/payments';
@@ -80,7 +82,11 @@ async function createOrderFromPendingPayment(
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
   const discountAmount = Number(pendingPayment.discountAmount) || 0;
-  const totalAmount = subtotal + shippingCost - discountAmount;
+  const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
+  const giftCardCode = (orderData as { giftCardCode?: string })?.giftCardCode;
+  const giftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
+  // Note: giftCardAmount is already included in discountAmount, so we don't subtract it twice
+  const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
   
   // Create order
   const [order] = await db.insert(orders).values({
@@ -92,6 +98,7 @@ async function createOrderFromPendingPayment(
     fulfillmentStatus: 'unfulfilled',
     subtotal: String(subtotal),
     discountAmount: String(discountAmount),
+    creditUsed: String(creditUsed),
     shippingAmount: String(shippingCost),
     taxAmount: '0',
     total: String(totalAmount),
@@ -144,6 +151,45 @@ async function createOrderFromPendingPayment(
         imageUrl: item.image || null,
       }))
     );
+  }
+  
+  // Handle gift card if used
+  if (giftCardCode && giftCardAmount > 0) {
+    const [giftCard] = await db
+      .select()
+      .from(giftCards)
+      .where(
+        and(
+          eq(giftCards.storeId, pendingPayment.storeId),
+          eq(giftCards.code, giftCardCode),
+          eq(giftCards.status, 'active')
+        )
+      )
+      .limit(1);
+    
+    if (giftCard) {
+      const currentBalance = Number(giftCard.currentBalance) || 0;
+      const newBalance = Math.max(0, currentBalance - giftCardAmount);
+      
+      // Update gift card balance
+      await db
+        .update(giftCards)
+        .set({
+          currentBalance: newBalance.toFixed(2),
+          lastUsedAt: new Date(),
+          status: newBalance <= 0 ? 'used' : 'active',
+        })
+        .where(eq(giftCards.id, giftCard.id));
+      
+      // Create gift card transaction
+      await db.insert(giftCardTransactions).values({
+        giftCardId: giftCard.id,
+        orderId: order.id,
+        amount: (-giftCardAmount).toFixed(2),
+        balanceAfter: newBalance.toFixed(2),
+        note: `הזמנה #${orderNumber}`,
+      });
+    }
   }
   
   return order;
@@ -265,6 +311,25 @@ export async function POST(request: NextRequest) {
     
     // Handle successful payment
     if (parsed.success) {
+      // Validate amount matches (security check)
+      const orderData = pendingPayment.orderData as Record<string, unknown>;
+      const cartItems = pendingPayment.cartItems as Array<{
+        price: number;
+        quantity: number;
+      }>;
+      const calculatedSubtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
+      const discountAmount = Number(pendingPayment.discountAmount) || 0;
+      const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
+      const calculatedTotal = calculatedSubtotal + shippingCost - discountAmount - creditUsed;
+      
+      // Allow small rounding differences (0.01)
+      const amountDifference = Math.abs(parsed.amount - calculatedTotal);
+      if (amountDifference > 0.01) {
+        console.error(`PayPlus callback: Amount mismatch! Expected ${calculatedTotal}, got ${parsed.amount}`);
+        // Still create order but log the discrepancy
+      }
+      
       // Create order
       const order = await createOrderFromPendingPayment(
         pendingPayment,
