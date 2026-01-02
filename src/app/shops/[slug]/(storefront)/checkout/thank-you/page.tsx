@@ -283,8 +283,10 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           }))
         );
         
-        // Decrement inventory
-        await decrementInventory(cartItems);
+        // Decrement inventory (non-blocking for speed - fire and forget)
+        decrementInventory(cartItems).catch(err => {
+          console.error('Failed to decrement inventory:', err);
+        });
       }
       
       // Handle gift card if used
@@ -373,19 +375,25 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         cartItems.length
       );
       
-      // Check for low stock and emit events
-      for (const item of cartItems) {
-        // Get current inventory
-        const [product] = await db
-          .select({ id: products.id, name: products.name, inventory: products.inventory })
-          .from(products)
-          .where(eq(products.id, item.productId))
-          .limit(1);
-        
-        if (product && product.inventory !== null) {
-          emitLowStock(store.id, product.id, product.name, product.inventory);
-        }
-      }
+      // Check for low stock and emit events (non-blocking, fire-and-forget)
+      Promise.all(
+        cartItems.map(async (item) => {
+          if (!item.productId) return;
+          try {
+            const [product] = await db
+              .select({ id: products.id, name: products.name, inventory: products.inventory })
+              .from(products)
+              .where(eq(products.id, item.productId))
+              .limit(1);
+            
+            if (product && product.inventory !== null) {
+              emitLowStock(store.id, product.id, product.name, product.inventory);
+            }
+          } catch (err) {
+            console.error('Failed to check low stock:', err);
+          }
+        })
+      ).catch(err => console.error('Failed to check low stock:', err));
       
       order = newOrder;
       isNewOrder = true;
