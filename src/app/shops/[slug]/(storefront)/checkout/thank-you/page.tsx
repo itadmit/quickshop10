@@ -133,6 +133,13 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     
     if (order) {
       console.log(`Thank you page: Found existing order ${order.orderNumber}, skipping order creation`);
+      // Check if inventory was decremented by checking order items
+      const orderItemsCheck = await db
+        .select()
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id))
+        .limit(1);
+      console.log(`Thank you page: Order has ${orderItemsCheck.length} items`);
     }
   }
   
