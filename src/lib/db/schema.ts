@@ -998,6 +998,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   stores: many(stores),
   sessions: many(sessions),
   accounts: many(accounts),
+  storeMemberships: many(storeMembers),
 }));
 
 export const storesRelations = relations(stores, ({ one, many }) => ({
