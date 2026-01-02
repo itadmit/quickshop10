@@ -537,14 +537,42 @@ export async function POST(request: NextRequest) {
       const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
       const calculatedTotal = calculatedSubtotal + shippingCost - discountAmount - creditUsed;
       
-      // Allow small rounding differences (0.01)
+      // SECURITY: Validate amount matches (critical for payment security)
+      // Allow small rounding differences (0.01) for floating point precision
       const amountDifference = Math.abs(parsed.amount - calculatedTotal);
       if (amountDifference > 0.01) {
-        console.error(`PayPlus callback: Amount mismatch! Expected ${calculatedTotal}, got ${parsed.amount}`);
-        // Still create order but log the discrepancy
+        console.error(`PayPlus callback: SECURITY WARNING - Amount mismatch! Expected ${calculatedTotal}, got ${parsed.amount}`);
+        // In production, reject mismatched amounts to prevent fraud
+        if (process.env.NODE_ENV === 'production') {
+          return NextResponse.json({ 
+            success: false, 
+            error: 'Amount mismatch - payment rejected for security' 
+          }, { status: 400 });
+        }
+        // In development, log but continue (for testing)
+        console.warn('PayPlus callback: Continuing in development mode despite amount mismatch');
       }
       
-      // Create order
+      // SECURITY: Check if order already exists (idempotency - prevent duplicate orders)
+      if (pendingPayment.orderId) {
+        const existingOrder = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.id, pendingPayment.orderId))
+          .limit(1);
+        
+        if (existingOrder.length > 0) {
+          console.log(`PayPlus callback: Order already exists: ${pendingPayment.orderId}, returning existing order`);
+          return NextResponse.json({
+            success: true,
+            orderId: existingOrder[0].id,
+            orderNumber: existingOrder[0].orderNumber,
+            alreadyExists: true,
+          });
+        }
+      }
+      
+      // Create order (only after all security validations pass)
       const order = await createOrderFromPendingPayment(
         pendingPayment,
         parsed.providerTransactionId,
