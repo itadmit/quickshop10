@@ -167,6 +167,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         price: number;
         sku?: string;
         image?: string;
+        imageUrl?: string; // Some items might have imageUrl instead of image
       }>;
       
       // Generate numeric order number from store counter (starts at 1000)
@@ -264,7 +265,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             price: String(item.price),
             quantity: item.quantity,
             total: String(item.price * item.quantity),
-            imageUrl: item.image || null,
+            imageUrl: item.image || item.imageUrl || null,
           }))
         );
         

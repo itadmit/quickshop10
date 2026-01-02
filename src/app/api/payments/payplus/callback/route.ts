@@ -96,6 +96,7 @@ async function createOrderFromPendingPayment(
     price: number;
     sku?: string;
     image?: string;
+    imageUrl?: string; // Some items might have imageUrl instead of image
   }>;
   
   // Get store for order counter
@@ -204,7 +205,7 @@ async function createOrderFromPendingPayment(
         price: String(item.price),
         quantity: item.quantity,
         total: String(item.price * item.quantity),
-        imageUrl: item.image || null,
+            imageUrl: item.image || item.imageUrl || null,
       }))
     );
     
