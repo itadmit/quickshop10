@@ -1014,6 +1014,8 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
   events: many(storeEvents),
   notifications: many(notifications),
   webhooks: many(webhooks),
+  members: many(storeMembers),
+  teamInvitations: many(teamInvitations),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
