@@ -64,12 +64,12 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
 
   const generateSlug = (name: string) => {
     return name
-      .toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^\w\-]+/g, '')
-      .replace(/\-\-+/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '');
+      .trim()
+      .replace(/[\s\u200B-\u200D\uFEFF\u00A0\u2000-\u200A\u2028\u2029]+/g, '-') // All types of spaces
+      .replace(/[.,;:!?()[\]{}'"`~@#$%^&*+=|\\<>\/]+/g, '-') // Punctuation marks
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Control characters
+      .replace(/-+/g, '-') // Clean up multiple dashes
+      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
   };
 
   const handleNameChange = (name: string) => {

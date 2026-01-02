@@ -30,7 +30,7 @@ export async function createCategory(storeId: string, data: CategoryData) {
     await db.insert(categories).values({
       storeId,
       name: data.name,
-      slug: data.slug || data.name.toLowerCase().replace(/\s+/g, '-'),
+      slug: data.slug || data.name.trim().replace(/[\s]+/g, '-').replace(/[.,;:!?()[\]{}'"`~@#$%^&*+=|\\<>\/]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, ''),
       description: data.description || null,
       imageUrl: data.imageUrl || null,
       isActive: data.isActive,
