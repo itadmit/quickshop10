@@ -215,14 +215,14 @@ async function createOrderFromPendingPayment(
       }))
     );
     
-    // Decrement inventory (await to ensure it completes)
-    try {
-      await decrementInventory(cartItems);
+    // Decrement inventory (non-blocking for speed - fire and forget)
+    // Note: We don't await to keep response fast, but we log errors
+    decrementInventory(cartItems).then(() => {
       console.log(`PayPlus callback: Inventory decremented for order ${orderNumber}`);
-    } catch (err) {
+    }).catch(err => {
       console.error('PayPlus callback: Failed to decrement inventory:', err);
       // Don't fail the order creation, but log the error
-    }
+    });
     
     // Check for low stock and emit events (non-blocking, fire-and-forget)
     // Note: We check inventory AFTER decrement, so we need to account for the decrement
