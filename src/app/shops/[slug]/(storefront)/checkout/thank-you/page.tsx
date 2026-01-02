@@ -436,17 +436,33 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               פריטים בהזמנה
             </h2>
             <div className="space-y-4">
-              {items.map((item) => (
+              {items.map((item) => {
+                // Ensure image URL is absolute
+                const imageUrl = item.imageUrl 
+                  ? (item.imageUrl.startsWith('http') 
+                      ? item.imageUrl 
+                      : `${process.env.NEXT_PUBLIC_APP_URL || ''}${item.imageUrl.startsWith('/') ? '' : '/'}${item.imageUrl}`)
+                  : null;
+                
+                return (
                 <div key={item.id} className="flex gap-4">
-                  {item.imageUrl && (
-                    <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden shrink-0">
+                  <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                    {imageUrl ? (
                       <img 
-                        src={item.imageUrl} 
+                        src={imageUrl} 
                         alt={item.name || ''} 
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to placeholder if image fails to load
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                        }}
                       />
+                    ) : null}
+                    <div className={`w-full h-full flex items-center justify-center text-gray-400 text-2xl ${imageUrl ? 'hidden' : ''}`}>
+                      📦
                     </div>
-                  )}
+                  </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
                       {item.name}
@@ -455,12 +471,16 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                       <p className="text-sm text-gray-500">{item.variantTitle}</p>
                     )}
                     <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
+                    <p className="text-sm font-medium text-gray-900 mt-1">
+                      ₪{Number(item.total).toFixed(0)}
+                    </p>
                   </div>
                   <div className="text-left font-medium">
-                    ₪{Number(item.price).toFixed(0)}
+                    ₪{Number(item.total).toFixed(0)}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
 
