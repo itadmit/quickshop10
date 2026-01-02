@@ -10,7 +10,7 @@
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -384,23 +384,47 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     redirect(`/shops/${slug}/checkout?error=order_not_found`);
   }
   
-  // Get order items
+  // Get order items with product images if missing
   const rawItems = await db
     .select()
     .from(orderItems)
     .where(eq(orderItems.orderId, order.id));
   
-  // Type assertion to avoid unknown properties issues in JSX
-  const items = rawItems.map(item => ({
-    id: item.id,
-    productId: item.productId,
-    name: item.name,
-    variantTitle: item.variantTitle,
-    quantity: item.quantity,
-    price: item.price,
-    total: item.total,
-    imageUrl: item.imageUrl,
-  }));
+  // Fetch product images for items that don't have imageUrl
+  const itemsWithImages = await Promise.all(
+    rawItems.map(async (item) => {
+      let imageUrl = item.imageUrl;
+      
+      // If no imageUrl, fetch from product
+      if (!imageUrl && item.productId) {
+        const [productImage] = await db
+          .select({ url: productImages.url })
+          .from(productImages)
+          .where(
+            and(
+              eq(productImages.productId, item.productId),
+              eq(productImages.isPrimary, true)
+            )
+          )
+          .limit(1);
+        
+        imageUrl = productImage?.url || null;
+      }
+      
+      return {
+        id: item.id,
+        productId: item.productId,
+        name: item.name,
+        variantTitle: item.variantTitle,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.total,
+        imageUrl,
+      };
+    })
+  );
+  
+  const items = itemsWithImages;
 
   const basePath = `/shops/${slug}`;
 
