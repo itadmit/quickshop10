@@ -1594,6 +1594,13 @@ export const teamInvitationsRelations = relations(teamInvitations, ({ one }) => 
   }),
 }));
 
+export const pagesRelations = relations(pages, ({ one }) => ({
+  store: one(stores, {
+    fields: [pages.storeId],
+    references: [stores.id],
+  }),
+}));
+
 // ============ TYPES ============
 
 export type User = typeof users.$inferSelect;
