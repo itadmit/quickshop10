@@ -1001,8 +1001,8 @@ export function CheckoutForm({
                 <>
                   <h2 className="font-display text-xl mb-6">פרטי תשלום</h2>
                   <div className="space-y-4">
-                    {/* Show payment error from URL */}
-                    {paymentError && (
+                    {/* Show payment error from URL - only if we're on payment step and error exists */}
+                    {paymentError && step === 'payment' && (
                       <div className="bg-red-50 border border-red-200 p-4 text-sm text-red-600">
                         <div className="flex items-center gap-2">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
