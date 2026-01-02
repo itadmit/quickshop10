@@ -231,12 +231,27 @@ export async function POST(request: NextRequest) {
       orderReference,
     };
     
+    // Use orderData.items (which has productId) instead of body.items (which doesn't)
+    // orderData.items includes: productId, variantId, variantTitle, name, quantity, price, sku, image
+    // body.items includes: name, sku, quantity, price, imageUrl (no productId!)
+    const cartItemsForOrder = (body.orderData?.items || body.items) as Array<{
+      productId: string;
+      variantId?: string;
+      variantTitle?: string;
+      name: string;
+      quantity: number;
+      price: number;
+      sku?: string;
+      image?: string;
+      imageUrl?: string;
+    }>;
+    
     await db.insert(pendingPayments).values({
       storeId: store.id,
       provider: provider.providerType,
       providerRequestId: response.providerRequestId!,
       orderData: orderDataWithReference,
-      cartItems: body.items,
+      cartItems: cartItemsForOrder, // Use orderData.items which includes productId
       customerEmail: body.customer.email,
       amount: String(body.amount),
       currency: body.currency || 'ILS',
