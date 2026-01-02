@@ -100,8 +100,9 @@ export function CheckoutForm({
   const searchParams = useSearchParams();
   const homeUrl = basePath || '/';
   
-  // Check for payment error in URL
-  const paymentError = searchParams.get('error');
+  // Check for payment error in URL (only show for payment-related errors)
+  const errorParam = searchParams.get('error');
+  const paymentError = errorParam === 'payment_failed' || errorParam === 'payment_error' || errorParam === 'payment_cancelled';
   const [step, setStep] = useState<'details' | 'shipping' | 'payment'>('details');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
