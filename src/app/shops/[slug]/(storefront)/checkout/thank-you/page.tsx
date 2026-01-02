@@ -212,7 +212,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         }
       }
       
-      // Calculate totals
+      // SECURITY: Calculate totals and validate against payment amount
       const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
       const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
       const discountAmount = Number(pendingPayment.discountAmount) || 0;
@@ -221,6 +221,35 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
       const giftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
       // Note: giftCardAmount is already included in discountAmount, so we don't subtract it twice
       const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
+      
+      // SECURITY: Validate amount from URL params matches calculated total
+      // This ensures the payment was actually approved for the correct amount
+      const paymentAmount = Number(search.amount) || 0;
+      if (paymentAmount > 0) {
+        const amountDifference = Math.abs(paymentAmount - totalAmount);
+        if (amountDifference > 0.01) {
+          console.error(`Thank you page: SECURITY WARNING - Amount mismatch! Expected ${totalAmount}, got ${paymentAmount}`);
+          // In production, redirect to error page
+          if (process.env.NODE_ENV === 'production') {
+            redirect(`/shops/${slug}/checkout?error=payment_verification_failed`);
+          }
+        }
+      }
+      
+      // SECURITY: Check if order already exists (idempotency - prevent duplicate orders)
+      // This can happen if callback already processed the payment
+      if (pendingPayment.orderId) {
+        const [existingOrder] = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.id, pendingPayment.orderId))
+          .limit(1);
+        
+        if (existingOrder) {
+          console.log(`Thank you page: Order already exists: ${existingOrder.orderNumber}, redirecting`);
+          redirect(`/shops/${slug}/checkout/thank-you?ref=${existingOrder.orderNumber}`);
+        }
+      }
       
       // Create order
       const [newOrder] = await db.insert(orders).values({
