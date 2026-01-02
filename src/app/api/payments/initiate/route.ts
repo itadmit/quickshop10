@@ -139,12 +139,26 @@ export async function POST(request: NextRequest) {
       } as typeof body.items[0] & { isShipping: boolean });
     }
     
+    // Calculate total amount from items (PayPlus requires amount = sum of items)
+    // This ensures PayPlus validation passes: global-price-is-not-equal-to-total-items-sum
+    const calculatedAmount = allItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Log for debugging
+    console.log('[Payment Initiate] Amount calculation:', {
+      clientAmount: body.amount,
+      calculatedAmount,
+      itemsCount: allItems.length,
+      itemsTotal: allItems.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+      discountAmount: body.discountAmount,
+      shippingCost: body.shipping?.cost || 0,
+    });
+    
     // Build payment request
     const paymentRequest: InitiatePaymentRequest = {
       storeId: store.id,
       storeSlug: body.storeSlug,
       orderReference,
-      amount: body.amount,
+      amount: calculatedAmount, // Use calculated amount (sum of items) for PayPlus validation
       currency: body.currency || 'ILS',
       customer: {
         name: body.customer.name,
