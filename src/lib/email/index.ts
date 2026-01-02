@@ -179,23 +179,38 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
 
   const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${storeSlug}`;
   
-  const itemsHtml = items.map(item => `
+  const itemsHtml = items.map(item => {
+    // Ensure image URL is absolute
+    const imageUrl = item.image 
+      ? (item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_APP_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
+      : null;
+    
+    return `
     <tr>
       <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
-        <div style="display: flex; gap: 12px; direction: rtl;">
-          ${item.image ? `<img src="${item.image}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;" />` : ''}
-          <div style="text-align: right;">
-            <p style="margin: 0; font-weight: 500; color: #1a1a1a;">${item.name}</p>
+        <div style="display: flex; gap: 12px; direction: rtl; align-items: center;">
+          <div style="flex: 1; text-align: right;">
+            <p style="margin: 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
             ${item.variantTitle ? `<p style="margin: 4px 0 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
-            <p style="margin: 4px 0 0; font-size: 14px; color: #666;">כמות: ${item.quantity}</p>
+            <p style="margin: 4px 0 0; font-size: 14px; color: #666;">כמות: ${item.quantity} × ₪${item.price.toFixed(0)}</p>
           </div>
+          ${imageUrl ? `
+          <div style="flex-shrink: 0;">
+            <img src="${imageUrl}" alt="${item.name.replace(/"/g, '&quot;')}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #f0f0f0;" />
+          </div>
+          ` : `
+          <div style="flex-shrink: 0; width: 80px; height: 80px; background: #f7f7f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 24px;">
+            📦
+          </div>
+          `}
         </div>
       </td>
-      <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0; text-align: right; vertical-align: top; white-space: nowrap;">
-        <span style="font-weight: 500;">₪${(item.price * item.quantity).toFixed(0)}</span>
+      <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0; text-align: left; vertical-align: top; white-space: nowrap; width: 100px;">
+        <span style="font-weight: 600; font-size: 16px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   const html = `
     <!DOCTYPE html>
@@ -204,22 +219,25 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; direction: rtl; text-align: right; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; direction: rtl; text-align: right; }
         .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; direction: rtl; }
-        .header { background: #1a1a1a; color: white; padding: 30px; text-align: center; }
+        .header { background: #1a1a1a; color: white; padding: 30px; text-align: center; direction: rtl; }
         .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+        .header p { margin: 8px 0 0; opacity: 0.9; direction: rtl; }
         .header .check { width: 60px; height: 60px; background: #1a1a1a; border: 2px solid white; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
-        .content { padding: 30px; }
-        .order-number { background: #f7f7f7; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+        .content { padding: 30px; direction: rtl; }
+        .order-number { background: #f7f7f7; padding: 16px; border-radius: 8px; margin-bottom: 24px; text-align: right; direction: rtl; }
         .order-number p { margin: 0; font-size: 14px; color: #666; }
         .order-number h2 { margin: 8px 0 0; font-size: 20px; color: #1a1a1a; }
-        table { width: 100%; border-collapse: collapse; }
-        .summary { background: #f7f7f7; padding: 20px; border-radius: 8px; margin-top: 24px; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+        table { width: 100%; border-collapse: collapse; direction: rtl; }
+        .summary { background: #f7f7f7; padding: 20px; border-radius: 8px; margin-top: 24px; direction: rtl; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; direction: rtl; }
         .summary-row.total { font-size: 18px; font-weight: 600; border-top: 1px solid #ddd; padding-top: 12px; margin-top: 12px; }
-        .address { background: #f7f7f7; padding: 20px; border-radius: 8px; margin-top: 24px; }
+        .address { background: #f7f7f7; padding: 20px; border-radius: 8px; margin-top: 24px; text-align: right; direction: rtl; }
+        .address h3 { text-align: right; direction: rtl; }
+        .address p { text-align: right; direction: rtl; }
         .button { display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500; margin-top: 24px; }
-        .footer { padding: 24px 30px; border-top: 1px solid #f0f0f0; text-align: center; color: #999; font-size: 14px; }
+        .footer { padding: 24px 30px; border-top: 1px solid #f0f0f0; text-align: center; color: #999; font-size: 14px; direction: rtl; }
       </style>
     </head>
     <body>
