@@ -1,12 +1,20 @@
 /**
- * Thank You Page - Payment Gateway Redirect Handler
+ * Thank You Page - SINGLE SOURCE OF TRUTH for Order Creation
  * SERVER COMPONENT for speed - handles redirects from payment gateways
  * 
- * Features:
- * - Creates order from pending payment if needed
- * - Decrements inventory
- * - Fires purchase tracking events (via client component)
- * - Clears cart
+ * MODULAR ARCHITECTURE:
+ * - Payment providers (PayPlus, etc.) ONLY handle payment verification
+ * - This page handles ALL business logic in one place:
+ *   1. Order creation
+ *   2. Customer creation/update
+ *   3. Discount/coupon usage tracking
+ *   4. Inventory decrement
+ *   5. Gift card handling
+ *   6. Email notifications
+ *   7. Event emissions (webhooks, notifications)
+ *   8. Cart clearing
+ * 
+ * This ensures consistent behavior regardless of payment provider.
  */
 
 import { db } from '@/lib/db';
@@ -309,14 +317,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         shippingAddress: orderData.shippingAddress as Record<string, unknown> || {},
         billingAddress: orderData.billingAddress as Record<string, unknown> || orderData.shippingAddress as Record<string, unknown> || {},
         
-        // Payment info
+        // Payment info - prefer callback data over URL params (callback is more secure)
         paymentMethod: 'credit_card',
         paymentDetails: {
           provider: pendingPayment.provider,
-          transactionId: search.transaction_uid,
-          approvalNumber: search.approval_num,
-          cardBrand: search.brand_name,
-          cardLastFour: search.four_digits,
+          transactionId: (orderData.paymentDetails as { transactionId?: string })?.transactionId || search.transaction_uid,
+          approvalNumber: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
+          cardBrand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
+          cardLastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
         },
         
         // Discount
@@ -439,9 +447,9 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         storeName: store.name,
         storeSlug: store.slug,
         paymentInfo: {
-          lastFour: search.four_digits,
-          brand: search.brand_name,
-          approvalNum: search.approval_num,
+          lastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
+          brand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
+          approvalNum: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
         },
       }).catch(err => console.error('Failed to send order confirmation email:', err));
       
