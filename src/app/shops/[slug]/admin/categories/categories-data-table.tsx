@@ -169,7 +169,7 @@ export function CategoriesDataTable({
       width: '200px',
       align: 'right',
       render: (category) => (
-        <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 justify-start" onClick={(e) => e.stopPropagation()}>
           <Link
             href={`/shops/${storeSlug}/category/${category.slug}`}
             target="_blank"

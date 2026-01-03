@@ -173,7 +173,7 @@ export function CustomersDataTable({
       width: '200px',
       align: 'right',
       render: (customer) => (
-        <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 justify-start" onClick={(e) => e.stopPropagation()}>
           <Link
             href={`/shops/${storeSlug}/admin/customers/${customer.id}`}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

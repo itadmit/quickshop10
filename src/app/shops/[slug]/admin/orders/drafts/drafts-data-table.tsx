@@ -147,7 +147,7 @@ export function DraftsDataTable({
       width: '200px',
       align: 'right',
       render: (draft) => (
-        <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-2 justify-start" onClick={(e) => e.stopPropagation()}>
           {!draft.completedAt && (
             <DraftOrderButtons draftId={draft.id} slug={storeSlug} />
           )}

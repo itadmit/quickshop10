@@ -233,7 +233,7 @@ export function DiscountsDataTable({
       width: '200px',
       align: 'right',
       render: (coupon) => (
-        <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 justify-start" onClick={(e) => e.stopPropagation()}>
           <CouponForm storeId={storeId} mode="edit" coupon={coupon} influencers={influencers} />
           <ToggleCouponButton couponId={coupon.id} isActive={coupon.isActive} />
           <DeleteCouponButton couponId={coupon.id} couponCode={coupon.code} />

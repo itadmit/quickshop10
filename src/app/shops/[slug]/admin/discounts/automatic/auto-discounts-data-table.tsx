@@ -210,7 +210,7 @@ export function AutoDiscountsDataTable({
         };
         
         return (
-          <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-1 justify-start" onClick={(e) => e.stopPropagation()}>
             <AutoDiscountForm 
               storeId={storeId} 
               mode="edit" 
