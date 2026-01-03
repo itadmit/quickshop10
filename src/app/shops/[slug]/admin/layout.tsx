@@ -3,6 +3,7 @@ import { notFound, redirect } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
 import { auth } from '@/lib/auth';
+import { getNotifications, getUnreadCount } from '@/lib/actions/notifications';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -45,17 +46,26 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
   // Get unread orders count for badge
   const unreadOrdersCount = await getUnreadOrdersCount(store.id);
 
+  // Fetch notifications for header (parallel for speed)
+  const [notifications, unreadNotificationsCount] = await Promise.all([
+    getNotifications(store.id, 10),
+    getUnreadCount(store.id),
+  ]);
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900" dir="rtl">
       {/* Header */}
       <AdminHeader 
         storeName={store.name} 
-        storeSlug={slug} 
+        storeSlug={slug}
+        storeId={store.id}
         user={{
           name: session.user.name || '',
           email: session.user.email || '',
           image: session.user.image || undefined,
         }}
+        notifications={notifications}
+        unreadCount={unreadNotificationsCount}
       />
       
       <div className="flex">
