@@ -61,6 +61,16 @@ export const storeRoleEnum = pgEnum('store_role', ['owner', 'manager', 'marketin
 // Menu link types
 export const menuLinkTypeEnum = pgEnum('menu_link_type', ['url', 'page', 'category', 'product']);
 
+// Plugin system enums
+export const pluginCategoryEnum = pgEnum('plugin_category', [
+  'marketing', 'loyalty', 'analytics', 'payment', 
+  'inventory', 'communication', 'operations', 'customization'
+]);
+
+export const pluginSubscriptionStatusEnum = pgEnum('plugin_subscription_status', [
+  'active', 'trial', 'cancelled', 'expired', 'pending'
+]);
+
 // ============ USERS & AUTH ============
 
 export const users = pgTable('users', {
@@ -1601,6 +1611,311 @@ export const pagesRelations = relations(pages, ({ one }) => ({
   }),
 }));
 
+// ============ PLUGINS (ADDONS) SYSTEM ============
+
+/**
+ * Store Plugins - התקנות של תוספים בחנויות
+ * כל חנות יכולה להתקין תוספים שונים
+ */
+export const storePlugins = pgTable('store_plugins', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  pluginSlug: varchar('plugin_slug', { length: 100 }).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  config: jsonb('config').default({}).notNull(),
+  subscriptionStatus: pluginSubscriptionStatusEnum('subscription_status').default('active'),
+  trialEndsAt: timestamp('trial_ends_at'),
+  installedAt: timestamp('installed_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at'),
+  lastBillingDate: timestamp('last_billing_date'),
+  nextBillingDate: timestamp('next_billing_date'),
+  cancelledAt: timestamp('cancelled_at'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  storePluginUnique: uniqueIndex('store_plugin_unique_idx').on(table.storeId, table.pluginSlug),
+  storePluginActiveIdx: index('store_plugin_active_idx').on(table.storeId, table.isActive),
+}));
+
+/**
+ * Product Stories - סטוריז של מוצרים (תוסף product-stories)
+ */
+export const productStories = pgTable('product_stories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  position: integer('position').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  viewsCount: integer('views_count').default(0).notNull(),
+  likesCount: integer('likes_count').default(0).notNull(),
+  commentsCount: integer('comments_count').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  storeProductUnique: uniqueIndex('story_store_product_unique_idx').on(table.storeId, table.productId),
+  storePositionIdx: index('story_store_position_idx').on(table.storeId, table.position),
+}));
+
+/**
+ * Story Views - מעקב צפיות בסטוריז
+ */
+export const storyViews = pgTable('story_views', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storyId: uuid('story_id').references(() => productStories.id, { onDelete: 'cascade' }).notNull(),
+  visitorId: varchar('visitor_id', { length: 255 }).notNull(), // מזהה אנונימי או customerId
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  viewedAt: timestamp('viewed_at').defaultNow().notNull(),
+}, (table) => ({
+  storyVisitorUnique: uniqueIndex('story_visitor_unique_idx').on(table.storyId, table.visitorId),
+}));
+
+/**
+ * Story Likes - לייקים לסטוריז
+ */
+export const storyLikes = pgTable('story_likes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storyId: uuid('story_id').references(() => productStories.id, { onDelete: 'cascade' }).notNull(),
+  visitorId: varchar('visitor_id', { length: 255 }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  storyLikeUnique: uniqueIndex('story_like_unique_idx').on(table.storyId, table.visitorId),
+}));
+
+/**
+ * Story Comments - תגובות לסטוריז
+ */
+export const storyComments = pgTable('story_comments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storyId: uuid('story_id').references(() => productStories.id, { onDelete: 'cascade' }).notNull(),
+  visitorId: varchar('visitor_id', { length: 255 }),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  authorName: varchar('author_name', { length: 100 }).notNull(),
+  content: text('content').notNull(),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  storyApprovedIdx: index('story_comment_approved_idx').on(table.storyId, table.isApproved),
+}));
+
+// Store Plugins Relations
+export const storePluginsRelations = relations(storePlugins, ({ one }) => ({
+  store: one(stores, {
+    fields: [storePlugins.storeId],
+    references: [stores.id],
+  }),
+}));
+
+// Product Stories Relations
+export const productStoriesRelations = relations(productStories, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [productStories.storeId],
+    references: [stores.id],
+  }),
+  product: one(products, {
+    fields: [productStories.productId],
+    references: [products.id],
+  }),
+  views: many(storyViews),
+  likes: many(storyLikes),
+  comments: many(storyComments),
+}));
+
+export const storyViewsRelations = relations(storyViews, ({ one }) => ({
+  story: one(productStories, {
+    fields: [storyViews.storyId],
+    references: [productStories.id],
+  }),
+  customer: one(customers, {
+    fields: [storyViews.customerId],
+    references: [customers.id],
+  }),
+}));
+
+export const storyLikesRelations = relations(storyLikes, ({ one }) => ({
+  story: one(productStories, {
+    fields: [storyLikes.storyId],
+    references: [productStories.id],
+  }),
+  customer: one(customers, {
+    fields: [storyLikes.customerId],
+    references: [customers.id],
+  }),
+}));
+
+export const storyCommentsRelations = relations(storyComments, ({ one }) => ({
+  story: one(productStories, {
+    fields: [storyComments.storyId],
+    references: [productStories.id],
+  }),
+  customer: one(customers, {
+    fields: [storyComments.customerId],
+    references: [customers.id],
+  }),
+}));
+
+// ============ SMART ADVISOR ============
+
+// Advisor Quiz (שאלון יועץ)
+export const advisorQuizzes = pgTable('advisor_quizzes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  slug: varchar('slug', { length: 255 }).notNull(),
+  description: text('description'),
+  subtitle: text('subtitle'),
+  imageUrl: text('image_url'),
+  icon: varchar('icon', { length: 50 }),
+  isActive: boolean('is_active').default(false).notNull(),
+  showProgressBar: boolean('show_progress_bar').default(true).notNull(),
+  showQuestionNumbers: boolean('show_question_numbers').default(true).notNull(),
+  allowBackNavigation: boolean('allow_back_navigation').default(true).notNull(),
+  resultsCount: integer('results_count').default(3).notNull(),
+  primaryColor: varchar('primary_color', { length: 20 }).default('#6366f1').notNull(),
+  backgroundColor: varchar('background_color', { length: 20 }).default('#ffffff').notNull(),
+  buttonStyle: varchar('button_style', { length: 20 }).default('rounded').notNull(),
+  startButtonText: varchar('start_button_text', { length: 100 }).default('בואו נתחיל!').notNull(),
+  resultsTitle: varchar('results_title', { length: 255 }).default('המלצות עבורך').notNull(),
+  resultsSubtitle: text('results_subtitle'),
+  showFloatingButton: boolean('show_floating_button').default(true).notNull(),
+  totalStarts: integer('total_starts').default(0).notNull(),
+  totalCompletions: integer('total_completions').default(0).notNull(),
+  position: integer('position').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  storeSlugIdx: uniqueIndex('advisor_quiz_store_slug_idx').on(table.storeId, table.slug),
+  storeActiveIdx: index('advisor_quiz_store_active_idx').on(table.storeId, table.isActive),
+}));
+
+// Advisor Question (שאלה בשאלון)
+export const advisorQuestions = pgTable('advisor_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  quizId: uuid('quiz_id').references(() => advisorQuizzes.id, { onDelete: 'cascade' }).notNull(),
+  questionText: text('question_text').notNull(),
+  questionSubtitle: text('question_subtitle'),
+  imageUrl: text('image_url'),
+  questionType: varchar('question_type', { length: 20 }).default('single').notNull(), // single | multiple
+  answersLayout: varchar('answers_layout', { length: 20 }).default('grid').notNull(), // grid | list | cards
+  columns: integer('columns').default(2).notNull(),
+  isRequired: boolean('is_required').default(true).notNull(),
+  minSelections: integer('min_selections').default(1).notNull(),
+  maxSelections: integer('max_selections'),
+  position: integer('position').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  quizPositionIdx: index('advisor_question_quiz_position_idx').on(table.quizId, table.position),
+}));
+
+// Advisor Answer (תשובה לשאלה)
+export const advisorAnswers = pgTable('advisor_answers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  questionId: uuid('question_id').references(() => advisorQuestions.id, { onDelete: 'cascade' }).notNull(),
+  answerText: text('answer_text').notNull(),
+  answerSubtitle: text('answer_subtitle'),
+  imageUrl: text('image_url'),
+  icon: varchar('icon', { length: 50 }),
+  emoji: varchar('emoji', { length: 10 }),
+  color: varchar('color', { length: 20 }),
+  value: varchar('value', { length: 100 }),
+  position: integer('position').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  questionPositionIdx: index('advisor_answer_question_position_idx').on(table.questionId, table.position),
+}));
+
+// Advisor Product Rule (כללי התאמת מוצר)
+export const advisorProductRules = pgTable('advisor_product_rules', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  quizId: uuid('quiz_id').references(() => advisorQuizzes.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  answerWeights: jsonb('answer_weights').default([]).notNull(), // [{ answer_id, weight }]
+  baseScore: integer('base_score').default(0).notNull(),
+  bonusRules: jsonb('bonus_rules'), // { all_answers: [], bonus: number }
+  excludeIfAnswers: jsonb('exclude_if_answers').default([]), // answer_ids to exclude
+  priorityBoost: integer('priority_boost').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  quizProductIdx: uniqueIndex('advisor_rule_quiz_product_idx').on(table.quizId, table.productId),
+}));
+
+// Advisor Session (סשן של הפעלת יועץ)
+export const advisorSessions = pgTable('advisor_sessions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  quizId: uuid('quiz_id').references(() => advisorQuizzes.id, { onDelete: 'cascade' }).notNull(),
+  sessionId: varchar('session_id', { length: 255 }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  answers: jsonb('answers').default([]).notNull(), // [{ question_id, answer_ids }]
+  recommendedProducts: jsonb('recommended_products'), // [{ product_id, score, match_percentage }]
+  startedAt: timestamp('started_at').defaultNow().notNull(),
+  completedAt: timestamp('completed_at'),
+  isCompleted: boolean('is_completed').default(false).notNull(),
+  userAgent: text('user_agent'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  convertedToCart: boolean('converted_to_cart').default(false).notNull(),
+  convertedToOrder: boolean('converted_to_order').default(false).notNull(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  quizSessionIdx: index('advisor_session_quiz_idx').on(table.quizId),
+  sessionIdx: index('advisor_session_session_idx').on(table.sessionId),
+}));
+
+// Advisor Relations
+export const advisorQuizzesRelations = relations(advisorQuizzes, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [advisorQuizzes.storeId],
+    references: [stores.id],
+  }),
+  questions: many(advisorQuestions),
+  rules: many(advisorProductRules),
+  sessions: many(advisorSessions),
+}));
+
+export const advisorQuestionsRelations = relations(advisorQuestions, ({ one, many }) => ({
+  quiz: one(advisorQuizzes, {
+    fields: [advisorQuestions.quizId],
+    references: [advisorQuizzes.id],
+  }),
+  answers: many(advisorAnswers),
+}));
+
+export const advisorAnswersRelations = relations(advisorAnswers, ({ one }) => ({
+  question: one(advisorQuestions, {
+    fields: [advisorAnswers.questionId],
+    references: [advisorQuestions.id],
+  }),
+}));
+
+export const advisorProductRulesRelations = relations(advisorProductRules, ({ one }) => ({
+  quiz: one(advisorQuizzes, {
+    fields: [advisorProductRules.quizId],
+    references: [advisorQuizzes.id],
+  }),
+  product: one(products, {
+    fields: [advisorProductRules.productId],
+    references: [products.id],
+  }),
+}));
+
+export const advisorSessionsRelations = relations(advisorSessions, ({ one }) => ({
+  quiz: one(advisorQuizzes, {
+    fields: [advisorSessions.quizId],
+    references: [advisorQuizzes.id],
+  }),
+  customer: one(customers, {
+    fields: [advisorSessions.customerId],
+    references: [customers.id],
+  }),
+  order: one(orders, {
+    fields: [advisorSessions.orderId],
+    references: [orders.id],
+  }),
+}));
+
 // ============ TYPES ============
 
 export type User = typeof users.$inferSelect;
@@ -1682,3 +1997,26 @@ export type NewPaymentTransaction = typeof paymentTransactions.$inferInsert;
 export type PendingPayment = typeof pendingPayments.$inferSelect;
 export type NewPendingPayment = typeof pendingPayments.$inferInsert;
 
+// Plugin types
+export type StorePlugin = typeof storePlugins.$inferSelect;
+export type NewStorePlugin = typeof storePlugins.$inferInsert;
+export type ProductStory = typeof productStories.$inferSelect;
+export type NewProductStory = typeof productStories.$inferInsert;
+export type StoryView = typeof storyViews.$inferSelect;
+export type NewStoryView = typeof storyViews.$inferInsert;
+export type StoryLike = typeof storyLikes.$inferSelect;
+export type NewStoryLike = typeof storyLikes.$inferInsert;
+export type StoryComment = typeof storyComments.$inferSelect;
+export type NewStoryComment = typeof storyComments.$inferInsert;
+
+// Advisor types
+export type AdvisorQuiz = typeof advisorQuizzes.$inferSelect;
+export type NewAdvisorQuiz = typeof advisorQuizzes.$inferInsert;
+export type AdvisorQuestion = typeof advisorQuestions.$inferSelect;
+export type NewAdvisorQuestion = typeof advisorQuestions.$inferInsert;
+export type AdvisorAnswer = typeof advisorAnswers.$inferSelect;
+export type NewAdvisorAnswer = typeof advisorAnswers.$inferInsert;
+export type AdvisorProductRule = typeof advisorProductRules.$inferSelect;
+export type NewAdvisorProductRule = typeof advisorProductRules.$inferInsert;
+export type AdvisorSession = typeof advisorSessions.$inferSelect;
+export type NewAdvisorSession = typeof advisorSessions.$inferInsert;

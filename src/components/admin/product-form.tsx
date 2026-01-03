@@ -5,12 +5,19 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Category, Product } from '@/lib/db/schema';
 import { createProduct, updateProduct, ProductFormData } from '@/lib/actions/products';
+import { MediaUploader, UploadedMedia } from '@/components/admin/media-uploader';
 
+// ProductImage type - compatible with UploadedMedia
 interface ProductImage {
   id?: string;
   url: string;
   alt?: string;
   isPrimary: boolean;
+  publicId?: string;
+  filename?: string;
+  size?: number;
+  width?: number;
+  height?: number;
 }
 
 interface ProductOption {
@@ -89,16 +96,16 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle || '');
   const [seoDescription, setSeoDescription] = useState(product?.seoDescription || '');
   
-  // Images
-  const [images, setImages] = useState<ProductImage[]>(
+  // Images - converted to UploadedMedia format for MediaUploader
+  const [images, setImages] = useState<UploadedMedia[]>(
     product?.images?.map(img => ({ 
       id: img.id, 
       url: img.url, 
-      alt: img.alt || '', 
+      filename: img.alt || 'image',
+      size: 0,
       isPrimary: img.isPrimary 
     })) || []
   );
-  const [newImageUrl, setNewImageUrl] = useState('');
 
   // Variants
   const [hasVariants, setHasVariants] = useState(product?.hasVariants ?? false);
@@ -140,35 +147,7 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
     }
   }, [mode, product?.slug]);
 
-  // Add image
-  const addImage = useCallback(() => {
-    if (!newImageUrl.trim()) return;
-    
-    const isFirst = images.length === 0;
-    setImages(prev => [...prev, { 
-      url: newImageUrl.trim(), 
-      alt: name, 
-      isPrimary: isFirst 
-    }]);
-    setNewImageUrl('');
-  }, [newImageUrl, name, images.length]);
-
-  // Remove image
-  const removeImage = useCallback((index: number) => {
-    setImages(prev => {
-      const newImages = prev.filter((_, i) => i !== index);
-      // If removed image was primary, make first image primary
-      if (prev[index].isPrimary && newImages.length > 0) {
-        newImages[0].isPrimary = true;
-      }
-      return newImages;
-    });
-  }, []);
-
-  // Set primary image
-  const setPrimaryImage = useCallback((index: number) => {
-    setImages(prev => prev.map((img, i) => ({ ...img, isPrimary: i === index })));
-  }, []);
+  // Image handling - now managed by MediaUploader component
 
   // Add option
   const addOption = useCallback(() => {
@@ -303,8 +282,8 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
       seoDescription: seoDescription.trim() || undefined,
       images: images.map(img => ({
         url: img.url,
-        alt: img.alt,
-        isPrimary: img.isPrimary,
+        alt: img.filename || name || '',
+        isPrimary: img.isPrimary ?? false,
       })),
     };
 
@@ -450,67 +429,18 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
             <div className="px-4 py-3 border-b border-gray-100">
               <h2 className="text-sm font-semibold text-gray-900">תמונות</h2>
             </div>
-            <div className="p-4 space-y-4">
-              {/* Existing Images */}
-              {images.length > 0 && (
-                <div className="grid grid-cols-4 gap-3">
-                  {images.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <div className={`aspect-square rounded-lg overflow-hidden border-2 ${img.isPrimary ? 'border-blue-500' : 'border-gray-200'}`}>
-                        <img src={img.url} alt={img.alt || ''} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                        {!img.isPrimary && (
-                          <button
-                            type="button"
-                            onClick={() => setPrimaryImage(index)}
-                            className="p-1.5 bg-white rounded-full text-gray-700 hover:bg-gray-100"
-                            title="הגדר כתמונה ראשית"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                            </svg>
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => removeImage(index)}
-                          className="p-1.5 bg-white rounded-full text-red-600 hover:bg-red-50"
-                          title="הסר תמונה"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <polyline points="3 6 5 6 21 6"/>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                          </svg>
-                        </button>
-                      </div>
-                      {img.isPrimary && (
-                        <span className="absolute top-1 right-1 px-1.5 py-0.5 bg-blue-500 text-white text-[10px] rounded">ראשית</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Add Image */}
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  placeholder="הכנס כתובת URL של תמונה"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={addImage}
-                  disabled={!newImageUrl.trim()}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50 transition-colors"
-                >
-                  הוסף
-                </button>
-              </div>
-              <p className="text-xs text-gray-400">גרור תמונות לשינוי סדר. התמונה הראשית תופיע בכרטיס המוצר.</p>
+            <div className="p-4">
+              <MediaUploader
+                value={images}
+                onChange={setImages}
+                maxFiles={10}
+                multiple={true}
+                folder="quickshop/products"
+                showPrimary={true}
+                aspectRatio="1:1"
+                placeholder="גרור תמונות או לחץ לבחירה"
+              />
+              <p className="text-xs text-gray-400 mt-3">גרור תמונות לשינוי סדר. התמונה הראשית תופיע בכרטיס המוצר.</p>
             </div>
           </div>
 

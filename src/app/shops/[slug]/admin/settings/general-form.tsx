@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { updateStoreSettings } from './actions';
+import { MediaUploader, UploadedMedia } from '@/components/admin/media-uploader';
 
 interface Store {
   id: string;
@@ -73,42 +74,60 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
             />
           </div>
 
-          {/* Logo URL */}
+          {/* Logo Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              לוגו (URL)
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              לוגו
             </label>
-            <input
-              type="url"
-              value={formData.logoUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, logoUrl: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-              placeholder="https://..."
-              dir="ltr"
+            <MediaUploader
+              value={formData.logoUrl ? [{ 
+                id: 'logo', 
+                url: formData.logoUrl, 
+                filename: 'logo', 
+                size: 0 
+              }] : []}
+              onChange={(files) => setFormData(prev => ({ 
+                ...prev, 
+                logoUrl: files[0]?.url || '' 
+              }))}
+              maxFiles={1}
+              multiple={false}
+              folder={`quickshop/stores/${store.slug}`}
+              aspectRatio="16:9"
+              compact={true}
+              placeholder="העלה לוגו"
             />
-            {formData.logoUrl && (
-              <img
-                src={formData.logoUrl}
-                alt="לוגו"
-                className="mt-2 h-16 object-contain"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            )}
+            <p className="text-xs text-gray-500 mt-1">
+              מומלץ: PNG שקוף, רוחב מינימלי 200px
+            </p>
           </div>
 
-          {/* Favicon URL */}
+          {/* Favicon Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Favicon (URL)
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Favicon
             </label>
-            <input
-              type="url"
-              value={formData.faviconUrl}
-              onChange={(e) => setFormData(prev => ({ ...prev, faviconUrl: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-              placeholder="https://..."
-              dir="ltr"
+            <MediaUploader
+              value={formData.faviconUrl ? [{ 
+                id: 'favicon', 
+                url: formData.faviconUrl, 
+                filename: 'favicon', 
+                size: 0 
+              }] : []}
+              onChange={(files) => setFormData(prev => ({ 
+                ...prev, 
+                faviconUrl: files[0]?.url || '' 
+              }))}
+              maxFiles={1}
+              multiple={false}
+              folder={`quickshop/stores/${store.slug}`}
+              aspectRatio="1:1"
+              compact={true}
+              placeholder="העלה favicon"
             />
+            <p className="text-xs text-gray-500 mt-1">
+              מומלץ: 32x32 או 64x64 פיקסלים
+            </p>
           </div>
 
           {/* Currency & Timezone */}

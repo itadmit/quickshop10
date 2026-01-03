@@ -103,6 +103,7 @@ export function ProductsDataTable({
     {
       key: 'product',
       header: 'מוצר',
+      width: '280px',
       render: (product) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-200">
@@ -188,6 +189,7 @@ export function ProductsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
+      width: '100px',
       align: 'left',
       render: (product) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>

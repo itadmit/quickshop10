@@ -67,6 +67,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setCart(loadCart());
     setMounted(true);
+    
+    // Listen for cart-updated events from other components (e.g., StoryViewer)
+    const handleCartUpdate = () => {
+      setCart(loadCart());
+      setCartOpen(true);
+    };
+    
+    window.addEventListener('cart-updated', handleCartUpdate);
+    return () => window.removeEventListener('cart-updated', handleCartUpdate);
   }, []);
 
   // Save cart to localStorage on change

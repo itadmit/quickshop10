@@ -154,6 +154,7 @@ export function OrdersDataTable({
     {
       key: 'customer',
       header: 'לקוח',
+      width: '200px',
       render: (order) => {
         // Try to get name from order.customerName first, then from customer relation
         const name = order.customerName || 
@@ -215,6 +216,7 @@ export function OrdersDataTable({
     {
       key: 'actions',
       header: 'פעולות',
+      width: '100px',
       align: 'left',
       render: (order) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>

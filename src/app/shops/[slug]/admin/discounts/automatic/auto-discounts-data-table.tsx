@@ -199,6 +199,7 @@ export function AutoDiscountsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
+      width: '120px',
       align: 'left',
       render: (discount) => {
         // Convert to the format the form expects

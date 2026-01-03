@@ -172,6 +172,7 @@ export function AbandonedCartsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
+      width: '100px',
       align: 'left',
       render: (cart) => (
         <div onClick={(e) => e.stopPropagation()}>

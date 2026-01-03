@@ -15,8 +15,33 @@ interface MediaData {
   height?: number;
   url: string;
   thumbnailUrl?: string;
+  publicId?: string;
   alt?: string;
   folder?: string;
+}
+
+// Create media record from Cloudinary upload result
+export async function createMediaRecord(data: MediaData) {
+  try {
+    const [newMedia] = await db.insert(media).values({
+      storeId: data.storeId,
+      filename: data.filename,
+      originalFilename: data.originalFilename || null,
+      mimeType: data.mimeType || null,
+      size: data.size || null,
+      width: data.width || null,
+      height: data.height || null,
+      url: data.url,
+      thumbnailUrl: data.thumbnailUrl || null,
+      alt: data.alt || null,
+      folder: data.folder || null,
+    }).returning();
+
+    return { success: true, media: newMedia };
+  } catch (error) {
+    console.error('Error creating media record:', error);
+    throw error;
+  }
 }
 
 export async function createMedia(slug: string, data: MediaData) {

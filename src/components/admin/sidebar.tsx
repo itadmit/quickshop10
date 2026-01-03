@@ -10,9 +10,18 @@ import { useState, useEffect } from 'react';
 // Responsive - מוסתר במובייל, נפתח בלחיצה
 // ============================================
 
+interface PluginMenuItem {
+  icon: string;
+  label: string;
+  href: string;
+  section: string;
+  badge?: string;
+}
+
 interface AdminSidebarProps {
   storeSlug: string;
   unreadOrdersCount?: number;
+  pluginMenuItems?: PluginMenuItem[];
 }
 
 interface MenuItem {
@@ -213,6 +222,21 @@ const contentMenuItems: MenuItem[] = [
   },
 ];
 
+// Plugins
+const pluginsMenuItems: MenuItem[] = [
+  {
+    label: 'חנות תוספים',
+    href: '/plugins',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+        <path d="M2 17l10 5 10-5"/>
+        <path d="M2 12l10 5 10-5"/>
+      </svg>
+    ),
+  },
+];
+
 // Settings
 const settingsMenuItems: MenuItem[] = [
   {
@@ -227,7 +251,70 @@ const settingsMenuItems: MenuItem[] = [
   },
 ];
 
-export function AdminSidebar({ storeSlug, unreadOrdersCount = 0 }: AdminSidebarProps) {
+// Map of lucide icon names to inline SVGs for dynamic plugins
+const getPluginIcon = (iconName: string): React.ReactNode => {
+  const iconMap: Record<string, React.ReactNode> = {
+    PlayCircle: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polygon points="10 8 16 12 10 16 10 8"/>
+      </svg>
+    ),
+    ImagePlus: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h7"/>
+        <line x1="16" y1="5" x2="22" y2="5"/>
+        <line x1="19" y1="2" x2="19" y2="8"/>
+        <circle cx="9" cy="9" r="2"/>
+        <path d="m21 15-3.086-3.086a2 2 0 00-2.828 0L6 21"/>
+      </svg>
+    ),
+    Crown: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>
+      </svg>
+    ),
+    BarChart: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="20" x2="12" y2="10"/>
+        <line x1="18" y1="20" x2="18" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="16"/>
+      </svg>
+    ),
+    MessageCircle: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
+      </svg>
+    ),
+    Banknote: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="6" width="20" height="12" rx="2"/>
+        <circle cx="12" cy="12" r="2"/>
+        <path d="M6 12h.01M18 12h.01"/>
+      </svg>
+    ),
+    CalendarOff: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4.18 4.18A2 2 0 003 6v14a2 2 0 002 2h14a2 2 0 001.82-1.18"/>
+        <path d="M21 15.5V6a2 2 0 00-2-2H9.5"/>
+        <path d="M16 2v4"/>
+        <path d="M3 10h7"/>
+        <path d="M21 10h-5.5"/>
+        <line x1="2" y1="2" x2="22" y2="22"/>
+      </svg>
+    ),
+  };
+  
+  return iconMap[iconName] || (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+  );
+};
+
+export function AdminSidebar({ storeSlug, unreadOrdersCount = 0, pluginMenuItems = [] }: AdminSidebarProps) {
   const pathname = usePathname();
   const basePath = `/shops/${storeSlug}/admin`;
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -313,6 +400,47 @@ export function AdminSidebar({ storeSlug, unreadOrdersCount = 0 }: AdminSidebarP
           {/* Content */}
           <MenuLabel>תוכן</MenuLabel>
           <MenuSection items={contentMenuItems} basePath={basePath} isActive={isActive} getBadge={getBadge} />
+          
+          {/* Divider */}
+          <div className="my-4 border-t border-gray-100" />
+          
+          {/* Plugins */}
+          <MenuLabel>תוספים</MenuLabel>
+          <MenuSection items={pluginsMenuItems} basePath={basePath} isActive={isActive} getBadge={getBadge} />
+          
+          {/* Dynamic Plugin Menu Items */}
+          {pluginMenuItems.length > 0 && (
+            <ul className="space-y-1">
+              {pluginMenuItems.map((plugin) => {
+                const active = isActive(plugin.href);
+                
+                return (
+                  <li key={plugin.href}>
+                    <Link
+                      href={`${basePath}${plugin.href}`}
+                      className={`
+                        flex items-center gap-3 px-3 py-2 text-sm rounded-lg transition-all duration-150 group
+                        ${active 
+                          ? 'bg-gray-100 text-gray-900 font-medium' 
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }
+                      `}
+                    >
+                      <span className={`flex-shrink-0 transition-colors ${active ? 'text-gray-900' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                        {getPluginIcon(plugin.icon)}
+                      </span>
+                      <span className="flex-1">{plugin.label}</span>
+                      {plugin.badge && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-pink-100 text-pink-700">
+                          {plugin.badge}
+                        </span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
           
           {/* Divider */}
           <div className="my-4 border-t border-gray-100" />

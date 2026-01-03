@@ -34,3 +34,4 @@ export function ProductImage({ src, alt, className = '', fallback }: ProductImag
   );
 }
 
+
