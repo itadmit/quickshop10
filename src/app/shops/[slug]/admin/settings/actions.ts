@@ -68,14 +68,21 @@ export async function updateStoreSettings(storeId: string, data: GeneralSettings
 }
 
 interface TrackingSettingsData {
+  // Facebook
   facebookPixelId: string;
   facebookPixelEnabled: boolean;
+  facebookAccessToken: string;
+  // Google
   googleAnalyticsId: string;
   googleAnalyticsEnabled: boolean;
+  googleApiSecret: string;
+  // GTM
   gtmContainerId: string;
   gtmEnabled: boolean;
+  // TikTok
   tiktokPixelId: string;
   tiktokPixelEnabled: boolean;
+  tiktokAccessToken: string;
 }
 
 export async function updateTrackingSettings(storeId: string, data: TrackingSettingsData) {
@@ -94,14 +101,21 @@ export async function updateTrackingSettings(storeId: string, data: TrackingSett
 
     const newSettings = {
       ...currentSettings,
+      // Facebook
       facebookPixelId: data.facebookPixelId || undefined,
       facebookPixelEnabled: data.facebookPixelEnabled,
+      facebookAccessToken: data.facebookAccessToken || undefined,
+      // Google
       googleAnalyticsId: data.googleAnalyticsId || undefined,
       googleAnalyticsEnabled: data.googleAnalyticsEnabled,
+      googleApiSecret: data.googleApiSecret || undefined,
+      // GTM
       gtmContainerId: data.gtmContainerId || undefined,
       gtmEnabled: data.gtmEnabled,
+      // TikTok
       tiktokPixelId: data.tiktokPixelId || undefined,
       tiktokPixelEnabled: data.tiktokPixelEnabled,
+      tiktokAccessToken: data.tiktokAccessToken || undefined,
     };
 
     await db

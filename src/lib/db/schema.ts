@@ -7,6 +7,7 @@ import {
   integer,
   boolean,
   timestamp,
+  date,
   jsonb,
   pgEnum,
   uniqueIndex,
@@ -731,6 +732,39 @@ export const analyticsEvents = pgTable('analytics_events', {
   index('idx_analytics_event_type').on(table.storeId, table.eventType),
   index('idx_analytics_utm').on(table.storeId, table.utmSource, table.utmMedium),
   index('idx_analytics_product').on(table.productId),
+]);
+
+// Analytics Daily - aggregated data from Redis (one row per store per day)
+// This table is populated by a Cron job that runs hourly
+// Much more efficient than storing every event in the events table
+export const analyticsDaily = pgTable('analytics_daily', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  date: date('date').notNull(),
+  
+  // Traffic
+  pageViews: integer('page_views').default(0).notNull(),
+  uniqueVisitors: integer('unique_visitors').default(0),
+  
+  // Funnel
+  productViews: integer('product_views').default(0).notNull(),
+  addToCart: integer('add_to_cart').default(0).notNull(),
+  beginCheckout: integer('begin_checkout').default(0).notNull(),
+  purchases: integer('purchases').default(0).notNull(),
+  
+  // Revenue
+  revenue: decimal('revenue', { precision: 10, scale: 2 }).default('0').notNull(),
+  orders: integer('orders').default(0).notNull(),
+  
+  // Device breakdown
+  desktopViews: integer('desktop_views').default(0),
+  mobileViews: integer('mobile_views').default(0),
+  tabletViews: integer('tablet_views').default(0),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_analytics_daily_store').on(table.storeId),
+  index('idx_analytics_daily_date').on(table.storeId, table.date),
 ]);
 
 // Search queries - what customers search for

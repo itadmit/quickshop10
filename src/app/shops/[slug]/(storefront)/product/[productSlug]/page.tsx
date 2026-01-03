@@ -2,6 +2,7 @@ import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductCard } from '@/components/product-card';
+import { TrackViewProduct } from '@/components/tracking-events';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -44,8 +45,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const hasDiscount = product.comparePrice && Number(product.comparePrice) > Number(product.price);
   const discount = hasDiscount ? Math.round((1 - Number(product.price) / Number(product.comparePrice!)) * 100) : null;
 
+  // Track product view
+  const trackingProduct = {
+    id: product.id,
+    name: product.name,
+    price: Number(product.price),
+    compareAtPrice: product.comparePrice ? Number(product.comparePrice) : null,
+    image: mainImage,
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      {/* Track ViewContent event */}
+      <TrackViewProduct product={trackingProduct} />
+      
       {/* Breadcrumb */}
       <nav className="py-6 px-6 border-b border-gray-100">
         <div className="max-w-7xl mx-auto">

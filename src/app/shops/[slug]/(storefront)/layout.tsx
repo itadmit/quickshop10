@@ -6,6 +6,8 @@ import { cache } from 'react';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
+import { TrackingProvider } from '@/components/tracking-provider';
+import type { TrackingConfig } from '@/lib/tracking';
 
 // Force dynamic rendering because we use cookies for customer auth
 export const dynamic = 'force-dynamic';
@@ -87,6 +89,40 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // Check if we should show header (only if there's content)
   const showHeader = categories.length > 0;
 
+  // Build tracking configuration from store settings
+  const storeSettings = (store.settings as Record<string, unknown>) || {};
+  const trackingConfig: TrackingConfig = {
+    storeId: store.id,
+    storeSlug: slug,
+    currency: (storeSettings.currency as string) || 'ILS',
+    
+    // Facebook Pixel
+    facebookPixelId: (storeSettings.facebookPixelId as string) || undefined,
+    facebookPixelEnabled: Boolean(storeSettings.facebookPixelEnabled),
+    facebookAccessToken: (storeSettings.facebookAccessToken as string) || undefined,
+    
+    // Google Analytics 4
+    googleAnalyticsId: (storeSettings.googleAnalyticsId as string) || undefined,
+    googleAnalyticsEnabled: Boolean(storeSettings.googleAnalyticsEnabled),
+    googleApiSecret: (storeSettings.googleApiSecret as string) || undefined,
+    
+    // Google Tag Manager
+    gtmContainerId: (storeSettings.gtmContainerId as string) || undefined,
+    gtmEnabled: Boolean(storeSettings.gtmEnabled),
+    
+    // TikTok Pixel
+    tiktokPixelId: (storeSettings.tiktokPixelId as string) || undefined,
+    tiktokPixelEnabled: Boolean(storeSettings.tiktokPixelEnabled),
+    tiktokAccessToken: (storeSettings.tiktokAccessToken as string) || undefined,
+    
+    // Server-Side Tracking (enabled if any access token is configured)
+    serverSideEnabled: Boolean(
+      storeSettings.facebookAccessToken || 
+      storeSettings.tiktokAccessToken || 
+      storeSettings.googleApiSecret
+    ),
+  };
+
   // Map customer data for props (only what we need)
   const customerData = customer ? {
     id: customer.id,
@@ -98,7 +134,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   } : null;
 
   return (
-    <>
+    <TrackingProvider config={trackingConfig}>
       {showHeader && (
         <>
           <ShopHeader 
@@ -129,7 +165,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           advisors={activeAdvisors}
         />
       )}
-    </>
+    </TrackingProvider>
   );
 }
 

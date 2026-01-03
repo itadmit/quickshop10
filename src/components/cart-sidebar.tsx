@@ -2,6 +2,7 @@
 
 import { useStoreOptional } from '@/lib/store-context';
 import Link from 'next/link';
+import { tracker } from '@/lib/tracking';
 
 interface CartSidebarProps {
   basePath?: string;
@@ -15,6 +16,28 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
   
   const { cart, cartOpen, cartTotal, closeCart, removeFromCart, updateQuantity } = store;
   const checkoutUrl = basePath ? `${basePath}/checkout` : '/checkout';
+
+  // Track remove from cart
+  const handleRemove = (item: typeof cart[0]) => {
+    tracker.removeFromCart({
+      id: item.productId,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      image: item.image,
+    });
+    removeFromCart(item.id);
+  };
+
+  // Track quantity update
+  const handleUpdateQuantity = (item: typeof cart[0], newQuantity: number) => {
+    if (newQuantity === 0) {
+      handleRemove(item);
+      return;
+    }
+    tracker.updateCart(item.productId, item.quantity, newQuantity);
+    updateQuantity(item.id, newQuantity);
+  };
 
   return (
     <>
@@ -93,21 +116,21 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center border border-gray-200">
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
                           className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
                         >
                           −
                         </button>
                         <span className="w-8 text-center text-sm">{item.quantity}</span>
                         <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
                           className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
                         >
                           +
                         </button>
                       </div>
                       <button
-                        onClick={() => removeFromCart(item.id)}
+                        onClick={() => handleRemove(item)}
                         className="text-[11px] tracking-wide text-gray-400 hover:text-black underline underline-offset-4 transition-colors cursor-pointer"
                       >
                         הסר

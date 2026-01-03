@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { tracker } from '@/lib/tracking';
 
 interface CustomerRegisterFormProps {
   basePath: string;
@@ -80,6 +81,17 @@ export function CustomerRegisterForm({ basePath, storeId, callbackUrl, initialEm
         setError(data.error || 'שגיאה בהרשמה');
         return;
       }
+
+      // Track successful registration
+      tracker.completeRegistration('email');
+      
+      // Set user data for enhanced matching
+      tracker.setUser({
+        email: formData.email,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phone: formData.phone || undefined,
+      });
 
       // Success - redirect with refresh
       router.push(redirectUrl);

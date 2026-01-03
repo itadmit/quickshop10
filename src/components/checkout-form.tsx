@@ -9,6 +9,7 @@ import { CheckoutLogin } from './checkout-login';
 import { createOrder } from '@/app/actions/order';
 import { getAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { calculateTotalDiscount, type AutomaticDiscountResult } from '@/lib/discount-utils';
+import { tracker } from '@/lib/tracking';
 
 interface LoggedInCustomer {
   id: string;
@@ -368,11 +369,37 @@ export function CheckoutForm({
     e.preventDefault();
     setOrderError(null);
     
+    // Prepare cart data for tracking
+    const cartData = {
+      items: cart.map(item => ({
+        id: item.productId,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image,
+      })),
+      totalValue: cartTotal,
+      itemCount: cart.reduce((sum, item) => sum + item.quantity, 0),
+      currency: 'ILS',
+    };
+    
     if (step === 'details') {
+      // Track InitiateCheckout when moving from details to shipping
+      tracker.initiateCheckout(cartData);
       setStep('shipping');
     } else if (step === 'shipping') {
+      // Track AddShippingInfo when moving from shipping to payment
+      tracker.addShippingInfo({
+        ...cartData,
+        shippingMethod: shippingSettings.rates[0]?.name || 'משלוח',
+      });
       setStep('payment');
     } else if (step === 'payment') {
+      // Track AddPaymentInfo when submitting payment
+      tracker.addPaymentInfo({
+        ...cartData,
+        paymentMethod: hasActivePaymentProvider ? 'credit_card' : 'demo',
+      });
       setIsSubmitting(true);
       
       try {

@@ -24,7 +24,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircleIcon, PackageIcon, CreditCardIcon, MapPinIcon, ArrowLeftIcon, TagIcon, GiftIcon } from '@/components/admin/icons';
 import { nanoid } from 'nanoid';
-import { PurchaseTracking } from '@/components/purchase-tracking';
+import { TrackPurchase } from '@/components/tracking-events';
 import { ClearCartOnLoad } from './clear-cart';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
@@ -622,23 +622,28 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   // Shipping address
   const shippingAddr = (order.shippingAddress || {}) as Record<string, string>;
 
-  // Prepare tracking data
-  const trackingItems = items.map(item => ({
-    productId: item.productId || '',
-    name: item.name,
-    price: Number(item.price),
-    quantity: item.quantity,
-  }));
+  // Prepare tracking data - full OrderData structure
+  const trackingOrder = {
+    orderId: order.id,
+    orderNumber: order.orderNumber,
+    value: Number(order.total),
+    currency: 'ILS',
+    items: items.map(item => ({
+      id: item.productId || '',
+      name: item.name,
+      price: Number(item.price),
+      quantity: item.quantity,
+    })),
+    shippingCost: Number(order.shippingAmount) || undefined,
+    discountAmount: Number(order.discountAmount) || undefined,
+    couponCode: order.discountCode || undefined,
+    paymentMethod: (order.paymentDetails as Record<string, unknown>)?.cardBrand as string || 'credit_card',
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Purchase Tracking - fires pixel events */}
-      <PurchaseTracking
-        orderNumber={order.orderNumber}
-        total={Number(order.total)}
-        currency="ILS"
-        items={trackingItems}
-      />
+      {/* Purchase Tracking - fires pixel events to all platforms */}
+      <TrackPurchase order={trackingOrder} />
       
       {/* Clear cart on load */}
       <ClearCartOnLoad />

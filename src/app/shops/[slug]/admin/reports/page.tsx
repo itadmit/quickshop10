@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getReportsDashboard } from '@/lib/actions/reports';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 
 // Components
 import { StatCard } from '@/components/admin/ui';
@@ -372,9 +373,26 @@ export default async function ReportsPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = (['7d', '30d', '90d'].includes(periodParam || '') 
-    ? periodParam 
-    : '30d') as '7d' | '30d' | '90d';
+  // Map period to days for the report function
+  const periodToDays: Record<string, number> = {
+    'today': 1,
+    'yesterday': 1,
+    '7d': 7,
+    '30d': 30,
+    '90d': 90,
+    '6m': 180,
+    '1y': 365,
+  };
+
+  const validPeriods = ['today', 'yesterday', '7d', '30d', '90d', '6m', '1y', 'custom'];
+  const period = validPeriods.includes(periodParam || '') 
+    ? periodParam as string
+    : '30d';
+
+  // Convert to the format expected by getReportsDashboard
+  const reportPeriod = period === 'today' || period === 'yesterday' ? '7d' 
+    : period === '6m' || period === '1y' ? '90d'
+    : (period as '7d' | '30d' | '90d');
 
   return (
     <div>
@@ -385,25 +403,21 @@ export default async function ReportsPage({
           <p className="text-gray-500 text-xs sm:text-sm mt-1">ניתוח ביצועי החנות</p>
         </div>
         
-        {/* Period Selector */}
-        <div className="flex gap-1 bg-gray-100 p-1 w-fit">
-          {[
-            { value: '7d', label: '7 ימים' },
-            { value: '30d', label: '30 יום' },
-            { value: '90d', label: '90 יום' },
-          ].map((option) => (
-            <Link
-              key={option.value}
-              href={`?period=${option.value}`}
-              className={`px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm transition-colors ${
-                period === option.value
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-600 hover:text-black'
-              }`}
-            >
-              {option.label}
-            </Link>
-          ))}
+        <div className="flex items-center gap-3">
+          {/* Date Range Picker */}
+          <DateRangePicker basePath={`/shops/${slug}/admin/reports`} />
+          
+          {/* Realtime Button */}
+          <Link
+            href={`/shops/${slug}/admin/analytics/realtime`}
+            className="flex items-center gap-2 px-3 py-2 bg-black text-white text-sm hover:bg-gray-800 transition-colors"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+            זמן אמת
+          </Link>
         </div>
       </div>
 
@@ -417,7 +431,7 @@ export default async function ReportsPage({
           </div>
         </>
       }>
-        <DashboardContent storeId={store.id} period={period} />
+        <DashboardContent storeId={store.id} period={reportPeriod} />
       </Suspense>
 
       {/* Quick Access to Reports */}

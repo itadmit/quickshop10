@@ -1,5 +1,6 @@
 import { getStoreBySlug, getCategoryBySlug, getProductsByCategory } from '@/lib/db/queries';
 import { ProductCard } from '@/components/product-card';
+import { TrackViewCategory } from '@/components/tracking-events';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -29,6 +30,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Track ViewCategory event */}
+      <TrackViewCategory 
+        categoryId={category.id} 
+        categoryName={category.name} 
+        productsCount={products.length}
+      />
+      
       {/* Hero Banner */}
       <section className="relative h-[50vh] min-h-[400px] bg-gray-100 overflow-hidden">
         {category.imageUrl ? (

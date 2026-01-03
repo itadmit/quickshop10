@@ -2,6 +2,7 @@
 
 import { useStoreOptional } from '@/lib/store-context';
 import { useState } from 'react';
+import { tracker } from '@/lib/tracking';
 
 interface AddToCartButtonProps {
   productId: string;
@@ -10,6 +11,7 @@ interface AddToCartButtonProps {
   image: string;
   variant?: 'primary' | 'secondary';
   className?: string;
+  category?: string;
 }
 
 export function AddToCartButton({ 
@@ -18,7 +20,8 @@ export function AddToCartButton({
   price, 
   image, 
   variant = 'primary',
-  className = '' 
+  className = '',
+  category 
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
@@ -39,6 +42,16 @@ export function AddToCartButton({
     addToCart({ productId, name, price, image });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+    
+    // Track AddToCart event
+    tracker.addToCart({
+      id: productId,
+      name,
+      price,
+      quantity: 1,
+      category,
+      image,
+    });
   };
 
   const baseStyles = variant === 'primary' ? 'btn-primary' : 'btn-secondary';

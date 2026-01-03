@@ -12,17 +12,25 @@ interface TrackingSettingsFormProps {
 export function TrackingSettingsForm({ storeId, settings }: TrackingSettingsFormProps) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
+    // Facebook
     facebookPixelId: (settings.facebookPixelId as string) || '',
     facebookPixelEnabled: (settings.facebookPixelEnabled as boolean) ?? false,
+    facebookAccessToken: (settings.facebookAccessToken as string) || '',
+    // Google
     googleAnalyticsId: (settings.googleAnalyticsId as string) || '',
     googleAnalyticsEnabled: (settings.googleAnalyticsEnabled as boolean) ?? false,
+    googleApiSecret: (settings.googleApiSecret as string) || '',
+    // GTM
     gtmContainerId: (settings.gtmContainerId as string) || '',
     gtmEnabled: (settings.gtmEnabled as boolean) ?? false,
+    // TikTok
     tiktokPixelId: (settings.tiktokPixelId as string) || '',
     tiktokPixelEnabled: (settings.tiktokPixelEnabled as boolean) ?? false,
+    tiktokAccessToken: (settings.tiktokAccessToken as string) || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,8 +47,25 @@ export function TrackingSettingsForm({ storeId, settings }: TrackingSettingsForm
     });
   };
 
+  const hasServerSideConfig = formData.facebookAccessToken || formData.tiktokAccessToken || formData.googleApiSecret;
+
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Server-Side Tracking Badge */}
+      {hasServerSideConfig && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+            <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-green-800">Server-Side Tracking פעיל</p>
+            <p className="text-xs text-green-600">הנתונים נשלחים גם מהשרת - עוקף חסימות iOS 14+ ו-Ad Blockers</p>
+          </div>
+        </div>
+      )}
+
       {/* Facebook Pixel */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex items-start justify-between mb-4">
@@ -65,18 +90,36 @@ export function TrackingSettingsForm({ storeId, settings }: TrackingSettingsForm
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
           </label>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Pixel ID
-          </label>
-          <input
-            type="text"
-            value={formData.facebookPixelId}
-            onChange={(e) => setFormData(prev => ({ ...prev, facebookPixelId: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-            placeholder="1234567890123456"
-            dir="ltr"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Pixel ID
+            </label>
+            <input
+              type="text"
+              value={formData.facebookPixelId}
+              onChange={(e) => setFormData(prev => ({ ...prev, facebookPixelId: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              placeholder="1234567890123456"
+              dir="ltr"
+            />
+          </div>
+          {showAdvanced && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Access Token <span className="text-xs text-gray-400">(ל-Conversions API)</span>
+              </label>
+              <input
+                type="password"
+                value={formData.facebookAccessToken}
+                onChange={(e) => setFormData(prev => ({ ...prev, facebookAccessToken: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+                placeholder="EAAxxxxxx..."
+                dir="ltr"
+              />
+              <p className="text-xs text-gray-500 mt-1">ניתן להשיג ב-Events Manager → Settings → Generate Access Token</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -104,18 +147,36 @@ export function TrackingSettingsForm({ storeId, settings }: TrackingSettingsForm
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
           </label>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Measurement ID
-          </label>
-          <input
-            type="text"
-            value={formData.googleAnalyticsId}
-            onChange={(e) => setFormData(prev => ({ ...prev, googleAnalyticsId: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-            placeholder="G-XXXXXXXXXX"
-            dir="ltr"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Measurement ID
+            </label>
+            <input
+              type="text"
+              value={formData.googleAnalyticsId}
+              onChange={(e) => setFormData(prev => ({ ...prev, googleAnalyticsId: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              placeholder="G-XXXXXXXXXX"
+              dir="ltr"
+            />
+          </div>
+          {showAdvanced && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                API Secret <span className="text-xs text-gray-400">(ל-Measurement Protocol)</span>
+              </label>
+              <input
+                type="password"
+                value={formData.googleApiSecret}
+                onChange={(e) => setFormData(prev => ({ ...prev, googleApiSecret: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+                placeholder="xxxxxxxxxxxxxxxx"
+                dir="ltr"
+              />
+              <p className="text-xs text-gray-500 mt-1">ניתן להשיג ב-GA4 → Admin → Data Streams → Measurement Protocol API secrets</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -182,31 +243,79 @@ export function TrackingSettingsForm({ storeId, settings }: TrackingSettingsForm
             <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-black"></div>
           </label>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Pixel ID
-          </label>
-          <input
-            type="text"
-            value={formData.tiktokPixelId}
-            onChange={(e) => setFormData(prev => ({ ...prev, tiktokPixelId: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-            placeholder="XXXXXXXXXXXXXXXXX"
-            dir="ltr"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Pixel ID
+            </label>
+            <input
+              type="text"
+              value={formData.tiktokPixelId}
+              onChange={(e) => setFormData(prev => ({ ...prev, tiktokPixelId: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              placeholder="XXXXXXXXXXXXXXXXX"
+              dir="ltr"
+            />
+          </div>
+          {showAdvanced && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Access Token <span className="text-xs text-gray-400">(ל-Events API)</span>
+              </label>
+              <input
+                type="password"
+                value={formData.tiktokAccessToken}
+                onChange={(e) => setFormData(prev => ({ ...prev, tiktokAccessToken: e.target.value }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+                placeholder="xxxxxxxxxxxxxxxx"
+                dir="ltr"
+              />
+              <p className="text-xs text-gray-500 mt-1">ניתן להשיג ב-TikTok Ads Manager → Events → Web Events → Settings</p>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Help */}
+      {/* Advanced Settings Toggle */}
+      <button
+        type="button"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <svg 
+          className={`w-4 h-4 transition-transform ${showAdvanced ? 'rotate-180' : ''}`} 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+        {showAdvanced ? 'הסתר הגדרות מתקדמות' : 'הצג הגדרות מתקדמות (Server-Side Tracking)'}
+      </button>
+
+      {/* Events List */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-gray-900 mb-2">אירועים נתמכים</h3>
-        <ul className="text-sm text-gray-600 space-y-1">
-          <li>• <strong>PageView</strong> - צפייה בדף</li>
-          <li>• <strong>ViewContent</strong> - צפייה במוצר</li>
-          <li>• <strong>AddToCart</strong> - הוספה לסל</li>
-          <li>• <strong>InitiateCheckout</strong> - התחלת תשלום</li>
-          <li>• <strong>Purchase</strong> - רכישה מוצלחת</li>
-        </ul>
+        <h3 className="text-sm font-medium text-gray-900 mb-3">14 אירועים נתמכים - יותר משופיפיי! 🚀</h3>
+        <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+          <div className="space-y-1">
+            <p>• <strong>PageView</strong> - צפייה בדף</p>
+            <p>• <strong>ViewHomePage</strong> - צפייה בדף הבית</p>
+            <p>• <strong>Search</strong> - חיפוש</p>
+            <p>• <strong>ViewCategory</strong> - צפייה בקטגוריה</p>
+            <p>• <strong>ViewContent</strong> - צפייה במוצר</p>
+            <p>• <strong>AddToCart</strong> - הוספה לסל</p>
+            <p>• <strong>RemoveFromCart</strong> - הסרה מסל</p>
+          </div>
+          <div className="space-y-1">
+            <p>• <strong>UpdateCart</strong> - עדכון כמות</p>
+            <p>• <strong>InitiateCheckout</strong> - התחלת תשלום</p>
+            <p>• <strong>AddShippingInfo</strong> - בחירת משלוח</p>
+            <p>• <strong>AddPaymentInfo</strong> - בחירת תשלום</p>
+            <p>• <strong>Purchase</strong> - רכישה מוצלחת</p>
+            <p>• <strong>CompleteRegistration</strong> - הרשמה</p>
+            <p>• <strong>Contact</strong> - יצירת קשר</p>
+          </div>
+        </div>
       </div>
 
       {/* Submit */}
@@ -230,4 +339,3 @@ export function TrackingSettingsForm({ storeId, settings }: TrackingSettingsForm
     </form>
   );
 }
-
