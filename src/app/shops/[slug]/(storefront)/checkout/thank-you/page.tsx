@@ -220,9 +220,9 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           // Update customer info
           await db.update(customers)
             .set({
-              lastOrderAt: new Date(),
-              orderCount: sql`${customers.orderCount} + 1`,
-              totalSpent: sql`${customers.totalSpent} + ${cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)}`,
+              updatedAt: new Date(),
+              totalOrders: sql`COALESCE(${customers.totalOrders}, 0) + 1`,
+              totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)}`,
             })
             .where(eq(customers.id, existingCustomer.id));
         } else {
@@ -240,12 +240,13 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             firstName: orderDataTyped.shippingAddress?.firstName || customerName.split(' ')[0] || '',
             lastName: orderDataTyped.shippingAddress?.lastName || customerName.split(' ').slice(1).join(' ') || '',
             phone: orderDataTyped.customer?.phone || '',
-            address: orderDataTyped.shippingAddress?.address || '',
-            city: orderDataTyped.shippingAddress?.city || '',
-            zipCode: orderDataTyped.shippingAddress?.zipCode || '',
-            orderCount: 1,
+            defaultAddress: {
+              address: orderDataTyped.shippingAddress?.address || '',
+              city: orderDataTyped.shippingAddress?.city || '',
+              zipCode: orderDataTyped.shippingAddress?.zipCode || '',
+            },
+            totalOrders: 1,
             totalSpent: String(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)),
-            lastOrderAt: new Date(),
           }).returning();
           
           customerId = newCustomer.id;
