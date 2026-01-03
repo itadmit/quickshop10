@@ -144,7 +144,7 @@ export function DraftsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '150px',
+      width: '200px',
       align: 'right',
       render: (draft) => (
         <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
