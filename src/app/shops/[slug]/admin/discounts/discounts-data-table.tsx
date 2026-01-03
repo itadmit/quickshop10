@@ -230,8 +230,8 @@ export function DiscountsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '120px',
-      align: 'left',
+      width: '150px',
+      align: 'right',
       render: (coupon) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
           <CouponForm storeId={storeId} mode="edit" coupon={coupon} influencers={influencers} />

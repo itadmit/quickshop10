@@ -175,9 +175,9 @@ export function GiftCardsDataTable({
     },
     {
       key: 'actions',
-      header: '',
-      width: '100px',
-      align: 'left',
+      header: 'פעולות',
+      width: '150px',
+      align: 'right',
       render: (card) => (
         <div onClick={(e) => e.stopPropagation()}>
           <GiftCardButtons 

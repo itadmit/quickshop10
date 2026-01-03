@@ -143,9 +143,9 @@ export function DraftsDataTable({
     },
     {
       key: 'actions',
-      header: '',
-      width: '120px',
-      align: 'left',
+      header: 'פעולות',
+      width: '150px',
+      align: 'right',
       render: (draft) => (
         <div className="flex items-center gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
           {!draft.completedAt && (

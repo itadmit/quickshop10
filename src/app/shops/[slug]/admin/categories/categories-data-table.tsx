@@ -166,8 +166,8 @@ export function CategoriesDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '120px',
-      align: 'left',
+      width: '150px',
+      align: 'right',
       render: (category) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
           <Link

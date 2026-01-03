@@ -188,8 +188,8 @@ export function ProductsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '100px',
-      align: 'left',
+      width: '150px',
+      align: 'right',
       render: (product) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
           <Link
