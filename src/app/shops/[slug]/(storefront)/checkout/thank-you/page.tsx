@@ -18,7 +18,7 @@
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, influencerSales, influencers } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -369,6 +369,69 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             })
             .catch(err => {
               console.error(`Thank you page: Failed to increment coupon usage:`, err);
+            });
+        }
+        
+        // Create influencer sale record if coupon is linked to an influencer (non-blocking for speed)
+        if (pendingPayment.discountCode) {
+          // Find influencer linked to this coupon by checking influencers.discountId
+          db.select({
+            influencerId: influencers.id,
+            commissionType: influencers.commissionType,
+            commissionValue: influencers.commissionValue,
+            discountId: discounts.id,
+          })
+            .from(discounts)
+            .innerJoin(influencers, eq(influencers.discountId, discounts.id))
+            .where(
+              and(
+                eq(discounts.storeId, store.id),
+                eq(discounts.code, pendingPayment.discountCode),
+                eq(influencers.isActive, true)
+              )
+            )
+            .limit(1)
+            .then(async ([result]) => {
+              if (!result) {
+                console.log(`Thank you page: No influencer linked to coupon ${pendingPayment.discountCode}`);
+                return;
+              }
+              
+              const commissionType = result.commissionType || 'percentage';
+              const commissionValue = Number(result.commissionValue) || 10;
+              
+              // Calculate commission
+              let commissionAmount = 0;
+              if (commissionType === 'percentage') {
+                commissionAmount = (totalAmount * commissionValue) / 100;
+              } else {
+                commissionAmount = commissionValue;
+              }
+              
+              // Create influencer sale record
+              await db.insert(influencerSales).values({
+                influencerId: result.influencerId,
+                orderId: newOrder.id,
+                orderTotal: String(totalAmount),
+                commissionAmount: String(commissionAmount),
+                netCommission: String(commissionAmount),
+                status: 'pending',
+              });
+              
+              // Update influencer stats
+              await db.update(influencers)
+                .set({
+                  totalSales: sql`COALESCE(${influencers.totalSales}, 0) + ${totalAmount}`,
+                  totalCommission: sql`COALESCE(${influencers.totalCommission}, 0) + ${commissionAmount}`,
+                  totalOrders: sql`COALESCE(${influencers.totalOrders}, 0) + 1`,
+                  updatedAt: new Date(),
+                })
+                .where(eq(influencers.id, result.influencerId));
+              
+              console.log(`Thank you page: Created influencer sale for ${result.influencerId}, commission: ${commissionAmount}`);
+            })
+            .catch(err => {
+              console.error(`Thank you page: Failed to create influencer sale:`, err);
             });
         }
         

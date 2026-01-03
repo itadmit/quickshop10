@@ -13,6 +13,10 @@ export type AppliedCoupon = {
   minimumAmount: number | null;
   isGiftCard?: boolean;
   giftCardBalance?: number;
+  influencerId?: string;
+  influencerName?: string;
+  influencerCommissionType?: string;
+  influencerCommissionValue?: number;
 };
 
 interface CouponInputProps {

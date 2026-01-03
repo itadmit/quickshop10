@@ -159,4 +159,3 @@ export async function validateCoupon(code: string, cartTotal: number, email?: st
     }
   };
 }
-
