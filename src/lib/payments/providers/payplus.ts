@@ -557,10 +557,12 @@ export class PayPlusProvider extends BasePaymentProvider {
   
   /**
    * Build callback URL for webhooks
+   * Uses the generic callback endpoint with provider parameter
    */
   private buildCallbackUrl(storeSlug: string): string {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    return `${baseUrl}/api/payments/payplus/callback?store=${storeSlug}`;
+    // Generic callback URL - all providers use the same endpoint
+    return `${baseUrl}/api/payments/callback?provider=payplus&store=${storeSlug}`;
   }
   
   /**
