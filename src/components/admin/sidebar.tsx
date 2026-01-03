@@ -148,6 +148,17 @@ const salesMenuItems: MenuItem[] = [
       </svg>
     ),
   },
+  {
+    label: 'פופאפים',
+    href: '/popups',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M8 12h8"/>
+        <path d="M12 8v8"/>
+      </svg>
+    ),
+  },
 ];
 
 // Analytics

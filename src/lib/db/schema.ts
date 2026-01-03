@@ -72,6 +72,13 @@ export const pluginSubscriptionStatusEnum = pgEnum('plugin_subscription_status',
   'active', 'trial', 'cancelled', 'expired', 'pending'
 ]);
 
+// Popup system enums
+export const popupTypeEnum = pgEnum('popup_type', ['image', 'text', 'form']);
+export const popupTriggerEnum = pgEnum('popup_trigger', ['on_load', 'exit_intent', 'scroll', 'time_delay']);
+export const popupPositionEnum = pgEnum('popup_position', ['center', 'bottom_right', 'bottom_left', 'full_screen']);
+export const popupFrequencyEnum = pgEnum('popup_frequency', ['once', 'once_per_session', 'always', 'every_x_days']);
+export const popupTargetEnum = pgEnum('popup_target', ['all', 'homepage', 'products', 'categories', 'custom']);
+
 // ============ USERS & AUTH ============
 
 export const users = pgTable('users', {
@@ -1898,6 +1905,103 @@ export const advisorSessions = pgTable('advisor_sessions', {
   sessionIdx: index('advisor_session_session_idx').on(table.sessionId),
 }));
 
+// ============ POPUPS ============
+
+export const popups = pgTable('popups', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Basic info
+  name: varchar('name', { length: 255 }).notNull(),
+  type: popupTypeEnum('type').notNull(),
+  isActive: boolean('is_active').default(false).notNull(),
+  
+  // Trigger settings
+  trigger: popupTriggerEnum('trigger').default('on_load').notNull(),
+  triggerValue: integer('trigger_value').default(3), // seconds for time_delay, percentage for scroll
+  
+  // Display settings
+  position: popupPositionEnum('position').default('center').notNull(),
+  frequency: popupFrequencyEnum('frequency').default('once').notNull(),
+  frequencyDays: integer('frequency_days').default(7), // for every_x_days
+  
+  // Target pages
+  targetPages: popupTargetEnum('target_pages').default('all').notNull(),
+  customTargetUrls: jsonb('custom_target_urls').default([]), // for custom targeting
+  
+  // Device visibility
+  showOnDesktop: boolean('show_on_desktop').default(true).notNull(),
+  showOnMobile: boolean('show_on_mobile').default(true).notNull(),
+  
+  // Scheduling
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  
+  // Content (JSON for flexibility)
+  content: jsonb('content').default({}).notNull(),
+  // For type='image': { imageUrl, imageAlt, linkUrl, linkText }
+  // For type='text': { title, subtitle, body, buttonText, buttonUrl }
+  // For type='form': { title, subtitle, fields: [{ name, type, placeholder, required }], buttonText, successMessage }
+  
+  // Style settings (JSON)
+  style: jsonb('style').default({}).notNull(),
+  // { bgColor, textColor, buttonBgColor, buttonTextColor, overlayOpacity, borderRadius, width }
+  
+  // Analytics
+  impressions: integer('impressions').default(0).notNull(),
+  clicks: integer('clicks').default(0).notNull(),
+  conversions: integer('conversions').default(0).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  storeIdx: index('popup_store_idx').on(table.storeId),
+  activeIdx: index('popup_active_idx').on(table.storeId, table.isActive),
+}));
+
+// Popup form submissions (for form type popups)
+export const popupSubmissions = pgTable('popup_submissions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  popupId: uuid('popup_id').references(() => popups.id, { onDelete: 'cascade' }).notNull(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  
+  formData: jsonb('form_data').default({}).notNull(), // { email, name, phone, ... }
+  
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  pageUrl: text('page_url'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  popupIdx: index('popup_submission_popup_idx').on(table.popupId),
+  storeIdx: index('popup_submission_store_idx').on(table.storeId),
+}));
+
+// Popup Relations
+export const popupsRelations = relations(popups, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [popups.storeId],
+    references: [stores.id],
+  }),
+  submissions: many(popupSubmissions),
+}));
+
+export const popupSubmissionsRelations = relations(popupSubmissions, ({ one }) => ({
+  popup: one(popups, {
+    fields: [popupSubmissions.popupId],
+    references: [popups.id],
+  }),
+  store: one(stores, {
+    fields: [popupSubmissions.storeId],
+    references: [stores.id],
+  }),
+  customer: one(customers, {
+    fields: [popupSubmissions.customerId],
+    references: [customers.id],
+  }),
+}));
+
 // Advisor Relations
 export const advisorQuizzesRelations = relations(advisorQuizzes, ({ one, many }) => ({
   store: one(stores, {
@@ -2047,6 +2151,12 @@ export type NewStoryComment = typeof storyComments.$inferInsert;
 export type AdvisorQuiz = typeof advisorQuizzes.$inferSelect;
 export type NewAdvisorQuiz = typeof advisorQuizzes.$inferInsert;
 export type AdvisorQuestion = typeof advisorQuestions.$inferSelect;
+
+// Popup types
+export type Popup = typeof popups.$inferSelect;
+export type NewPopup = typeof popups.$inferInsert;
+export type PopupSubmission = typeof popupSubmissions.$inferSelect;
+export type NewPopupSubmission = typeof popupSubmissions.$inferInsert;
 export type NewAdvisorQuestion = typeof advisorQuestions.$inferInsert;
 export type AdvisorAnswer = typeof advisorAnswers.$inferSelect;
 export type NewAdvisorAnswer = typeof advisorAnswers.$inferInsert;

@@ -6,8 +6,12 @@ import { cache } from 'react';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
+import { PopupDisplay } from '@/components/storefront/popup-display';
 import { TrackingProvider } from '@/components/tracking-provider';
 import type { TrackingConfig } from '@/lib/tracking';
+import { db } from '@/lib/db';
+import { popups } from '@/lib/db/schema';
+import { eq, and, lte, or, isNull, gte } from 'drizzle-orm';
 
 // Force dynamic rendering because we use cookies for customer auth
 export const dynamic = 'force-dynamic';
@@ -31,14 +35,24 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     return <>{children}</>;
   }
 
-  // Fetch categories, customer, and plugin data in parallel (server-side)
-  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, activeAdvisors] = await Promise.all([
+  // Fetch categories, customer, plugin data, and popups in parallel (server-side)
+  const now = new Date();
+  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, activeAdvisors, activePopups] = await Promise.all([
     getCategoriesByStore(store.id),
     getCurrentCustomer(),
     isPluginActive(store.id, 'product-stories'),
     getStorePlugin(store.id, 'product-stories'),
     isPluginActive(store.id, 'smart-advisor'),
     getActiveAdvisorsForFloating(store.id),
+    // Fetch active popups with valid date range
+    db.query.popups.findMany({
+      where: and(
+        eq(popups.storeId, store.id),
+        eq(popups.isActive, true),
+        or(isNull(popups.startDate), lte(popups.startDate, now)),
+        or(isNull(popups.endDate), gte(popups.endDate, now))
+      ),
+    }),
   ]);
   
   // Fetch stories only if plugin is active
@@ -160,6 +174,29 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           storeSlug={slug} 
           storeId={store.id} 
           advisors={activeAdvisors}
+        />
+      )}
+
+      {/* Popup Display - Renders active popups */}
+      {activePopups.length > 0 && (
+        <PopupDisplay 
+          popups={activePopups.map(p => ({
+            id: p.id,
+            name: p.name,
+            type: p.type,
+            trigger: p.trigger,
+            triggerValue: p.triggerValue || 3,
+            position: p.position,
+            frequency: p.frequency,
+            frequencyDays: p.frequencyDays || 7,
+            targetPages: p.targetPages,
+            customTargetUrls: (p.customTargetUrls as string[]) || [],
+            showOnDesktop: p.showOnDesktop,
+            showOnMobile: p.showOnMobile,
+            content: p.content as Record<string, unknown>,
+            style: p.style as Record<string, unknown>,
+          }))}
+          storeSlug={slug}
         />
       )}
     </TrackingProvider>
