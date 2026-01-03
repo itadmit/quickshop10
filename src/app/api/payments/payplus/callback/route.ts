@@ -200,12 +200,11 @@ export async function POST(request: NextRequest) {
       // Save payment details to pending payment (for thank-you page to use)
       // Note: We save the payment details but DON'T create the order here
       // Order creation happens in the thank-you page (single source of truth)
+      // Save payment details to pendingPayment.orderData for thank-you page to use
       await db
         .update(pendingPayments)
         .set({
-          // Save payment confirmation details
-          providerTransactionId: parsed.providerTransactionId,
-          // Store additional payment info in orderData
+          // Store payment info in orderData (pendingPayments doesn't have providerTransactionId field)
           orderData: {
             ...orderData,
             paymentConfirmed: true,
