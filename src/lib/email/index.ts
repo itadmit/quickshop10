@@ -187,31 +187,30 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     
     return `
     <tr>
-      <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;">
-        <div style="display: flex; gap: 12px; direction: rtl; align-items: center;">
-          <div style="flex: 1; text-align: right;">
-            <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
-            ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
-            <p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">כמות: ${item.quantity} × ₪${item.price.toFixed(0)}</p>
-            <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: 600; color: #1a1a1a;">סה״כ: ₪${(item.price * item.quantity).toFixed(0)}</p>
-          </div>
-          ${imageUrl ? `
-          <div style="flex-shrink: 0;">
-            <img src="${imageUrl}" alt="${item.name.replace(/"/g, '&quot;')}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #f0f0f0;" />
-          </div>
-          ` : `
-          <div style="flex-shrink: 0; width: 80px; height: 80px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-              <line x1="12" y1="22.08" x2="12" y2="12"></line>
-            </svg>
-          </div>
-          `}
-        </div>
-      </td>
-      <td style="padding: 16px 0 16px 16px; border-bottom: 1px solid #f0f0f0; text-align: left; vertical-align: top; white-space: nowrap; width: 120px;">
-        <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+      <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;" colspan="2">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <!-- Image on RIGHT (first in RTL) -->
+            <td style="width: 80px; vertical-align: top;">
+              ${imageUrl ? `
+              <img src="${imageUrl}" alt="${item.name.replace(/"/g, '&quot;')}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #f0f0f0;" />
+              ` : `
+              <div style="width: 80px; height: 80px; background: #f3f4f6; border-radius: 8px;"></div>
+              `}
+            </td>
+            <!-- Text in middle -->
+            <td style="padding: 0 16px; vertical-align: top; text-align: right;">
+              <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
+              ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
+              <p style="margin: 0; font-size: 14px; color: #666;">כמות: ${item.quantity}</p>
+              <p style="margin: 4px 0 0 0; font-size: 14px; color: #1a1a1a;">₪${item.price.toFixed(0)}</p>
+            </td>
+            <!-- Price on LEFT -->
+            <td style="width: 100px; vertical-align: top; text-align: left;">
+              <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+            </td>
+          </tr>
+        </table>
       </td>
     </tr>
   `;
@@ -294,37 +293,39 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
             
             <!-- Summary -->
             <div style="padding: 24px; background: #f9fafb;">
-              <table width="100%" cellpadding="0" cellspacing="0">
+              <table width="100%" cellpadding="0" cellspacing="0" style="direction: rtl;">
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">סכום ביניים</td>
-                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #1a1a1a;">₪${subtotal.toFixed(0)}</td>
+                  <td style="padding: 12px 0; color: #6b7280; text-align: right; width: 50%;">סכום ביניים</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #1a1a1a; width: 50%;">₪${subtotal.toFixed(0)}</td>
                 </tr>
                 <tr>
-                  <td style="padding: 8px 0; color: #6b7280;">משלוח</td>
-                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: ${shippingAmount > 0 ? '#1a1a1a' : '#16a34a'};">
+                  <td style="padding: 12px 0; color: #6b7280; text-align: right;">משלוח</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: ${shippingAmount > 0 ? '#1a1a1a' : '#16a34a'};">
                     ${shippingAmount > 0 ? `₪${shippingAmount.toFixed(0)}` : 'חינם'}
                   </td>
                 </tr>
                 ${discountAmount > 0 ? `
                 <tr>
-                  <td style="padding: 8px 0; color: #16a34a;">הנחה</td>
-                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${discountAmount.toFixed(0)}</td>
+                  <td style="padding: 12px 0; color: #16a34a; text-align: right;">הנחה</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${discountAmount.toFixed(0)}</td>
                 </tr>
                 ` : ''}
                 ${creditUsed > 0 ? `
                 <tr>
-                  <td style="padding: 8px 0; color: #16a34a;">קרדיט</td>
-                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${creditUsed.toFixed(0)}</td>
+                  <td style="padding: 12px 0; color: #16a34a; text-align: right;">קרדיט</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${creditUsed.toFixed(0)}</td>
                 </tr>
                 ` : ''}
                 <tr>
-                  <td colspan="2" style="padding-top: 16px; border-top: 2px solid #e5e7eb;">
-                    <table width="100%">
-                      <tr>
-                        <td style="font-size: 18px; font-weight: 600; color: #1a1a1a;">סה״כ</td>
-                        <td style="font-size: 18px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${total.toFixed(0)}</td>
-                      </tr>
-                    </table>
+                  <td colspan="2" style="padding-top: 16px;">
+                    <div style="border-top: 2px solid #e5e7eb; padding-top: 16px;">
+                      <table width="100%">
+                        <tr>
+                          <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: right;">סה״כ</td>
+                          <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${total.toFixed(0)}</td>
+                        </tr>
+                      </table>
+                    </div>
                   </td>
                 </tr>
               </table>
