@@ -166,10 +166,9 @@ export function CategoriesDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '200px',
-      align: 'right',
+      align: 'left',
       render: (category) => (
-        <div className="flex items-center gap-1 justify-start" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
           <Link
             href={`/shops/${storeSlug}/category/${category.slug}`}
             target="_blank"

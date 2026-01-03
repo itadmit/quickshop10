@@ -188,10 +188,9 @@ export function ProductsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '200px',
-      align: 'right',
+      align: 'left',
       render: (product) => (
-        <div className="flex items-center gap-1 justify-start" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
           <Link
             href={`/shops/${storeSlug}/product/${product.slug}`}
             target="_blank"

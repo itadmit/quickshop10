@@ -172,8 +172,7 @@ export function AbandonedCartsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '200px',
-      align: 'right',
+      align: 'left',
       render: (cart) => (
         <div onClick={(e) => e.stopPropagation()}>
           {!cart.recoveredAt && cart.email && (
