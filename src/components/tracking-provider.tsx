@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { tracker, type TrackingConfig } from '@/lib/tracking';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -16,39 +16,58 @@ interface TrackingProviderProps {
  * Uses requestIdleCallback to not block the main thread
  */
 export function TrackingProvider({ config, children }: TrackingProviderProps) {
-  const initialized = useRef(false);
+  const [isReady, setIsReady] = useState(false);
+  const initStarted = useRef(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const lastTrackedPath = useRef<string | null>(null);
 
   // Initialize tracker once
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    if (initStarted.current) return;
+    initStarted.current = true;
 
     // Use requestIdleCallback to not block rendering
+    const doInit = () => {
+      tracker.init(config);
+      setIsReady(true);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TrackingProvider] Initialized');
+      }
+    };
+
     if ('requestIdleCallback' in window) {
-      (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(() => {
-        tracker.init(config);
-      });
+      (window as Window & { requestIdleCallback: (cb: () => void) => void }).requestIdleCallback(doInit);
     } else {
       // Fallback for Safari
-      setTimeout(() => tracker.init(config), 1);
+      setTimeout(doInit, 1);
     }
   }, [config]);
 
-  // Track page views on navigation
+  // Track page views on navigation - only after tracker is ready
   useEffect(() => {
-    if (!initialized.current) return;
+    if (!isReady) return;
 
-    const url = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
+    const currentPath = pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : '');
     
+    // Avoid tracking the same path twice
+    if (lastTrackedPath.current === currentPath) return;
+    lastTrackedPath.current = currentPath;
+
     // Determine page type and track accordingly
-    if (pathname.endsWith('/') || pathname.match(/\/shops\/[^/]+\/?$/)) {
-      tracker.viewHomePage(url);
+    if (pathname === '/' || pathname.match(/\/shops\/[^/]+\/?$/)) {
+      tracker.viewHomePage(currentPath);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TrackingProvider] ViewHomePage:', currentPath);
+      }
     } else {
-      tracker.pageView(url, document.title);
+      tracker.pageView(currentPath, document.title);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TrackingProvider] PageView:', currentPath);
+      }
     }
-  }, [pathname, searchParams]);
+  }, [isReady, pathname, searchParams]);
 
   return <>{children}</>;
 }
@@ -60,4 +79,3 @@ export function TrackingProvider({ config, children }: TrackingProviderProps) {
 export function useTracking() {
   return tracker;
 }
-

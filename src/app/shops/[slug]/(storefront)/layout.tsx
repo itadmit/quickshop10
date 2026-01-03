@@ -115,12 +115,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     tiktokPixelEnabled: Boolean(storeSettings.tiktokPixelEnabled),
     tiktokAccessToken: (storeSettings.tiktokAccessToken as string) || undefined,
     
-    // Server-Side Tracking (enabled if any access token is configured)
-    serverSideEnabled: Boolean(
-      storeSettings.facebookAccessToken || 
-      storeSettings.tiktokAccessToken || 
-      storeSettings.googleApiSecret
-    ),
+    // Server-Side Tracking - ALWAYS enabled for Redis analytics
+    // Even without social media tokens, we still want to track events in Redis
+    serverSideEnabled: true,
   };
 
   // Map customer data for props (only what we need)
