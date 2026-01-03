@@ -12,6 +12,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   ChevronLeft, ChevronRight, ShoppingCart, Check,
   Sparkles, Brain, Zap, Target, Loader2,
@@ -107,12 +108,12 @@ function AIThinkingLoader({ primaryColor }: { primaryColor: string }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [dots, setDots] = useState('');
 
-  // Progress through steps
+  // Progress through steps - faster animation
   useEffect(() => {
     if (currentStep < AI_LOADING_STEPS.length - 1) {
       const timer = setTimeout(() => {
         setCurrentStep(prev => prev + 1);
-      }, 1500);
+      }, 800); // ⚡ Reduced from 1500ms
       return () => clearTimeout(timer);
     }
   }, [currentStep]);
@@ -350,9 +351,9 @@ export function AdvisorWizard({
 
       const data = await res.json();
 
-      // Ensure minimum loading time for AI effect (show all 4 steps)
+      // Ensure minimum loading time for AI effect (show steps) - optimized for speed!
       const elapsed = Date.now() - startTime;
-      const minLoadingTime = 6500;
+      const minLoadingTime = 3500; // ⚡ Reduced from 6500ms for better UX
       if (elapsed < minLoadingTime) {
         await new Promise((resolve) => setTimeout(resolve, minLoadingTime - elapsed));
       }
@@ -423,9 +424,11 @@ export function AdvisorWizard({
           </div>
 
           {quiz.imageUrl && (
-            <img
+            <Image
               src={quiz.imageUrl}
               alt={quiz.title}
+              width={128}
+              height={128}
               className="w-32 h-32 mx-auto rounded-full object-cover shadow-lg"
             />
           )}
@@ -537,10 +540,12 @@ export function AdvisorWizard({
                 >
                   {result.imageUrl && (
                     <div className="aspect-square relative overflow-hidden">
-                      <img
+                      <Image
                         src={result.imageUrl}
                         alt={result.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 100vw, 33vw"
+                        className="object-cover"
                       />
                       {/* Match percentage */}
                       <div className="absolute top-3 right-3">
@@ -695,9 +700,11 @@ export function AdvisorWizard({
           {/* Question text */}
           <div className="text-center space-y-2">
             {currentQuestion.imageUrl && (
-              <img
+              <Image
                 src={currentQuestion.imageUrl}
                 alt=""
+                width={96}
+                height={96}
                 className="w-24 h-24 mx-auto rounded-full object-cover mb-4 shadow-lg"
               />
             )}
@@ -745,9 +752,11 @@ export function AdvisorWizard({
                   >
                     {/* Media */}
                     {answer.imageUrl ? (
-                      <img
+                      <Image
                         src={answer.imageUrl}
                         alt=""
+                        width={currentQuestion.answersLayout === 'cards' ? 64 : 48}
+                        height={currentQuestion.answersLayout === 'cards' ? 64 : 48}
                         className={`rounded-lg object-cover ${
                           currentQuestion.answersLayout === 'cards' ? 'w-16 h-16' : 'w-12 h-12'
                         }`}

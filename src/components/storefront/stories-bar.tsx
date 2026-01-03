@@ -10,6 +10,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { StoryViewer } from './story-viewer';
 
@@ -176,8 +177,8 @@ export function StoriesBar({
           {sortedStories.map((story, index) => (
             <button
               key={story.id}
-              onClick={() => setSelectedStoryIndex(index)}
-              className="flex flex-col items-center gap-2 flex-shrink-0 group"
+            onClick={() => setSelectedStoryIndex(index)}
+            className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
             >
               {/* Story Circle */}
               <div
@@ -190,9 +191,11 @@ export function StoriesBar({
               >
                 <div className="w-full h-full rounded-full overflow-hidden bg-white p-[2px]">
                   {story.product.image ? (
-                    <img
+                    <Image
                       src={story.product.image}
                       alt={story.product.title}
+                      width={80}
+                      height={80}
                       className="w-full h-full object-cover rounded-full group-hover:grayscale transition-all duration-300"
                     />
                   ) : (

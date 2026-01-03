@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useCallback, useRef, FormEvent } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import {
   X, Heart, MessageCircle, ShoppingCart,
   ChevronLeft, ChevronRight, Share2, Pause, Play, Send, Loader2, Check,
@@ -419,12 +420,14 @@ export function StoryViewer({
         </button>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden">
+          <div className="w-10 h-10 rounded-full border-2 border-white overflow-hidden relative">
             {currentStory.product.image ? (
-              <img
+              <Image
                 src={currentStory.product.image}
                 alt=""
-                className="w-full h-full object-cover"
+                fill
+                sizes="40px"
+                className="object-cover"
               />
             ) : (
               <div className="w-full h-full bg-gray-200" />
@@ -483,11 +486,14 @@ export function StoryViewer({
       >
         {currentStory.product.image ? (
           <div className="bg-white rounded-2xl p-6 shadow-2xl max-h-[70vh] relative">
-            <img
+            <Image
               src={currentStory.product.image}
               alt={currentStory.product.title}
+              width={400}
+              height={500}
               className="max-w-full max-h-[60vh] object-contain select-none"
               draggable={false}
+              priority
             />
             
             {/* Like Animation Heart (shows on double-tap) */}
