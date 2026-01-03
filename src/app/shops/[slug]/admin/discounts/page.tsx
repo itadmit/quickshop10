@@ -33,20 +33,34 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
 
   // Get all influencers for assignment
   const storeInfluencers = await db
-    .select({ id: influencers.id, name: influencers.name, email: influencers.email })
+    .select({ id: influencers.id, name: influencers.name, email: influencers.email, discountId: influencers.discountId })
     .from(influencers)
     .where(eq(influencers.storeId, store.id))
     .orderBy(influencers.name);
 
+  // Create a map of discountId -> influencer name
+  const influencerByDiscountId = new Map<string, string>();
+  storeInfluencers.forEach(inf => {
+    if (inf.discountId) {
+      influencerByDiscountId.set(inf.discountId, inf.name);
+    }
+  });
+
+  // Enrich coupons with influencer name
+  const couponsWithInfluencer = allCoupons.map(coupon => ({
+    ...coupon,
+    influencerName: influencerByDiscountId.get(coupon.id) || null,
+  }));
+
   // Filter by tab
-  let filteredCoupons = allCoupons;
+  let filteredCoupons = couponsWithInfluencer;
   if (filter && filter !== 'all') {
     if (filter === 'active') {
-      filteredCoupons = allCoupons.filter(c => c.isActive);
+      filteredCoupons = couponsWithInfluencer.filter(c => c.isActive);
     } else if (filter === 'inactive') {
-      filteredCoupons = allCoupons.filter(c => !c.isActive);
+      filteredCoupons = couponsWithInfluencer.filter(c => !c.isActive);
     } else if (filter === 'expired') {
-      filteredCoupons = allCoupons.filter(c => c.endsAt && new Date(c.endsAt) < new Date());
+      filteredCoupons = couponsWithInfluencer.filter(c => c.endsAt && new Date(c.endsAt) < new Date());
     }
   }
 
@@ -69,13 +83,13 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
   );
 
   // Count for tabs
-  const activeCoupons = allCoupons.filter(c => c.isActive);
-  const inactiveCoupons = allCoupons.filter(c => !c.isActive);
-  const expiredCoupons = allCoupons.filter(c => c.endsAt && new Date(c.endsAt) < new Date());
-  const totalUsage = allCoupons.reduce((sum, c) => sum + (c.usageCount || 0), 0);
+  const activeCoupons = couponsWithInfluencer.filter(c => c.isActive);
+  const inactiveCoupons = couponsWithInfluencer.filter(c => !c.isActive);
+  const expiredCoupons = couponsWithInfluencer.filter(c => c.endsAt && new Date(c.endsAt) < new Date());
+  const totalUsage = couponsWithInfluencer.reduce((sum, c) => sum + (c.usageCount || 0), 0);
 
   const tabs: Tab[] = [
-    { id: 'all', label: 'הכל', count: allCoupons.length },
+    { id: 'all', label: 'הכל', count: couponsWithInfluencer.length },
     { id: 'active', label: 'פעילים', count: activeCoupons.length },
     { id: 'inactive', label: 'לא פעילים', count: inactiveCoupons.length },
     { id: 'expired', label: 'פגי תוקף', count: expiredCoupons.length },

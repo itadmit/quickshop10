@@ -26,6 +26,7 @@ type Coupon = {
   startsAt: Date | null;
   endsAt: Date | null;
   createdAt: Date | null;
+  influencerName: string | null;
 };
 
 interface Influencer {
@@ -176,6 +177,16 @@ export function DiscountsDataTable({
         <span className="text-sm text-gray-600">
           {coupon.usageCount || 0}
           {coupon.usageLimit && ` / ${coupon.usageLimit}`}
+        </span>
+      ),
+    },
+    {
+      key: 'influencer',
+      header: 'משפיען',
+      width: '120px',
+      render: (coupon) => (
+        <span className={`text-sm ${coupon.influencerName ? 'text-purple-600 font-medium' : 'text-gray-400'}`}>
+          {coupon.influencerName || '-'}
         </span>
       ),
     },
