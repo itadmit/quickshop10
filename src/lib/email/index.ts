@@ -229,13 +229,14 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
       <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
         <tr>
           <td style="background: white; border-bottom: 1px solid #f0f0f0; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
-            <!-- Green Checkmark Circle -->
-            <div style="width: 64px; height: 64px; margin: 0 auto 24px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                <polyline points="22 4 12 14.01 9 11.01"></polyline>
-              </svg>
-            </div>
+            <!-- Green Checkmark Circle - Table based for email compatibility -->
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 64px; height: 64px; background: #dcfce7; border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: #16a34a; font-size: 32px; font-weight: bold; line-height: 64px;">✓</span>
+                </td>
+              </tr>
+            </table>
             <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: 300; letter-spacing: 0.5px; color: #1a1a1a;">תודה על הזמנתך!</h1>
             <p style="margin: 0; color: #6b7280; font-size: 16px;">
               הזמנה מספר <strong style="color: #1a1a1a;">${orderNumber}</strong> התקבלה בהצלחה
