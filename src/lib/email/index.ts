@@ -200,8 +200,12 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
             <img src="${imageUrl}" alt="${item.name.replace(/"/g, '&quot;')}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #f0f0f0;" />
           </div>
           ` : `
-          <div style="flex-shrink: 0; width: 80px; height: 80px; background: #f7f7f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #999; font-size: 24px;">
-            📦
+          <div style="flex-shrink: 0; width: 80px; height: 80px; background: #f3f4f6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+              <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+              <line x1="12" y1="22.08" x2="12" y2="12"></line>
+            </svg>
           </div>
           `}
         </div>
@@ -219,122 +223,138 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; direction: rtl; text-align: right; }
-        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; direction: rtl; }
-        .header { background: #1a1a1a; color: white; padding: 30px; text-align: center; direction: rtl; }
-        .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
-        .header p { margin: 8px 0 0; opacity: 0.9; direction: rtl; }
-        .header .check { width: 60px; height: 60px; background: #1a1a1a; border: 2px solid white; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
-        .content { padding: 30px; direction: rtl; }
-        .order-number { background: #f7f7f7; padding: 16px; border-radius: 8px; margin-bottom: 24px; text-align: right; direction: rtl; }
-        .order-number p { margin: 0; font-size: 14px; color: #666; }
-        .order-number h2 { margin: 8px 0 0; font-size: 20px; color: #1a1a1a; }
-        table { width: 100%; border-collapse: collapse; direction: rtl; }
-        .summary { background: #f7f7f7; padding: 20px; border-radius: 8px; margin-top: 24px; direction: rtl; }
-        .summary-row { display: flex; justify-content: space-between; margin-bottom: 8px; direction: rtl; }
-        .summary-row.total { font-size: 18px; font-weight: 600; border-top: 1px solid #ddd; padding-top: 12px; margin-top: 12px; }
-        .address { background: #f7f7f7; padding: 20px; border-radius: 8px; margin-top: 24px; text-align: right; direction: rtl; }
-        .address h3 { text-align: right; direction: rtl; }
-        .address p { text-align: right; direction: rtl; }
-        .button { display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500; margin-top: 24px; }
-        .footer { padding: 24px 30px; border-top: 1px solid #f0f0f0; text-align: center; color: #999; font-size: 14px; direction: rtl; }
-      </style>
     </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <div class="check">
-            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-          </div>
-          <h1>תודה על ההזמנה!</h1>
-          <p style="margin: 8px 0 0; opacity: 0.8;">קיבלנו את ההזמנה שלך ומטפלים בה</p>
-        </div>
-        
-        <div class="content">
-          <p style="margin: 0 0 24px; font-size: 16px; color: #333;">
-            שלום ${customerName || 'לקוח יקר'}! 👋
-          </p>
-          
-          <div class="order-number">
-            <p>מספר הזמנה</p>
-            <h2>#${orderNumber}</h2>
-          </div>
-          
-          <h3 style="margin: 0 0 16px; font-size: 16px;">פריטים בהזמנה</h3>
-          <table>
-            ${itemsHtml}
-          </table>
-          
-          <div class="summary">
-            <div class="summary-row" style="margin-bottom: 12px;">
-              <span style="color: #666;">סכום ביניים</span>
-              <span style="font-weight: 500;">₪${subtotal.toFixed(0)}</span>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Success Header - Like Thank You Page -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border-bottom: 1px solid #f0f0f0; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <!-- Green Checkmark Circle -->
+            <div style="width: 64px; height: 64px; margin: 0 auto 24px; background: #dcfce7; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
             </div>
-            ${shippingAmount > 0 ? `
-            <div class="summary-row" style="margin-bottom: 12px;">
-              <span style="color: #666;">משלוח</span>
-              <span style="font-weight: 500;">₪${shippingAmount.toFixed(0)}</span>
+            <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: 300; letter-spacing: 0.5px; color: #1a1a1a;">תודה על הזמנתך!</h1>
+            <p style="margin: 0; color: #6b7280; font-size: 16px;">
+              הזמנה מספר <strong style="color: #1a1a1a;">${orderNumber}</strong> התקבלה בהצלחה
+            </p>
+            <p style="margin: 8px 0 0; color: #9ca3af; font-size: 14px;">
+              אישור נשלח לכתובת ${customerEmail}
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Order Details Card -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 16px auto 0;">
+        <tr>
+          <td style="background: white; border-radius: 16px; border: 1px solid #e5e7eb; overflow: hidden;">
+            
+            <!-- Items Section -->
+            <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+              <h2 style="margin: 0 0 16px; font-size: 16px; font-weight: 500; color: #1a1a1a;">
+                פריטים בהזמנה
+              </h2>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${itemsHtml}
+              </table>
             </div>
-            ` : `
-            <div class="summary-row" style="margin-bottom: 12px;">
-              <span style="color: #666;">משלוח</span>
-              <span style="color: #22c55e; font-weight: 500;">חינם</span>
-            </div>
-            `}
-            ${discountAmount > 0 ? `
-            <div class="summary-row" style="color: #22c55e; margin-bottom: 12px;">
-              <span>הנחה</span>
-              <span style="font-weight: 500;">-₪${discountAmount.toFixed(0)}</span>
+            
+            <!-- Payment Info -->
+            ${paymentInfo?.lastFour ? `
+            <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+              <h2 style="margin: 0 0 12px; font-size: 16px; font-weight: 500; color: #1a1a1a;">
+                פרטי תשלום
+              </h2>
+              <p style="margin: 0; color: #4b5563; line-height: 1.6;">
+                כרטיס: •••• ${paymentInfo.lastFour}${paymentInfo.brand ? ` (${paymentInfo.brand})` : ''}<br>
+                ${paymentInfo.approvalNum ? `אישור: ${paymentInfo.approvalNum}<br>` : ''}
+                סה״כ שולם: <strong>₪${total.toFixed(0)}</strong>
+              </p>
             </div>
             ` : ''}
-            ${creditUsed > 0 ? `
-            <div class="summary-row" style="color: #22c55e; margin-bottom: 12px;">
-              <span>קרדיט</span>
-              <span style="font-weight: 500;">-₪${creditUsed.toFixed(0)}</span>
+            
+            <!-- Shipping Address -->
+            ${shippingAddress ? `
+            <div style="padding: 24px; border-bottom: 1px solid #f0f0f0;">
+              <h2 style="margin: 0 0 12px; font-size: 16px; font-weight: 500; color: #1a1a1a;">
+                כתובת למשלוח
+              </h2>
+              <p style="margin: 0; color: #4b5563; line-height: 1.8;">
+                ${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}<br>
+                ${shippingAddress.address || ''}<br>
+                ${shippingAddress.city || ''}
+                ${shippingAddress.phone ? `<br>טלפון: ${shippingAddress.phone}` : ''}
+              </p>
             </div>
             ` : ''}
-            <div class="summary-row total" style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #ddd;">
-              <span style="font-size: 20px;">סה״כ</span>
-              <span style="font-size: 20px;">₪${total.toFixed(0)}</span>
+            
+            <!-- Summary -->
+            <div style="padding: 24px; background: #f9fafb;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280;">סכום ביניים</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #1a1a1a;">₪${subtotal.toFixed(0)}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280;">משלוח</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: ${shippingAmount > 0 ? '#1a1a1a' : '#16a34a'};">
+                    ${shippingAmount > 0 ? `₪${shippingAmount.toFixed(0)}` : 'חינם'}
+                  </td>
+                </tr>
+                ${discountAmount > 0 ? `
+                <tr>
+                  <td style="padding: 8px 0; color: #16a34a;">הנחה</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${discountAmount.toFixed(0)}</td>
+                </tr>
+                ` : ''}
+                ${creditUsed > 0 ? `
+                <tr>
+                  <td style="padding: 8px 0; color: #16a34a;">קרדיט</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${creditUsed.toFixed(0)}</td>
+                </tr>
+                ` : ''}
+                <tr>
+                  <td colspan="2" style="padding-top: 16px; border-top: 2px solid #e5e7eb;">
+                    <table width="100%">
+                      <tr>
+                        <td style="font-size: 18px; font-weight: 600; color: #1a1a1a;">סה״כ</td>
+                        <td style="font-size: 18px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${total.toFixed(0)}</td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </div>
-          </div>
-          
-          ${shippingAddress ? `
-          <div class="address">
-            <h3 style="margin: 0 0 12px; font-size: 16px;">כתובת למשלוח</h3>
-            <p style="margin: 0; line-height: 1.6; color: #333;">
-              ${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}<br>
-              ${shippingAddress.address || ''}<br>
-              ${shippingAddress.city || ''}
-              ${shippingAddress.phone ? `<br>טלפון: ${shippingAddress.phone}` : ''}
-            </p>
-          </div>
-          ` : ''}
-          
-          ${paymentInfo?.lastFour ? `
-          <div class="address">
-            <h3 style="margin: 0 0 12px; font-size: 16px;">פרטי תשלום</h3>
-            <p style="margin: 0; color: #333;">
-              כרטיס: •••• ${paymentInfo.lastFour}
-              ${paymentInfo.brand ? ` (${paymentInfo.brand})` : ''}
-              ${paymentInfo.approvalNum ? `<br>אישור: ${paymentInfo.approvalNum}` : ''}
-            </p>
-          </div>
-          ` : ''}
-          
-          <div style="text-align: center;">
-            <a href="${storeUrl}" class="button">המשך לקנות ב-${storeName}</a>
-          </div>
-        </div>
-        
-        <div class="footer">
-          <p style="margin: 0;">יש שאלות? צרו קשר בכל עת!</p>
-          <p style="margin: 8px 0 0;">© ${storeName} - מופעל על ידי QuickShop</p>
-        </div>
-      </div>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA Button -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 24px auto 0;">
+        <tr>
+          <td style="text-align: center;">
+            <a href="${storeUrl}" style="display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 500; font-size: 16px;">
+              המשך לקנות ב-${storeName}
+            </a>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px; border-top: 1px solid #e5e7eb;">
+            <p style="margin: 0; color: #9ca3af; font-size: 14px;">יש שאלות? צרו קשר בכל עת!</p>
+            <p style="margin: 8px 0 0; color: #9ca3af; font-size: 14px;">© ${storeName} - מופעל על ידי QuickShop</p>
+          </td>
+        </tr>
+      </table>
+      
     </body>
     </html>
   `;
