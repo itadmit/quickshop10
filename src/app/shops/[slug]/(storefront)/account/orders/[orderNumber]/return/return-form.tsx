@@ -19,6 +19,7 @@ interface ReturnRequestFormProps {
   orderId: string;
   orderNumber: string;
   items: OrderItem[];
+  basePath: string;
 }
 
 const reasonOptions = [
@@ -37,7 +38,7 @@ const resolutionOptions = [
   { value: 'refund', label: 'זיכוי כספי', description: 'זיכוי לכרטיס האשראי' },
 ] as const;
 
-export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items }: ReturnRequestFormProps) {
+export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, basePath }: ReturnRequestFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   
@@ -120,13 +121,13 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items }: Re
         </p>
         <div className="flex gap-3 justify-center">
           <button
-            onClick={() => router.push(`/shops/${storeSlug}/account/returns`)}
+            onClick={() => router.push(`${basePath}/account/returns`)}
             className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium cursor-pointer"
           >
             צפייה בבקשות שלי
           </button>
           <button
-            onClick={() => router.push(`/shops/${storeSlug}/account/orders/${orderNumber}`)}
+            onClick={() => router.push(`${basePath}/account/orders/${orderNumber}`)}
             className="px-6 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer"
           >
             חזרה להזמנה

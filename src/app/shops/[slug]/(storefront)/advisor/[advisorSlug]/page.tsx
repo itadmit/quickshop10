@@ -8,6 +8,7 @@
  */
 
 import { notFound } from 'next/navigation';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { stores, advisorQuizzes } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -104,6 +105,10 @@ export default async function AdvisorPage({ params }: PageProps) {
     })),
   };
 
-  return <AdvisorWizard quiz={quizData} storeSlug={slug} />;
+  // Get basePath for custom domain support
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
+
+  return <AdvisorWizard quiz={quizData} storeSlug={slug} basePath={basePath} />;
 }
 

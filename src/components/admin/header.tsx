@@ -15,6 +15,7 @@ interface AdminHeaderProps {
   storeName: string;
   storeSlug: string;
   storeId: string;
+  customDomain?: string;
   user?: {
     name: string;
     email: string;
@@ -24,7 +25,7 @@ interface AdminHeaderProps {
   unreadCount?: number;
 }
 
-export function AdminHeader({ storeName, storeSlug, storeId, user, notifications = [], unreadCount = 0 }: AdminHeaderProps) {
+export function AdminHeader({ storeName, storeSlug, storeId, customDomain, user, notifications = [], unreadCount = 0 }: AdminHeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -126,10 +127,11 @@ export function AdminHeader({ storeName, storeSlug, storeId, user, notifications
 
         {/* Right Side */}
         <div className="flex items-center gap-1 sm:gap-2 min-w-0 sm:min-w-[200px] justify-end">
-          {/* View Store */}
-          <Link 
-            href={`/shops/${storeSlug}`}
+          {/* View Store - Use custom domain if available */}
+          <a 
+            href={customDomain ? `https://${customDomain}` : `/shops/${storeSlug}`}
             target="_blank"
+            rel="noopener noreferrer"
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             title="צפה בחנות"
           >
@@ -138,7 +140,7 @@ export function AdminHeader({ storeName, storeSlug, storeId, user, notifications
               <polyline points="15 3 21 3 21 9"/>
               <line x1="10" y1="14" x2="21" y2="3"/>
             </svg>
-          </Link>
+          </a>
           
           {/* Notifications */}
           <NotificationsDropdown

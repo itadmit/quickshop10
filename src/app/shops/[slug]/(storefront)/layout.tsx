@@ -169,6 +169,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
                 stories={stories}
                 settings={storiesSettings}
                 pageType="home"
+                basePath={basePath}
               />
             )}
           </>
@@ -181,6 +182,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             storeSlug={slug} 
             storeId={store.id} 
             advisors={activeAdvisors}
+            basePath={basePath}
           />
         )}
 

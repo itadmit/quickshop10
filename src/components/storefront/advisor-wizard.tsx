@@ -78,6 +78,7 @@ interface AdvisorResult {
 interface AdvisorWizardProps {
   quiz: AdvisorQuiz;
   storeSlug: string;
+  basePath: string;
   onComplete?: (results: AdvisorResult[]) => void;
   onAddToCart?: (productId: string) => void;
 }
@@ -212,6 +213,7 @@ function AIThinkingLoader({ primaryColor }: { primaryColor: string }) {
 export function AdvisorWizard({
   quiz,
   storeSlug,
+  basePath,
   onComplete,
   onAddToCart,
 }: AdvisorWizardProps) {
@@ -597,7 +599,7 @@ export function AdvisorWizard({
 
                     <div className="flex gap-2 pt-2">
                       <Link
-                        href={`/shops/${storeSlug}/product/${result.handle}`}
+                        href={`${basePath}/product/${result.handle}`}
                         className={`flex-1 py-2.5 text-center font-semibold border-2 transition-colors hover:bg-gray-50 ${getButtonClass()}`}
                         style={{
                           borderColor: quiz.primaryColor,

@@ -111,6 +111,10 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   const { slug } = await params;
   const search = await searchParams;
   
+  // Check for custom domain - compute basePath early for redirects
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
+  
   // Get order reference from query params
   const orderReference = search.more_info || search.ref;
   const pageRequestUid = search.page_request_uid;
@@ -121,7 +125,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   
   // If payment failed or cancelled, redirect back to checkout
   if (paymentStatus === 'rejected' || paymentStatus === 'error' || (statusCode && statusCode !== '000')) {
-    redirect(`/shops/${slug}/checkout?error=payment_failed`);
+    redirect(`${basePath}/checkout?error=payment_failed`);
   }
   
   // Get store
@@ -577,7 +581,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   // If still no order, redirect back to checkout with error
   if (!order) {
     console.error(`Thank you page: No order found for pageRequestUid=${pageRequestUid}, orderReference=${orderReference}`);
-    redirect(`/shops/${slug}/checkout?error=order_not_found`);
+    redirect(`${basePath}/checkout?error=order_not_found`);
   }
   
   // Get order items
@@ -629,9 +633,6 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     total: item.total,
     imageUrl: item.imageUrl || (item.productId ? productImageMap.get(item.productId) || null : null),
   }));
-
-  const headersList = await headers();
-  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
 
   // Payment info from query params or order
   const paymentDetails = (order.paymentDetails || {}) as Record<string, string>;

@@ -111,6 +111,7 @@ export default async function ReturnRequestPage({ params }: ReturnPageProps) {
             storeSlug={slug}
             orderId={order.id}
             orderNumber={orderNumber}
+            basePath={basePath}
             items={items.map(item => ({
               id: item.id,
               productId: item.productId,

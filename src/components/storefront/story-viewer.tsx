@@ -32,6 +32,7 @@ interface StoryViewerProps {
   initialIndex: number;
   settings: StoriesSettings;
   storeSlug: string;
+  basePath: string;
   onClose: () => void;
   onStoryViewed: (storyId: string) => void;
   onLikeToggled: (storyId: string, isLiked: boolean, likesCount: number) => void;
@@ -42,6 +43,7 @@ export function StoryViewer({
   initialIndex,
   settings,
   storeSlug,
+  basePath,
   onClose,
   onStoryViewed,
   onLikeToggled,
@@ -353,7 +355,7 @@ export function StoryViewer({
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const url = `${window.location.origin}/shops/${storeSlug}/products/${currentStory.product.handle}`;
+    const url = `${window.location.origin}${basePath}/product/${currentStory.product.handle}`;
     
     if (navigator.share) {
       try {
@@ -375,7 +377,7 @@ export function StoryViewer({
   const handleWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    const url = `${window.location.origin}/shops/${storeSlug}/product/${currentStory.product.handle}`;
+    const url = `${window.location.origin}${basePath}/product/${currentStory.product.handle}`;
     const text = `צפה במוצר: ${currentStory.product.title}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
   };

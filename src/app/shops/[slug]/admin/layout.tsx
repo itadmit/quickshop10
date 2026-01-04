@@ -61,6 +61,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
         storeName={store.name} 
         storeSlug={slug}
         storeId={store.id}
+        customDomain={store.customDomain || undefined}
         user={{
           name: session.user.name || '',
           email: session.user.email || '',

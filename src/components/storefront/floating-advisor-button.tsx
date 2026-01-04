@@ -26,9 +26,10 @@ interface FloatingAdvisorButtonProps {
   storeSlug: string;
   storeId: string;
   advisors: AdvisorData[];
+  basePath: string;
 }
 
-export function FloatingAdvisorButton({ storeSlug, storeId, advisors }: FloatingAdvisorButtonProps) {
+export function FloatingAdvisorButton({ storeSlug, storeId, advisors, basePath }: FloatingAdvisorButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -69,7 +70,7 @@ export function FloatingAdvisorButton({ storeSlug, storeId, advisors }: Floating
       {advisors.length === 1 ? (
         // Single advisor - direct link
         <Link
-          href={`/shops/${storeSlug}/advisor/${advisors[0].slug}`}
+          href={`${basePath}/advisor/${advisors[0].slug}`}
           className="group relative flex items-center gap-3 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer"
           style={{ backgroundColor: primaryColor }}
         >
@@ -137,7 +138,7 @@ export function FloatingAdvisorButton({ storeSlug, storeId, advisors }: Floating
               {advisors.map((advisor, index) => (
                 <Link
                   key={advisor.id}
-                  href={`/shops/${storeSlug}/advisor/${advisor.slug}`}
+                  href={`${basePath}/advisor/${advisor.slug}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
                   style={{ borderTop: index > 0 ? '1px solid #f3f4f6' : 'none' }}
                   onClick={() => setIsOpen(false)}

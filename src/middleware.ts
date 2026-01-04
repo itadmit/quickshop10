@@ -34,10 +34,14 @@ export async function middleware(request: NextRequest) {
   // Most requests are static - handle them first for speed
   if (
     pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/') ||
     pathname.includes('.') ||
     pathname === '/favicon.ico'
   ) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+  
+  // API routes - always pass through without rewriting
+  if (pathname.startsWith('/api/')) {
     return NextResponse.next({ request: { headers: requestHeaders } });
   }
 
@@ -102,8 +106,21 @@ function rewriteToStore(
   domain: string,
   headers: Headers
 ): NextResponse {
+  const pathname = request.nextUrl.pathname;
+  
+  // ========== ADMIN REDIRECT ==========
+  // Like Shopify: /admin on custom domain redirects to platform admin
+  if (pathname === '/admin' || pathname.startsWith('/admin/')) {
+    const adminPath = pathname === '/admin' ? '' : pathname.slice(6); // remove '/admin'
+    const adminUrl = new URL(`https://my-quickshop.com/shops/${slug}/admin${adminPath}`);
+    adminUrl.search = request.nextUrl.search;
+    console.log('[Middleware] Redirecting to admin:', adminUrl.toString());
+    return NextResponse.redirect(adminUrl);
+  }
+  
+  // ========== STOREFRONT REWRITE ==========
   const url = request.nextUrl.clone();
-  url.pathname = `/shops/${slug}${request.nextUrl.pathname}`;
+  url.pathname = `/shops/${slug}${pathname}`;
   
   headers.set('x-store-slug', slug);
   headers.set('x-custom-domain', domain);

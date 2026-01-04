@@ -55,6 +55,7 @@ interface StoriesBarProps {
   stories: Story[];
   settings: StoriesSettings;
   pageType?: 'home' | 'category' | 'product' | 'other';
+  basePath: string;
 }
 
 export function StoriesBar({
@@ -62,6 +63,7 @@ export function StoriesBar({
   stories: initialStories,
   settings,
   pageType = 'home',
+  basePath,
 }: StoriesBarProps) {
   const [stories, setStories] = useState(initialStories);
   const [isVisible, setIsVisible] = useState(false);
@@ -222,6 +224,7 @@ export function StoriesBar({
           initialIndex={selectedStoryIndex}
           settings={settings}
           storeSlug={storeSlug}
+          basePath={basePath}
           onClose={() => setSelectedStoryIndex(null)}
           onStoryViewed={handleStoryViewed}
           onLikeToggled={handleLikeToggled}
