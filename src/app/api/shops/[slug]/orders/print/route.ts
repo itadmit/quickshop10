@@ -223,12 +223,6 @@ function generatePrintHTML(orders: any[], store: any): string {
             <p>${order.note}</p>
           </div>
         ` : ''}
-
-        <!-- Footer -->
-        <footer class="print-footer">
-          <p>תודה על הקנייה!</p>
-          <p class="footer-store">${store.name}</p>
-        </footer>
       </div>
     `;
   }).join('');
@@ -441,16 +435,6 @@ function generatePrintHTML(orders: any[], store: any): string {
     }
     
     .order-notes p { margin: 0; font-size: 13px; }
-    
-    /* Footer */
-    .print-footer {
-      text-align: center;
-      padding-top: 24px;
-      border-top: 1px solid #eee;
-    }
-    
-    .print-footer p { margin: 0 0 4px 0; font-size: 14px; }
-    .footer-store { font-weight: 600; color: #666; }
     
     @media print {
       .order-page {
