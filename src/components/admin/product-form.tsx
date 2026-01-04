@@ -47,6 +47,7 @@ interface ProductFormProps {
     images?: { id: string; url: string; alt: string | null; isPrimary: boolean }[];
     options?: ProductOption[];
     variants?: ProductVariant[];
+    categoryIds?: string[];
   };
   mode: 'create' | 'edit';
 }
@@ -88,8 +89,11 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
   const [inventory, setInventory] = useState(product?.inventory ?? 0);
   const [allowBackorder, setAllowBackorder] = useState(product?.allowBackorder ?? false);
   
-  // Organization
-  const [categoryId, setCategoryId] = useState(product?.categoryId || '');
+  // Organization - now supports multiple categories
+  const [categoryIds, setCategoryIds] = useState<string[]>(
+    // Support old single categoryId + new multiple categories
+    product?.categoryIds || (product?.categoryId ? [product.categoryId] : [])
+  );
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [isFeatured, setIsFeatured] = useState(product?.isFeatured ?? false);
   
@@ -276,7 +280,7 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
         option2: v.option2,
         option3: v.option3,
       })) : undefined,
-      categoryId: categoryId || undefined,
+      categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
       isActive,
       isFeatured,
       seoTitle: seoTitle.trim() || undefined,
@@ -771,16 +775,16 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">קטגוריה</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">קטגוריות</label>
                 <CategoryPicker
                   categories={categories.map(cat => ({
                     id: cat.id,
                     name: cat.name,
                     parentId: cat.parentId,
                   })) as CategoryNode[]}
-                  value={categoryId || null}
-                  onChange={(id) => setCategoryId(id || '')}
-                  placeholder="בחר קטגוריה"
+                  value={categoryIds}
+                  onChange={setCategoryIds}
+                  placeholder="בחר קטגוריות"
                 />
               </div>
 

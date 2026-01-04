@@ -269,6 +269,22 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                 </div>
               </div>
 
+              {/* Return/Exchange Button */}
+              {['delivered', 'shipped', 'confirmed', 'processing'].includes(order.status) && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <Link
+                    href={`${basePath}/account/orders/${orderNumber}/return`}
+                    className="flex items-center justify-center gap-2 w-full py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M9 14l-4-4 4-4"/>
+                      <path d="M5 10h11a4 4 0 1 1 0 8h-1"/>
+                    </svg>
+                    החזרה/החלפה
+                  </Link>
+                </div>
+              )}
+
               {/* Need Help */}
               <div className="mt-6 pt-6 border-t border-gray-100">
                 <p className="text-xs text-gray-500">

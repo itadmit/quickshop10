@@ -90,6 +90,34 @@ export const popupTargetEnum = pgEnum('popup_target', ['all', 'homepage', 'produ
 export const contactTypeEnum = pgEnum('contact_type', ['newsletter', 'club_member', 'contact_form', 'popup_form']);
 export const contactStatusEnum = pgEnum('contact_status', ['active', 'unsubscribed', 'spam']);
 
+// Return/Exchange system enums
+export const returnRequestTypeEnum = pgEnum('return_request_type', ['return', 'exchange']);
+export const returnRequestStatusEnum = pgEnum('return_request_status', [
+  'pending',           // ממתין לבדיקה
+  'under_review',      // בבדיקה
+  'approved',          // אושר
+  'rejected',          // נדחה
+  'awaiting_shipment', // ממתין לשליחת המוצר
+  'item_received',     // המוצר התקבל
+  'completed',         // הושלם
+  'cancelled'          // בוטל
+]);
+export const returnReasonEnum = pgEnum('return_reason', [
+  'wrong_size',        // מידה לא מתאימה
+  'defective',         // פגם במוצר
+  'not_as_described',  // לא כמתואר
+  'changed_mind',      // שינוי דעה
+  'wrong_item',        // קיבלתי מוצר שגוי
+  'damaged_shipping',  // נזק במשלוח
+  'other'              // אחר
+]);
+export const resolutionTypeEnum = pgEnum('resolution_type', [
+  'exchange',          // החלפה ראש בראש
+  'store_credit',      // קרדיט לחנות
+  'refund',            // זיכוי כספי מלא
+  'partial_refund'     // זיכוי חלקי
+]);
+
 // ============ USERS & AUTH ============
 
 export const users = pgTable('users', {
@@ -310,6 +338,19 @@ export const categories = pgTable('categories', {
 }, (table) => [
   uniqueIndex('idx_categories_store_slug').on(table.storeId, table.slug),
   index('idx_categories_store').on(table.storeId),
+]);
+
+// ============ PRODUCT CATEGORIES (Many-to-Many) ============
+
+export const productCategories = pgTable('product_categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('idx_product_categories_unique').on(table.productId, table.categoryId),
+  index('idx_product_categories_product').on(table.productId),
+  index('idx_product_categories_category').on(table.categoryId),
 ]);
 
 // ============ PRODUCTS ============
@@ -1167,6 +1208,74 @@ export const refunds = pgTable('refunds', {
   index('idx_refunds_created').on(table.storeId, table.createdAt),
 ]);
 
+// ============ RETURN REQUESTS ============
+
+export const returnRequests = pgTable('return_requests', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  
+  // מספר בקשה ייחודי לתצוגה
+  requestNumber: varchar('request_number', { length: 20 }).notNull(),
+  
+  // סוג הבקשה
+  type: returnRequestTypeEnum('type').notNull(), // 'return' | 'exchange'
+  
+  // סטטוס
+  status: returnRequestStatusEnum('status').default('pending').notNull(),
+  
+  // פריטים לבקשה
+  items: jsonb('items').default([]),
+  // [{ orderItemId, productId, variantId, name, quantity, price, reason, condition, imageUrl }]
+  
+  // סיבת ההחזרה
+  reason: returnReasonEnum('reason').notNull(),
+  reasonDetails: text('reason_details'), // פרטים נוספים מהלקוח
+  
+  // תמונות (במקרה של פגם)
+  images: jsonb('images').default([]), // [{ url, publicId }]
+  
+  // סוג הפתרון המבוקש ע"י הלקוח
+  requestedResolution: resolutionTypeEnum('requested_resolution').notNull(),
+  
+  // הפתרון בפועל (נקבע ע"י המנהל)
+  finalResolution: resolutionTypeEnum('final_resolution'),
+  resolutionDetails: jsonb('resolution_details'),
+  // { exchangeOrderId, creditAmount, refundAmount, refundTransactionId }
+  
+  // ערכים כספיים
+  totalValue: decimal('total_value', { precision: 10, scale: 2 }).notNull(),
+  refundAmount: decimal('refund_amount', { precision: 10, scale: 2 }),
+  creditIssued: decimal('credit_issued', { precision: 10, scale: 2 }),
+  
+  // הזמנת החלפה (אם רלוונטי)
+  exchangeOrderId: uuid('exchange_order_id').references(() => orders.id, { onDelete: 'set null' }),
+  
+  // מעקב משלוח החזרה
+  returnTrackingNumber: varchar('return_tracking_number', { length: 100 }),
+  returnCarrier: varchar('return_carrier', { length: 50 }),
+  itemReceivedAt: timestamp('item_received_at'),
+  
+  // הערות
+  internalNotes: text('internal_notes'),
+  customerNotes: text('customer_notes'), // הודעות ללקוח
+  
+  // מי טיפל
+  processedById: uuid('processed_by_id').references(() => users.id, { onDelete: 'set null' }),
+  processedAt: timestamp('processed_at'),
+  
+  // תאריכים
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_return_requests_store').on(table.storeId),
+  index('idx_return_requests_order').on(table.orderId),
+  index('idx_return_requests_customer').on(table.customerId),
+  index('idx_return_requests_status').on(table.storeId, table.status),
+  index('idx_return_requests_created').on(table.storeId, table.createdAt),
+]);
+
 // ============ RELATIONS ============
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -1560,6 +1669,30 @@ export const refundsRelations = relations(refunds, ({ one }) => ({
   }),
   processedBy: one(users, {
     fields: [refunds.processedById],
+    references: [users.id],
+  }),
+}));
+
+// Return Requests relations
+export const returnRequestsRelations = relations(returnRequests, ({ one }) => ({
+  store: one(stores, {
+    fields: [returnRequests.storeId],
+    references: [stores.id],
+  }),
+  order: one(orders, {
+    fields: [returnRequests.orderId],
+    references: [orders.id],
+  }),
+  customer: one(customers, {
+    fields: [returnRequests.customerId],
+    references: [customers.id],
+  }),
+  exchangeOrder: one(orders, {
+    fields: [returnRequests.exchangeOrderId],
+    references: [orders.id],
+  }),
+  processedBy: one(users, {
+    fields: [returnRequests.processedById],
     references: [users.id],
   }),
 }));
@@ -2268,6 +2401,10 @@ export type NewInfluencerSession = typeof influencerSessions.$inferInsert;
 // Refunds types
 export type Refund = typeof refunds.$inferSelect;
 export type NewRefund = typeof refunds.$inferInsert;
+
+// Return Requests types
+export type ReturnRequest = typeof returnRequests.$inferSelect;
+export type NewReturnRequest = typeof returnRequests.$inferInsert;
 
 // Payment types
 export type PaymentProvider = typeof paymentProviders.$inferSelect;

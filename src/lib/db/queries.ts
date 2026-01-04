@@ -1,5 +1,5 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, pageSections, orders, orderItems, customers, users } from './schema';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users } from './schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
@@ -413,8 +413,8 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
 
   if (!product) return null;
 
-  // Get images, options, variants, and user info in parallel
-  const [images, options, variants, createdByUser, updatedByUser] = await Promise.all([
+  // Get images, options, variants, categories, and user info in parallel
+  const [images, options, variants, productCats, createdByUser, updatedByUser] = await Promise.all([
     db
       .select()
       .from(productImages)
@@ -430,6 +430,11 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
       .from(productVariants)
       .where(eq(productVariants.productId, productId))
       .orderBy(productVariants.sortOrder),
+    // Get product categories
+    db
+      .select({ categoryId: productCategories.categoryId })
+      .from(productCategories)
+      .where(eq(productCategories.productId, productId)),
     // Get created by user
     product.createdBy
       ? db
@@ -467,6 +472,7 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
     images, 
     options: optionsWithValues, 
     variants,
+    categoryIds: productCats.map(pc => pc.categoryId),
     createdByUser,
     updatedByUser,
   };

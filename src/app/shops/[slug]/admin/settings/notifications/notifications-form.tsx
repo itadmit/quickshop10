@@ -154,7 +154,7 @@ export function NotificationsSettingsForm({ storeId, settings, defaultEmail }: N
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50"
+          className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
         >
           {isPending ? 'שומר...' : 'שמור שינויים'}
         </button>

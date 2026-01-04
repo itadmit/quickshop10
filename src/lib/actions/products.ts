@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, productImages, productOptions, productOptionValues, productVariants } from '@/lib/db/schema';
+import { products, productImages, productOptions, productOptionValues, productVariants, productCategories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
@@ -52,7 +52,7 @@ export interface ProductFormData {
   variants?: VariantFormData[];
   
   // Organization
-  categoryId?: string;
+  categoryIds?: string[];
   isActive: boolean;
   isFeatured: boolean;
   
@@ -88,7 +88,6 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       trackInventory: data.hasVariants ? true : data.trackInventory,
       inventory: data.hasVariants ? null : (data.trackInventory ? (data.inventory ?? 0) : null),
       allowBackorder: data.allowBackorder,
-      categoryId: data.categoryId || null,
       isActive: data.isActive,
       isFeatured: data.isFeatured,
       seoTitle: data.seoTitle || null,
@@ -97,6 +96,16 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       createdBy: userId,
       updatedBy: userId,
     }).returning();
+
+    // Add categories if provided
+    if (data.categoryIds && data.categoryIds.length > 0) {
+      await db.insert(productCategories).values(
+        data.categoryIds.map(categoryId => ({
+          productId: product.id,
+          categoryId,
+        }))
+      );
+    }
 
     // Add images if provided
     if (data.images && data.images.length > 0) {
@@ -191,7 +200,6 @@ export async function updateProduct(
         trackInventory: data.hasVariants ? true : data.trackInventory,
         inventory: data.hasVariants ? null : (data.trackInventory ? (data.inventory ?? 0) : null),
         allowBackorder: data.allowBackorder,
-        categoryId: data.categoryId || null,
         isActive: data.isActive,
         isFeatured: data.isFeatured,
         seoTitle: data.seoTitle || null,
@@ -201,6 +209,18 @@ export async function updateProduct(
         updatedAt: new Date(),
       })
       .where(and(eq(products.id, productId), eq(products.storeId, storeId)));
+
+    // Update categories - delete existing and re-add
+    await db.delete(productCategories).where(eq(productCategories.productId, productId));
+    
+    if (data.categoryIds && data.categoryIds.length > 0) {
+      await db.insert(productCategories).values(
+        data.categoryIds.map(categoryId => ({
+          productId,
+          categoryId,
+        }))
+      );
+    }
 
     // Update images - delete existing and re-add
     if (data.images !== undefined) {
@@ -332,11 +352,11 @@ export async function duplicateProduct(productId: string, storeId: string, store
       return { success: false, error: 'המוצר לא נמצא' };
     }
 
-    // Get original images
-    const originalImages = await db
-      .select()
-      .from(productImages)
-      .where(eq(productImages.productId, productId));
+    // Get original images and categories in parallel
+    const [originalImages, originalCategories] = await Promise.all([
+      db.select().from(productImages).where(eq(productImages.productId, productId)),
+      db.select().from(productCategories).where(eq(productCategories.productId, productId)),
+    ]);
 
     // Create duplicate with new slug
     const newSlug = `${original.slug}-copy-${Date.now()}`;
@@ -356,7 +376,6 @@ export async function duplicateProduct(productId: string, storeId: string, store
       trackInventory: original.trackInventory,
       inventory: original.inventory,
       allowBackorder: original.allowBackorder,
-      categoryId: original.categoryId,
       isActive: false, // Start as draft
       isFeatured: false,
       seoTitle: original.seoTitle,
@@ -364,18 +383,28 @@ export async function duplicateProduct(productId: string, storeId: string, store
       hasVariants: false, // Don't copy variants
     }).returning();
 
-    // Copy images
-    if (originalImages.length > 0) {
-      await db.insert(productImages).values(
-        originalImages.map((img, index) => ({
-          productId: newProduct.id,
-          url: img.url,
-          alt: img.alt,
-          isPrimary: img.isPrimary,
-          sortOrder: index,
-        }))
-      );
-    }
+    // Copy images and categories in parallel
+    await Promise.all([
+      originalImages.length > 0 
+        ? db.insert(productImages).values(
+            originalImages.map((img, index) => ({
+              productId: newProduct.id,
+              url: img.url,
+              alt: img.alt,
+              isPrimary: img.isPrimary,
+              sortOrder: index,
+            }))
+          )
+        : Promise.resolve(),
+      originalCategories.length > 0
+        ? db.insert(productCategories).values(
+            originalCategories.map(pc => ({
+              productId: newProduct.id,
+              categoryId: pc.categoryId,
+            }))
+          )
+        : Promise.resolve(),
+    ]);
 
     revalidatePath(`/shops/${storeSlug}/admin/products`);
     

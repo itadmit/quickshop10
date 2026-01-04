@@ -57,6 +57,13 @@
       "when": 1767543261553,
       "tag": "0007_add_archived_at_to_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1767544444187,
+      "tag": "0008_bitter_magdalene",
+      "breakpoints": true
     }
   ]
 }

@@ -244,7 +244,7 @@ export function DataTable<T>({
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
                   className={`
-                    px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0
+                    px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap flex-shrink-0 cursor-pointer
                     ${currentTab === tab.id 
                       ? 'bg-gray-900 text-white' 
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'

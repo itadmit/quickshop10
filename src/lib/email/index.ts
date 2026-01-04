@@ -545,6 +545,330 @@ export async function sendAbandonedCartEmail(data: AbandonedCartEmailData) {
   }
 }
 
+// ============ RETURN REQUEST EMAILS ============
+
+interface ReturnRequestEmailData {
+  requestNumber: string;
+  orderNumber: string;
+  customerEmail: string;
+  customerName?: string;
+  items: Array<{ name: string; quantity: number; price: number; imageUrl?: string }>;
+  totalValue: number;
+  requestType: 'return' | 'exchange';
+  requestedResolution: string;
+  storeName: string;
+  storeSlug: string;
+}
+
+export async function sendReturnRequestReceivedEmail(data: ReturnRequestEmailData) {
+  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${data.storeSlug}`;
+  const accountUrl = `${storeUrl}/account/returns`;
+
+  const resolutionLabels: Record<string, string> = {
+    exchange: 'החלפה למוצר אחר',
+    store_credit: 'קרדיט לחנות',
+    refund: 'זיכוי כספי',
+  };
+
+  const itemsHtml = data.items.map(item => {
+    const imageUrl = item.imageUrl 
+      ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${process.env.NEXT_PUBLIC_APP_URL}${item.imageUrl}`)
+      : null;
+    
+    return `
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="width: 60px; vertical-align: top;">
+              ${imageUrl ? `<img src="${imageUrl}" alt="${item.name}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;" />` : ''}
+            </td>
+            <td style="padding: 0 12px; vertical-align: top; text-align: right;">
+              <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 14px;">${item.name}</p>
+              <p style="margin: 0; font-size: 12px; color: #666;">כמות: ${item.quantity}</p>
+            </td>
+            <td style="width: 80px; vertical-align: top; text-align: left;">
+              <span style="font-weight: 600; font-size: 14px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `;
+  }).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Header -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 64px; height: 64px; background: #fef3c7; border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: #d97706; font-size: 28px; line-height: 64px;">↩️</span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin: 0 0 8px; font-size: 26px; font-weight: 400; color: #1a1a1a;">בקשתך התקבלה!</h1>
+            <p style="margin: 0; color: #6b7280; font-size: 16px;">
+              בקשה מספר <strong style="color: #1a1a1a;">${data.requestNumber}</strong>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Content -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border: 1px solid #e5e7eb; border-top: none;">
+            
+            <div style="padding: 24px;">
+              <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+                היי ${data.customerName || 'לקוח יקר'},
+              </p>
+              <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+                קיבלנו את בקשת ה${data.requestType === 'exchange' ? 'החלפה' : 'החזרה'} שלך מהזמנה <strong>#${data.orderNumber}</strong>.
+              </p>
+              
+              <div style="background: #f9fafb; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+                <table width="100%">
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px;">פתרון מבוקש:</td>
+                    <td style="text-align: left; font-weight: 500; color: #1a1a1a; font-size: 14px;">${resolutionLabels[data.requestedResolution] || data.requestedResolution}</td>
+                  </tr>
+                  <tr>
+                    <td style="color: #6b7280; font-size: 14px; padding-top: 8px;">ערך הפריטים:</td>
+                    <td style="text-align: left; font-weight: 500; color: #1a1a1a; font-size: 14px;">₪${data.totalValue.toFixed(0)}</td>
+                  </tr>
+                </table>
+              </div>
+
+              <h2 style="margin: 0 0 16px; font-size: 16px; font-weight: 500; color: #1a1a1a;">פריטים בבקשה</h2>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${itemsHtml}
+              </table>
+            </div>
+            
+            <div style="padding: 20px 24px; background: #f9fafb; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0 0 8px; color: #4b5563; font-size: 14px;">
+                📋 הבקשה תיבדק על ידי הצוות שלנו ותקבל מענה תוך 1-3 ימי עסקים.
+              </p>
+              <p style="margin: 0; color: #9ca3af; font-size: 13px;">
+                תוכל לעקוב אחרי הסטטוס באזור האישי שלך.
+              </p>
+            </div>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
+            <a href="${accountUrl}" style="display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 500; font-size: 14px;">
+              צפייה בבקשות שלי
+            </a>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px;">
+            <p style="margin: 0; color: #9ca3af; font-size: 14px;">© ${data.storeName} - מופעל על ידי QuickShop</p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `בקשת ${data.requestType === 'exchange' ? 'החלפה' : 'החזרה'} #${data.requestNumber} התקבלה - ${data.storeName}`,
+    html,
+  });
+}
+
+interface ReturnRequestUpdateEmailData {
+  requestNumber: string;
+  orderNumber: string;
+  customerEmail: string;
+  customerName?: string;
+  status: 'approved' | 'rejected' | 'completed';
+  resolution?: string;
+  creditAmount?: number;
+  refundAmount?: number;
+  customerNotes?: string;
+  storeName: string;
+  storeSlug: string;
+}
+
+export async function sendReturnRequestUpdateEmail(data: ReturnRequestUpdateEmailData) {
+  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${data.storeSlug}`;
+  const accountUrl = `${storeUrl}/account/returns`;
+
+  const statusConfig: Record<string, { title: string; icon: string; color: string; bgColor: string }> = {
+    approved: { title: 'בקשתך אושרה!', icon: '✓', color: '#16a34a', bgColor: '#dcfce7' },
+    rejected: { title: 'לצערנו, בקשתך נדחתה', icon: '✕', color: '#dc2626', bgColor: '#fee2e2' },
+    completed: { title: 'הבקשה הושלמה!', icon: '✓', color: '#16a34a', bgColor: '#dcfce7' },
+  };
+
+  const resolutionLabels: Record<string, string> = {
+    exchange: 'החלפה למוצר אחר',
+    store_credit: 'קרדיט לחנות',
+    refund: 'זיכוי כספי',
+  };
+
+  const config = statusConfig[data.status] || statusConfig.approved;
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Header -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 64px; height: 64px; background: ${config.bgColor}; border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: ${config.color}; font-size: 28px; font-weight: bold; line-height: 64px;">${config.icon}</span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin: 0 0 8px; font-size: 26px; font-weight: 400; color: #1a1a1a;">${config.title}</h1>
+            <p style="margin: 0; color: #6b7280; font-size: 16px;">
+              בקשה מספר <strong style="color: #1a1a1a;">${data.requestNumber}</strong>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Content -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border: 1px solid #e5e7eb; border-top: none; padding: 24px;">
+            
+            <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+              היי ${data.customerName || 'לקוח יקר'},
+            </p>
+            
+            ${data.status === 'approved' ? `
+            <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+              שמחים לעדכן שבקשתך מהזמנה <strong>#${data.orderNumber}</strong> אושרה.
+            </p>
+            ${data.resolution ? `
+            <div style="background: ${config.bgColor}; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <p style="margin: 0; font-weight: 500; color: ${config.color};">
+                פתרון: ${resolutionLabels[data.resolution] || data.resolution}
+              </p>
+              ${data.creditAmount && data.creditAmount > 0 ? `
+              <p style="margin: 8px 0 0; color: ${config.color};">
+                קרדיט שהוזן לחשבון: ₪${data.creditAmount.toFixed(0)}
+              </p>
+              ` : ''}
+              ${data.refundAmount && data.refundAmount > 0 ? `
+              <p style="margin: 8px 0 0; color: ${config.color};">
+                סכום הזיכוי: ₪${data.refundAmount.toFixed(0)}
+              </p>
+              ` : ''}
+            </div>
+            ` : ''}
+            ` : ''}
+            
+            ${data.status === 'rejected' ? `
+            <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+              לצערנו, בקשתך מהזמנה <strong>#${data.orderNumber}</strong> נדחתה.
+            </p>
+            ${data.customerNotes ? `
+            <div style="background: #fee2e2; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <p style="margin: 0; font-weight: 500; color: #dc2626;">סיבה:</p>
+              <p style="margin: 8px 0 0; color: #7f1d1d;">${data.customerNotes}</p>
+            </div>
+            ` : ''}
+            <p style="margin: 0 0 16px; color: #6b7280; font-size: 14px;">
+              אם יש לך שאלות, אל תהסס ליצור איתנו קשר.
+            </p>
+            ` : ''}
+            
+            ${data.status === 'completed' ? `
+            <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+              הטיפול בבקשתך מהזמנה <strong>#${data.orderNumber}</strong> הושלם בהצלחה!
+            </p>
+            ${data.creditAmount && data.creditAmount > 0 ? `
+            <div style="background: ${config.bgColor}; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <p style="margin: 0; font-weight: 500; color: ${config.color};">
+                ✓ קרדיט של ₪${data.creditAmount.toFixed(0)} הוזן לחשבונך
+              </p>
+            </div>
+            ` : ''}
+            ` : ''}
+            
+            ${data.customerNotes && data.status !== 'rejected' ? `
+            <div style="background: #f0f9ff; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <p style="margin: 0; font-weight: 500; color: #0369a1;">הודעה מהחנות:</p>
+              <p style="margin: 8px 0 0; color: #1e40af;">${data.customerNotes}</p>
+            </div>
+            ` : ''}
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
+            <a href="${storeUrl}" style="display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 14px 32px; border-radius: 10px; font-weight: 500; font-size: 14px;">
+              המשך לקנות ב-${data.storeName}
+            </a>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px;">
+            <p style="margin: 0; color: #9ca3af; font-size: 14px;">© ${data.storeName} - מופעל על ידי QuickShop</p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+
+  const subjectMap: Record<string, string> = {
+    approved: `בקשה #${data.requestNumber} אושרה ✓`,
+    rejected: `בקשה #${data.requestNumber} נדחתה`,
+    completed: `בקשה #${data.requestNumber} הושלמה ✓`,
+  };
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `${subjectMap[data.status]} - ${data.storeName}`,
+    html,
+  });
+}
+
 export async function sendWelcomeEmail(email: string, name?: string, storeName?: string) {
   const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
   

@@ -19,8 +19,8 @@ export interface CategoryNode {
 
 interface CategoryPickerProps {
   categories: CategoryNode[];
-  value: string | null;
-  onChange: (categoryId: string | null) => void;
+  value: string[];
+  onChange: (categoryIds: string[]) => void;
   placeholder?: string;
   disabled?: boolean;
   className?: string;
@@ -93,7 +93,7 @@ function filterCategories(tree: CategoryNode[], search: string): CategoryNode[] 
 function TreeNode({
   node,
   level,
-  selectedId,
+  selectedIds,
   expandedIds,
   onSelect,
   onToggle,
@@ -101,7 +101,7 @@ function TreeNode({
 }: {
   node: CategoryNode;
   level: number;
-  selectedId: string | null;
+  selectedIds: string[];
   expandedIds: Set<string>;
   onSelect: (id: string) => void;
   onToggle: (id: string) => void;
@@ -109,7 +109,7 @@ function TreeNode({
 }) {
   const hasChildren = node.children && node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
-  const isSelected = selectedId === node.id;
+  const isSelected = selectedIds.includes(node.id);
 
   // Highlight search match
   const highlightMatch = (text: string) => {
@@ -126,11 +126,7 @@ function TreeNode({
   return (
     <div>
       <div
-        className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-          isSelected 
-            ? 'bg-gray-900 text-white' 
-            : 'hover:bg-gray-100 text-gray-700'
-        }`}
+        className={`flex items-center gap-2.5 py-2 px-2 rounded-md cursor-pointer transition-colors hover:bg-gray-100 text-gray-700`}
         style={{ paddingRight: `${8 + level * 16}px` }}
         onClick={() => onSelect(node.id)}
       >
@@ -142,9 +138,7 @@ function TreeNode({
               e.stopPropagation();
               onToggle(node.id);
             }}
-            className={`p-0.5 rounded hover:bg-gray-200/50 transition-colors ${
-              isSelected ? 'hover:bg-white/20' : ''
-            }`}
+            className="p-0.5 rounded hover:bg-gray-200 transition-colors text-gray-500"
           >
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
@@ -156,23 +150,30 @@ function TreeNode({
           <span className="w-5" />
         )}
 
+        {/* Checkbox */}
+        <div className={`w-4 h-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
+          isSelected 
+            ? 'bg-gray-900 border-gray-900' 
+            : 'border-gray-300 bg-white'
+        }`}>
+          {isSelected && <Check className="w-3 h-3 text-white" />}
+        </div>
+
         {/* Folder icon */}
         {hasChildren && isExpanded ? (
-          <FolderOpen className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-amber-500'}`} />
+          <FolderOpen className="w-4 h-4 shrink-0 text-gray-400" />
         ) : (
-          <Folder className={`w-4 h-4 shrink-0 ${isSelected ? 'text-white' : 'text-gray-400'}`} />
+          <Folder className="w-4 h-4 shrink-0 text-gray-400" />
         )}
 
         {/* Name */}
-        <span className="text-sm truncate flex-1">
+        <span className={`text-sm truncate flex-1 ${isSelected ? 'font-medium text-gray-900' : ''}`}>
           {highlightMatch(node.name)}
         </span>
 
         {/* Children count */}
         {hasChildren && (
-          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-            isSelected ? 'bg-white/20 text-white' : 'bg-gray-100 text-gray-500'
-          }`}>
+          <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
             {node.children!.length}
           </span>
         )}
@@ -186,7 +187,7 @@ function TreeNode({
               key={child.id}
               node={child}
               level={level + 1}
-              selectedId={selectedId}
+              selectedIds={selectedIds}
               expandedIds={expandedIds}
               onSelect={onSelect}
               onToggle={onToggle}
@@ -210,8 +211,29 @@ export function CategoryPicker({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  // For SSR - only render portal after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Calculate dropdown position
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [isOpen]);
 
   // Build tree structure
   const tree = useMemo(() => buildCategoryTree(categories), [categories]);
@@ -219,24 +241,31 @@ export function CategoryPicker({
   // Filter tree by search
   const filteredTree = useMemo(() => filterCategories(tree, search), [tree, search]);
 
-  // Get selected category name/path
-  const selectedPath = useMemo(() => {
-    if (!value) return null;
-    return getCategoryPath(categories, value);
+  // Get selected categories display text
+  const selectedDisplay = useMemo(() => {
+    if (!value || value.length === 0) return null;
+    if (value.length === 1) {
+      return getCategoryPath(categories, value[0]);
+    }
+    // Show first category + count
+    const firstName = categories.find(c => c.id === value[0])?.name || '';
+    return `${firstName} +${value.length - 1}`;
   }, [categories, value]);
 
-  // Auto-expand parents of selected item
+  // Auto-expand parents of selected items
   useEffect(() => {
-    if (value) {
+    if (value && value.length > 0) {
       const map = new Map<string, CategoryNode>();
       categories.forEach(cat => map.set(cat.id, cat));
       
       const newExpanded = new Set(expandedIds);
-      let current = map.get(value);
-      while (current?.parentId) {
-        newExpanded.add(current.parentId);
-        current = map.get(current.parentId);
-      }
+      value.forEach(id => {
+        let current = map.get(id);
+        while (current?.parentId) {
+          newExpanded.add(current.parentId);
+          current = map.get(current.parentId);
+        }
+      });
       setExpandedIds(newExpanded);
     }
   }, [value, categories]);
@@ -252,7 +281,11 @@ export function CategoryPicker({
   // Close on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      const isOutsideTrigger = containerRef.current && !containerRef.current.contains(target);
+      const isOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(target);
+      
+      if (isOutsideTrigger && isOutsideDropdown) {
         setIsOpen(false);
       }
     }
@@ -268,9 +301,14 @@ export function CategoryPicker({
   }, [isOpen]);
 
   const handleSelect = (categoryId: string) => {
-    onChange(categoryId);
-    setIsOpen(false);
-    setSearch('');
+    // Toggle selection - add or remove
+    const isSelected = value.includes(categoryId);
+    if (isSelected) {
+      onChange(value.filter(id => id !== categoryId));
+    } else {
+      onChange([...value, categoryId]);
+    }
+    // Don't close - allow multiple selection
   };
 
   const handleToggle = (categoryId: string) => {
@@ -287,13 +325,14 @@ export function CategoryPicker({
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onChange(null);
+    onChange([]);
   };
 
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {/* Trigger Button */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
@@ -305,26 +344,37 @@ export function CategoryPicker({
             : 'border-gray-300 hover:border-gray-400'
         }`}
       >
-        <span className={`text-sm truncate ${value ? 'text-gray-900' : 'text-gray-500'}`}>
-          {selectedPath || placeholder}
+        <span className={`text-sm truncate ${value.length > 0 ? 'text-gray-900' : 'text-gray-500'}`}>
+          {selectedDisplay || placeholder}
         </span>
         <div className="flex items-center gap-1">
-          {value && !disabled && (
-            <button
-              type="button"
+          {value.length > 0 && !disabled && (
+            <span
+              role="button"
+              tabIndex={0}
               onClick={handleClear}
-              className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+              onKeyDown={(e) => e.key === 'Enter' && handleClear(e as unknown as React.MouseEvent)}
+              className="p-0.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 cursor-pointer"
             >
               <X className="w-4 h-4" />
-            </button>
+            </span>
           )}
           <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
         </div>
       </button>
 
-      {/* Dropdown */}
-      {isOpen && (
-        <div className="absolute z-50 top-full right-0 left-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+      {/* Dropdown - rendered via Portal to escape overflow:hidden containers */}
+      {isOpen && mounted && createPortal(
+        <div 
+          ref={dropdownRef}
+          className="fixed bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden"
+          style={{
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
+            zIndex: 9999,
+          }}
+        >
           {/* Search */}
           <div className="p-2 border-b border-gray-100">
             <div className="relative">
@@ -351,19 +401,6 @@ export function CategoryPicker({
 
           {/* Tree */}
           <div className="max-h-64 overflow-y-auto p-1">
-            {/* No category option */}
-            <div
-              className={`flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition-colors ${
-                !value 
-                  ? 'bg-gray-900 text-white' 
-                  : 'hover:bg-gray-100 text-gray-500'
-              }`}
-              onClick={() => handleSelect('')}
-            >
-              <span className="w-5" />
-              <span className="text-sm">ללא קטגוריה</span>
-            </div>
-
             {/* Categories tree */}
             {filteredTree.length === 0 && search ? (
               <div className="py-8 text-center text-sm text-gray-400">
@@ -375,7 +412,7 @@ export function CategoryPicker({
                   key={node.id}
                   node={node}
                   level={0}
-                  selectedId={value}
+                  selectedIds={value}
                   expandedIds={expandedIds}
                   onSelect={handleSelect}
                   onToggle={handleToggle}
@@ -386,14 +423,22 @@ export function CategoryPicker({
           </div>
 
           {/* Footer */}
-          {categories.length > 0 && (
-            <div className="px-3 py-2 border-t border-gray-100 bg-gray-50">
-              <p className="text-xs text-gray-400">
-                {categories.length} קטגוריות
-              </p>
-            </div>
-          )}
-        </div>
+          <div className="px-3 py-2 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
+            <p className="text-xs text-gray-400">
+              {value.length > 0 ? `${value.length} נבחרו` : `${categories.length} קטגוריות`}
+            </p>
+            {value.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-xs bg-gray-900 text-white px-3 py-1 rounded-md hover:bg-gray-800"
+              >
+                סיום
+              </button>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -597,7 +642,7 @@ function InlineTreeNode({
 
         {/* Folder icon */}
         {hasChildren && isExpanded ? (
-          <FolderOpen className="w-4 h-4 shrink-0 text-amber-500" />
+          <FolderOpen className="w-4 h-4 shrink-0 text-gray-400" />
         ) : (
           <Folder className="w-4 h-4 shrink-0 text-gray-400" />
         )}
@@ -725,7 +770,7 @@ function MultiTreeNode({
 
         {/* Folder icon */}
         {hasChildren && isExpanded ? (
-          <FolderOpen className="w-4 h-4 shrink-0 text-amber-500" />
+          <FolderOpen className="w-4 h-4 shrink-0 text-gray-400" />
         ) : (
           <Folder className="w-4 h-4 shrink-0 text-gray-400" />
         )}

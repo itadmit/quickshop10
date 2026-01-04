@@ -119,6 +119,16 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
                   פרטים אישיים
                 </Link>
                 <Link
+                  href={`${basePath}/account/returns`}
+                  className="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                    <path d="M9 14l-4-4 4-4"/>
+                    <path d="M5 10h11a4 4 0 1 1 0 8h-1"/>
+                  </svg>
+                  החזרות והחלפות
+                </Link>
+                <Link
                   href={`${basePath}/account/credit`}
                   className="flex items-center justify-between gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
                 >

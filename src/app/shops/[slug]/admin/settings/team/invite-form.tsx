@@ -214,7 +214,7 @@ export function InviteForm({ storeId, slug }: InviteFormProps) {
       <button
         type="submit"
         disabled={isPending}
-        className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium"
+        className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium cursor-pointer"
       >
         {isPending ? 'שולח...' : 'שלח הזמנה'}
       </button>
