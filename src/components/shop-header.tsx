@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { CartButton } from './cart-button';
 import { UserButton } from './user-button';
+import { MobileMenu } from './mobile-menu';
 
 interface Category {
   id: string;
@@ -27,6 +28,7 @@ interface ShopHeaderProps {
 
 // Server Component - no 'use client' needed
 // CSS-only dropdowns for subcategories (no JS, no hydration cost)
+// Mobile menu is a small client island for interactivity
 export function ShopHeader({ storeName, categories, basePath, customer }: ShopHeaderProps) {
   // Organize categories into parent/child structure
   const parentCategories = categories.filter(c => !c.parentId);
@@ -41,16 +43,26 @@ export function ShopHeader({ storeName, categories, basePath, customer }: ShopHe
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
-      <div className="max-w-[1800px] mx-auto px-6 lg:px-12">
-        <div className="flex items-center justify-between h-20" dir="rtl">
-          {/* Logo */}
-          <Link href={basePath || '/'} className="group">
-            <span className="font-display text-2xl tracking-[0.3em] text-black font-light uppercase">
-              {storeName}
-            </span>
-          </Link>
+      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+          {/* Mobile Menu Button + Logo */}
+          <div className="flex items-center gap-2">
+            {/* Mobile Menu - Client island, only visible on mobile */}
+            <MobileMenu 
+              categories={categories} 
+              basePath={basePath} 
+              storeName={storeName} 
+            />
+            
+            {/* Logo */}
+            <Link href={basePath || '/'} className="group">
+              <span className="font-display text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.3em] text-black font-light uppercase">
+                {storeName}
+              </span>
+            </Link>
+          </div>
 
-          {/* Navigation - Server rendered from DB */}
+          {/* Navigation - Server rendered from DB, hidden on mobile */}
           <nav className="hidden lg:flex items-center gap-12">
             <Link 
               href={basePath || '/'} 
@@ -98,7 +110,7 @@ export function ShopHeader({ storeName, categories, basePath, customer }: ShopHe
           </nav>
 
           {/* Actions - User & Cart */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* User Button - Customer data from server */}
             <UserButton basePath={basePath} initialCustomer={customer} />
             
