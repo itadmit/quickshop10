@@ -10,41 +10,19 @@
  * 
  * URL: /api/cron/abandoned-carts
  * Method: GET (for cron) or POST
- * Auth: CRON_SECRET header or QStash signature
+ * Auth: QStash signature verification
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stores, orders, orderItems, abandonedCarts, pendingPayments } from '@/lib/db/schema';
-import { eq, and, lt, isNull, sql } from 'drizzle-orm';
-
-// Verify cron secret or QStash signature
-function verifyCronAuth(request: NextRequest): boolean {
-  // Check CRON_SECRET
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get('authorization');
-  if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
-    return true;
-  }
-  
-  // Check QStash signature
-  const qstashSignature = request.headers.get('upstash-signature');
-  if (qstashSignature) {
-    // QStash will verify its own signature
-    return true;
-  }
-  
-  // No secret configured, allow (for development)
-  if (!cronSecret) return true;
-  
-  return false;
-}
+import { eq, and, lt } from 'drizzle-orm';
+import { verifyQStashSignature } from '@/lib/qstash';
 
 export async function GET(request: NextRequest) {
-  // Verify authorization
-  if (!verifyCronAuth(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Verify QStash signature (fast, <5ms)
+  const authError = await verifyQStashSignature(request);
+  if (authError) return authError;
 
   try {
     // Get all stores with their settings

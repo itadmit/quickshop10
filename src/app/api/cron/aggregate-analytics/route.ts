@@ -1,7 +1,7 @@
 /**
  * Cron Job: Aggregate Analytics from Redis to PostgreSQL
  * 
- * Runs every hour via Vercel Cron or external scheduler
+ * Runs every hour via QStash
  * 
  * What it does:
  * 1. Reads daily counters from Redis
@@ -10,12 +10,13 @@
  * 
  * URL: /api/cron/aggregate-analytics
  * Method: GET (for cron) or POST
- * Auth: CRON_SECRET header
+ * Auth: QStash signature verification
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stores, analyticsDaily } from '@/lib/db/schema';
+import { verifyQStashSignature } from '@/lib/qstash';
 
 // Lazy load Redis
 async function getRedis() {
@@ -30,20 +31,10 @@ async function getRedis() {
   }
 }
 
-// Verify cron secret (optional but recommended)
-function verifyCronSecret(request: NextRequest): boolean {
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) return true; // No secret configured, allow
-  
-  const authHeader = request.headers.get('authorization');
-  return authHeader === `Bearer ${cronSecret}`;
-}
-
 export async function GET(request: NextRequest) {
-  // Verify authorization
-  if (!verifyCronSecret(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  // Verify QStash signature (fast, <5ms)
+  const authError = await verifyQStashSignature(request);
+  if (authError) return authError;
 
   try {
     const redis = await getRedis();
