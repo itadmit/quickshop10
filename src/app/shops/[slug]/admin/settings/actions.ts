@@ -17,6 +17,9 @@ interface GeneralSettingsData {
   facebookUrl: string;
   instagramUrl: string;
   twitterUrl: string;
+  // הגדרות עגלות נטושות
+  abandonedCartMinutes: number;
+  lowStockThreshold: number;
 }
 
 export async function updateStoreSettings(storeId: string, data: GeneralSettingsData) {
@@ -43,6 +46,9 @@ export async function updateStoreSettings(storeId: string, data: GeneralSettings
       facebookUrl: data.facebookUrl || undefined,
       instagramUrl: data.instagramUrl || undefined,
       twitterUrl: data.twitterUrl || undefined,
+      // הגדרות עגלות נטושות
+      abandonedCartMinutes: data.abandonedCartMinutes || 60,
+      lowStockThreshold: data.lowStockThreshold || 5,
     };
 
     // Update store
