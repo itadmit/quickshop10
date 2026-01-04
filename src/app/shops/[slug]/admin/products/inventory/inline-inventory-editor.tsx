@@ -89,10 +89,14 @@ export function InlineInventoryEditor({
         </button>
         <input
           ref={inputRef}
-          type="number"
-          min="0"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, '');
+            setValue(val);
+          }}
           onKeyDown={handleKeyDown}
           onBlur={handleBlur}
           disabled={isPending}

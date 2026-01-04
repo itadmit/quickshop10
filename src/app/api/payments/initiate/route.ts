@@ -8,8 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products } from '@/lib/db/schema';
+import { eq, and, sql, inArray } from 'drizzle-orm';
 import { getConfiguredProvider, getDefaultProvider } from '@/lib/payments';
 import type { InitiatePaymentRequest, PaymentProviderType } from '@/lib/payments/types';
 import { nanoid } from 'nanoid';
@@ -335,10 +335,27 @@ export async function POST(request: NextRequest) {
 
     // Create order items
     if (cartItemsForOrder.length > 0) {
+      // Validate productIds exist before inserting (foreign key constraint)
+      const productIds = cartItemsForOrder
+        .map(item => item.productId)
+        .filter((id): id is string => !!id);
+      
+      let existingProductIds = new Set<string>();
+      if (productIds.length > 0) {
+        const existingProducts = await db
+          .select({ id: products.id })
+          .from(products)
+          .where(inArray(products.id, productIds));
+        existingProductIds = new Set(existingProducts.map(p => p.id));
+      }
+
       await db.insert(orderItems).values(
         cartItemsForOrder.map(item => ({
           orderId: newOrder.id,
-          productId: item.productId,
+          // Only include productId if it exists in products table
+          productId: item.productId && existingProductIds.has(item.productId) 
+            ? item.productId 
+            : null,
           name: item.name,
           variantTitle: item.variantTitle || null,
           sku: item.sku || '',
