@@ -37,6 +37,11 @@ export default async function InfluencerCommissionsPage({ params }: CommissionsP
     redirect(`${basePath}/influencer/login`);
   }
 
+  // If commission viewing is disabled, redirect to main dashboard
+  if (!influencer.showCommission) {
+    redirect(`${basePath}/influencer`);
+  }
+
   // Get commission breakdown
   const [commissionStats] = await db
     .select({

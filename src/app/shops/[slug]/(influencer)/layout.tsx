@@ -65,12 +65,17 @@ export default async function InfluencerLayout({
             storeSlug={slug}
             storeName={store.name}
             influencerName={influencer.name}
+            showCommission={influencer.showCommission}
           />
           
           <div className="flex min-h-[calc(100vh-56px)]">
             {/* Desktop Sidebar - hidden on mobile */}
             <div className="hidden lg:block">
-              <InfluencerSidebar storeSlug={slug} currentPath={(await headers()).get('x-pathname') || ''} />
+              <InfluencerSidebar 
+                storeSlug={slug} 
+                currentPath={(await headers()).get('x-pathname') || ''} 
+                showCommission={influencer.showCommission}
+              />
             </div>
             
             {/* Main Content */}

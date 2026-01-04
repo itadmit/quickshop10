@@ -3,9 +3,17 @@ import Link from 'next/link';
 interface InfluencerSidebarProps {
   storeSlug: string;
   currentPath?: string;
+  showCommission?: boolean;
 }
 
-const navItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  requiresCommission?: boolean;
+}
+
+const navItems: NavItem[] = [
   { 
     href: '', 
     label: 'דשבורד', 
@@ -36,6 +44,7 @@ const navItems = [
   { 
     href: '/commissions', 
     label: 'עמלות', 
+    requiresCommission: true,
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -53,7 +62,7 @@ const navItems = [
   },
 ];
 
-export function InfluencerSidebar({ storeSlug, currentPath = '' }: InfluencerSidebarProps) {
+export function InfluencerSidebar({ storeSlug, currentPath = '', showCommission = true }: InfluencerSidebarProps) {
   const basePath = `/shops/${storeSlug}/influencer`;
   
   // Normalize current path for comparison
@@ -69,27 +78,29 @@ export function InfluencerSidebar({ storeSlug, currentPath = '' }: InfluencerSid
     <aside className="fixed top-14 right-0 w-56 h-[calc(100vh-56px)] bg-white border-l border-gray-200 overflow-y-auto">
       {/* Nav Items */}
       <nav className="p-4 space-y-1">
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={`${basePath}${item.href}`}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
-                active 
-                  ? 'bg-purple-50 text-purple-700' 
-                  : 'text-gray-600 hover:bg-purple-50 hover:text-purple-700'
-              }`}
-            >
-              <span className={`transition-colors ${
-                active ? 'text-purple-500' : 'text-gray-400 group-hover:text-purple-500'
-              }`}>
-                {item.icon}
-              </span>
-              <span className="text-sm font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
+        {navItems
+          .filter(item => !item.requiresCommission || showCommission)
+          .map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={`${basePath}${item.href}`}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors group ${
+                  active 
+                    ? 'bg-purple-50 text-purple-700' 
+                    : 'text-gray-600 hover:bg-purple-50 hover:text-purple-700'
+                }`}
+              >
+                <span className={`transition-colors ${
+                  active ? 'text-purple-500' : 'text-gray-400 group-hover:text-purple-500'
+                }`}>
+                  {item.icon}
+                </span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
       </nav>
 
       {/* Divider */}

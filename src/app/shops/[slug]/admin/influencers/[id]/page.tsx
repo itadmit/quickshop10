@@ -1,7 +1,7 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { db } from '@/lib/db';
 import { discounts, influencers } from '@/lib/db/schema';
-import { eq, or, isNull, and } from 'drizzle-orm';
+import { eq, and, notInArray, sql } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { InfluencerForm } from '../influencer-form';
@@ -29,7 +29,19 @@ export default async function EditInfluencerPage({ params }: EditInfluencerPageP
     notFound();
   }
 
-  // Fetch available discounts (not linked to other influencers, or linked to this one)
+  // Get discount IDs already linked to other influencers (not this one)
+  const linkedDiscountIds = await db
+    .select({ discountId: influencers.discountId })
+    .from(influencers)
+    .where(and(
+      eq(influencers.storeId, store.id),
+      sql`${influencers.discountId} IS NOT NULL`,
+      sql`${influencers.id} != ${id}`
+    ));
+
+  const usedIds = linkedDiscountIds.map(r => r.discountId).filter(Boolean) as string[];
+
+  // Fetch available discounts (not linked to other influencers)
   const availableDiscounts = await db
     .select({
       id: discounts.id,
@@ -41,7 +53,7 @@ export default async function EditInfluencerPage({ params }: EditInfluencerPageP
     .where(and(
       eq(discounts.storeId, store.id),
       eq(discounts.isActive, true),
-      or(isNull(discounts.influencerId), eq(discounts.influencerId, id))
+      usedIds.length > 0 ? notInArray(discounts.id, usedIds) : sql`1=1`
     ))
     .orderBy(discounts.code);
 

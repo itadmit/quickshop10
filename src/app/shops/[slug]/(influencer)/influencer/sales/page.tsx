@@ -191,14 +191,20 @@ export default async function InfluencerSalesPage({ params, searchParams }: Sale
         {sales.length > 0 ? (
           <>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[600px]">
+              <table className="w-full min-w-[400px]">
                 <thead className="bg-gray-50 text-xs text-gray-500 uppercase border-b border-gray-200">
                   <tr>
                     <th className="px-3 sm:px-5 py-3 text-right font-medium">הזמנה</th>
-                    <th className="px-3 sm:px-5 py-3 text-right font-medium hidden sm:table-cell">לקוח</th>
+                    {influencer.showCustomerNames && (
+                      <th className="px-3 sm:px-5 py-3 text-right font-medium hidden sm:table-cell">לקוח</th>
+                    )}
                     <th className="px-3 sm:px-5 py-3 text-right font-medium">תאריך</th>
-                    <th className="px-3 sm:px-5 py-3 text-right font-medium">סכום</th>
-                    <th className="px-3 sm:px-5 py-3 text-right font-medium">עמלה</th>
+                    {influencer.showOrderDetails && (
+                      <th className="px-3 sm:px-5 py-3 text-right font-medium">סכום</th>
+                    )}
+                    {influencer.showCommission && (
+                      <th className="px-3 sm:px-5 py-3 text-right font-medium">עמלה</th>
+                    )}
                     <th className="px-3 sm:px-5 py-3 text-right font-medium">סטטוס</th>
                   </tr>
                 </thead>
@@ -208,25 +214,31 @@ export default async function InfluencerSalesPage({ params, searchParams }: Sale
                       <td className="px-3 sm:px-5 py-3 sm:py-4">
                         <span className="font-medium text-gray-900 text-sm">#{sale.orderNumber}</span>
                       </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-gray-600 text-sm hidden sm:table-cell">
-                        {sale.customerName?.trim() || '-'}
-                      </td>
+                      {influencer.showCustomerNames && (
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 text-gray-600 text-sm hidden sm:table-cell">
+                          {sale.customerName?.trim() || '-'}
+                        </td>
+                      )}
                       <td className="px-3 sm:px-5 py-3 sm:py-4 text-gray-500 text-xs sm:text-sm whitespace-nowrap">
                         {formatDate(sale.createdAt)}
                       </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4 font-medium text-sm whitespace-nowrap">
-                        {formatCurrency(sale.orderTotal)}
-                      </td>
-                      <td className="px-3 sm:px-5 py-3 sm:py-4">
-                        <span className="font-medium text-purple-600 text-sm whitespace-nowrap">
-                          {formatCurrency(sale.netCommission)}
-                        </span>
-                        {sale.refundAmount && parseFloat(sale.refundAmount) > 0 && (
-                          <span className="text-xs text-red-500 mr-1 whitespace-nowrap">
-                            (-{formatCurrency(sale.refundAmount)})
+                      {influencer.showOrderDetails && (
+                        <td className="px-3 sm:px-5 py-3 sm:py-4 font-medium text-sm whitespace-nowrap">
+                          {formatCurrency(sale.orderTotal)}
+                        </td>
+                      )}
+                      {influencer.showCommission && (
+                        <td className="px-3 sm:px-5 py-3 sm:py-4">
+                          <span className="font-medium text-purple-600 text-sm whitespace-nowrap">
+                            {formatCurrency(sale.netCommission)}
                           </span>
-                        )}
-                      </td>
+                          {sale.refundAmount && parseFloat(sale.refundAmount) > 0 && (
+                            <span className="text-xs text-red-500 mr-1 whitespace-nowrap">
+                              (-{formatCurrency(sale.refundAmount)})
+                            </span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-3 sm:px-5 py-3 sm:py-4">
                         <StatusBadge status={sale.orderStatus} />
                       </td>

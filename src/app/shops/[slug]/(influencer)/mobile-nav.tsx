@@ -8,13 +8,21 @@ interface MobileNavProps {
   storeSlug: string;
   storeName: string;
   influencerName: string;
+  showCommission?: boolean;
 }
 
-const navItems = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: string;
+  requiresCommission?: boolean;
+}
+
+const navItems: NavItem[] = [
   { href: '', label: 'דשבורד', icon: 'home' },
   { href: '/coupons', label: 'הקופונים שלי', icon: 'ticket' },
   { href: '/sales', label: 'מכירות', icon: 'chart' },
-  { href: '/commissions', label: 'עמלות', icon: 'money' },
+  { href: '/commissions', label: 'עמלות', icon: 'money', requiresCommission: true },
   { href: '/refunds', label: 'החזרים', icon: 'refund' },
   { href: '/settings', label: 'הגדרות', icon: 'settings' },
 ];
@@ -53,7 +61,7 @@ const icons: Record<string, React.ReactNode> = {
   ),
 };
 
-export function MobileNav({ storeSlug, storeName, influencerName }: MobileNavProps) {
+export function MobileNav({ storeSlug, storeName, influencerName, showCommission = true }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const basePath = `/shops/${storeSlug}/influencer`;
@@ -122,26 +130,28 @@ export function MobileNav({ storeSlug, storeName, influencerName }: MobileNavPro
 
         {/* Nav Items */}
         <nav className="p-4 space-y-1">
-          {navItems.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={`${basePath}${item.href}`}
-                onClick={() => setIsOpen(false)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                  active 
-                    ? 'bg-purple-50 text-purple-700' 
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <span className={active ? 'text-purple-500' : 'text-gray-400'}>
-                  {icons[item.icon]}
-                </span>
-                <span className="font-medium">{item.label}</span>
-              </Link>
-            );
-          })}
+          {navItems
+            .filter(item => !item.requiresCommission || showCommission)
+            .map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={`${basePath}${item.href}`}
+                  onClick={() => setIsOpen(false)}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
+                    active 
+                      ? 'bg-purple-50 text-purple-700' 
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className={active ? 'text-purple-500' : 'text-gray-400'}>
+                    {icons[item.icon]}
+                  </span>
+                  <span className="font-medium">{item.label}</span>
+                </Link>
+              );
+            })}
         </nav>
 
         {/* Logout */}

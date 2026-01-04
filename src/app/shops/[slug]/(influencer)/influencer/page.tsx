@@ -72,76 +72,69 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  // Fetch influencer's sales with order details
-  const sales = await db
-    .select({
-      id: influencerSales.id,
-      orderTotal: influencerSales.orderTotal,
-      commissionAmount: influencerSales.commissionAmount,
-      netCommission: influencerSales.netCommission,
-      status: influencerSales.status,
-      createdAt: influencerSales.createdAt,
-      orderNumber: orders.orderNumber,
-      orderStatus: orders.status,
-    })
-    .from(influencerSales)
-    .innerJoin(orders, eq(orders.id, influencerSales.orderId))
-    .where(eq(influencerSales.influencerId, influencer.id))
-    .orderBy(desc(influencerSales.createdAt))
-    .limit(10);
+  // Run all queries in parallel for maximum speed
+  const [sales, monthlyStats, monthlyRefunds, linkedCouponResult, linkedAutoDiscountResult] = await Promise.all([
+    // Fetch influencer's sales with order details
+    db
+      .select({
+        id: influencerSales.id,
+        orderTotal: influencerSales.orderTotal,
+        commissionAmount: influencerSales.commissionAmount,
+        netCommission: influencerSales.netCommission,
+        status: influencerSales.status,
+        createdAt: influencerSales.createdAt,
+        orderNumber: orders.orderNumber,
+        orderStatus: orders.status,
+      })
+      .from(influencerSales)
+      .innerJoin(orders, eq(orders.id, influencerSales.orderId))
+      .where(eq(influencerSales.influencerId, influencer.id))
+      .orderBy(desc(influencerSales.createdAt))
+      .limit(10),
+    
+    // Calculate monthly stats
+    db
+      .select({
+        totalSales: sql<string>`COALESCE(SUM(${influencerSales.orderTotal}::numeric), 0)`,
+        totalCommission: sql<string>`COALESCE(SUM(${influencerSales.netCommission}::numeric), 0)`,
+        totalOrders: sql<number>`COUNT(*)`,
+      })
+      .from(influencerSales)
+      .where(
+        and(
+          eq(influencerSales.influencerId, influencer.id),
+          gte(influencerSales.createdAt, monthStart)
+        )
+      ),
+    
+    // Get refunds count for this month
+    db
+      .select({
+        count: sql<number>`COUNT(*)`,
+        total: sql<string>`COALESCE(SUM(${refunds.amount}::numeric), 0)`,
+      })
+      .from(refunds)
+      .innerJoin(influencerSales, eq(influencerSales.orderId, refunds.orderId))
+      .where(
+        and(
+          eq(influencerSales.influencerId, influencer.id),
+          gte(refunds.createdAt, monthStart)
+        )
+      ),
+    
+    // Get linked coupon
+    influencer.discountId
+      ? db.select().from(discounts).where(eq(discounts.id, influencer.discountId)).limit(1)
+      : Promise.resolve([]),
+    
+    // Get linked automatic discount
+    influencer.automaticDiscountId
+      ? db.select().from(automaticDiscounts).where(eq(automaticDiscounts.id, influencer.automaticDiscountId)).limit(1)
+      : Promise.resolve([]),
+  ]);
 
-  // Calculate monthly stats
-  const monthlyStats = await db
-    .select({
-      totalSales: sql<string>`COALESCE(SUM(${influencerSales.orderTotal}::numeric), 0)`,
-      totalCommission: sql<string>`COALESCE(SUM(${influencerSales.netCommission}::numeric), 0)`,
-      totalOrders: sql<number>`COUNT(*)`,
-    })
-    .from(influencerSales)
-    .where(
-      and(
-        eq(influencerSales.influencerId, influencer.id),
-        gte(influencerSales.createdAt, monthStart)
-      )
-    );
-
-  // Get refunds count for this month
-  const monthlyRefunds = await db
-    .select({
-      count: sql<number>`COUNT(*)`,
-      total: sql<string>`COALESCE(SUM(${refunds.amount}::numeric), 0)`,
-    })
-    .from(refunds)
-    .innerJoin(influencerSales, eq(influencerSales.orderId, refunds.orderId))
-    .where(
-      and(
-        eq(influencerSales.influencerId, influencer.id),
-        gte(refunds.createdAt, monthStart)
-      )
-    );
-
-  // Get linked coupon
-  let linkedCoupon = null;
-  if (influencer.discountId) {
-    const [coupon] = await db
-      .select()
-      .from(discounts)
-      .where(eq(discounts.id, influencer.discountId))
-      .limit(1);
-    linkedCoupon = coupon;
-  }
-
-  // Get linked automatic discount
-  let linkedAutoDiscount = null;
-  if (influencer.automaticDiscountId) {
-    const [autoDiscount] = await db
-      .select()
-      .from(automaticDiscounts)
-      .where(eq(automaticDiscounts.id, influencer.automaticDiscountId))
-      .limit(1);
-    linkedAutoDiscount = autoDiscount;
-  }
-
+  const linkedCoupon = linkedCouponResult[0] || null;
+  const linkedAutoDiscount = linkedAutoDiscountResult[0] || null;
   const stats = monthlyStats[0] || { totalSales: '0', totalCommission: '0', totalOrders: 0 };
   const refundStats = monthlyRefunds[0] || { count: 0, total: '0' };
 

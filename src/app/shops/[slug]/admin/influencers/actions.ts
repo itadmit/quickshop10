@@ -73,12 +73,20 @@ export async function createInfluencer(storeId: string, slug: string, data: Infl
       notes: data.notes || null,
     }).returning();
 
-    // If discount is linked, update the discount to reference this influencer
+    // Update coupon code on influencer if discount is linked
     if (data.discountId && newInfluencer) {
-      await db
-        .update(discounts)
-        .set({ influencerId: newInfluencer.id })
-        .where(eq(discounts.id, data.discountId));
+      const [linkedDiscount] = await db
+        .select({ code: discounts.code })
+        .from(discounts)
+        .where(eq(discounts.id, data.discountId))
+        .limit(1);
+      
+      if (linkedDiscount) {
+        await db
+          .update(influencers)
+          .set({ couponCode: linkedDiscount.code })
+          .where(eq(influencers.id, newInfluencer.id));
+      }
     }
 
     revalidatePath(`/shops/${slug}/admin/influencers`);

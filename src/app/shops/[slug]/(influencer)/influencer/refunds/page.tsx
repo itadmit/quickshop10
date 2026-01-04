@@ -90,19 +90,23 @@ export default async function InfluencerRefundsPage({ params }: RefundsPageProps
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className={`grid gap-2 sm:gap-4 ${influencer.showCommission && influencer.showOrderDetails ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-2'}`}>
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
           <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ החזרים</p>
           <p className="text-lg sm:text-2xl font-bold text-gray-900">{refundStats?.totalRefunds || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
-          <p className="text-xs sm:text-sm text-gray-500 mb-1">סכום הוחזר</p>
-          <p className="text-lg sm:text-2xl font-bold text-red-500">{formatCurrency(refundStats?.totalAmount || 0)}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
-          <p className="text-xs sm:text-sm text-gray-500 mb-1">עמלות שהופחתו</p>
-          <p className="text-lg sm:text-2xl font-bold text-orange-500">-{formatCurrency(commissionLost?.total || 0)}</p>
-        </div>
+        {influencer.showOrderDetails && (
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">סכום הוחזר</p>
+            <p className="text-lg sm:text-2xl font-bold text-red-500">{formatCurrency(refundStats?.totalAmount || 0)}</p>
+          </div>
+        )}
+        {influencer.showCommission && (
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">עמלות שהופחתו</p>
+            <p className="text-lg sm:text-2xl font-bold text-orange-500">-{formatCurrency(commissionLost?.total || 0)}</p>
+          </div>
+        )}
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
           <p className="text-xs sm:text-sm text-gray-500 mb-1">ממתינים</p>
           <p className="text-lg sm:text-2xl font-bold text-yellow-600">{refundStats?.pendingCount || 0}</p>

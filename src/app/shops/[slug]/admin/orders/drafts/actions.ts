@@ -252,7 +252,7 @@ export async function searchProductsForDraft(
         id: products.id,
         name: products.name,
         price: products.price,
-        compareAtPrice: products.compareAtPrice,
+        compareAtPrice: products.comparePrice,
         sku: products.sku,
         inventory: products.inventory,
       })
@@ -277,7 +277,7 @@ export async function searchProductsForDraft(
           .select({ url: productImages.url })
           .from(productImages)
           .where(eq(productImages.productId, product.id))
-          .orderBy(productImages.position)
+          .orderBy(productImages.sortOrder)
           .limit(1);
 
         // Get variants
