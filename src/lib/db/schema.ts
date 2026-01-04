@@ -1074,7 +1074,12 @@ export const influencers = pgTable('influencers', {
   
   // Commission settings
   commissionType: discountTypeEnum('commission_type').default('percentage'),
-  commissionValue: decimal('commission_value', { precision: 10, scale: 2 }).default('10'),
+  commissionValue: decimal('commission_value', { precision: 10, scale: 2 }), // null = אין עמלה מוגדרת
+  
+  // Dashboard visibility settings (managed by store admin)
+  showCommission: boolean('show_commission').default(true).notNull(),
+  showCustomerNames: boolean('show_customer_names').default(true).notNull(),
+  showOrderDetails: boolean('show_order_details').default(true).notNull(),
   
   // Linked discounts (coupon or automatic)
   couponCode: varchar('coupon_code', { length: 50 }),

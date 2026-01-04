@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { draftOrders, orders, orderItems, stores } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { draftOrders, orders, orderItems, stores, products, productImages, productVariants } from '@/lib/db/schema';
+import { eq, and, ilike, or } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
 
@@ -210,6 +210,111 @@ export async function updateDraft(
   } catch (error) {
     console.error('Error updating draft:', error);
     return { success: false, error: 'שגיאה בעדכון הטיוטה' };
+  }
+}
+
+// ============================================
+// Search Products for Draft Orders
+// ============================================
+
+export interface SearchProductResult {
+  id: string;
+  name: string;
+  price: number;
+  compareAtPrice: number | null;
+  imageUrl: string | null;
+  sku: string | null;
+  inventory: number;
+  variants: {
+    id: string;
+    title: string;
+    price: number;
+    sku: string | null;
+    inventory: number;
+  }[];
+}
+
+export async function searchProductsForDraft(
+  slug: string,
+  query: string
+): Promise<{ success: boolean; products?: SearchProductResult[]; error?: string }> {
+  try {
+    const store = await getStoreBySlug(slug);
+    if (!store) {
+      return { success: false, error: 'חנות לא נמצאה' };
+    }
+
+    // Search by name or SKU
+    const searchPattern = `%${query}%`;
+    
+    const foundProducts = await db
+      .select({
+        id: products.id,
+        name: products.name,
+        price: products.price,
+        compareAtPrice: products.compareAtPrice,
+        sku: products.sku,
+        inventory: products.inventory,
+      })
+      .from(products)
+      .where(
+        and(
+          eq(products.storeId, store.id),
+          eq(products.isActive, true),
+          or(
+            ilike(products.name, searchPattern),
+            ilike(products.sku, searchPattern)
+          )
+        )
+      )
+      .limit(10);
+
+    // Get images and variants for each product
+    const results: SearchProductResult[] = await Promise.all(
+      foundProducts.map(async (product) => {
+        // Get first image
+        const [image] = await db
+          .select({ url: productImages.url })
+          .from(productImages)
+          .where(eq(productImages.productId, product.id))
+          .orderBy(productImages.position)
+          .limit(1);
+
+        // Get variants
+        const variants = await db
+          .select({
+            id: productVariants.id,
+            title: productVariants.title,
+            price: productVariants.price,
+            sku: productVariants.sku,
+            inventory: productVariants.inventory,
+          })
+          .from(productVariants)
+          .where(eq(productVariants.productId, product.id));
+
+        return {
+          id: product.id,
+          name: product.name,
+          price: Number(product.price),
+          compareAtPrice: product.compareAtPrice ? Number(product.compareAtPrice) : null,
+          imageUrl: image?.url || null,
+          sku: product.sku,
+          inventory: product.inventory ?? 0,
+          variants: variants.map(v => ({
+            id: v.id,
+            title: v.title,
+            price: Number(v.price),
+            sku: v.sku,
+            inventory: v.inventory ?? 0,
+          })),
+        };
+      })
+    );
+
+    return { success: true, products: results };
+  } catch (error) {
+    console.error('Error searching products:', error);
+    return { success: false, error: 'שגיאה בחיפוש מוצרים' };
   }
 }
 

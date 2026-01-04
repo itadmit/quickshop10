@@ -150,6 +150,16 @@ const salesMenuItems: MenuItem[] = [
     ),
   },
   {
+    label: 'משפיענים',
+    href: '/influencers',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z"/>
+        <path d="M5 20h14"/>
+      </svg>
+    ),
+  },
+  {
     label: 'גיפט קארדס',
     href: '/gift-cards',
     icon: (
