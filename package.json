@@ -26,6 +26,7 @@
     "@upstash/qstash": "^2.8.4",
     "@upstash/redis": "^1.36.0",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.1",

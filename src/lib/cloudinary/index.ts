@@ -32,6 +32,8 @@ export interface CloudinaryUploadResult {
   created_at: string;
   original_filename: string;
   folder?: string;
+  thumbnail_url?: string;
+  media_id?: string; // DB record ID from /api/upload
 }
 
 export interface UploadOptions {
@@ -61,6 +63,18 @@ export async function uploadToCloudinary(
   file: File,
   options: UploadOptions = {}
 ): Promise<CloudinaryUploadResult> {
+  // Debug: בדיקת קונפיגורציה
+  console.log('Cloudinary Config Check:', {
+    cloudName: cloudinaryConfig.cloudName || 'MISSING!',
+    uploadPreset: cloudinaryConfig.uploadPreset || 'MISSING!',
+    hasCloudName: Boolean(cloudinaryConfig.cloudName),
+    hasPreset: Boolean(cloudinaryConfig.uploadPreset),
+  });
+
+  if (!cloudinaryConfig.cloudName) {
+    throw new Error('NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME חסר ב-.env');
+  }
+
   const formData = new FormData();
   formData.append('file', file);
   formData.append('upload_preset', cloudinaryConfig.uploadPreset);
@@ -83,8 +97,14 @@ export async function uploadToCloudinary(
   });
 
   if (!response.ok) {
-    const error: CloudinaryError = await response.json();
-    throw new Error(error.message || 'Failed to upload to Cloudinary');
+    const error = await response.json();
+    console.error('Cloudinary Upload Error:', {
+      status: response.status,
+      error,
+      cloudName: cloudinaryConfig.cloudName,
+      uploadPreset: cloudinaryConfig.uploadPreset,
+    });
+    throw new Error(error.error?.message || error.message || 'Failed to upload to Cloudinary');
   }
 
   return response.json();

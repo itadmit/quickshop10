@@ -3,20 +3,16 @@
 import { useState, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  uploadToCloudinary,
   validateFile,
   formatFileSize,
   ALLOWED_IMAGE_TYPES,
   ALLOWED_VIDEO_TYPES,
   MAX_FILE_SIZE,
-  CloudinaryUploadResult,
 } from '@/lib/cloudinary';
-import { createMediaRecord } from './actions';
 
 interface UploadFormProps {
   storeId: string;
   slug: string;
-  currentFolder?: string;
 }
 
 interface FileUpload {
@@ -27,12 +23,10 @@ interface FileUpload {
   error?: string;
 }
 
-export function UploadForm({ storeId, slug, currentFolder }: UploadFormProps) {
+export function UploadForm({ storeId, slug }: UploadFormProps) {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [dragActive, setDragActive] = useState(false);
-  const [showFolderInput, setShowFolderInput] = useState(false);
-  const [folder, setFolder] = useState(currentFolder || '');
   const [uploads, setUploads] = useState<FileUpload[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,33 +67,26 @@ export function UploadForm({ storeId, slug, currentFolder }: UploadFormProps) {
           prev.map(u => u.id === upload.id ? { ...u, status: 'uploading', progress: 20 } : u)
         );
 
-        // Upload to Cloudinary
-        const cloudinaryFolder = folder 
-          ? `quickshop/stores/${slug}/${folder}`
-          : `quickshop/stores/${slug}`;
+        // Upload to Cloudinary - API also saves to media library
+        const cloudinaryFolder = `quickshop/stores/${slug}`;
 
-        const result = await uploadToCloudinary(upload.file, {
-          folder: cloudinaryFolder,
-          tags: ['quickshop', 'media-library', slug],
+        const formData = new FormData();
+        formData.append('file', upload.file);
+        formData.append('folder', cloudinaryFolder);
+        formData.append('tags', ['quickshop', 'media-library', slug].join(','));
+        formData.append('storeId', storeId); // Save to media library
+        
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
         });
-
-        setUploads(prev =>
-          prev.map(u => u.id === upload.id ? { ...u, progress: 80 } : u)
-        );
-
-        // Create media record in database
-        await createMediaRecord({
-          storeId,
-          filename: result.public_id.split('/').pop() || result.original_filename,
-          originalFilename: result.original_filename,
-          mimeType: `${result.resource_type}/${result.format}`,
-          size: result.bytes,
-          url: result.secure_url,
-          publicId: result.public_id,
-          width: result.width,
-          height: result.height,
-          folder: folder || undefined,
-        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Upload failed');
+        }
+        
+        // API already creates media record - no need to call createMediaRecord
 
         setUploads(prev =>
           prev.map(u => u.id === upload.id ? { ...u, status: 'success', progress: 100 } : u)
@@ -146,35 +133,8 @@ export function UploadForm({ storeId, slug, currentFolder }: UploadFormProps) {
 
   return (
     <div className="space-y-4">
-      {/* Folder and Upload Button */}
+      {/* Upload Button */}
       <div className="flex items-center gap-3">
-        {showFolderInput && (
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={folder}
-              onChange={(e) => setFolder(e.target.value)}
-              placeholder="שם תיקייה"
-              className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-            />
-            <button
-              onClick={() => setShowFolderInput(false)}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-        
-        {!showFolderInput && (
-          <button
-            onClick={() => setShowFolderInput(true)}
-            className="px-3 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            + תיקייה
-          </button>
-        )}
-
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}

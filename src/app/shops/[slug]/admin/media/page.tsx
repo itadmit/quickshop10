@@ -64,8 +64,10 @@ export default async function MediaLibraryPage({
             {totalCount} קבצים • {formatBytes(totalSize)}
           </p>
         </div>
-        <UploadForm storeId={store.id} slug={slug} currentFolder={folder} />
       </div>
+
+      {/* Upload Form (button + progress) */}
+      <UploadForm storeId={store.id} slug={slug} />
 
       {/* Folders */}
       {uniqueFolders.length > 0 && (

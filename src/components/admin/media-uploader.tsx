@@ -1,14 +1,63 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
-  uploadToCloudinary,
   validateFile,
   formatFileSize,
   ALLOWED_IMAGE_TYPES,
   MAX_FILE_SIZE,
   CloudinaryUploadResult,
 } from '@/lib/cloudinary';
+import { MediaPickerModal, MediaItem } from './media-picker-modal';
+
+// ===== Server Upload (WebP conversion + signed upload) =====
+async function uploadToServer(
+  file: File,
+  options: { folder?: string; tags?: string[]; storeId?: string } = {}
+): Promise<CloudinaryUploadResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (options.folder) formData.append('folder', options.folder);
+  if (options.tags) formData.append('tags', options.tags.join(','));
+  if (options.storeId) formData.append('storeId', options.storeId); // Save to media library
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Upload failed');
+  }
+
+  return response.json();
+}
+
+// ===== Server Delete (Remove from Cloudinary + DB) =====
+async function deleteFromServer(publicId: string, mediaId?: string): Promise<void> {
+  // Delete from Cloudinary
+  const cloudinaryResponse = await fetch(`/api/upload/${encodeURIComponent(publicId)}`, {
+    method: 'DELETE',
+  });
+
+  if (!cloudinaryResponse.ok) {
+    const error = await cloudinaryResponse.json();
+    console.error('Cloudinary delete failed:', error);
+  }
+
+  // Delete from media library DB if mediaId exists
+  if (mediaId) {
+    const dbResponse = await fetch(`/api/media/${encodeURIComponent(mediaId)}`, {
+      method: 'DELETE',
+    });
+
+    if (!dbResponse.ok) {
+      const error = await dbResponse.json();
+      console.error('DB delete failed:', error);
+    }
+  }
+}
 
 // ===== Types =====
 
@@ -16,6 +65,7 @@ export interface UploadedMedia {
   id: string;
   url: string;
   publicId?: string;
+  mediaId?: string; // DB record ID for deletion
   filename: string;
   size: number;
   width?: number;
@@ -34,6 +84,10 @@ export interface MediaUploaderProps {
   multiple?: boolean;
   /** Folder in Cloudinary to upload to */
   folder?: string;
+  /** Store ID - if provided, saves to media library */
+  storeId?: string;
+  /** Store slug - required for media picker */
+  storeSlug?: string;
   /** Show primary badge and allow setting primary */
   showPrimary?: boolean;
   /** Aspect ratio for preview (e.g., "1:1", "16:9", "4:3") */
@@ -67,6 +121,8 @@ export function MediaUploader({
   maxFiles = 10,
   multiple = true,
   folder = 'quickshop',
+  storeId,
+  storeSlug,
   showPrimary = false,
   aspectRatio = '1:1',
   compact = false,
@@ -77,8 +133,36 @@ export function MediaUploader({
 }: MediaUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState<FileWithProgress[]>([]);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dropZoneRef = useRef<HTMLDivElement>(null);
+  
+  // Handle selection from media picker
+  const handlePickerSelect = useCallback((items: MediaItem[]) => {
+    const newMedia: UploadedMedia[] = items.map((item, index) => ({
+      id: item.id,
+      url: item.url,
+      publicId: item.publicId || undefined,
+      mediaId: item.id,
+      filename: item.filename,
+      size: item.size || 0,
+      width: item.width || undefined,
+      height: item.height || undefined,
+      isPrimary: value.length === 0 && index === 0 && showPrimary,
+    }));
+    
+    // Filter out duplicates
+    const existingIds = new Set(value.map(v => v.id));
+    const uniqueNewMedia = newMedia.filter(m => !existingIds.has(m.id));
+    
+    // Respect maxFiles limit
+    const availableSlots = maxFiles - value.length;
+    const mediaToAdd = uniqueNewMedia.slice(0, availableSlots);
+    
+    if (mediaToAdd.length > 0) {
+      onChange([...value, ...mediaToAdd]);
+    }
+  }, [value, onChange, maxFiles, showPrimary]);
 
   // Calculate aspect ratio for CSS
   const getAspectRatioPadding = () => {
@@ -123,35 +207,41 @@ export function MediaUploader({
 
     setUploading(prev => [...prev, ...newUploads]);
 
-    // Upload files
+    // Upload files and collect results
+    const uploadedMedia: UploadedMedia[] = [];
+    
     for (const upload of newUploads) {
       try {
         setUploading(prev =>
           prev.map(u => u.id === upload.id ? { ...u, status: 'uploading', progress: 10 } : u)
         );
 
-        const result = await uploadToCloudinary(upload.file, {
+        // Use server upload for WebP conversion + signed upload
+        // Pass storeId to save to media library
+        const result = await uploadToServer(upload.file, {
           folder,
           tags: ['quickshop', 'product'],
+          storeId,
         });
 
         setUploading(prev =>
           prev.map(u => u.id === upload.id ? { ...u, status: 'success', progress: 100, result } : u)
         );
 
-        // Add to value
+        // Collect uploaded media (include mediaId for DB deletion)
         const newMedia: UploadedMedia = {
           id: result.public_id,
           url: result.secure_url,
           publicId: result.public_id,
+          mediaId: result.media_id, // DB record ID
           filename: result.original_filename,
           size: result.bytes,
           width: result.width,
           height: result.height,
-          isPrimary: value.length === 0 && showPrimary,
+          isPrimary: (value.length === 0 && uploadedMedia.length === 0) && showPrimary,
         };
 
-        onChange([...value, newMedia]);
+        uploadedMedia.push(newMedia);
       } catch (error) {
         console.error('Upload failed:', error);
         setUploading(prev =>
@@ -162,6 +252,11 @@ export function MediaUploader({
           } : u)
         );
       }
+    }
+    
+    // Update value once with all uploaded media
+    if (uploadedMedia.length > 0) {
+      onChange([...value, ...uploadedMedia]);
     }
 
     // Clear completed uploads after a delay
@@ -203,13 +298,19 @@ export function MediaUploader({
     }
   }, [disabled, handleFiles]);
 
-  // Remove file
+  // Remove file - deletes from Cloudinary + DB
   const handleRemove = useCallback((id: string) => {
+    const itemToRemove = value.find(v => v.id === id);
     const newValue = value.filter(v => v.id !== id);
     
     // If removed item was primary and there are others, make first one primary
-    if (showPrimary && value.find(v => v.id === id)?.isPrimary && newValue.length > 0) {
+    if (showPrimary && itemToRemove?.isPrimary && newValue.length > 0) {
       newValue[0].isPrimary = true;
+    }
+    
+    // Delete from Cloudinary + DB (async, don't wait)
+    if (itemToRemove?.publicId) {
+      deleteFromServer(itemToRemove.publicId, itemToRemove.mediaId);
     }
     
     onChange(newValue);
@@ -235,69 +336,166 @@ export function MediaUploader({
 
   const canAddMore = !multiple ? value.length === 0 : value.length < maxFiles;
   const isUploading = uploading.some(u => u.status === 'uploading');
+  
+  // Drag state for visual feedback
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  
+  // Accordion state - show all images
+  const [showAll, setShowAll] = useState(false);
+  const MAX_VISIBLE = 6; // 1 large + 5 small (2 rows of 3 minus 1)
+
+  // Render single image card with drag & drop
+  const renderImageCard = (media: UploadedMedia, index: number, size: 'large' | 'small') => {
+    const isDragging = draggingId === media.id;
+    const isDragOver = dragOverId === media.id && draggingId !== media.id;
+    const isPrimaryImage = index === 0;
+    
+    return (
+      <div
+        key={media.id}
+        className={`relative group ${isDragging ? 'opacity-40 scale-95' : ''} transition-all duration-150`}
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', index.toString());
+          setDraggingId(media.id);
+        }}
+        onDragEnd={() => {
+          setDraggingId(null);
+          setDragOverId(null);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (draggingId !== media.id) {
+            setDragOverId(media.id);
+          }
+        }}
+        onDragLeave={(e) => {
+          // Only reset if leaving the actual element
+          if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+            setDragOverId(null);
+          }
+        }}
+        onDrop={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+          if (!isNaN(fromIndex) && fromIndex !== index) {
+            handleReorder(fromIndex, index);
+          }
+          setDragOverId(null);
+          setDraggingId(null);
+        }}
+      >
+        <div 
+          className={`relative overflow-hidden rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing
+            ${isDragOver ? 'border-blue-500 ring-2 ring-blue-200 scale-105' : 'border-gray-200 hover:border-gray-300'}`}
+          style={{ paddingBottom: '100%' }}
+        >
+          <img
+            src={media.url}
+            alt={media.filename || ''}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
+            draggable={false}
+          />
+          
+          {/* Drop indicator overlay */}
+          {isDragOver && (
+            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center z-10">
+              <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded">
+                שחרר כאן
+              </div>
+            </div>
+          )}
+          
+          {/* Hover overlay with actions */}
+          {!isDragOver && (
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(media.id);
+                }}
+                className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 transition-colors"
+                title="הסר"
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          )}
+
+          {/* Primary badge */}
+          {showPrimary && isPrimaryImage && (
+            <span className="absolute top-2 right-2 px-2 py-0.5 bg-blue-500 text-white text-[11px] font-medium rounded shadow-sm">
+              ראשית
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  // Calculate visible images
+  const hiddenCount = value.length - MAX_VISIBLE;
+  const hasMore = hiddenCount > 0 && !showAll;
+  const visibleImages = showAll ? value : value.slice(0, MAX_VISIBLE);
 
   return (
     <div className={`media-uploader ${className}`} dir="rtl">
-      {/* Gallery of uploaded files */}
-      {value.length > 0 && (
-        <div className={`grid gap-3 mb-4 ${compact ? 'grid-cols-6' : 'grid-cols-4'}`}>
-          {value.map((media, index) => (
-            <div
-              key={media.id}
-              className="relative group"
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('text/plain', index.toString());
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-                handleReorder(fromIndex, index);
-              }}
-            >
-              <div 
-                className={`relative overflow-hidden rounded-lg border-2 transition-all cursor-move
-                  ${media.isPrimary ? 'border-blue-500 ring-2 ring-blue-100' : 'border-gray-200 hover:border-gray-300'}`}
-                style={{ paddingBottom: getAspectRatioPadding() }}
-              >
-                <img
-                  src={media.url}
-                  alt={media.filename || ''}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
-                
-                {/* Hover overlay */}
-                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                  {showPrimary && !media.isPrimary && (
-                    <button
-                      type="button"
-                      onClick={() => handleSetPrimary(media.id)}
-                      className="p-2 bg-white rounded-full text-gray-700 hover:bg-gray-100 transition-colors"
-                      title="הגדר כראשית"
-                    >
-                      <StarIcon />
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => handleRemove(media.id)}
-                    className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 transition-colors"
-                    title="הסר"
-                  >
-                    <TrashIcon />
-                  </button>
-                </div>
-
-                {/* Primary badge */}
-                {showPrimary && media.isPrimary && (
-                  <span className="absolute top-1.5 right-1.5 px-2 py-0.5 bg-blue-500 text-white text-[10px] font-medium rounded shadow-sm">
-                    ראשית
-                  </span>
-                )}
-              </div>
+      {/* Shopify-style Gallery: Primary (40%) + 3 columns grid */}
+      {value.length > 0 && !compact && showPrimary && (
+        <div className="flex gap-3 mb-4">
+          {/* Primary Image - 40% width */}
+          <div className="w-2/5 flex-shrink-0">
+            {renderImageCard(value[0], 0, 'large')}
+          </div>
+          
+          {/* Secondary Images - 3 columns grid */}
+          {value.length > 1 && (
+            <div className="flex-1 grid grid-cols-3 gap-2 content-start">
+              {visibleImages.slice(1).map((media, idx) => renderImageCard(media, idx + 1, 'small'))}
+              
+              {/* "+X more" button */}
+              {hasMore && (
+                <button
+                  type="button"
+                  onClick={() => setShowAll(true)}
+                  className="relative rounded-xl border-2 border-gray-200 bg-gray-100 hover:bg-gray-200 hover:border-gray-300 transition-all cursor-pointer"
+                  style={{ paddingBottom: '100%' }}
+                >
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-bold text-gray-600">+{hiddenCount}</span>
+                    <span className="text-xs text-gray-500">לחץ להצגה</span>
+                  </div>
+                </button>
+              )}
             </div>
-          ))}
+          )}
+        </div>
+      )}
+      
+      {/* Collapse button when expanded */}
+      {showAll && value.length > MAX_VISIBLE && !compact && (
+        <button
+          type="button"
+          onClick={() => setShowAll(false)}
+          className="mb-3 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
+        >
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+          הסתר תמונות
+        </button>
+      )}
+      
+      {/* Simple grid for compact mode or no primary */}
+      {value.length > 0 && (compact || !showPrimary) && (
+        <div className={`grid gap-3 mb-4 ${compact ? 'grid-cols-6' : 'grid-cols-4'}`}>
+          {value.map((media, index) => renderImageCard(media, index, 'small'))}
         </div>
       )}
 
@@ -397,9 +595,22 @@ export function MediaUploader({
         </div>
       )}
 
-      {/* URL input fallback */}
+      {/* Action buttons */}
       {canAddMore && !compact && (
-        <div className="mt-4">
+        <div className="mt-4 flex items-center gap-3">
+          {/* Media Picker Button - only if storeId and storeSlug provided */}
+          {storeId && storeSlug && (
+            <button
+              type="button"
+              onClick={() => setIsPickerOpen(true)}
+              className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <GalleryIcon className="w-4 h-4" />
+              בחר מספרייה
+            </button>
+          )}
+          
+          {/* URL input fallback */}
           <UrlInput
             onAdd={(url) => {
               const newMedia: UploadedMedia = {
@@ -413,6 +624,20 @@ export function MediaUploader({
             }}
           />
         </div>
+      )}
+
+      {/* Media Picker Modal */}
+      {storeId && storeSlug && (
+        <MediaPickerModal
+          isOpen={isPickerOpen}
+          onClose={() => setIsPickerOpen(false)}
+          onSelect={handlePickerSelect}
+          storeId={storeId}
+          storeSlug={storeSlug}
+          multiple={multiple}
+          maxSelect={maxFiles - value.length}
+          selectedIds={value.map(v => v.id)}
+        />
       )}
     </div>
   );
@@ -547,6 +772,17 @@ function LinkIcon({ className = '' }: { className?: string }) {
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
       <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+  );
+}
+
+function GalleryIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="14" y="14" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/>
     </svg>
   );
 }

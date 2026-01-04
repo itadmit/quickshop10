@@ -435,7 +435,9 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
                 onChange={setImages}
                 maxFiles={10}
                 multiple={true}
-                folder="quickshop/products"
+                folder={`quickshop/stores/${storeSlug}`}
+                storeId={storeId}
+                storeSlug={storeSlug}
                 showPrimary={true}
                 aspectRatio="1:1"
                 placeholder="גרור תמונות או לחץ לבחירה"

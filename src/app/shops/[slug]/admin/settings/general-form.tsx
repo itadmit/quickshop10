@@ -93,6 +93,8 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
               maxFiles={1}
               multiple={false}
               folder={`quickshop/stores/${store.slug}`}
+              storeId={store.id}
+              storeSlug={store.slug}
               aspectRatio="16:9"
               compact={true}
               placeholder="העלה לוגו"
@@ -121,6 +123,8 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
               maxFiles={1}
               multiple={false}
               folder={`quickshop/stores/${store.slug}`}
+              storeId={store.id}
+              storeSlug={store.slug}
               aspectRatio="1:1"
               compact={true}
               placeholder="העלה favicon"

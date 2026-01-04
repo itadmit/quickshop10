@@ -245,6 +245,7 @@ export const media = pgTable('media', {
   height: integer('height'),
   url: varchar('url', { length: 500 }).notNull(),
   thumbnailUrl: varchar('thumbnail_url', { length: 500 }),
+  publicId: varchar('public_id', { length: 255 }), // Cloudinary public_id for deletion
   alt: varchar('alt', { length: 255 }),
   folder: varchar('folder', { length: 100 }),
   createdAt: timestamp('created_at').defaultNow().notNull(),

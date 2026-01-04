@@ -3,7 +3,30 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCategory, updateCategory } from './actions';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+
+// Server upload for WebP conversion + signed upload + save to media library
+async function uploadToServer(
+  file: File,
+  options: { folder?: string; tags?: string[]; storeId?: string } = {}
+): Promise<{ secure_url: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (options.folder) formData.append('folder', options.folder);
+  if (options.tags) formData.append('tags', options.tags.join(','));
+  if (options.storeId) formData.append('storeId', options.storeId);
+
+  const response = await fetch('/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Upload failed');
+  }
+
+  return response.json();
+}
 
 interface Category {
   id: string;
@@ -129,9 +152,10 @@ export function CategoryForm({ storeId, storeSlug, mode, category, allCategories
     setError(null);
 
     try {
-      const result = await uploadToCloudinary(file, {
-        folder: `quickshop/stores/${storeSlug}/categories`,
+      const result = await uploadToServer(file, {
+        folder: `quickshop/stores/${storeSlug}`,
         tags: ['quickshop', 'category', storeSlug],
+        storeId, // Save to media library
       });
 
       setFormData(prev => ({ ...prev, imageUrl: result.secure_url }));
