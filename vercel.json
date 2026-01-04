@@ -1,17 +1,7 @@
 {
   "framework": "nextjs",
   "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "crons": [
-    {
-      "path": "/api/cron/aggregate-analytics",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/abandoned-carts",
-      "schedule": "0 0 * * *"
-    }
-  ]
+  "outputDirectory": ".next"
 }
 
 
