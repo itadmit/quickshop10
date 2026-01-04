@@ -104,3 +104,4 @@ export default async function CustomerRegisterPage({ params, searchParams }: Reg
   );
 }
 
+

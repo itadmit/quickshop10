@@ -52,3 +52,4 @@ export function CategoriesSection({ categories, settings, basePath }: Categories
   );
 }
 
+

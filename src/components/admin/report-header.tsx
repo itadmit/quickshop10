@@ -104,3 +104,4 @@ export function toLegacyPeriod(searchParams: { period?: string }): '7d' | '30d' 
   return '30d';
 }
 
+

@@ -9,6 +9,7 @@ type DiscountType =
   | 'free_shipping'
   | 'buy_x_pay_y'
   | 'buy_x_get_y'
+  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   | 'quantity_discount'
   | 'spend_x_pay_y'
   | 'gift_card';
@@ -21,8 +22,22 @@ export type AppliedCoupon = {
   value: number;
   stackable: boolean;
   minimumAmount: number | null;
+  minimumQuantity?: number | null;
   isGiftCard?: boolean;
   giftCardBalance?: number;
+  // שדות חדשים לסוגי הנחות מתקדמים
+  buyQuantity?: number | null;
+  payAmount?: number | null;
+  getQuantity?: number | null;
+  giftProductIds?: string[];
+  giftSameProduct?: boolean;
+  quantityTiers?: Array<{ minQuantity: number; discountPercent: number }>;
+  spendAmount?: number | null;
+  appliesTo?: 'all' | 'category' | 'product' | 'member';
+  categoryIds?: string[];
+  productIds?: string[];
+  excludeCategoryIds?: string[];
+  excludeProductIds?: string[];
 };
 
 interface CouponInputProps {
@@ -31,9 +46,10 @@ interface CouponInputProps {
   onApply: (coupon: AppliedCoupon) => void;
   onRemove: (couponId: string) => void;
   email?: string;
+  cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>;
 }
 
-export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, email }: CouponInputProps) {
+export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, email, cartItems }: CouponInputProps) {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
@@ -62,7 +78,7 @@ export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, emai
     setIsValidating(true);
     
     try {
-      const result = await validateCoupon(couponCode, cartTotal, email);
+      const result = await validateCoupon(couponCode, cartTotal, email, cartItems);
       
       if (result.success) {
         // Check if new coupon is stackable when we have existing coupons
@@ -87,6 +103,19 @@ export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, emai
     if (coupon.type === 'percentage') return `-${coupon.value}%`;
     if (coupon.type === 'free_shipping') return 'משלוח חינם';
     if (coupon.type === 'gift_card') return `-₪${coupon.value.toFixed(0)}`;
+    if (coupon.type === 'buy_x_pay_y' && coupon.buyQuantity && coupon.payAmount) {
+      return `קנה ${coupon.buyQuantity} שלם ₪${coupon.payAmount}`;
+    }
+    if (coupon.type === 'buy_x_get_y' && coupon.buyQuantity && coupon.getQuantity) {
+      return `קנה ${coupon.buyQuantity} קבל ${coupon.getQuantity} חינם`;
+    }
+    if (coupon.type === 'spend_x_pay_y' && coupon.spendAmount && coupon.payAmount) {
+      return `קנה ב-₪${coupon.spendAmount} שלם ₪${coupon.payAmount}`;
+    }
+    if (coupon.type === 'quantity_discount' && coupon.quantityTiers && coupon.quantityTiers.length > 0) {
+      const firstTier = coupon.quantityTiers[0];
+      return `קנה ${firstTier.minQuantity}+ קבל ${firstTier.discountPercent}%`;
+    }
     return `-₪${coupon.value}`;
   };
 

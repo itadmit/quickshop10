@@ -123,3 +123,4 @@ export async function generateStaticParams() {
   return categories.map((cat) => ({ slug: cat.slug }));
 }
 
+

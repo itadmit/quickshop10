@@ -25,6 +25,7 @@ type DiscountType =
   | 'free_shipping'
   | 'buy_x_pay_y'
   | 'buy_x_get_y'
+  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   | 'quantity_discount'
   | 'spend_x_pay_y';
 

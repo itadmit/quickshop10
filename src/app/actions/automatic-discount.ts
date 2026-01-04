@@ -9,12 +9,22 @@ export type AutomaticDiscountResult = {
   id: string;
   name: string;
   description: string | null;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'buy_x_pay_y' | 'buy_x_get_y' | 'quantity_discount' | 'spend_x_pay_y';
+  type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'buy_x_pay_y' | 'buy_x_get_y' | 'gift_product' | 'quantity_discount' | 'spend_x_pay_y';
   value: number;
   appliesTo: 'all' | 'category' | 'product' | 'member';
   categoryIds: string[];
   productIds: string[];
+  excludeCategoryIds?: string[];
+  excludeProductIds?: string[];
   stackable: boolean;
+  minimumAmount?: number | null;
+  buyQuantity?: number | null;
+  payAmount?: number | null;
+  getQuantity?: number | null;
+  giftProductIds?: string[];
+  giftSameProduct?: boolean;
+  quantityTiers?: Array<{ minQuantity: number; discountPercent: number }>;
+  spendAmount?: number | null;
 };
 
 export type CartItemForDiscount = {
@@ -68,6 +78,64 @@ export async function getAutomaticDiscounts(
       if (totalQuantity < discount.minimumQuantity) {
         continue;
       }
+    }
+
+    // פונקציה עזר לבדיקת התאמת פריט להנחה
+    const doesItemMatch = (item: CartItemForDiscount) => {
+      // בדיקת החרגות
+      const excludeProductIds = (discount.excludeProductIds as string[]) || [];
+      const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
+      
+      if (excludeProductIds.includes(item.productId)) return false;
+      if (item.categoryId && excludeCategoryIds.includes(item.categoryId)) return false;
+      
+      // בדיקת התאמה
+      const appliesTo = discount.appliesTo || 'all';
+      if (appliesTo === 'all') return true;
+      if (appliesTo === 'product') {
+        const productIds = (discount.productIds as string[]) || [];
+        return productIds.includes(item.productId);
+      }
+      if (appliesTo === 'category') {
+        const categoryIds = (discount.categoryIds as string[]) || [];
+        return item.categoryId ? categoryIds.includes(item.categoryId) : false;
+      }
+      return true;
+    };
+
+    const matchingItems = cartItems.filter(doesItemMatch);
+    const totalMatchingQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+
+    // בדיקת תנאים ספציפיים לפי סוג ההנחה
+    switch (discount.type) {
+      case 'buy_x_pay_y':
+        if (!discount.buyQuantity || totalMatchingQty < discount.buyQuantity) {
+          continue; // לא עומד בתנאי - דלג על הנחה זו
+        }
+        break;
+
+      case 'buy_x_get_y':
+        if (!discount.buyQuantity || totalMatchingQty < discount.buyQuantity) {
+          continue; // לא עומד בתנאי - דלג על הנחה זו
+        }
+        break;
+
+      case 'quantity_discount':
+        const quantityTiers = (discount.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [];
+        if (quantityTiers.length > 0) {
+          const maxTier = quantityTiers.reduce((max, tier) => tier.minQuantity > max.minQuantity ? tier : max, quantityTiers[0]);
+          if (totalMatchingQty < maxTier.minQuantity) {
+            continue; // לא עומד בתנאי - דלג על הנחה זו
+          }
+        }
+        break;
+
+      case 'spend_x_pay_y':
+        const matchingTotal = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        if (discount.spendAmount && matchingTotal < Number(discount.spendAmount)) {
+          continue; // לא עומד בתנאי - דלג על הנחה זו
+        }
+        break;
     }
 
     // Check applies to condition
@@ -133,7 +201,17 @@ function formatDiscount(discount: typeof automaticDiscounts.$inferSelect): Autom
     appliesTo: discount.appliesTo,
     categoryIds: (discount.categoryIds as string[]) || [],
     productIds: (discount.productIds as string[]) || [],
+    excludeCategoryIds: (discount.excludeCategoryIds as string[]) || [],
+    excludeProductIds: (discount.excludeProductIds as string[]) || [],
     stackable: discount.stackable,
+    minimumAmount: discount.minimumAmount ? Number(discount.minimumAmount) : null,
+    buyQuantity: discount.buyQuantity || null,
+    payAmount: discount.payAmount ? Number(discount.payAmount) : null,
+    getQuantity: discount.getQuantity || null,
+    giftProductIds: (discount.giftProductIds as string[]) || [],
+    giftSameProduct: discount.giftSameProduct ?? true,
+    quantityTiers: (discount.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [],
+    spendAmount: discount.spendAmount ? Number(discount.spendAmount) : null,
   };
 }
 

@@ -67,3 +67,4 @@ export async function deleteAbandonedCart(cartId: string, slug: string) {
   }
 }
 
+

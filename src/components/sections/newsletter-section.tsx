@@ -39,3 +39,4 @@ export function NewsletterSection({ title, subtitle, content }: NewsletterSectio
   );
 }
 
+

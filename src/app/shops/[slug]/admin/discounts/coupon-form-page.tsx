@@ -12,6 +12,7 @@ type DiscountType =
   | 'free_shipping'
   | 'buy_x_pay_y'
   | 'buy_x_get_y'
+  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   | 'quantity_discount'
   | 'spend_x_pay_y';
 
@@ -417,6 +418,7 @@ export function CouponFormPage({
                   <optgroup label="מבצעים מתקדמים">
                     <option value="buy_x_pay_y">קנה X שלם Y ש"ח</option>
                     <option value="buy_x_get_y">קנה X קבל Y חינם</option>
+                    <option value="gift_product">מוצר במתנה</option>
                     <option value="quantity_discount">הנחות כמות</option>
                     <option value="spend_x_pay_y">קנה ב-X שלם Y</option>
                   </optgroup>
@@ -534,6 +536,97 @@ export function CouponFormPage({
                     <span className="text-sm text-gray-700">המתנה היא אותו מוצר (הזול מביניהם)</span>
                   </label>
                   <p className="text-xs text-gray-500">לדוגמה: קנה 2 קבל 1 חינם</p>
+                </div>
+              )}
+
+              {/* Gift Product */}
+              {formData.type === 'gift_product' && (
+                <div className="bg-green-50 rounded-lg p-4 space-y-4">
+                  <p className="text-sm text-green-800 font-medium">מוצר במתנה - עם תנאים</p>
+                  <p className="text-xs text-gray-600">
+                    אם הלקוח עומד בתנאים (מינימום סכום/כמות), הוא יקבל מוצר מתנה מהרשימה שלהלן.
+                  </p>
+                  
+                  {/* Selected Gift Products */}
+                  {formData.giftProductIds.length > 0 && (
+                    <div className="bg-white rounded-lg p-3 space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        מוצרים במתנה:
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {getSelectedProductNames(formData.giftProductIds).map((name, index) => (
+                          <span
+                            key={formData.giftProductIds[index]}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-600 text-white text-xs rounded-full"
+                          >
+                            {name}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newIds = formData.giftProductIds.filter((_, i) => i !== index);
+                                setFormData(prev => ({ ...prev, giftProductIds: newIds }));
+                              }}
+                              className="hover:bg-white/20 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Product Search */}
+                  <div className="bg-white rounded-lg p-3 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      בחר מוצרים למתנה:
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={productSearch}
+                        onChange={(e) => setProductSearch(e.target.value)}
+                        placeholder="חפש מוצר..."
+                        className="w-full pl-3 pr-9 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-black/10 focus:border-black"
+                      />
+                    </div>
+                    <div className="max-h-32 overflow-y-auto space-y-1">
+                      {products.length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-2">אין מוצרים בחנות</p>
+                      ) : filteredProducts.filter(p => !formData.giftProductIds.includes(p.id)).length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-2">כל המוצרים נבחרו</p>
+                      ) : (
+                        filteredProducts
+                          .filter(p => !formData.giftProductIds.includes(p.id))
+                          .map(product => (
+                            <label 
+                              key={product.id} 
+                              className="flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={false}
+                                onChange={() => {
+                                  if (!formData.giftProductIds.includes(product.id)) {
+                                    setFormData(prev => ({ 
+                                      ...prev, 
+                                      giftProductIds: [...prev.giftProductIds, product.id] 
+                                    }));
+                                  }
+                                }}
+                                className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+                              />
+                              <span className="text-sm text-gray-700">{product.name}</span>
+                            </label>
+                          ))
+                      )}
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500">
+                    <strong>הערה:</strong> התנאים (מינימום סכום/כמות) מוגדרים למטה. אם הלקוח עומד בהם, הוא יקבל את המוצר הראשון מהרשימה במתנה.
+                  </p>
                 </div>
               )}
 

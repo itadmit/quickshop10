@@ -33,7 +33,8 @@ export const discountTypeEnum = pgEnum('discount_type', [
   'fixed_amount',         // סכום קבוע
   'free_shipping',        // משלוח חינם
   'buy_x_pay_y',         // קנה X מוצרים שלם Y ש"ח
-  'buy_x_get_y',         // קנה X קבל Y במתנה
+  'buy_x_get_y',         // קנה X קבל Y במתנה (אותו מוצר)
+  'gift_product',        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   'quantity_discount',    // הנחות כמות (קנה 2 = 10%, קנה 3 = 20%)
   'spend_x_pay_y'        // קנה ב-X שלם Y
 ]);
@@ -630,12 +631,16 @@ export const discounts = pgTable('discounts', {
   // ===== ADVANCED DISCOUNT TYPES =====
   
   // For buy_x_pay_y: קנה X מוצרים שלם Y ש"ח
-  // For buy_x_get_y: קנה X קבל Y במתנה
-  buyQuantity: integer('buy_quantity'), // כמות לקנייה
+  buyQuantity: integer('buy_quantity'), // כמות לקנייה (buy_x_pay_y, buy_x_get_y)
   payAmount: decimal('pay_amount', { precision: 10, scale: 2 }), // סכום לתשלום (buy_x_pay_y, spend_x_pay_y)
+  
+  // For buy_x_get_y: קנה X קבל Y במתנה (אותו מוצר או מוצרים מהרשימה)
   getQuantity: integer('get_quantity'), // כמות מוצרים במתנה (buy_x_get_y)
-  giftProductIds: jsonb('gift_product_ids').default([]), // מזהי מוצרים במתנה (buy_x_get_y)
-  giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר
+  giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר (buy_x_get_y)
+  
+  // For gift_product: מוצר במתנה עם תנאים (מינימום סכום/כמות)
+  // giftProductIds משמש גם ל-buy_x_get_y וגם ל-gift_product
+  giftProductIds: jsonb('gift_product_ids').default([]), // מזהי מוצרים במתנה (buy_x_get_y, gift_product)
   
   // For quantity_discount: הנחות כמות מדורגות
   // Format: [{ minQuantity: 2, discountPercent: 10 }, { minQuantity: 3, discountPercent: 20 }]
@@ -680,12 +685,16 @@ export const automaticDiscounts = pgTable('automatic_discounts', {
   // ===== ADVANCED DISCOUNT TYPES =====
   
   // For buy_x_pay_y: קנה X מוצרים שלם Y ש"ח
-  // For buy_x_get_y: קנה X קבל Y במתנה
-  buyQuantity: integer('buy_quantity'), // כמות לקנייה
-  payAmount: decimal('pay_amount', { precision: 10, scale: 2 }), // סכום לתשלום
-  getQuantity: integer('get_quantity'), // כמות מוצרים במתנה
-  giftProductIds: jsonb('gift_product_ids').default([]), // מזהי מוצרים במתנה
-  giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר
+  buyQuantity: integer('buy_quantity'), // כמות לקנייה (buy_x_pay_y, buy_x_get_y)
+  payAmount: decimal('pay_amount', { precision: 10, scale: 2 }), // סכום לתשלום (buy_x_pay_y, spend_x_pay_y)
+  
+  // For buy_x_get_y: קנה X קבל Y במתנה (אותו מוצר או מוצרים מהרשימה)
+  getQuantity: integer('get_quantity'), // כמות מוצרים במתנה (buy_x_get_y)
+  giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר (buy_x_get_y)
+  
+  // For gift_product: מוצר במתנה עם תנאים (מינימום סכום/כמות)
+  // giftProductIds משמש גם ל-buy_x_get_y וגם ל-gift_product
+  giftProductIds: jsonb('gift_product_ids').default([]), // מזהי מוצרים במתנה (buy_x_get_y, gift_product)
   
   // For quantity_discount: הנחות כמות מדורגות
   quantityTiers: jsonb('quantity_tiers').default([]),

@@ -16,6 +16,7 @@ type DiscountType =
   | 'free_shipping'
   | 'buy_x_pay_y'
   | 'buy_x_get_y'
+  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   | 'quantity_discount'
   | 'spend_x_pay_y';
 
@@ -36,6 +37,13 @@ type Coupon = {
   endsAt: Date | null;
   createdAt: Date | null;
   influencerName: string | null;
+  // שדות חדשים לסוגי הנחות מתקדמים
+  buyQuantity?: number | null;
+  payAmount?: string | number | null;
+  getQuantity?: number | null;
+  giftProductIds?: string[] | null;
+  quantityTiers?: Array<{ minQuantity: number; discountPercent: number }> | null;
+  spendAmount?: string | number | null;
 };
 
 interface Influencer {
@@ -60,7 +68,11 @@ interface DiscountsDataTableProps {
   };
 }
 
-function formatDiscountValue(type: string, value: string | number) {
+function formatDiscountValue(
+  type: string, 
+  value: string | number,
+  coupon?: Coupon
+) {
   const numValue = Number(value);
   switch (type) {
     case 'percentage':
@@ -69,6 +81,32 @@ function formatDiscountValue(type: string, value: string | number) {
       return `₪${numValue}`;
     case 'free_shipping':
       return 'משלוח חינם';
+    case 'buy_x_pay_y':
+      if (coupon?.buyQuantity && coupon?.payAmount) {
+        return `קנה ${coupon.buyQuantity} שלם ₪${Number(coupon.payAmount)}`;
+      }
+      return 'קנה X שלם Y';
+    case 'buy_x_get_y':
+      if (coupon?.buyQuantity && coupon?.getQuantity) {
+        return `קנה ${coupon.buyQuantity} קבל ${coupon.getQuantity} חינם`;
+      }
+      return 'קנה X קבל Y';
+    case 'gift_product':
+      if (coupon?.giftProductIds && coupon.giftProductIds.length > 0) {
+        return 'מוצר במתנה';
+      }
+      return 'מוצר במתנה';
+    case 'spend_x_pay_y':
+      if (coupon?.spendAmount && coupon?.payAmount) {
+        return `קנה ב-₪${Number(coupon.spendAmount)} שלם ₪${Number(coupon.payAmount)}`;
+      }
+      return 'קנה ב-X שלם Y';
+    case 'quantity_discount':
+      if (coupon?.quantityTiers && coupon.quantityTiers.length > 0) {
+        const firstTier = coupon.quantityTiers[0];
+        return `קנה ${firstTier.minQuantity}+ קבל ${firstTier.discountPercent}%`;
+      }
+      return 'הנחות כמות';
     default:
       return String(numValue);
   }
@@ -166,6 +204,11 @@ export function DiscountsDataTable({
           {coupon.type === 'percentage' && 'אחוז'}
           {coupon.type === 'fixed_amount' && 'סכום קבוע'}
           {coupon.type === 'free_shipping' && 'משלוח חינם'}
+          {coupon.type === 'buy_x_pay_y' && 'קנה X שלם Y'}
+          {coupon.type === 'buy_x_get_y' && 'קנה X קבל Y'}
+          {coupon.type === 'gift_product' && 'מוצר במתנה'}
+          {coupon.type === 'quantity_discount' && 'הנחות כמות'}
+          {coupon.type === 'spend_x_pay_y' && 'קנה ב-X שלם Y'}
         </span>
       ),
     },
@@ -175,7 +218,7 @@ export function DiscountsDataTable({
       width: '100px',
       render: (coupon) => (
         <span className="font-medium text-gray-900">
-          {formatDiscountValue(coupon.type, coupon.value)}
+          {formatDiscountValue(coupon.type, coupon.value, coupon)}
         </span>
       ),
     },

@@ -30,3 +30,4 @@ export function getHourKey(): string {
   return `${now.toISOString().split('T')[0]}:${now.getHours().toString().padStart(2, '0')}`;
 }
 
+

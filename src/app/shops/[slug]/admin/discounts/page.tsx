@@ -46,10 +46,17 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
     }
   });
 
-  // Enrich coupons with influencer name
+  // Enrich coupons with influencer name and normalize jsonb fields
   const couponsWithInfluencer = allCoupons.map(coupon => ({
     ...coupon,
     influencerName: influencerByDiscountId.get(coupon.id) || null,
+    // Normalize jsonb fields
+    quantityTiers: Array.isArray(coupon.quantityTiers) 
+      ? (coupon.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>)
+      : null,
+    giftProductIds: Array.isArray(coupon.giftProductIds) 
+      ? (coupon.giftProductIds as string[])
+      : null,
   }));
 
   // Filter by tab

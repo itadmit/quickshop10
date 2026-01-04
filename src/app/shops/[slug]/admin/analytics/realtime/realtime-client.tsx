@@ -119,3 +119,4 @@ export function AnimatedNumber({ value, className = '' }: { value: number; class
   return <span className={className}>{displayValue.toLocaleString('he-IL')}</span>;
 }
 
+

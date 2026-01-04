@@ -10,6 +10,7 @@ type DiscountType =
   | 'free_shipping'
   | 'buy_x_pay_y'
   | 'buy_x_get_y'
+  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   | 'quantity_discount'
   | 'spend_x_pay_y'
   | 'gift_card';
@@ -31,13 +32,26 @@ export type CouponResult = {
     productIds?: string[];
     excludeCategoryIds?: string[];
     excludeProductIds?: string[];
+    // שדות חדשים לסוגי הנחות מתקדמים
+    buyQuantity?: number | null;
+    payAmount?: number | null;
+    getQuantity?: number | null;
+    giftProductIds?: string[];
+    giftSameProduct?: boolean;
+    quantityTiers?: Array<{ minQuantity: number; discountPercent: number }>;
+    spendAmount?: number | null;
   };
 } | {
   success: false;
   error: string;
 };
 
-export async function validateCoupon(code: string, cartTotal: number, email?: string): Promise<CouponResult> {
+export async function validateCoupon(
+  code: string, 
+  cartTotal: number, 
+  email?: string,
+  cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>
+): Promise<CouponResult> {
   if (!code || code.trim() === '') {
     return { success: false, error: 'נא להזין קוד קופון' };
   }
@@ -161,6 +175,83 @@ export async function validateCoupon(code: string, cartTotal: number, email?: st
     }
   }
 
+  // בדיקת תנאים ספציפיים לפי סוג ההנחה
+  if (cartItems && cartItems.length > 0) {
+    // פונקציה עזר לבדיקת התאמת פריט להנחה
+    const doesItemMatch = (item: { productId: string; categoryId?: string }) => {
+      // בדיקת החרגות
+      const excludeProductIds = (discount.excludeProductIds as string[]) || [];
+      const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
+      
+      if (excludeProductIds.includes(item.productId)) return false;
+      if (item.categoryId && excludeCategoryIds.includes(item.categoryId)) return false;
+      
+      // בדיקת התאמה
+      const appliesTo = discount.appliesTo || 'all';
+      if (appliesTo === 'all') return true;
+      if (appliesTo === 'product') {
+        const productIds = (discount.productIds as string[]) || [];
+        return productIds.includes(item.productId);
+      }
+      if (appliesTo === 'category') {
+        const categoryIds = (discount.categoryIds as string[]) || [];
+        return item.categoryId ? categoryIds.includes(item.categoryId) : false;
+      }
+      return true;
+    };
+
+    const matchingItems = cartItems.filter(doesItemMatch);
+    const totalMatchingQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+
+    // בדיקת תנאים לפי סוג ההנחה
+    switch (discount.type) {
+      case 'buy_x_pay_y':
+        if (!discount.buyQuantity || totalMatchingQty < discount.buyQuantity) {
+          return { 
+            success: false, 
+            error: `קופון זה תקף לקניית לפחות ${discount.buyQuantity} מוצרים מתאימים` 
+          };
+        }
+        break;
+
+      case 'buy_x_get_y':
+        if (!discount.buyQuantity || totalMatchingQty < discount.buyQuantity) {
+          return { 
+            success: false, 
+            error: `קופון זה תקף לקניית לפחות ${discount.buyQuantity} מוצרים מתאימים` 
+          };
+        }
+        break;
+
+      case 'quantity_discount':
+        const quantityTiers = (discount.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [];
+        if (quantityTiers.length > 0) {
+          const maxTier = quantityTiers.reduce((max, tier) => tier.minQuantity > max.minQuantity ? tier : max, quantityTiers[0]);
+          if (totalMatchingQty < maxTier.minQuantity) {
+            return { 
+              success: false, 
+              error: `קופון זה תקף לקניית לפחות ${maxTier.minQuantity} מוצרים מתאימים` 
+            };
+          }
+        }
+        break;
+
+      case 'spend_x_pay_y':
+        const matchingTotal = matchingItems.reduce((sum, item) => {
+          // צריך לחשב את הסכום, אבל אין לנו מחיר כאן
+          // נבדוק רק את הכמות
+          return sum;
+        }, 0);
+        if (discount.spendAmount && cartTotal < Number(discount.spendAmount)) {
+          return { 
+            success: false, 
+            error: `קופון זה תקף להזמנות מעל ₪${Number(discount.spendAmount).toFixed(0)}` 
+          };
+        }
+        break;
+    }
+  }
+
   return {
     success: true,
     coupon: {
@@ -176,6 +267,14 @@ export async function validateCoupon(code: string, cartTotal: number, email?: st
       productIds: (discount.productIds as string[]) || [],
       excludeCategoryIds: (discount.excludeCategoryIds as string[]) || [],
       excludeProductIds: (discount.excludeProductIds as string[]) || [],
+      // שדות חדשים לסוגי הנחות מתקדמים
+      buyQuantity: discount.buyQuantity || null,
+      payAmount: discount.payAmount ? Number(discount.payAmount) : null,
+      getQuantity: discount.getQuantity || null,
+      giftProductIds: (discount.giftProductIds as string[]) || [],
+      giftSameProduct: discount.giftSameProduct ?? true,
+      quantityTiers: (discount.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [],
+      spendAmount: discount.spendAmount ? Number(discount.spendAmount) : null,
     }
   };
 }

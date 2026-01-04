@@ -13,6 +13,9 @@ export interface CartItem {
   quantity: number;
   image: string;
   variantTitle?: string;
+  // מוצר במתנה מקופון
+  isGift?: boolean;
+  giftFromCouponId?: string; // ID של הקופון שהביא את המתנה
 }
 
 interface StoreContextType {
@@ -31,6 +34,9 @@ interface StoreContextType {
   toggleCart: () => void;
   openCart: () => void;
   closeCart: () => void;
+  // ניהול מוצרי מתנה
+  addGiftItem: (item: Omit<CartItem, 'id' | 'quantity'>, couponId: string, quantity?: number) => void;
+  removeGiftItemsByCoupon: (couponId: string) => void;
 }
 
 // ============ CONTEXT ============
@@ -126,6 +132,45 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setCart([]);
   }, []);
 
+  // הוספת מוצר במתנה מקופון
+  const addGiftItem = useCallback((item: Omit<CartItem, 'id' | 'quantity'>, couponId: string, quantity = 1) => {
+    setCart(prev => {
+      // בדיקה אם כבר יש מוצר מתנה מאותו קופון
+      const existingGift = prev.find(i => 
+        i.isGift && 
+        i.giftFromCouponId === couponId && 
+        i.productId === item.productId && 
+        i.variantId === item.variantId
+      );
+      
+      if (existingGift) {
+        // עדכון כמות אם כבר קיים
+        return prev.map(i => 
+          i.id === existingGift.id 
+            ? { ...i, quantity: quantity } // עדכון לכמות החדשה (לא הוספה)
+            : i
+        );
+      }
+      
+      // הוספת מוצר מתנה חדש
+      return [...prev, { 
+        ...item, 
+        id: `gift-${couponId}-${crypto.randomUUID()}`, 
+        quantity,
+        price: 0, // מחיר 0 למוצר מתנה
+        isGift: true,
+        giftFromCouponId: couponId,
+      }];
+    });
+  }, []);
+
+  // מחיקת כל מוצרי המתנה מקופון מסוים
+  const removeGiftItemsByCoupon = useCallback((couponId: string) => {
+    setCart(prev => prev.filter(item => 
+      !(item.isGift && item.giftFromCouponId === couponId)
+    ));
+  }, []);
+
   const toggleCart = useCallback(() => setCartOpen(prev => !prev), []);
   const openCart = useCallback(() => setCartOpen(true), []);
   const closeCart = useCallback(() => setCartOpen(false), []);
@@ -144,6 +189,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toggleCart,
       openCart,
       closeCart,
+      addGiftItem,
+      removeGiftItemsByCoupon,
     }}>
       {children}
     </StoreContext.Provider>

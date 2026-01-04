@@ -22,6 +22,7 @@ export type DiscountType =
   | 'free_shipping'
   | 'buy_x_pay_y'
   | 'buy_x_get_y'
+  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
   | 'quantity_discount'
   | 'spend_x_pay_y';
 
@@ -70,8 +71,8 @@ export interface Discount {
   buyQuantity?: number | null;      // buy_x_pay_y, buy_x_get_y
   payAmount?: number | null;        // buy_x_pay_y, spend_x_pay_y
   getQuantity?: number | null;      // buy_x_get_y
-  giftProductIds?: string[];        // buy_x_get_y
-  giftSameProduct?: boolean;        // buy_x_get_y
+  giftProductIds?: string[];        // buy_x_get_y, gift_product - רשימת מוצרים במתנה
+  giftSameProduct?: boolean;        // buy_x_get_y - האם המתנה היא אותו מוצר
   quantityTiers?: QuantityTier[];   // quantity_discount
   spendAmount?: number | null;      // spend_x_pay_y
 }
@@ -85,6 +86,7 @@ export interface DiscountResult {
   description: string;      // תיאור ההנחה (להצגה)
   affectedItems?: string[]; // מזהי פריטים שההנחה חלה עליהם
   giftItems?: CartItem[];   // פריטים במתנה (buy_x_get_y)
+  giftProductId?: string;  // מזהה מוצר במתנה (gift_product)
   freeShipping?: boolean;   // משלוח חינם
 }
 
@@ -391,6 +393,59 @@ function calculateQuantityDiscount(
 }
 
 /**
+ * מוצר במתנה - עם תנאים
+ * דוגמה: קנה ב-200₪ קבל מוצר מתנה (מוצר ספציפי)
+ * 
+ * זה שונה מ-buy_x_get_y כי:
+ * - buy_x_get_y: קנה X מוצרים, קבל Y מוצרים חינם מאותו מוצר
+ * - gift_product: אם עומדים בתנאים (מינימום סכום/כמות), מקבלים מוצר מתנה ספציפי
+ */
+function calculateGiftProduct(
+  items: CartItem[],
+  discount: Discount,
+  cartTotal: number
+): DiscountResult | null {
+  // צריך מוצרים במתנה מוגדרים
+  const giftProductIds = discount.giftProductIds || [];
+  if (giftProductIds.length === 0) return null;
+  
+  // בדיקת תנאי מינימום סכום (אם מוגדר)
+  if (discount.minimumAmount && cartTotal < discount.minimumAmount) {
+    return null;
+  }
+  
+  // בדיקת תנאי מינימום כמות (אם מוגדר)
+  if (discount.minimumQuantity) {
+    const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+    if (totalQty < discount.minimumQuantity) {
+      return null;
+    }
+  }
+  
+  // אם יש החרגות, נבדוק שהמוצרים המתאימים נמצאים בסל
+  const matchingItems = getMatchingItems(items, discount);
+  if (matchingItems.length === 0 && discount.appliesTo !== 'all') {
+    return null;
+  }
+  
+  // מוצר המתנה הראשון מהרשימה (אפשר להרחיב בעתיד לבחירת מוצר)
+  const giftProductId = giftProductIds[0];
+  
+  // מחזירים תוצאה שמציינת שיש מוצר מתנה
+  // הערה: המוצר המתנה יתווסף לסל בנפרד, לא כאן
+  return {
+    discountId: discount.id,
+    code: discount.code,
+    title: discount.title,
+    type: 'gift_product',
+    amount: 0, // לא מפחית מסכום, המוצר נוסף חינם
+    description: 'מוצר במתנה',
+    affectedItems: matchingItems.map(i => i.id),
+    giftProductId, // מזהה המוצר במתנה
+  };
+}
+
+/**
  * קנה ב-X שלם Y
  * דוגמה: קנה ב-200₪ שלם 100₪
  */
@@ -473,6 +528,9 @@ function calculateSingleDiscount(
       
     case 'buy_x_get_y':
       return calculateBuyXGetY(items, discount);
+      
+    case 'gift_product':
+      return calculateGiftProduct(items, discount, cartTotal);
       
     case 'quantity_discount':
       return calculateQuantityDiscount(items, discount);
@@ -612,6 +670,16 @@ export function validateDiscount(discount: Partial<Discount>): string[] {
       }
       if (!discount.getQuantity || discount.getQuantity <= 0) {
         errors.push('כמות המתנה חייבת להיות גדולה מ-0');
+      }
+      break;
+      
+    case 'gift_product':
+      if (!discount.giftProductIds || discount.giftProductIds.length === 0) {
+        errors.push('חייב לבחור לפחות מוצר אחד במתנה');
+      }
+      // צריך לפחות תנאי אחד: minimumAmount או minimumQuantity
+      if (!discount.minimumAmount && !discount.minimumQuantity) {
+        errors.push('חייב להגדיר תנאי מינימום (סכום או כמות)');
       }
       break;
       

@@ -10,6 +10,7 @@ import { createOrder } from '@/app/actions/order';
 import { getAutomaticDiscounts, type AutomaticDiscountResult, type CartItemForDiscount } from '@/app/actions/automatic-discount';
 import { calculateDiscounts, dbDiscountToEngine, type CartItem as EngineCartItem, type Discount } from '@/lib/discount-engine';
 import { tracker } from '@/lib/tracking';
+import { getProductsByIds } from '@/app/actions/products';
 
 interface LoggedInCustomer {
   id: string;
@@ -96,7 +97,7 @@ export function CheckoutForm({
   checkoutSettings = defaultCheckoutSettings,
   shippingSettings = defaultShippingSettings,
 }: CheckoutFormProps) {
-  const { cart, cartTotal, clearCart, isHydrated } = useStore();
+  const { cart, cartTotal, clearCart, isHydrated, addGiftItem, removeGiftItemsByCoupon } = useStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const homeUrl = basePath || '/';
@@ -251,6 +252,81 @@ export function CheckoutForm({
     fetchAutoDiscounts(formData.email || undefined);
   }, [formData.email, cart.length, fetchAutoDiscounts]);
 
+  // ניהול מוצרי מתנה מקופונים
+  // ⚡ מהיר - רץ רק כשקופונים או עגלה משתנים, לא על כל render
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const manageGiftItems = async () => {
+      // מציאת קופונים עם gift_product (מוצר במתנה)
+      const giftProductCoupons = appliedCoupons.filter(
+        coupon => 
+          coupon.type === 'gift_product' && 
+          coupon.giftProductIds && 
+          coupon.giftProductIds.length > 0
+      );
+
+      // ניהול קופוני gift_product (מוצר במתנה)
+      for (const coupon of giftProductCoupons) {
+        // סינון מוצרים רגילים (לא מתנה) שעונים על התנאים
+        const regularItems = cart.filter(item => !item.isGift);
+        
+        const matchingItems = regularItems.filter(item => {
+          // בדיקת החרגות
+          if (coupon.excludeProductIds?.includes(item.productId)) return false;
+          
+          // בדיקת התאמה לפי appliesTo
+          if (coupon.appliesTo === 'all') return true;
+          if (coupon.appliesTo === 'product' && coupon.productIds?.includes(item.productId)) return true;
+          return false;
+        });
+
+        const matchingTotal = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const matchingQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+        
+        // בדיקת תנאים: minimumAmount או minimumQuantity
+        const meetsAmountCondition = !coupon.minimumAmount || matchingTotal >= coupon.minimumAmount;
+        const meetsQuantityCondition = !coupon.minimumQuantity || matchingQty >= coupon.minimumQuantity;
+        const meetsCondition = meetsAmountCondition && meetsQuantityCondition && matchingItems.length > 0;
+
+        if (meetsCondition) {
+          // תנאים מתקיימים - הוספת/עדכון מוצרי מתנה
+          const giftProductIds = coupon.giftProductIds || [];
+          
+          // טעינת פרטי מוצרי המתנה (parallel - מהיר)
+          const giftProducts = await getProductsByIds(giftProductIds);
+          
+          for (const product of giftProducts) {
+            if (!product.isActive) continue; // רק מוצרים פעילים
+            
+            // הוספת מוצר מתנה לעגלה (עם מחיר 0)
+            addGiftItem({
+              productId: product.id,
+              name: product.name,
+              price: 0, // מחיר 0 למוצר מתנה
+              image: product.image || '',
+            }, coupon.id, 1); // כמות 1 למוצר במתנה
+          }
+        } else {
+          // תנאים לא מתקיימים - מחיקת מוצרי מתנה
+          removeGiftItemsByCoupon(coupon.id);
+        }
+      }
+
+      // מחיקת מוצרי מתנה מקופונים שכבר לא קיימים
+      const activeCouponIds = new Set(appliedCoupons.map(c => c.id));
+      const giftItemsInCart = cart.filter(item => item.isGift && item.giftFromCouponId);
+      
+      for (const giftItem of giftItemsInCart) {
+        if (giftItem.giftFromCouponId && !activeCouponIds.has(giftItem.giftFromCouponId)) {
+          removeGiftItemsByCoupon(giftItem.giftFromCouponId);
+        }
+      }
+    };
+
+    manageGiftItems();
+  }, [appliedCoupons, cart, isHydrated, addGiftItem, removeGiftItemsByCoupon]);
+
   // Check if customer is already logged in on mount
   useEffect(() => {
     const checkLoggedIn = async () => {
@@ -313,6 +389,7 @@ export function CheckoutForm({
   };
 
   // Calculate automatic discounts using the new discount engine
+  // Note: categoryId will be fetched from products if needed for discount matching
   const cartItemsForEngine: EngineCartItem[] = cart.map(item => ({
     id: item.id || `item-${item.productId}`,
     productId: item.productId,
@@ -321,64 +398,101 @@ export function CheckoutForm({
     price: item.price,
     quantity: item.quantity,
     imageUrl: item.image,
+    // categoryId will be undefined for now - discounts will match by productId if needed
+    categoryId: undefined,
   }));
   
   // Convert auto discounts to engine format
-  const engineDiscounts: Discount[] = autoDiscounts.map(d => ({
+  const engineAutoDiscounts: Discount[] = autoDiscounts.map(d => ({
     id: d.id,
     type: d.type,
     value: d.value,
     appliesTo: d.appliesTo,
     categoryIds: d.categoryIds || [],
     productIds: d.productIds || [],
-    excludeCategoryIds: [],
-    excludeProductIds: [],
+    excludeCategoryIds: d.excludeCategoryIds || [],
+    excludeProductIds: d.excludeProductIds || [],
     stackable: d.stackable,
+    minimumAmount: d.minimumAmount || null,
+    buyQuantity: d.buyQuantity || null,
+    payAmount: d.payAmount ? Number(d.payAmount) : null,
+    getQuantity: d.getQuantity || null,
+    giftProductIds: d.giftProductIds || [],
+    giftSameProduct: d.giftSameProduct ?? true,
+    quantityTiers: d.quantityTiers || [],
+    spendAmount: d.spendAmount ? Number(d.spendAmount) : null,
   }));
   
-  const autoDiscountCalc = calculateDiscounts(cartItemsForEngine, engineDiscounts, {
+  // Convert coupons to engine format (exclude gift_card which is handled separately)
+  const engineCoupons: Discount[] = appliedCoupons
+    .filter(c => c.type !== 'gift_card') // Gift cards handled separately
+    .map(c => ({
+      id: c.id,
+      code: c.code,
+      title: c.title,
+      type: c.type as Discount['type'], // Type assertion to exclude 'gift_card'
+      value: c.value,
+      appliesTo: c.appliesTo || 'all',
+      categoryIds: c.categoryIds || [],
+      productIds: c.productIds || [],
+      excludeCategoryIds: c.excludeCategoryIds || [],
+      excludeProductIds: c.excludeProductIds || [],
+      stackable: c.stackable,
+      minimumAmount: c.minimumAmount || null,
+      buyQuantity: c.buyQuantity || null,
+      payAmount: c.payAmount || null,
+      getQuantity: c.getQuantity || null,
+      giftProductIds: c.giftProductIds || [],
+      giftSameProduct: c.giftSameProduct ?? true,
+      quantityTiers: c.quantityTiers || [],
+      spendAmount: c.spendAmount || null,
+    }));
+  
+  // Combine all discounts (auto discounts first, then coupons)
+  const allDiscounts = [...engineAutoDiscounts, ...engineCoupons];
+  
+  // Calculate all discounts using the engine
+  const discountCalc = calculateDiscounts(cartItemsForEngine, allDiscounts, {
     isMember: !!loggedInCustomer?.hasPassword,
+    shippingAmount: 0, // Will be calculated separately
   });
   
-  // Separate member discounts from product discounts
-  const memberDiscount = autoDiscountCalc.appliedDiscounts
-    .filter(d => engineDiscounts.find(ed => ed.id === d.discountId)?.appliesTo === 'member')
+  // Separate discounts by type
+  const autoDiscountResults = discountCalc.appliedDiscounts.filter(d => 
+    engineAutoDiscounts.some(ad => ad.id === d.discountId)
+  );
+  const couponDiscountResults = discountCalc.appliedDiscounts.filter(d => 
+    engineCoupons.some(c => c.id === d.discountId)
+  );
+  
+  // Separate member discounts from product discounts (auto only)
+  const memberDiscount = autoDiscountResults
+    .filter(d => engineAutoDiscounts.find(ed => ed.id === d.discountId)?.appliesTo === 'member')
     .reduce((sum, d) => sum + d.amount, 0);
-  const autoProductDiscount = autoDiscountCalc.discountTotal - memberDiscount;
+  const autoProductDiscount = autoDiscountResults
+    .filter(d => engineAutoDiscounts.find(ed => ed.id === d.discountId)?.appliesTo !== 'member')
+    .reduce((sum, d) => sum + d.amount, 0);
   
-  // Calculate coupons discount (supports multiple coupons)
-  const afterAutoDiscounts = cartTotal - memberDiscount - autoProductDiscount;
-  const hasFreeShipping = appliedCoupons.some(c => c.type === 'free_shipping');
+  // Calculate coupon discount (all coupon types)
+  const couponDiscount = couponDiscountResults.reduce((sum, d) => sum + d.amount, 0);
   
-  // Find gift card if used
+  // Handle gift cards separately (they're not in the engine)
   const giftCardCoupon = appliedCoupons.find(c => c.type === 'gift_card');
-  
-  // Calculate total coupon discount
-  let couponDiscount = 0;
   let giftCardAmount = 0;
-  let remainingAmount = afterAutoDiscounts;
-  for (const coupon of appliedCoupons) {
-    if (coupon.type === 'percentage') {
-      couponDiscount += (remainingAmount * coupon.value) / 100;
-      remainingAmount -= (remainingAmount * coupon.value) / 100;
-    } else if (coupon.type === 'fixed_amount') {
-      couponDiscount += Math.min(coupon.value, remainingAmount);
-      remainingAmount -= Math.min(coupon.value, remainingAmount);
-    } else if (coupon.type === 'gift_card') {
-      const giftCardDiscount = Math.min(coupon.value, remainingAmount);
-      giftCardAmount = giftCardDiscount;
-      couponDiscount += giftCardDiscount;
-      remainingAmount -= giftCardDiscount;
-    }
-    // free_shipping doesn't reduce price, just affects shipping
+  if (giftCardCoupon) {
+    const afterAllDiscounts = cartTotal - memberDiscount - autoProductDiscount - couponDiscount;
+    giftCardAmount = Math.min(giftCardCoupon.value, afterAllDiscounts);
   }
+  
+  // Check for free shipping
+  const hasFreeShipping = discountCalc.freeShipping || appliedCoupons.some(c => c.type === 'free_shipping');
 
   // Calculate shipping based on store settings
   const baseShippingRate = shippingSettings.rates[0]?.price || 29;
   const freeShippingThreshold = shippingSettings.enableFreeShipping ? shippingSettings.freeShippingThreshold : Infinity;
   const shipping = cartTotal >= freeShippingThreshold ? 0 : baseShippingRate;
   const shippingAfterDiscount = hasFreeShipping ? 0 : shipping;
-  const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount;
+  const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount + giftCardAmount;
   const subtotalAfterDiscount = cartTotal - totalDiscount + shippingAfterDiscount;
   // Calculate credit to use (max available or max needed)
   const creditBalance = loggedInCustomer?.creditBalance || 0;
@@ -1208,8 +1322,18 @@ export function CheckoutForm({
               cartTotal={cartTotal}
               appliedCoupons={appliedCoupons}
               onApply={(coupon) => setAppliedCoupons(prev => [...prev, coupon])}
-              onRemove={(couponId) => { setAppliedCoupons(prev => prev.filter(c => c.id !== couponId)); setCouponWarning(null); }}
+              onRemove={(couponId) => { 
+                setAppliedCoupons(prev => prev.filter(c => c.id !== couponId)); 
+                setCouponWarning(null);
+                // מחיקת מוצרי מתנה של הקופון שנמחק
+                removeGiftItemsByCoupon(couponId);
+              }}
               email={formData.email}
+              cartItems={cart.map(item => ({
+                productId: item.productId,
+                categoryId: undefined, // TODO: צריך להוסיף categoryId ל-cart items
+                quantity: item.quantity,
+              }))}
             />
             
             {/* Coupon Warning */}

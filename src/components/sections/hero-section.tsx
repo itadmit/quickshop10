@@ -64,3 +64,4 @@ export function HeroSection({ title, subtitle, content, settings, basePath }: He
   );
 }
 
+

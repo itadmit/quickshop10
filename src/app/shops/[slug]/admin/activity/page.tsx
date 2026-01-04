@@ -230,3 +230,4 @@ function getResourceLink(slug: string, resourceType: string, resourceId: string)
   }
 }
 
+
