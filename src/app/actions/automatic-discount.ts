@@ -3,7 +3,26 @@
 import { db } from '@/lib/db';
 import { automaticDiscounts, customers } from '@/lib/db/schema';
 import { eq, and, or, lte, gte, isNull } from 'drizzle-orm';
-import type { AutomaticDiscountResult, CartItemForDiscount } from '@/lib/discount-utils';
+
+// Types for automatic discounts (compatible with old discount-utils)
+export type AutomaticDiscountResult = {
+  id: string;
+  name: string;
+  description: string | null;
+  type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'buy_x_pay_y' | 'buy_x_get_y' | 'quantity_discount' | 'spend_x_pay_y';
+  value: number;
+  appliesTo: 'all' | 'category' | 'product' | 'member';
+  categoryIds: string[];
+  productIds: string[];
+  stackable: boolean;
+};
+
+export type CartItemForDiscount = {
+  productId: string;
+  categoryId?: string;
+  price: number;
+  quantity: number;
+};
 
 export async function getAutomaticDiscounts(
   cartItems: CartItemForDiscount[],

@@ -421,28 +421,44 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      {/* Dashboard Content with Suspense */}
-      <Suspense fallback={
-        <>
-          <StatsSkeleton />
-          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-            <ChartSkeleton />
-            <ChartSkeleton />
-          </div>
-        </>
-      }>
-        <DashboardContent storeId={store.id} period={reportPeriod} />
-      </Suspense>
-
-      {/* Quick Access to Reports */}
-      <div className="mt-6 sm:mt-8">
+      {/* Quick Access to Reports - MOVED TO TOP */}
+      <div className="mb-6 sm:mb-8">
         <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">דוחות מפורטים</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           <QuickReportCard
             title="דוח מכירות"
             href="reports/sales"
             icon={<ChartBarIcon size={24} />}
-            description="מכירות לפי תאריך, מוצר וקטגוריה"
+            description="מכירות, הזמנות ומוצרים מובילים"
+          />
+          <QuickReportCard
+            title="דוח קופונים"
+            href="reports/coupons"
+            icon={
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <circle cx="9" cy="9" r="2"/>
+                <circle cx="15" cy="15" r="2"/>
+                <line x1="16" y1="8" x2="8" y2="16"/>
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+            }
+            description="שימוש בקופונים והנחות"
+          />
+          <QuickReportCard
+            title="דוח משלוחים"
+            href="reports/shipping"
+            icon={
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+              </svg>
+            }
+            description="משלוחים בתשלום וחינמיים"
+          />
+          <QuickReportCard
+            title="דוח פיננסי"
+            href="reports/financial"
+            icon={<WalletIcon size={24} />}
+            description="גיפט קארדים, קרדיטים ומשפיענים"
           />
           <QuickReportCard
             title="דוח לקוחות"
@@ -463,12 +479,6 @@ export default async function ReportsPage({
             description="משפך המרה, חיפושים ועגלות נטושות"
           />
           <QuickReportCard
-            title="דוח פיננסי"
-            href="reports/financial"
-            icon={<WalletIcon size={24} />}
-            description="גיפט קארדים, קרדיטים ומשפיענים"
-          />
-          <QuickReportCard
             title="דוח מלאי"
             href="reports/inventory"
             icon={<PackageIcon size={24} />}
@@ -476,6 +486,19 @@ export default async function ReportsPage({
           />
         </div>
       </div>
+
+      {/* Dashboard Content with Suspense */}
+      <Suspense fallback={
+        <>
+          <StatsSkeleton />
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+            <ChartSkeleton />
+            <ChartSkeleton />
+          </div>
+        </>
+      }>
+        <DashboardContent storeId={store.id} period={reportPeriod} />
+      </Suspense>
     </div>
   );
 }

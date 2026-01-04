@@ -5,10 +5,24 @@ import { discounts, influencers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y';
+
+interface QuantityTier {
+  minQuantity: number;
+  discountPercent: number;
+}
+
 interface CouponData {
   code: string;
   title: string;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping';
+  type: DiscountType;
   value: number;
   minimumAmount: number | null;
   usageLimit: number | null;
@@ -24,6 +38,14 @@ interface CouponData {
   productIds: string[];
   excludeCategoryIds: string[];
   excludeProductIds: string[];
+  // Advanced discount fields
+  buyQuantity?: number | null;
+  payAmount?: number | null;
+  getQuantity?: number | null;
+  giftProductIds?: string[];
+  giftSameProduct?: boolean;
+  quantityTiers?: QuantityTier[];
+  spendAmount?: number | null;
 }
 
 export async function createCoupon(storeId: string, data: CouponData) {
@@ -61,6 +83,14 @@ export async function createCoupon(storeId: string, data: CouponData) {
       productIds: data.productIds,
       excludeCategoryIds: data.excludeCategoryIds,
       excludeProductIds: data.excludeProductIds,
+      // Advanced discount fields
+      buyQuantity: data.buyQuantity || null,
+      payAmount: data.payAmount?.toString() || null,
+      getQuantity: data.getQuantity || null,
+      giftProductIds: data.giftProductIds || [],
+      giftSameProduct: data.giftSameProduct ?? true,
+      quantityTiers: data.quantityTiers || [],
+      spendAmount: data.spendAmount?.toString() || null,
     }).returning();
 
     // Link to influencer if specified
@@ -106,6 +136,14 @@ export async function updateCoupon(couponId: string, data: CouponData) {
         productIds: data.productIds,
         excludeCategoryIds: data.excludeCategoryIds,
         excludeProductIds: data.excludeProductIds,
+        // Advanced discount fields
+        buyQuantity: data.buyQuantity || null,
+        payAmount: data.payAmount?.toString() || null,
+        getQuantity: data.getQuantity || null,
+        giftProductIds: data.giftProductIds || [],
+        giftSameProduct: data.giftSameProduct ?? true,
+        quantityTiers: data.quantityTiers || [],
+        spendAmount: data.spendAmount?.toString() || null,
       })
       .where(eq(discounts.id, couponId));
 

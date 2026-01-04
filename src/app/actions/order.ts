@@ -43,10 +43,20 @@ function buildAddressString(customer: CustomerInfo): string {
   return address;
 }
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y'
+  | 'gift_card';
+
 type CouponInfo = {
   id: string;
   code: string;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'gift_card';
+  type: DiscountType;
   value: number;
 } | null;
 

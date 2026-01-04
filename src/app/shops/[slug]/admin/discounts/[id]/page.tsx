@@ -75,6 +75,14 @@ export default async function EditCouponPage({ params }: EditCouponPageProps) {
     productIds: (coupon.productIds as string[]) || [],
     excludeCategoryIds: (coupon.excludeCategoryIds as string[]) || [],
     excludeProductIds: (coupon.excludeProductIds as string[]) || [],
+    // Advanced discount fields
+    buyQuantity: coupon.buyQuantity,
+    payAmount: coupon.payAmount,
+    getQuantity: coupon.getQuantity,
+    giftProductIds: (coupon.giftProductIds as string[]) || [],
+    giftSameProduct: coupon.giftSameProduct ?? true,
+    quantityTiers: (coupon.quantityTiers as { minQuantity: number; discountPercent: number }[]) || [],
+    spendAmount: coupon.spendAmount,
   };
 
   return (

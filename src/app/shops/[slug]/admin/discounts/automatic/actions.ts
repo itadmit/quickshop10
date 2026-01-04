@@ -5,14 +5,30 @@ import { automaticDiscounts } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y';
+
+interface QuantityTier {
+  minQuantity: number;
+  discountPercent: number;
+}
+
 interface AutoDiscountData {
   name: string;
   description: string | null;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping';
+  type: DiscountType;
   value: string;
   appliesTo: 'all' | 'category' | 'product' | 'member';
   categoryIds: string[];
   productIds: string[];
+  excludeCategoryIds: string[];
+  excludeProductIds: string[];
   minimumAmount: string | null;
   minimumQuantity: number | null;
   startsAt: Date | null;
@@ -20,6 +36,14 @@ interface AutoDiscountData {
   priority: number;
   stackable: boolean;
   isActive: boolean;
+  // Advanced discount fields
+  buyQuantity?: number | null;
+  payAmount?: number | null;
+  getQuantity?: number | null;
+  giftProductIds?: string[];
+  giftSameProduct?: boolean;
+  quantityTiers?: QuantityTier[];
+  spendAmount?: number | null;
 }
 
 export async function createAutoDiscount(storeId: string, data: AutoDiscountData) {
@@ -33,6 +57,8 @@ export async function createAutoDiscount(storeId: string, data: AutoDiscountData
       appliesTo: data.appliesTo,
       categoryIds: data.categoryIds,
       productIds: data.productIds,
+      excludeCategoryIds: data.excludeCategoryIds,
+      excludeProductIds: data.excludeProductIds,
       minimumAmount: data.minimumAmount,
       minimumQuantity: data.minimumQuantity,
       startsAt: data.startsAt,
@@ -40,6 +66,14 @@ export async function createAutoDiscount(storeId: string, data: AutoDiscountData
       priority: data.priority,
       stackable: data.stackable,
       isActive: data.isActive,
+      // Advanced discount fields
+      buyQuantity: data.buyQuantity || null,
+      payAmount: data.payAmount?.toString() || null,
+      getQuantity: data.getQuantity || null,
+      giftProductIds: data.giftProductIds || [],
+      giftSameProduct: data.giftSameProduct ?? true,
+      quantityTiers: data.quantityTiers || [],
+      spendAmount: data.spendAmount?.toString() || null,
     });
 
     revalidatePath(`/shops/[slug]/admin/discounts/automatic`);
@@ -63,6 +97,8 @@ export async function updateAutoDiscount(discountId: string, data: AutoDiscountD
         appliesTo: data.appliesTo,
         categoryIds: data.categoryIds,
         productIds: data.productIds,
+        excludeCategoryIds: data.excludeCategoryIds,
+        excludeProductIds: data.excludeProductIds,
         minimumAmount: data.minimumAmount,
         minimumQuantity: data.minimumQuantity,
         startsAt: data.startsAt,
@@ -70,6 +106,14 @@ export async function updateAutoDiscount(discountId: string, data: AutoDiscountD
         priority: data.priority,
         stackable: data.stackable,
         isActive: data.isActive,
+        // Advanced discount fields
+        buyQuantity: data.buyQuantity || null,
+        payAmount: data.payAmount?.toString() || null,
+        getQuantity: data.getQuantity || null,
+        giftProductIds: data.giftProductIds || [],
+        giftSameProduct: data.giftSameProduct ?? true,
+        quantityTiers: data.quantityTiers || [],
+        spendAmount: data.spendAmount?.toString() || null,
       })
       .where(eq(automaticDiscounts.id, discountId));
 

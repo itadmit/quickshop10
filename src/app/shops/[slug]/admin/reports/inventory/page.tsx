@@ -6,6 +6,7 @@ import {
   getInventoryStats,
   getLowStockProducts
 } from '@/lib/actions/reports';
+import { ReportHeader } from '@/components/admin/report-header';
 import {
   CheckCircleIcon,
   XCircleIcon,

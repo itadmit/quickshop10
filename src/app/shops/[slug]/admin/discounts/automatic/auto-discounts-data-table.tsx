@@ -19,15 +19,26 @@ interface Product {
   name: string;
 }
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y';
+
 type AutoDiscount = {
   id: string;
   name: string;
   description: string | null;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping';
+  type: DiscountType;
   value: string;
   appliesTo: 'all' | 'category' | 'product' | 'member';
-  categoryIds: unknown;
-  productIds: unknown;
+  categoryIds: string[];
+  productIds: string[];
+  excludeCategoryIds: string[];
+  excludeProductIds: string[];
   minimumAmount: string | null;
   minimumQuantity: number | null;
   startsAt: Date | null;
@@ -207,6 +218,8 @@ export function AutoDiscountsDataTable({
           ...discount,
           categoryIds: Array.isArray(discount.categoryIds) ? discount.categoryIds as string[] : [],
           productIds: Array.isArray(discount.productIds) ? discount.productIds as string[] : [],
+          excludeCategoryIds: Array.isArray(discount.excludeCategoryIds) ? discount.excludeCategoryIds as string[] : [],
+          excludeProductIds: Array.isArray(discount.excludeProductIds) ? discount.excludeProductIds as string[] : [],
         };
         
         return (

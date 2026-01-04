@@ -801,3 +801,302 @@ export const getReportsDashboard = cache(async (
   };
 });
 
+// ============ ORDERS LIST ============
+
+export const getRecentOrders = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange,
+  limit: number = 50
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      total: orders.total,
+      status: orders.status,
+      financialStatus: orders.financialStatus,
+      fulfillmentStatus: orders.fulfillmentStatus,
+      discountCode: orders.discountCode,
+      discountAmount: orders.discountAmount,
+      shippingAmount: orders.shippingAmount,
+      createdAt: orders.createdAt,
+      itemsCount: sql<number>`(SELECT COUNT(*) FROM order_items WHERE order_items.order_id = ${orders.id})`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ))
+    .orderBy(desc(orders.createdAt))
+    .limit(limit);
+
+  return result.map(o => ({
+    ...o,
+    total: Number(o.total),
+    discountAmount: Number(o.discountAmount || 0),
+    shippingAmount: Number(o.shippingAmount || 0),
+  }));
+});
+
+// ============ COUPONS REPORT ============
+
+export const getCouponStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  // Get all orders with discount codes in period
+  const ordersWithCoupons = await db
+    .select({
+      discountCode: orders.discountCode,
+      total: orders.total,
+      discountAmount: orders.discountAmount,
+      count: sql<number>`1`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      sql`${orders.discountCode} IS NOT NULL AND ${orders.discountCode} != ''`
+    ));
+
+  // Aggregate by coupon code
+  const couponMap = new Map<string, { orders: number; revenue: number; discountTotal: number }>();
+  
+  ordersWithCoupons.forEach(o => {
+    const code = o.discountCode!;
+    const existing = couponMap.get(code) || { orders: 0, revenue: 0, discountTotal: 0 };
+    couponMap.set(code, {
+      orders: existing.orders + 1,
+      revenue: existing.revenue + Number(o.total),
+      discountTotal: existing.discountTotal + Number(o.discountAmount || 0),
+    });
+  });
+
+  const coupons = Array.from(couponMap.entries()).map(([code, stats]) => ({
+    code,
+    ...stats,
+  })).sort((a, b) => b.orders - a.orders);
+
+  const totals = {
+    totalCouponsUsed: coupons.length,
+    totalOrders: coupons.reduce((sum, c) => sum + c.orders, 0),
+    totalRevenue: coupons.reduce((sum, c) => sum + c.revenue, 0),
+    totalDiscounts: coupons.reduce((sum, c) => sum + c.discountTotal, 0),
+  };
+
+  return { coupons, totals };
+});
+
+export const getCouponOrders = cache(async (
+  storeId: string,
+  couponCode: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      total: orders.total,
+      discountAmount: orders.discountAmount,
+      status: orders.status,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.discountCode, couponCode),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ))
+    .orderBy(desc(orders.createdAt));
+
+  return result.map(o => ({
+    ...o,
+    total: Number(o.total),
+    discountAmount: Number(o.discountAmount || 0),
+  }));
+});
+
+// ============ SHIPPING REPORT ============
+
+export const getShippingStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const shippingData = await db
+    .select({
+      shippingMethod: orders.shippingMethod,
+      shippingAmount: orders.shippingAmount,
+      total: orders.total,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      sql`${orders.status} != 'cancelled'`,
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ));
+
+  let totalPaidShipping = 0;
+  let totalFreeShipping = 0;
+  let paidShippingOrders = 0;
+  let freeShippingOrders = 0;
+  const methodStats = new Map<string, { orders: number; revenue: number }>();
+
+  shippingData.forEach(o => {
+    const shipping = Number(o.shippingAmount || 0);
+    const method = o.shippingMethod || 'לא צוין';
+    
+    if (shipping > 0) {
+      totalPaidShipping += shipping;
+      paidShippingOrders++;
+    } else {
+      freeShippingOrders++;
+    }
+
+    const existing = methodStats.get(method) || { orders: 0, revenue: 0 };
+    methodStats.set(method, {
+      orders: existing.orders + 1,
+      revenue: existing.revenue + shipping,
+    });
+  });
+
+  const byMethod = Array.from(methodStats.entries()).map(([method, stats]) => ({
+    method,
+    ...stats,
+  })).sort((a, b) => b.orders - a.orders);
+
+  return {
+    totalOrders: shippingData.length,
+    paidShippingOrders,
+    freeShippingOrders,
+    totalPaidShipping,
+    averageShipping: paidShippingOrders > 0 ? totalPaidShipping / paidShippingOrders : 0,
+    freeShippingPercentage: shippingData.length > 0 ? (freeShippingOrders / shippingData.length) * 100 : 0,
+    byMethod,
+  };
+});
+
+// ============ GIFT CARDS DETAILS ============
+
+export const getGiftCardDetails = cache(async (storeId: string) => {
+  const cards = await db
+    .select({
+      id: giftCards.id,
+      code: giftCards.code,
+      initialBalance: giftCards.initialBalance,
+      currentBalance: giftCards.currentBalance,
+      customerEmail: giftCards.recipientEmail,
+      customerName: giftCards.recipientName,
+      senderName: giftCards.senderName,
+      status: giftCards.status,
+      createdAt: giftCards.createdAt,
+      expiresAt: giftCards.expiresAt,
+      lastUsedAt: giftCards.lastUsedAt,
+    })
+    .from(giftCards)
+    .where(eq(giftCards.storeId, storeId))
+    .orderBy(desc(giftCards.createdAt))
+    .limit(100);
+
+  return cards.map(c => ({
+    ...c,
+    initialBalance: Number(c.initialBalance),
+    currentBalance: Number(c.currentBalance),
+    usedAmount: Number(c.initialBalance) - Number(c.currentBalance),
+  }));
+});
+
+// ============ STORE CREDITS DETAILS ============
+
+export const getStoreCreditDetails = cache(async (storeId: string, limit: number = 100) => {
+  const transactions = await db
+    .select({
+      id: customerCreditTransactions.id,
+      customerId: customerCreditTransactions.customerId,
+      type: customerCreditTransactions.type,
+      amount: customerCreditTransactions.amount,
+      balanceAfter: customerCreditTransactions.balanceAfter,
+      reason: customerCreditTransactions.reason,
+      createdAt: customerCreditTransactions.createdAt,
+      customerEmail: customers.email,
+      customerName: sql<string>`CONCAT(${customers.firstName}, ' ', ${customers.lastName})`,
+    })
+    .from(customerCreditTransactions)
+    .leftJoin(customers, eq(customerCreditTransactions.customerId, customers.id))
+    .where(eq(customerCreditTransactions.storeId, storeId))
+    .orderBy(desc(customerCreditTransactions.createdAt))
+    .limit(limit);
+
+  return transactions.map(t => ({
+    ...t,
+    amount: Number(t.amount),
+    balanceAfter: Number(t.balanceAfter),
+  }));
+});
+
+// ============ INFLUENCER ORDERS ============
+
+export const getInfluencerOrders = cache(async (
+  storeId: string,
+  influencerId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  // Get influencer's coupon code
+  const [influencer] = await db
+    .select({ couponCode: influencers.couponCode })
+    .from(influencers)
+    .where(eq(influencers.id, influencerId))
+    .limit(1);
+
+  if (!influencer?.couponCode) {
+    return [];
+  }
+
+  const result = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      customerName: orders.customerName,
+      total: orders.total,
+      discountAmount: orders.discountAmount,
+      status: orders.status,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.discountCode, influencer.couponCode),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ))
+    .orderBy(desc(orders.createdAt));
+
+  return result.map(o => ({
+    ...o,
+    total: Number(o.total),
+    discountAmount: Number(o.discountAmount || 0),
+  }));
+});
+

@@ -7,8 +7,11 @@ import {
   getInfluencerStats,
   getRefundStats,
   getStoreCreditStats,
-  getSalesOverview
+  getSalesOverview,
+  getGiftCardDetails,
+  getStoreCreditDetails
 } from '@/lib/actions/reports';
+import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
 import {
   GiftIcon,
   CreditCardIcon,
@@ -357,61 +360,242 @@ export default async function FinancialReportPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; tab?: string }>;
 }) {
   const { slug } = await params;
-  const { period: periodParam } = await searchParams;
+  const resolvedSearchParams = await searchParams;
   
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = (['7d', '30d', '90d'].includes(periodParam || '') 
-    ? periodParam 
-    : '30d') as '7d' | '30d' | '90d';
+  const period = toLegacyPeriod(resolvedSearchParams);
+  const activeTab = resolvedSearchParams.tab || 'overview';
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link 
-            href={`/shops/${slug}/admin/reports`}
-            className="text-gray-400 hover:text-black"
+    <div>
+      <ReportHeader
+        title="דוח פיננסי"
+        description="גיפט קארדים, קרדיטים, משפיענים והחזרים"
+        storeSlug={slug}
+        backHref={`/shops/${slug}/admin/reports`}
+      />
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 p-1 mb-6 w-fit">
+        {[
+          { id: 'overview', label: 'סקירה' },
+          { id: 'giftcards', label: 'גיפט קארדס' },
+          { id: 'credits', label: 'קרדיט חנות' },
+          { id: 'influencers', label: 'משפיענים' },
+        ].map((tab) => (
+          <Link
+            key={tab.id}
+            href={`?tab=${tab.id}&period=${resolvedSearchParams.period || '30d'}`}
+            className={`px-4 py-2 text-sm transition-colors ${
+              activeTab === tab.id
+                ? 'bg-white text-black shadow-sm'
+                : 'text-gray-600 hover:text-black'
+            }`}
           >
-            ← חזרה
+            {tab.label}
           </Link>
-          <div>
-            <h1 className="text-2xl font-medium">דוח פיננסי</h1>
-            <p className="text-gray-500 text-sm mt-1">גיפט קארדים, קרדיטים, משפיענים והחזרים</p>
-          </div>
+        ))}
+      </div>
+
+      <Suspense fallback={<TableSkeleton />}>
+        {activeTab === 'overview' && <FinancialContent storeId={store.id} period={period} />}
+        {activeTab === 'giftcards' && <GiftCardsDetailContent storeId={store.id} />}
+        {activeTab === 'credits' && <CreditsDetailContent storeId={store.id} />}
+        {activeTab === 'influencers' && <InfluencersDetailContent storeId={store.id} storeSlug={slug} period={period} />}
+      </Suspense>
+    </div>
+  );
+}
+
+// Gift Cards Detail Content
+async function GiftCardsDetailContent({ storeId }: { storeId: string }) {
+  const cards = await getGiftCardDetails(storeId);
+
+  return (
+    <div className="bg-white border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-medium">כל הגיפט קארדס</h2>
+        <p className="text-sm text-gray-500">{cards.length} כרטיסים</p>
+      </div>
+      
+      {cards.length === 0 ? (
+        <p className="text-gray-500 text-center py-12">אין גיפט קארדס</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 text-right">
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">קוד</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">נמען</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">קונה</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">ערך התחלתי</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">נוצל</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">יתרה</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">סטטוס</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">תאריך הנפקה</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {cards.map(card => (
+                <tr key={card.id} className="hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <code className="bg-gray-100 px-2 py-0.5 text-sm">{card.code}</code>
+                  </td>
+                  <td className="py-3 px-4">
+                    <div>
+                      <p className="font-medium">{card.customerName || '-'}</p>
+                      <p className="text-xs text-gray-500">{card.customerEmail}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{card.senderName || '-'}</td>
+                  <td className="py-3 px-4 font-medium">{formatCurrency(card.initialBalance)}</td>
+                  <td className="py-3 px-4 text-green-600">{formatCurrency(card.usedAmount)}</td>
+                  <td className="py-3 px-4 font-medium">{formatCurrency(card.currentBalance)}</td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-0.5 text-xs rounded ${
+                      card.status === 'active' ? 'bg-green-100 text-green-700' :
+                      card.status === 'used' ? 'bg-gray-100 text-gray-600' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {card.status === 'active' ? 'פעיל' : card.status === 'used' ? 'נוצל' : card.status}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-500">
+                    {new Date(card.createdAt).toLocaleDateString('he-IL')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        
-        {/* Period Selector */}
-        <div className="flex gap-1 bg-gray-100 p-1">
-          {[
-            { value: '7d', label: '7 ימים' },
-            { value: '30d', label: '30 יום' },
-            { value: '90d', label: '90 יום' },
-          ].map((option) => (
+      )}
+    </div>
+  );
+}
+
+// Credits Detail Content
+async function CreditsDetailContent({ storeId }: { storeId: string }) {
+  const transactions = await getStoreCreditDetails(storeId);
+
+  return (
+    <div className="bg-white border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-medium">פעולות קרדיט חנות</h2>
+        <p className="text-sm text-gray-500">{transactions.length} פעולות אחרונות</p>
+      </div>
+      
+      {transactions.length === 0 ? (
+        <p className="text-gray-500 text-center py-12">אין פעולות קרדיט</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200 text-right">
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">לקוח</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">סוג</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">סכום</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">יתרה לאחר</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">סיבה</th>
+                <th className="py-3 px-4 font-medium text-gray-500 text-sm">תאריך</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {transactions.map(tx => (
+                <tr key={tx.id} className="hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <div>
+                      <p className="font-medium">{tx.customerName || '-'}</p>
+                      <p className="text-xs text-gray-500">{tx.customerEmail}</p>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4">
+                    <span className={`px-2 py-0.5 text-xs rounded ${
+                      tx.type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                    }`}>
+                      {tx.type === 'credit' ? 'הוספה' : 'שימוש'}
+                    </span>
+                  </td>
+                  <td className={`py-3 px-4 font-medium ${tx.type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
+                    {tx.type === 'credit' ? '+' : '-'}{formatCurrency(Math.abs(tx.amount))}
+                  </td>
+                  <td className="py-3 px-4">{formatCurrency(tx.balanceAfter)}</td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{tx.reason || '-'}</td>
+                  <td className="py-3 px-4 text-sm text-gray-500">
+                    {new Date(tx.createdAt).toLocaleDateString('he-IL')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Influencers Detail Content
+async function InfluencersDetailContent({ storeId, storeSlug, period }: { storeId: string; storeSlug: string; period: '7d' | '30d' | '90d' }) {
+  const { influencers } = await getInfluencerStats(storeId);
+
+  return (
+    <div className="bg-white border border-gray-200 p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-medium">משפיענים</h2>
+        <Link 
+          href={`/shops/${storeSlug}/admin/influencers`}
+          className="text-sm text-gray-500 hover:text-black"
+        >
+          נהל משפיענים ←
+        </Link>
+      </div>
+      
+      {influencers.length === 0 ? (
+        <p className="text-gray-500 text-center py-12">אין משפיענים רשומים</p>
+      ) : (
+        <div className="space-y-4">
+          {influencers.map(influencer => (
             <Link
-              key={option.value}
-              href={`?period=${option.value}`}
-              className={`px-4 py-2 text-sm transition-colors ${
-                period === option.value
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-600 hover:text-black'
-              }`}
+              key={influencer.id}
+              href={`/shops/${storeSlug}/admin/reports/financial/influencer/${influencer.id}?period=${period}`}
+              className="block border border-gray-200 p-4 hover:border-black transition-colors"
             >
-              {option.label}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                    <CrownIcon className="text-purple-600" size={20} />
+                  </div>
+                  <div>
+                    <p className="font-medium">{influencer.name}</p>
+                    <code className="text-sm bg-gray-100 px-2 py-0.5">{influencer.couponCode || 'ללא קוד'}</code>
+                  </div>
+                </div>
+                <div className="flex items-center gap-8">
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">מכירות</p>
+                    <p className="font-medium">{formatCurrency(influencer.totalSales)}</p>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">הזמנות</p>
+                    <p className="font-medium">{influencer.totalOrders || 0}</p>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm text-gray-500">עמלה</p>
+                    <p className="font-medium text-purple-600">{formatCurrency(influencer.totalCommission)}</p>
+                  </div>
+                  <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
             </Link>
           ))}
         </div>
-      </div>
-
-      {/* Content */}
-      <Suspense fallback={<TableSkeleton />}>
-        <FinancialContent storeId={store.id} period={period} />
-      </Suspense>
+      )}
     </div>
   );
 }

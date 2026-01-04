@@ -6,11 +6,25 @@ import Link from 'next/link';
 import { createCoupon, updateCoupon } from './actions';
 import { ArrowRight, Search, X, ChevronDown, Plus, Sparkles } from 'lucide-react';
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y';
+
+interface QuantityTier {
+  minQuantity: number;
+  discountPercent: number;
+}
+
 interface Coupon {
   id: string;
   code: string;
   title: string | null;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping';
+  type: DiscountType;
   value: string;
   minimumAmount: string | null;
   usageLimit: number | null;
@@ -26,6 +40,14 @@ interface Coupon {
   productIds: string[];
   excludeCategoryIds: string[];
   excludeProductIds: string[];
+  // Advanced discount fields
+  buyQuantity?: number | null;
+  payAmount?: string | null;
+  getQuantity?: number | null;
+  giftProductIds?: string[];
+  giftSameProduct?: boolean;
+  quantityTiers?: QuantityTier[];
+  spendAmount?: string | null;
 }
 
 interface Category {
@@ -77,7 +99,7 @@ export function CouponFormPage({
   const [formData, setFormData] = useState({
     code: coupon?.code || '',
     title: coupon?.title || '',
-    type: coupon?.type || 'percentage' as const,
+    type: (coupon?.type || 'percentage') as DiscountType,
     value: coupon?.value || '',
     minimumAmount: coupon?.minimumAmount || '',
     usageLimit: coupon?.usageLimit?.toString() || '',
@@ -93,6 +115,14 @@ export function CouponFormPage({
     productIds: coupon?.productIds || [],
     excludeCategoryIds: coupon?.excludeCategoryIds || [],
     excludeProductIds: coupon?.excludeProductIds || [],
+    // Advanced discount fields
+    buyQuantity: coupon?.buyQuantity?.toString() || '',
+    payAmount: coupon?.payAmount || '',
+    getQuantity: coupon?.getQuantity?.toString() || '',
+    giftProductIds: coupon?.giftProductIds || [],
+    giftSameProduct: coupon?.giftSameProduct ?? true,
+    quantityTiers: coupon?.quantityTiers || [{ minQuantity: 2, discountPercent: 10 }],
+    spendAmount: coupon?.spendAmount || '',
   });
 
   // Filtered lists for search
@@ -134,9 +164,60 @@ export function CouponFormPage({
       return;
     }
 
-    if (formData.type !== 'free_shipping' && (!formData.value || Number(formData.value) <= 0)) {
-      setError('נא להזין ערך הנחה תקין');
-      return;
+    // Type-specific validation
+    if (formData.type === 'percentage' || formData.type === 'fixed_amount') {
+      if (!formData.value || Number(formData.value) <= 0) {
+        setError('נא להזין ערך הנחה תקין');
+        return;
+      }
+      if (formData.type === 'percentage' && Number(formData.value) > 100) {
+        setError('אחוז ההנחה לא יכול להיות יותר מ-100');
+        return;
+      }
+    }
+
+    if (formData.type === 'buy_x_pay_y') {
+      if (!formData.buyQuantity || Number(formData.buyQuantity) <= 0) {
+        setError('נא להזין כמות לקנייה');
+        return;
+      }
+      if (!formData.payAmount || Number(formData.payAmount) <= 0) {
+        setError('נא להזין סכום לתשלום');
+        return;
+      }
+    }
+
+    if (formData.type === 'buy_x_get_y') {
+      if (!formData.buyQuantity || Number(formData.buyQuantity) <= 0) {
+        setError('נא להזין כמות לקנייה');
+        return;
+      }
+      if (!formData.getQuantity || Number(formData.getQuantity) <= 0) {
+        setError('נא להזין כמות למתנה');
+        return;
+      }
+    }
+
+    if (formData.type === 'quantity_discount') {
+      if (!formData.quantityTiers || formData.quantityTiers.length === 0) {
+        setError('נא להגדיר לפחות מדרגת כמות אחת');
+        return;
+      }
+    }
+
+    if (formData.type === 'spend_x_pay_y') {
+      if (!formData.spendAmount || Number(formData.spendAmount) <= 0) {
+        setError('נא להזין סכום להוצאה');
+        return;
+      }
+      if (!formData.payAmount || Number(formData.payAmount) <= 0) {
+        setError('נא להזין סכום לתשלום');
+        return;
+      }
+      if (Number(formData.payAmount) >= Number(formData.spendAmount)) {
+        setError('סכום התשלום חייב להיות קטן מסכום ההוצאה');
+        return;
+      }
     }
 
     if (formData.appliesTo === 'category' && formData.categoryIds.length === 0) {
@@ -159,6 +240,13 @@ export function CouponFormPage({
           startsAt: formData.startsAt ? new Date(formData.startsAt) : null,
           endsAt: formData.endsAt ? new Date(formData.endsAt) : null,
           influencerId: formData.influencerId || null,
+          buyQuantity: formData.buyQuantity ? parseInt(formData.buyQuantity) : null,
+          payAmount: formData.payAmount ? parseFloat(formData.payAmount) : null,
+          getQuantity: formData.getQuantity ? parseInt(formData.getQuantity) : null,
+          spendAmount: formData.spendAmount ? parseFloat(formData.spendAmount) : null,
+          quantityTiers: formData.quantityTiers,
+          giftProductIds: formData.giftProductIds,
+          giftSameProduct: formData.giftSameProduct,
         };
 
         if (mode === 'create') {
@@ -311,24 +399,35 @@ export function CouponFormPage({
                 />
               </div>
 
-              {/* Type & Value */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    סוג הנחה
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as 'percentage' | 'fixed_amount' | 'free_shipping' }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
-                  >
-                    <option value="percentage">אחוז הנחה</option>
-                    <option value="fixed_amount">סכום קבוע</option>
+              {/* Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  סוג הנחה
+                </label>
+                <select
+                  value={formData.type}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as DiscountType }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                >
+                  <optgroup label="הנחות בסיסיות">
+                    <option value="percentage">אחוז הנחה (%)</option>
+                    <option value="fixed_amount">סכום קבוע (₪)</option>
                     <option value="free_shipping">משלוח חינם</option>
-                  </select>
-                </div>
-                
-                {formData.type !== 'free_shipping' && (
+                  </optgroup>
+                  <optgroup label="מבצעים מתקדמים">
+                    <option value="buy_x_pay_y">קנה X שלם Y ש"ח</option>
+                    <option value="buy_x_get_y">קנה X קבל Y חינם</option>
+                    <option value="quantity_discount">הנחות כמות</option>
+                    <option value="spend_x_pay_y">קנה ב-X שלם Y</option>
+                  </optgroup>
+                </select>
+              </div>
+
+              {/* Type-specific fields */}
+              
+              {/* Percentage / Fixed Amount */}
+              {(formData.type === 'percentage' || formData.type === 'fixed_amount') && (
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       {formData.type === 'percentage' ? 'אחוז הנחה' : 'סכום הנחה'} *
@@ -350,8 +449,211 @@ export function CouponFormPage({
                       </span>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
+              {/* Buy X Pay Y */}
+              {formData.type === 'buy_x_pay_y' && (
+                <div className="bg-blue-50 rounded-lg p-4 space-y-4">
+                  <p className="text-sm text-blue-800 font-medium">קנה X מוצרים ושלם סכום קבוע</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        כמות לקנייה *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.buyQuantity}
+                        onChange={(e) => setFormData(prev => ({ ...prev, buyQuantity: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                        placeholder="3"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        שלם (₪) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.payAmount}
+                          onChange={(e) => setFormData(prev => ({ ...prev, payAmount: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                          placeholder="100"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₪</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">לדוגמה: קנה 3 חולצות שלם 100₪</p>
+                </div>
+              )}
+
+              {/* Buy X Get Y */}
+              {formData.type === 'buy_x_get_y' && (
+                <div className="bg-green-50 rounded-lg p-4 space-y-4">
+                  <p className="text-sm text-green-800 font-medium">קנה X קבל Y מוצרים חינם</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        קנה (כמות) *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.buyQuantity}
+                        onChange={(e) => setFormData(prev => ({ ...prev, buyQuantity: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                        placeholder="2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        קבל חינם (כמות) *
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={formData.getQuantity}
+                        onChange={(e) => setFormData(prev => ({ ...prev, getQuantity: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                        placeholder="1"
+                      />
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.giftSameProduct}
+                      onChange={(e) => setFormData(prev => ({ ...prev, giftSameProduct: e.target.checked }))}
+                      className="rounded border-gray-300 text-black focus:ring-black"
+                    />
+                    <span className="text-sm text-gray-700">המתנה היא אותו מוצר (הזול מביניהם)</span>
+                  </label>
+                  <p className="text-xs text-gray-500">לדוגמה: קנה 2 קבל 1 חינם</p>
+                </div>
+              )}
+
+              {/* Quantity Discount */}
+              {formData.type === 'quantity_discount' && (
+                <div className="bg-purple-50 rounded-lg p-4 space-y-4">
+                  <p className="text-sm text-purple-800 font-medium">הנחות כמות מדורגות</p>
+                  <div className="space-y-3">
+                    {formData.quantityTiers.map((tier, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="flex-1 grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">קנה מ-</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={tier.minQuantity}
+                              onChange={(e) => {
+                                const newTiers = [...formData.quantityTiers];
+                                newTiers[index] = { ...tier, minQuantity: parseInt(e.target.value) || 0 };
+                                setFormData(prev => ({ ...prev, quantityTiers: newTiers }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                              placeholder="2"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-600 mb-1">קבל הנחה (%)</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              value={tier.discountPercent}
+                              onChange={(e) => {
+                                const newTiers = [...formData.quantityTiers];
+                                newTiers[index] = { ...tier, discountPercent: parseInt(e.target.value) || 0 };
+                                setFormData(prev => ({ ...prev, quantityTiers: newTiers }));
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                              placeholder="10"
+                            />
+                          </div>
+                        </div>
+                        {formData.quantityTiers.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newTiers = formData.quantityTiers.filter((_, i) => i !== index);
+                              setFormData(prev => ({ ...prev, quantityTiers: newTiers }));
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lastTier = formData.quantityTiers[formData.quantityTiers.length - 1];
+                      const newTier = {
+                        minQuantity: (lastTier?.minQuantity || 1) + 1,
+                        discountPercent: (lastTier?.discountPercent || 10) + 5,
+                      };
+                      setFormData(prev => ({ ...prev, quantityTiers: [...prev.quantityTiers, newTier] }));
+                    }}
+                    className="text-sm text-purple-700 hover:text-purple-800 flex items-center gap-1"
+                  >
+                    <Plus className="w-4 h-4" />
+                    הוסף מדרגה
+                  </button>
+                  <p className="text-xs text-gray-500">לדוגמה: קנה 2 = 10% הנחה, קנה 3 = 15% הנחה</p>
+                </div>
+              )}
+
+              {/* Spend X Pay Y */}
+              {formData.type === 'spend_x_pay_y' && (
+                <div className="bg-orange-50 rounded-lg p-4 space-y-4">
+                  <p className="text-sm text-orange-800 font-medium">קנה בסכום מסוים ושלם פחות</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        קנה ב- (₪) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.spendAmount}
+                          onChange={(e) => setFormData(prev => ({ ...prev, spendAmount: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                          placeholder="200"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₪</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        שלם (₪) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          value={formData.payAmount}
+                          onChange={(e) => setFormData(prev => ({ ...prev, payAmount: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                          placeholder="100"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">₪</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">לדוגמה: קנה ב-200₪ שלם 100₪</p>
+                </div>
+              )}
 
               {/* Minimum Amount */}
               <div>

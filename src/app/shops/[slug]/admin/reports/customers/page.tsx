@@ -1,6 +1,5 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { 
   getCustomerSegments,
@@ -8,6 +7,7 @@ import {
   getNewVsReturning,
   getSalesOverview 
 } from '@/lib/actions/reports';
+import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
 import {
   StarIcon,
   RefreshCwIcon,
@@ -330,58 +330,25 @@ export default async function CustomersReportPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ period?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
 }) {
   const { slug } = await params;
-  const { period: periodParam } = await searchParams;
+  const resolvedSearchParams = await searchParams;
   
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = (['7d', '30d', '90d'].includes(periodParam || '') 
-    ? periodParam 
-    : '30d') as '7d' | '30d' | '90d';
+  const period = toLegacyPeriod(resolvedSearchParams);
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Link 
-            href={`/shops/${slug}/admin/reports`}
-            className="text-gray-400 hover:text-black"
-          >
-            ← חזרה
-          </Link>
-          <div>
-            <h1 className="text-2xl font-medium">דוח לקוחות</h1>
-            <p className="text-gray-500 text-sm mt-1">פילוח לקוחות, VIP ולקוחות בסיכון</p>
-          </div>
-        </div>
-        
-        {/* Period Selector */}
-        <div className="flex gap-1 bg-gray-100 p-1">
-          {[
-            { value: '7d', label: '7 ימים' },
-            { value: '30d', label: '30 יום' },
-            { value: '90d', label: '90 יום' },
-          ].map((option) => (
-            <Link
-              key={option.value}
-              href={`?period=${option.value}`}
-              className={`px-4 py-2 text-sm transition-colors ${
-                period === option.value
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-600 hover:text-black'
-              }`}
-            >
-              {option.label}
-            </Link>
-          ))}
-        </div>
-      </div>
+    <div>
+      <ReportHeader
+        title="דוח לקוחות"
+        description="פילוח לקוחות, VIP ולקוחות בסיכון"
+        storeSlug={slug}
+        backHref={`/shops/${slug}/admin/reports`}
+      />
 
-      {/* Content */}
       <Suspense fallback={<TableSkeleton />}>
         <CustomersContent storeId={store.id} period={period} />
       </Suspense>

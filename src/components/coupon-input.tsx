@@ -3,11 +3,21 @@
 import { useState } from 'react';
 import { validateCoupon } from '@/app/actions/coupon';
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y'
+  | 'gift_card';
+
 export type AppliedCoupon = {
   id: string;
   code: string;
   title: string | null;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'gift_card';
+  type: DiscountType;
   value: number;
   stackable: boolean;
   minimumAmount: number | null;

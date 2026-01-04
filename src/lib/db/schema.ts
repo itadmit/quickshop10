@@ -29,7 +29,13 @@ export const fulfillmentStatusEnum = pgEnum('fulfillment_status', [
   'unfulfilled', 'partial', 'fulfilled'
 ]);
 export const discountTypeEnum = pgEnum('discount_type', [
-  'percentage', 'fixed_amount', 'free_shipping'
+  'percentage',           // אחוז הנחה
+  'fixed_amount',         // סכום קבוע
+  'free_shipping',        // משלוח חינם
+  'buy_x_pay_y',         // קנה X מוצרים שלם Y ש"ח
+  'buy_x_get_y',         // קנה X קבל Y במתנה
+  'quantity_discount',    // הנחות כמות (קנה 2 = 10%, קנה 3 = 20%)
+  'spend_x_pay_y'        // קנה ב-X שלם Y
 ]);
 
 export const discountAppliesToEnum = pgEnum('discount_applies_to', [
@@ -621,6 +627,23 @@ export const discounts = pgTable('discounts', {
   excludeCategoryIds: jsonb('exclude_category_ids').default([]),
   excludeProductIds: jsonb('exclude_product_ids').default([]),
   
+  // ===== ADVANCED DISCOUNT TYPES =====
+  
+  // For buy_x_pay_y: קנה X מוצרים שלם Y ש"ח
+  // For buy_x_get_y: קנה X קבל Y במתנה
+  buyQuantity: integer('buy_quantity'), // כמות לקנייה
+  payAmount: decimal('pay_amount', { precision: 10, scale: 2 }), // סכום לתשלום (buy_x_pay_y, spend_x_pay_y)
+  getQuantity: integer('get_quantity'), // כמות מוצרים במתנה (buy_x_get_y)
+  giftProductIds: jsonb('gift_product_ids').default([]), // מזהי מוצרים במתנה (buy_x_get_y)
+  giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר
+  
+  // For quantity_discount: הנחות כמות מדורגות
+  // Format: [{ minQuantity: 2, discountPercent: 10 }, { minQuantity: 3, discountPercent: 20 }]
+  quantityTiers: jsonb('quantity_tiers').default([]),
+  
+  // For spend_x_pay_y: קנה ב-X שלם Y
+  spendAmount: decimal('spend_amount', { precision: 10, scale: 2 }), // סכום מינימום להוצאה
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('idx_discounts_store_code').on(table.storeId, table.code),
@@ -653,6 +676,26 @@ export const automaticDiscounts = pgTable('automatic_discounts', {
   // Settings
   priority: integer('priority').default(0).notNull(), // Higher = applied first
   stackable: boolean('stackable').default(true).notNull(), // Can combine with other discounts
+  
+  // ===== ADVANCED DISCOUNT TYPES =====
+  
+  // For buy_x_pay_y: קנה X מוצרים שלם Y ש"ח
+  // For buy_x_get_y: קנה X קבל Y במתנה
+  buyQuantity: integer('buy_quantity'), // כמות לקנייה
+  payAmount: decimal('pay_amount', { precision: 10, scale: 2 }), // סכום לתשלום
+  getQuantity: integer('get_quantity'), // כמות מוצרים במתנה
+  giftProductIds: jsonb('gift_product_ids').default([]), // מזהי מוצרים במתנה
+  giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר
+  
+  // For quantity_discount: הנחות כמות מדורגות
+  quantityTiers: jsonb('quantity_tiers').default([]),
+  
+  // For spend_x_pay_y: קנה ב-X שלם Y
+  spendAmount: decimal('spend_amount', { precision: 10, scale: 2 }),
+  
+  // Exclusions
+  excludeCategoryIds: jsonb('exclude_category_ids').default([]),
+  excludeProductIds: jsonb('exclude_product_ids').default([]),
   
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

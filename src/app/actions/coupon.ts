@@ -4,13 +4,23 @@ import { db } from '@/lib/db';
 import { discounts, customers, orders, giftCards } from '@/lib/db/schema';
 import { eq, and, gt } from 'drizzle-orm';
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y'
+  | 'gift_card';
+
 export type CouponResult = {
   success: true;
   coupon: {
     id: string;
     code: string;
     title: string | null;
-    type: 'percentage' | 'fixed_amount' | 'free_shipping' | 'gift_card';
+    type: DiscountType;
     value: number;
     minimumAmount: number | null;
     stackable: boolean;

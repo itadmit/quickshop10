@@ -30,11 +30,20 @@ export default async function AutoDiscountsPage({ params, searchParams }: AutoDi
   }
 
   // Get auto discounts, categories and products in parallel ⚡
-  const [allDiscounts, allCategories, allProducts] = await Promise.all([
+  const [rawDiscounts, allCategories, allProducts] = await Promise.all([
     db.select().from(automaticDiscounts).where(eq(automaticDiscounts.storeId, store.id)).orderBy(desc(automaticDiscounts.createdAt)),
     db.select({ id: categories.id, name: categories.name }).from(categories).where(eq(categories.storeId, store.id)),
     db.select({ id: products.id, name: products.name }).from(products).where(eq(products.storeId, store.id)),
   ]);
+
+  // Normalize jsonb fields to string[]
+  const allDiscounts = rawDiscounts.map(d => ({
+    ...d,
+    categoryIds: Array.isArray(d.categoryIds) ? d.categoryIds as string[] : [],
+    productIds: Array.isArray(d.productIds) ? d.productIds as string[] : [],
+    excludeCategoryIds: Array.isArray(d.excludeCategoryIds) ? d.excludeCategoryIds as string[] : [],
+    excludeProductIds: Array.isArray(d.excludeProductIds) ? d.excludeProductIds as string[] : [],
+  }));
 
   // Filter by tab
   let filteredDiscounts = allDiscounts;
@@ -55,7 +64,26 @@ export default async function AutoDiscountsPage({ params, searchParams }: AutoDi
   const paginatedDiscounts = filteredDiscounts.slice(
     (currentPage - 1) * perPage,
     currentPage * perPage
-  );
+  ).map(d => ({
+    id: d.id,
+    name: d.name,
+    description: d.description,
+    type: d.type,
+    value: d.value,
+    appliesTo: d.appliesTo,
+    categoryIds: d.categoryIds,
+    productIds: d.productIds,
+    excludeCategoryIds: d.excludeCategoryIds,
+    excludeProductIds: d.excludeProductIds,
+    minimumAmount: d.minimumAmount,
+    minimumQuantity: d.minimumQuantity,
+    startsAt: d.startsAt,
+    endsAt: d.endsAt,
+    priority: d.priority,
+    stackable: d.stackable,
+    isActive: d.isActive,
+    createdAt: d.createdAt,
+  }));
 
   // Stats
   const activeDiscounts = allDiscounts.filter(d => d.isActive);

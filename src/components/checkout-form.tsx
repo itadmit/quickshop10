@@ -7,8 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { CouponInput, type AppliedCoupon } from './coupon-input';
 import { CheckoutLogin } from './checkout-login';
 import { createOrder } from '@/app/actions/order';
-import { getAutomaticDiscounts } from '@/app/actions/automatic-discount';
-import { calculateTotalDiscount, type AutomaticDiscountResult } from '@/lib/discount-utils';
+import { getAutomaticDiscounts, type AutomaticDiscountResult, type CartItemForDiscount } from '@/app/actions/automatic-discount';
+import { calculateDiscounts, dbDiscountToEngine, type CartItem as EngineCartItem, type Discount } from '@/lib/discount-engine';
 import { tracker } from '@/lib/tracking';
 
 interface LoggedInCustomer {
@@ -312,19 +312,39 @@ export function CheckoutForm({
     }
   };
 
-  // Calculate automatic discounts
-  const autoDiscountCalc = calculateTotalDiscount(
-    cart.map(item => ({
-      productId: item.productId,
-      price: item.price,
-      quantity: item.quantity,
-    })),
-    cartTotal,
-    autoDiscounts
-  );
+  // Calculate automatic discounts using the new discount engine
+  const cartItemsForEngine: EngineCartItem[] = cart.map(item => ({
+    id: item.id || `item-${item.productId}`,
+    productId: item.productId,
+    variantId: item.variantId,
+    name: item.name,
+    price: item.price,
+    quantity: item.quantity,
+    imageUrl: item.image,
+  }));
   
-  const memberDiscount = autoDiscountCalc.memberDiscount;
-  const autoProductDiscount = autoDiscountCalc.productDiscounts;
+  // Convert auto discounts to engine format
+  const engineDiscounts: Discount[] = autoDiscounts.map(d => ({
+    id: d.id,
+    type: d.type,
+    value: d.value,
+    appliesTo: d.appliesTo,
+    categoryIds: d.categoryIds || [],
+    productIds: d.productIds || [],
+    excludeCategoryIds: [],
+    excludeProductIds: [],
+    stackable: d.stackable,
+  }));
+  
+  const autoDiscountCalc = calculateDiscounts(cartItemsForEngine, engineDiscounts, {
+    isMember: !!loggedInCustomer?.hasPassword,
+  });
+  
+  // Separate member discounts from product discounts
+  const memberDiscount = autoDiscountCalc.appliedDiscounts
+    .filter(d => engineDiscounts.find(ed => ed.id === d.discountId)?.appliesTo === 'member')
+    .reduce((sum, d) => sum + d.amount, 0);
+  const autoProductDiscount = autoDiscountCalc.discountTotal - memberDiscount;
   
   // Calculate coupons discount (supports multiple coupons)
   const afterAutoDiscounts = cartTotal - memberDiscount - autoProductDiscount;

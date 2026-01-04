@@ -10,11 +10,20 @@ import { DeleteCouponButton, ToggleCouponButton } from './coupon-buttons';
 // DiscountsDataTable - Client Component
 // ============================================
 
+type DiscountType = 
+  | 'percentage' 
+  | 'fixed_amount' 
+  | 'free_shipping'
+  | 'buy_x_pay_y'
+  | 'buy_x_get_y'
+  | 'quantity_discount'
+  | 'spend_x_pay_y';
+
 type Coupon = {
   id: string;
   code: string;
   title: string | null;
-  type: 'percentage' | 'fixed_amount' | 'free_shipping';
+  type: DiscountType;
   value: string;
   minimumAmount: string | null;
   usageCount: number | null;
