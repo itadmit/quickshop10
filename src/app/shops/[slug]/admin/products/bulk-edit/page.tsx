@@ -63,11 +63,12 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
     .innerJoin(products, eq(productImages.productId, products.id))
     .where(eq(productImages.isPrimary, true));
 
-  // Get categories
+  // Get categories (with parentId for hierarchy)
   const categoriesData = await db
     .select({
       id: categories.id,
       name: categories.name,
+      parentId: categories.parentId,
     })
     .from(categories)
     .where(eq(categories.storeId, storeId))
@@ -90,6 +91,7 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
     isActive: boolean;
     trackInventory: boolean;
     imageUrl: string | null;
+    categoryId: string | null;
     categoryName: string | null;
     isVariant: boolean;
   }
@@ -117,6 +119,7 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
           isActive: product.isActive && variant.isActive,
           trackInventory: product.trackInventory,
           imageUrl: imageMap.get(product.id) || null,
+          categoryId: product.categoryId,
           categoryName: product.categoryId ? categoryMap.get(product.categoryId) || null : null,
           isVariant: true,
         });
@@ -136,6 +139,7 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
         isActive: product.isActive,
         trackInventory: product.trackInventory,
         imageUrl: imageMap.get(product.id) || null,
+        categoryId: product.categoryId,
         categoryName: product.categoryId ? categoryMap.get(product.categoryId) || null : null,
         isVariant: false,
       });
@@ -214,7 +218,11 @@ export default async function BulkEditPage({ params, searchParams }: BulkEditPag
           <p className="mt-1 text-sm text-gray-500">הוסף מוצרים לחנות כדי לערוך אותם</p>
         </div>
       ) : (
-        <BulkEditTable items={items} storeSlug={slug} />
+        <BulkEditTable 
+          items={items} 
+          storeSlug={slug} 
+          categories={categoriesList}
+        />
       )}
 
       {/* Help */}

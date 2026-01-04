@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { bulkUpdateProduct } from './actions';
+import { InlineCategoryPicker, type CategoryNode } from '@/components/admin/category-picker';
 
 interface BulkEditItem {
   id: string;
@@ -19,6 +20,7 @@ interface BulkEditItem {
   isActive: boolean;
   trackInventory: boolean;
   imageUrl: string | null;
+  categoryId: string | null;
   categoryName: string | null;
   isVariant: boolean;
 }
@@ -26,6 +28,7 @@ interface BulkEditItem {
 interface BulkEditTableProps {
   items: BulkEditItem[];
   storeSlug: string;
+  categories: CategoryNode[];
 }
 
 // Inline editable cell component
@@ -114,7 +117,7 @@ function EditableCell({
       onClick={() => setIsEditing(true)}
       className={`w-full text-right px-2 py-1 rounded hover:bg-gray-100 transition-colors cursor-text ${className}`}
     >
-      {prefix}{value || '-'}{suffix}
+      {value ? `${prefix}${value}${suffix}` : '-'}
     </button>
   );
 }
@@ -132,22 +135,25 @@ function ToggleSwitch({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
       disabled={disabled}
-      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+      dir="ltr"
+      className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${
         checked ? 'bg-green-500' : 'bg-gray-300'
       } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
     >
       <span
-        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-          checked ? 'translate-x-1' : 'translate-x-4'
+        className={`pointer-events-none inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${
+          checked ? 'translate-x-4' : 'translate-x-0.5'
         }`}
       />
     </button>
   );
 }
 
-export function BulkEditTable({ items, storeSlug }: BulkEditTableProps) {
+export function BulkEditTable({ items, storeSlug, categories }: BulkEditTableProps) {
   const router = useRouter();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
@@ -212,6 +218,7 @@ export function BulkEditTable({ items, storeSlug }: BulkEditTableProps) {
                 />
               </th>
               <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase">מוצר</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">קטגוריה</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">SKU</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מחיר</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מחיר השוואה</th>
@@ -259,11 +266,22 @@ export function BulkEditTable({ items, storeSlug }: BulkEditTableProps) {
                       {item.variantTitle && (
                         <p className="text-xs text-gray-500">{item.variantTitle}</p>
                       )}
-                      {item.categoryName && (
-                        <p className="text-xs text-gray-400">{item.categoryName}</p>
-                      )}
                     </div>
                   </div>
+                </td>
+                <td className="py-3 px-2">
+                  {!item.isVariant ? (
+                    <InlineCategoryPicker
+                      categories={categories}
+                      value={item.categoryId}
+                      displayValue={item.categoryName}
+                      onChange={async (categoryId) => {
+                        await handleUpdate(item.id, item.isVariant, 'categoryId', categoryId || '');
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs text-gray-400 px-2">-</span>
+                  )}
                 </td>
                 <td className="py-3 px-2">
                   <EditableCell

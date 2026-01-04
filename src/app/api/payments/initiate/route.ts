@@ -8,8 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pendingPayments, paymentTransactions } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers } from '@/lib/db/schema';
+import { eq, and, sql } from 'drizzle-orm';
 import { getConfiguredProvider, getDefaultProvider } from '@/lib/payments';
 import type { InitiatePaymentRequest, PaymentProviderType } from '@/lib/payments/types';
 import { nanoid } from 'nanoid';
@@ -221,16 +221,6 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Create pending payment record
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 minutes expiry
-    
-    // Add orderReference to orderData for fallback lookup
-    const orderDataWithReference = {
-      ...body.orderData,
-      orderReference,
-    };
-    
     // Use orderData.items (which has productId) instead of body.items (which doesn't)
     // orderData.items includes: productId, variantId, variantTitle, name, quantity, price, sku, image
     // body.items includes: name, sku, quantity, price, imageUrl (no productId!)
@@ -245,14 +235,141 @@ export async function POST(request: NextRequest) {
       image?: string;
       imageUrl?: string;
     }>;
+
+    // ========== CREATE ORDER WITH PENDING STATUS ==========
+    // This allows us to track all checkout attempts, not just completed ones
+    
+    // Get or create customer
+    let customerId: string | null = null;
+    if (body.customer.email) {
+      const [existingCustomer] = await db
+        .select()
+        .from(customers)
+        .where(
+          and(
+            eq(customers.storeId, store.id),
+            eq(customers.email, body.customer.email)
+          )
+        )
+        .limit(1);
+      
+      if (existingCustomer) {
+        customerId = existingCustomer.id;
+      } else {
+        // Create new customer
+        const nameParts = body.customer.name.split(' ');
+        const [newCustomer] = await db.insert(customers).values({
+          storeId: store.id,
+          email: body.customer.email,
+          firstName: nameParts[0] || '',
+          lastName: nameParts.slice(1).join(' ') || '',
+          phone: body.customer.phone || '',
+          defaultAddress: {
+            address: body.customer.address || '',
+            city: body.customer.city || '',
+            zipCode: body.customer.postalCode || '',
+          },
+          totalOrders: 0,
+          totalSpent: '0',
+        }).returning();
+        customerId = newCustomer.id;
+        console.log(`[Payment Initiate] Created new customer: ${customerId}`);
+      }
+    }
+
+    // Generate numeric order number
+    const currentCounter = store.orderCounter ?? 1000;
+    const orderNumber = String(currentCounter);
+    
+    // Increment the store's order counter
+    await db.update(stores)
+      .set({ orderCounter: currentCounter + 1 })
+      .where(eq(stores.id, store.id));
+
+    // Calculate totals
+    const subtotal = cartItemsForOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shippingCost = body.shipping?.cost || 0;
+    const discountAmount = body.discountAmount || 0;
+    const creditUsed = Number((body.orderData as { creditUsed?: number })?.creditUsed) || 0;
+    const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
+
+    // Create order with PENDING financial status
+    const [newOrder] = await db.insert(orders).values({
+      storeId: store.id,
+      customerId,
+      orderNumber,
+      status: 'pending', // Order is pending until payment completes
+      financialStatus: 'pending', // Payment not yet received
+      fulfillmentStatus: 'unfulfilled',
+      subtotal: String(subtotal),
+      discountAmount: String(discountAmount),
+      creditUsed: String(creditUsed),
+      shippingAmount: String(shippingCost),
+      taxAmount: '0',
+      total: String(totalAmount),
+      currency: body.currency || 'ILS',
+      
+      // Customer info
+      customerEmail: body.customer.email,
+      customerName: body.customer.name,
+      customerPhone: body.customer.phone || '',
+      
+      // Shipping address
+      shippingAddress: body.orderData?.shippingAddress as Record<string, unknown> || {
+        address: body.customer.address,
+        city: body.customer.city,
+        zipCode: body.customer.postalCode,
+      },
+      billingAddress: body.orderData?.billingAddress as Record<string, unknown> || {},
+      
+      // Discount
+      discountCode: body.discountCode,
+      
+      // Influencer
+      influencerId: body.influencerId,
+      
+      // Note: paymentMethod and paymentDetails will be updated after payment
+    }).returning();
+
+    console.log(`[Payment Initiate] Created order #${orderNumber} with pending status`);
+
+    // Create order items
+    if (cartItemsForOrder.length > 0) {
+      await db.insert(orderItems).values(
+        cartItemsForOrder.map(item => ({
+          orderId: newOrder.id,
+          productId: item.productId,
+          name: item.name,
+          variantTitle: item.variantTitle || null,
+          sku: item.sku || '',
+          quantity: item.quantity,
+          price: String(item.price),
+          total: String(item.price * item.quantity),
+          imageUrl: item.image || item.imageUrl || null,
+        }))
+      );
+    }
+
+    // ========== CREATE PENDING PAYMENT RECORD ==========
+    // This links the payment provider request to our order
+    const expiresAt = new Date();
+    expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 minutes expiry
+    
+    // Add orderReference to orderData for fallback lookup
+    const orderDataWithReference = {
+      ...body.orderData,
+      orderReference,
+    };
     
     await db.insert(pendingPayments).values({
       storeId: store.id,
       provider: provider.providerType,
       providerRequestId: response.providerRequestId!,
+      orderId: newOrder.id, // Link to the order we just created!
       orderData: orderDataWithReference,
-      cartItems: cartItemsForOrder, // Use orderData.items which includes productId
+      cartItems: cartItemsForOrder,
       customerEmail: body.customer.email,
+      customerId,
       amount: String(body.amount),
       currency: body.currency || 'ILS',
       status: 'pending',

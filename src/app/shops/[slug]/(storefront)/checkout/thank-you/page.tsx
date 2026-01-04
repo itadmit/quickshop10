@@ -158,7 +158,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     }
   }
   
-  // If no order found, check pending payments and create order
+  // If no order found, check pending payments and UPDATE existing order to PAID
   if (!order && pageRequestUid && statusCode === '000') {
     console.log(`Thank you page: Looking for pending payment with pageRequestUid=${pageRequestUid}, storeId=${store.id}`);
     
@@ -175,10 +175,9 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
       )
       .limit(1);
     
-    console.log(`Thank you page: Found pending payment: ${pendingPayment ? 'YES' : 'NO'}`);
+    console.log(`Thank you page: Found pending payment: ${pendingPayment ? 'YES' : 'NO'}, orderId: ${pendingPayment?.orderId || 'none'}`);
     
     if (pendingPayment) {
-      // Create the order from pending payment data
       const orderData = pendingPayment.orderData as Record<string, unknown>;
       const cartItems = pendingPayment.cartItems as Array<{
         productId: string;
@@ -189,97 +188,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         price: number;
         sku?: string;
         image?: string;
-        imageUrl?: string; // Some items might have imageUrl instead of image
+        imageUrl?: string;
       }>;
       
-      // Generate numeric order number from store counter (starts at 1000)
-      const currentCounter = store.orderCounter ?? 1000;
-      const orderNumber = String(currentCounter);
-      
-      // Increment the store's order counter
-      await db.update(stores)
-        .set({ orderCounter: currentCounter + 1 })
-        .where(eq(stores.id, store.id));
-      
-      // Get or create customer - ALWAYS create a customer record for orders
-      let customerId = pendingPayment.customerId;
-      if (!customerId && pendingPayment.customerEmail) {
-        const [existingCustomer] = await db
-          .select()
-          .from(customers)
-          .where(
-            and(
-              eq(customers.storeId, store.id),
-              eq(customers.email, pendingPayment.customerEmail)
-            )
-          )
-          .limit(1);
-        
-        if (existingCustomer) {
-          customerId = existingCustomer.id;
-          // Update customer info
-          await db.update(customers)
-            .set({
-              updatedAt: new Date(),
-              totalOrders: sql`COALESCE(${customers.totalOrders}, 0) + 1`,
-              totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)}`,
-            })
-            .where(eq(customers.id, existingCustomer.id));
-        } else {
-          // Create new customer from order info
-          const orderDataTyped = orderData as {
-            customer?: { name?: string; phone?: string };
-            shippingAddress?: { firstName?: string; lastName?: string; address?: string; city?: string; zipCode?: string };
-          };
-          const customerName = orderDataTyped.customer?.name || 
-            `${orderDataTyped.shippingAddress?.firstName || ''} ${orderDataTyped.shippingAddress?.lastName || ''}`.trim();
-          
-          const [newCustomer] = await db.insert(customers).values({
-            storeId: store.id,
-            email: pendingPayment.customerEmail,
-            firstName: orderDataTyped.shippingAddress?.firstName || customerName.split(' ')[0] || '',
-            lastName: orderDataTyped.shippingAddress?.lastName || customerName.split(' ').slice(1).join(' ') || '',
-            phone: orderDataTyped.customer?.phone || '',
-            defaultAddress: {
-              address: orderDataTyped.shippingAddress?.address || '',
-              city: orderDataTyped.shippingAddress?.city || '',
-              zipCode: orderDataTyped.shippingAddress?.zipCode || '',
-            },
-            totalOrders: 1,
-            totalSpent: String(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)),
-          }).returning();
-          
-          customerId = newCustomer.id;
-          console.log(`Thank you page: Created new customer ${customerId} for email ${pendingPayment.customerEmail}`);
-        }
-      }
-      
-      // SECURITY: Calculate totals and validate against payment amount
-      const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
-      const discountAmount = Number(pendingPayment.discountAmount) || 0;
-      const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
-      const giftCardCode = (orderData as { giftCardCode?: string })?.giftCardCode;
-      const giftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
-      // Note: giftCardAmount is already included in discountAmount, so we don't subtract it twice
-      const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
-      
-      // SECURITY: Validate amount from URL params matches calculated total
-      // This ensures the payment was actually approved for the correct amount
-      const paymentAmount = Number(search.amount) || 0;
-      if (paymentAmount > 0) {
-        const amountDifference = Math.abs(paymentAmount - totalAmount);
-        if (amountDifference > 0.01) {
-          console.error(`Thank you page: SECURITY WARNING - Amount mismatch! Expected ${totalAmount}, got ${paymentAmount}`);
-          // In production, redirect to error page
-          if (process.env.NODE_ENV === 'production') {
-            redirect(`/shops/${slug}/checkout?error=payment_verification_failed`);
-          }
-        }
-      }
-      
-      // SECURITY: Check if order already exists (idempotency - prevent duplicate orders)
-      // This can happen if callback already processed the payment
+      // ========== NEW FLOW: UPDATE EXISTING ORDER TO PAID ==========
+      // Order was already created in /api/payments/initiate with pending status
       if (pendingPayment.orderId) {
         const [existingOrder] = await db
           .select()
@@ -288,71 +201,177 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           .limit(1);
         
         if (existingOrder) {
-          console.log(`Thank you page: Order already exists: ${existingOrder.orderNumber}, redirecting`);
-          redirect(`/shops/${slug}/checkout/thank-you?ref=${existingOrder.orderNumber}`);
+          // Check if already paid (idempotency)
+          if (existingOrder.financialStatus === 'paid') {
+            console.log(`Thank you page: Order ${existingOrder.orderNumber} already paid, showing thank you`);
+            order = existingOrder;
+          } else {
+            // UPDATE order to PAID!
+            console.log(`Thank you page: Updating order ${existingOrder.orderNumber} to PAID`);
+            
+            const [updatedOrder] = await db.update(orders)
+              .set({
+                status: 'confirmed',
+                financialStatus: 'paid',
+                paymentMethod: 'credit_card',
+                paymentDetails: {
+                  provider: pendingPayment.provider,
+                  transactionId: (orderData.paymentDetails as { transactionId?: string })?.transactionId || search.transaction_uid,
+                  approvalNumber: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
+                  cardBrand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
+                  cardLastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
+                },
+                paidAt: new Date(),
+                updatedAt: new Date(),
+              })
+              .where(eq(orders.id, existingOrder.id))
+              .returning();
+            
+            order = updatedOrder;
+            isNewOrder = true; // Trigger post-payment logic (inventory, emails, etc.)
+            
+            // Update customer stats
+            if (existingOrder.customerId) {
+              const totalSpent = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              await db.update(customers)
+                .set({
+                  updatedAt: new Date(),
+                  totalOrders: sql`COALESCE(${customers.totalOrders}, 0) + 1`,
+                  totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${totalSpent}`,
+                })
+                .where(eq(customers.id, existingOrder.customerId));
+            }
+          }
+          
+          // Update pending payment status
+          await db.update(pendingPayments)
+            .set({
+              status: 'completed',
+              completedAt: new Date(),
+            })
+            .where(eq(pendingPayments.id, pendingPayment.id));
         }
       }
       
-      // Create order
-      const [newOrder] = await db.insert(orders).values({
-        storeId: store.id,
-        customerId,
-        orderNumber,
-        status: 'confirmed',
-        financialStatus: 'paid',
-        fulfillmentStatus: 'unfulfilled',
-        subtotal: String(subtotal),
-        discountAmount: String(discountAmount),
-        creditUsed: String(creditUsed),
-        shippingAmount: String(shippingCost),
-        taxAmount: '0',
-        total: String(totalAmount),
-        currency: pendingPayment.currency,
+      // ========== FALLBACK: Create order if not linked (legacy flow) ==========
+      if (!order) {
+        console.log(`Thank you page: No linked order found, creating new order (legacy flow)`);
         
-        // Customer info
-        customerEmail: pendingPayment.customerEmail || search.customer_email || '',
-        customerName: (orderData.customer as { name?: string })?.name || search.customer_name || '',
-        customerPhone: (orderData.customer as { phone?: string })?.phone || '',
+        // Generate numeric order number from store counter (starts at 1000)
+        const currentCounter = store.orderCounter ?? 1000;
+        const orderNumber = String(currentCounter);
         
-        // Shipping address
-        shippingAddress: orderData.shippingAddress as Record<string, unknown> || {},
-        billingAddress: orderData.billingAddress as Record<string, unknown> || orderData.shippingAddress as Record<string, unknown> || {},
+        // Increment the store's order counter
+        await db.update(stores)
+          .set({ orderCounter: currentCounter + 1 })
+          .where(eq(stores.id, store.id));
         
-        // Payment info - prefer callback data over URL params (callback is more secure)
-        paymentMethod: 'credit_card',
-        paymentDetails: {
-          provider: pendingPayment.provider,
-          transactionId: (orderData.paymentDetails as { transactionId?: string })?.transactionId || search.transaction_uid,
-          approvalNumber: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
-          cardBrand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
-          cardLastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
-        },
+        // Get or create customer
+        let customerId = pendingPayment.customerId;
+        if (!customerId && pendingPayment.customerEmail) {
+          const [existingCustomer] = await db
+            .select()
+            .from(customers)
+            .where(
+              and(
+                eq(customers.storeId, store.id),
+                eq(customers.email, pendingPayment.customerEmail)
+              )
+            )
+            .limit(1);
+          
+          if (existingCustomer) {
+            customerId = existingCustomer.id;
+            await db.update(customers)
+              .set({
+                updatedAt: new Date(),
+                totalOrders: sql`COALESCE(${customers.totalOrders}, 0) + 1`,
+                totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)}`,
+              })
+              .where(eq(customers.id, existingCustomer.id));
+          } else {
+            const orderDataTyped = orderData as {
+              customer?: { name?: string; phone?: string };
+              shippingAddress?: { firstName?: string; lastName?: string; address?: string; city?: string; zipCode?: string };
+            };
+            const customerName = orderDataTyped.customer?.name || 
+              `${orderDataTyped.shippingAddress?.firstName || ''} ${orderDataTyped.shippingAddress?.lastName || ''}`.trim();
+            
+            const [newCustomer] = await db.insert(customers).values({
+              storeId: store.id,
+              email: pendingPayment.customerEmail,
+              firstName: orderDataTyped.shippingAddress?.firstName || customerName.split(' ')[0] || '',
+              lastName: orderDataTyped.shippingAddress?.lastName || customerName.split(' ').slice(1).join(' ') || '',
+              phone: orderDataTyped.customer?.phone || '',
+              defaultAddress: {
+                address: orderDataTyped.shippingAddress?.address || '',
+                city: orderDataTyped.shippingAddress?.city || '',
+                zipCode: orderDataTyped.shippingAddress?.zipCode || '',
+              },
+              totalOrders: 1,
+              totalSpent: String(cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)),
+            }).returning();
+            
+            customerId = newCustomer.id;
+          }
+        }
         
-        // Discount
-        discountCode: pendingPayment.discountCode,
-        
-        // Influencer
-        influencerId: pendingPayment.influencerId,
-        
-        // Timestamps
-        paidAt: new Date(),
-      }).returning();
+        // Calculate totals
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
+        const discountAmount = Number(pendingPayment.discountAmount) || 0;
+        const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
+        const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
       
-      // Create order items
-      if (cartItems.length > 0) {
-        await db.insert(orderItems).values(
-          cartItems.map(item => ({
-            orderId: newOrder.id,
-            productId: item.productId,
-            name: item.name,
-            variantTitle: item.variantTitle || null,
-            sku: item.sku || '',
-            price: String(item.price),
-            quantity: item.quantity,
-            total: String(item.price * item.quantity),
-            imageUrl: item.image || item.imageUrl || null,
-          }))
-        );
+        // Create order (legacy fallback)
+        const [newOrder] = await db.insert(orders).values({
+          storeId: store.id,
+          customerId,
+          orderNumber,
+          status: 'confirmed',
+          financialStatus: 'paid',
+          fulfillmentStatus: 'unfulfilled',
+          subtotal: String(subtotal),
+          discountAmount: String(discountAmount),
+          creditUsed: String(creditUsed),
+          shippingAmount: String(shippingCost),
+          taxAmount: '0',
+          total: String(totalAmount),
+          currency: pendingPayment.currency,
+          customerEmail: pendingPayment.customerEmail || search.customer_email || '',
+          customerName: (orderData.customer as { name?: string })?.name || search.customer_name || '',
+          customerPhone: (orderData.customer as { phone?: string })?.phone || '',
+          shippingAddress: orderData.shippingAddress as Record<string, unknown> || {},
+          billingAddress: orderData.billingAddress as Record<string, unknown> || orderData.shippingAddress as Record<string, unknown> || {},
+          paymentMethod: 'credit_card',
+          paymentDetails: {
+            provider: pendingPayment.provider,
+            transactionId: (orderData.paymentDetails as { transactionId?: string })?.transactionId || search.transaction_uid,
+            approvalNumber: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
+            cardBrand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
+            cardLastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
+          },
+          discountCode: pendingPayment.discountCode,
+          influencerId: pendingPayment.influencerId,
+          paidAt: new Date(),
+        }).returning();
+        
+        // Create order items (only for legacy flow - new flow already has items)
+        if (cartItems.length > 0) {
+          await db.insert(orderItems).values(
+            cartItems.map(item => ({
+              orderId: newOrder.id,
+              productId: item.productId,
+              name: item.name,
+              variantTitle: item.variantTitle || null,
+              sku: item.sku || '',
+              price: String(item.price),
+              quantity: item.quantity,
+              total: String(item.price * item.quantity),
+              imageUrl: item.image || item.imageUrl || null,
+            }))
+          );
+        }
         
         // Increment discount usage count (for reports/influencers)
         if (pendingPayment.discountCode) {
@@ -439,118 +458,120 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         decrementInventory(cartItems).catch(err => {
           console.error('Failed to decrement inventory:', err);
         });
-      }
-      
-      // Handle gift card if used
-      if (giftCardCode && giftCardAmount > 0) {
-        const [giftCard] = await db
-          .select()
-          .from(giftCards)
-          .where(
-            and(
-              eq(giftCards.storeId, store.id),
-              eq(giftCards.code, giftCardCode),
-              eq(giftCards.status, 'active')
-            )
-          )
-          .limit(1);
         
-        if (giftCard) {
-          const currentBalance = Number(giftCard.currentBalance) || 0;
-          const newBalance = Math.max(0, currentBalance - giftCardAmount);
+        // Handle gift card if used
+        const giftCardCode = (orderData as { giftCardCode?: string })?.giftCardCode;
+        const giftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
+        if (giftCardCode && giftCardAmount > 0) {
+          const [giftCard] = await db
+            .select()
+            .from(giftCards)
+            .where(
+              and(
+                eq(giftCards.storeId, store.id),
+                eq(giftCards.code, giftCardCode),
+                eq(giftCards.status, 'active')
+              )
+            )
+            .limit(1);
           
-          // Update gift card balance
-          await db
-            .update(giftCards)
-            .set({
-              currentBalance: newBalance.toFixed(2),
-              lastUsedAt: new Date(),
-              status: newBalance <= 0 ? 'used' : 'active',
-            })
-            .where(eq(giftCards.id, giftCard.id));
-          
-          // Create gift card transaction
-          await db.insert(giftCardTransactions).values({
-            giftCardId: giftCard.id,
-            orderId: newOrder.id,
-            amount: (-giftCardAmount).toFixed(2),
-            balanceAfter: newBalance.toFixed(2),
-            note: `הזמנה #${orderNumber}`,
-          });
-        }
-      }
-      
-      // Update pending payment status
-      await db
-        .update(pendingPayments)
-        .set({
-          status: 'completed',
-          orderId: newOrder.id,
-          completedAt: new Date(),
-        })
-        .where(eq(pendingPayments.id, pendingPayment.id));
-      
-      // Send order confirmation email (don't await - fire and forget for speed)
-      sendOrderConfirmationEmail({
-        orderNumber,
-        customerName: newOrder.customerName || search.customer_name || 'לקוח יקר',
-        customerEmail: newOrder.customerEmail || '',
-        items: cartItems.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price,
-          image: item.image || undefined,
-          variantTitle: item.variantTitle || undefined,
-        })),
-        subtotal,
-        shippingAmount: shippingCost,
-        discountAmount,
-        creditUsed,
-        total: totalAmount,
-        shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
-        storeName: store.name,
-        storeSlug: store.slug,
-        paymentInfo: {
-          lastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
-          brand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
-          approvalNum: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
-        },
-      }).catch(err => console.error('Failed to send order confirmation email:', err));
-      
-      // Emit order.created event (triggers notifications, webhooks, automations)
-      emitOrderCreated(
-        store.id,
-        newOrder.id,
-        orderNumber,
-        newOrder.customerEmail || '',
-        totalAmount,
-        cartItems.length
-      );
-      
-      // Check for low stock and emit events (non-blocking, fire-and-forget)
-      Promise.all(
-        cartItems.map(async (item) => {
-          if (!item.productId) return;
-          try {
-            const [product] = await db
-              .select({ id: products.id, name: products.name, inventory: products.inventory })
-              .from(products)
-              .where(eq(products.id, item.productId))
-              .limit(1);
+          if (giftCard) {
+            const currentBalance = Number(giftCard.currentBalance) || 0;
+            const newBalance = Math.max(0, currentBalance - giftCardAmount);
             
-            if (product && product.inventory !== null) {
-              emitLowStock(store.id, product.id, product.name, product.inventory);
-            }
-          } catch (err) {
-            console.error('Failed to check low stock:', err);
+            // Update gift card balance
+            await db
+              .update(giftCards)
+              .set({
+                currentBalance: newBalance.toFixed(2),
+                lastUsedAt: new Date(),
+                status: newBalance <= 0 ? 'used' : 'active',
+              })
+              .where(eq(giftCards.id, giftCard.id));
+            
+            // Create gift card transaction
+            await db.insert(giftCardTransactions).values({
+              giftCardId: giftCard.id,
+              orderId: newOrder.id,
+              amount: (-giftCardAmount).toFixed(2),
+              balanceAfter: newBalance.toFixed(2),
+              note: `הזמנה #${orderNumber}`,
+            });
           }
-        })
-      ).catch(err => console.error('Failed to check low stock:', err));
-      
-      order = newOrder;
-      isNewOrder = true;
-    }
-  }
+        }
+        
+        // Update pending payment status
+        await db
+          .update(pendingPayments)
+          .set({
+            status: 'completed',
+            orderId: newOrder.id,
+            completedAt: new Date(),
+          })
+          .where(eq(pendingPayments.id, pendingPayment.id));
+        
+        // Send order confirmation email (don't await - fire and forget for speed)
+        sendOrderConfirmationEmail({
+          orderNumber,
+          customerName: newOrder.customerName || search.customer_name || 'לקוח יקר',
+          customerEmail: newOrder.customerEmail || '',
+          items: cartItems.map(item => ({
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image || undefined,
+            variantTitle: item.variantTitle || undefined,
+          })),
+          subtotal,
+          shippingAmount: shippingCost,
+          discountAmount,
+          creditUsed,
+          total: totalAmount,
+          shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
+          storeName: store.name,
+          storeSlug: store.slug,
+          paymentInfo: {
+            lastFour: (orderData.paymentDetails as { cardLastFour?: string })?.cardLastFour || search.four_digits,
+            brand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
+            approvalNum: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
+          },
+        }).catch(err => console.error('Failed to send order confirmation email:', err));
+        
+        // Emit order.created event (triggers notifications, webhooks, automations)
+        emitOrderCreated(
+          store.id,
+          newOrder.id,
+          orderNumber,
+          newOrder.customerEmail || '',
+          totalAmount,
+          cartItems.length
+        );
+        
+        // Check for low stock and emit events (non-blocking, fire-and-forget)
+        Promise.all(
+          cartItems.map(async (item) => {
+            if (!item.productId) return;
+            try {
+              const [product] = await db
+                .select({ id: products.id, name: products.name, inventory: products.inventory })
+                .from(products)
+                .where(eq(products.id, item.productId))
+                .limit(1);
+              
+              if (product && product.inventory !== null) {
+                emitLowStock(store.id, product.id, product.name, product.inventory);
+              }
+            } catch (err) {
+              console.error('Failed to check low stock:', err);
+            }
+          })
+        ).catch(err => console.error('Failed to check low stock:', err));
+        
+        order = newOrder;
+        isNewOrder = true;
+      } // end if (!order) - legacy flow
+    } // end if (pendingPayment)
+  } // end if (!order && pageRequestUid...)
   
   // If still no order, redirect back to checkout with error
   if (!order) {

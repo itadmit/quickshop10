@@ -30,7 +30,14 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   let filteredOrders = allOrders;
   if (status && status !== 'all') {
     if (status === 'unpaid') {
+      // הזמנות שממתינות לתשלום (pending payment)
       filteredOrders = allOrders.filter(o => o.financialStatus === 'pending');
+    } else if (status === 'paid') {
+      // הזמנות ששולמו
+      filteredOrders = allOrders.filter(o => o.financialStatus === 'paid');
+    } else if (status === 'cancelled') {
+      // הזמנות שבוטלו
+      filteredOrders = allOrders.filter(o => o.status === 'cancelled');
     } else if (status === 'unfulfilled') {
       filteredOrders = allOrders.filter(o => o.fulfillmentStatus === 'unfulfilled');
     } else if (status === 'open') {
@@ -64,16 +71,19 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   
   // Count for tabs
   const unpaidCount = allOrders.filter(o => o.financialStatus === 'pending').length;
-  const unfulfilledCount = allOrders.filter(o => o.fulfillmentStatus === 'unfulfilled').length;
+  const paidCount = allOrders.filter(o => o.financialStatus === 'paid').length;
+  const cancelledCount = allOrders.filter(o => o.status === 'cancelled').length;
+  const unfulfilledCount = allOrders.filter(o => o.fulfillmentStatus === 'unfulfilled' && o.financialStatus === 'paid').length;
   const openCount = allOrders.filter(o => 
     o.status !== 'cancelled' && o.status !== 'refunded' && o.fulfillmentStatus !== 'fulfilled'
   ).length;
 
   const tabs: Tab[] = [
     { id: 'all', label: 'הכל', count: allOrders.length },
-    { id: 'open', label: 'פתוחות', count: openCount },
-    { id: 'unfulfilled', label: 'ממתינות למשלוח', count: unfulfilledCount },
     { id: 'unpaid', label: 'ממתינות לתשלום', count: unpaidCount },
+    { id: 'paid', label: 'שולמו', count: paidCount },
+    { id: 'unfulfilled', label: 'ממתינות למשלוח', count: unfulfilledCount },
+    { id: 'cancelled', label: 'בוטלו', count: cancelledCount },
   ];
 
   return (

@@ -12,6 +12,7 @@ interface UpdateData {
   cost?: string;
   inventory?: number;
   isActive?: boolean;
+  categoryId?: string;
 }
 
 export async function bulkUpdateProduct(
@@ -40,6 +41,9 @@ export async function bulkUpdateProduct(
     }
     if (data.isActive !== undefined) {
       updateObj.isActive = data.isActive;
+    }
+    if (data.categoryId !== undefined) {
+      updateObj.categoryId = data.categoryId || null;
     }
 
     // Update in database
