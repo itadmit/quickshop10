@@ -1,4 +1,4 @@
-import { getStoreBySlug, getCategoryBySlug, getProductsByCategory } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById } from '@/lib/db/queries';
 import { ProductCard } from '@/components/product-card';
 import { TrackViewCategory } from '@/components/tracking-events';
 import Link from 'next/link';
@@ -25,8 +25,16 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  const products = await getProductsByCategory(store.id, category.id);
+  // Fetch products, subcategories, and parent category in parallel
+  const [products, subcategories, parentCategory] = await Promise.all([
+    getProductsByCategory(store.id, category.id),
+    getSubcategories(store.id, category.id),
+    category.parentId ? getCategoryById(category.parentId) : null,
+  ]);
+
   const basePath = `/shops/${slug}`;
+  const hasSubcategories = subcategories.length > 0;
+  const isSubcategory = !!category.parentId;
 
   return (
     <div className="min-h-screen bg-white">
@@ -50,6 +58,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         )}
         <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
           <div className="text-center">
+            {isSubcategory && parentCategory && (
+              <p className="text-white/70 text-sm tracking-widest uppercase mb-2">
+                {parentCategory.name}
+              </p>
+            )}
             <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white font-extralight tracking-[0.3em] uppercase">
               {category.name}
             </h1>
@@ -68,10 +81,55 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           <ol className="flex items-center gap-2 text-sm text-gray-500">
             <li><Link href={basePath} className="hover:text-black transition-colors">בית</Link></li>
             <li>/</li>
+            {isSubcategory && parentCategory && (
+              <>
+                <li>
+                  <Link href={`${basePath}/category/${parentCategory.slug}`} className="hover:text-black transition-colors">
+                    {parentCategory.name}
+                  </Link>
+                </li>
+                <li>/</li>
+              </>
+            )}
             <li className="text-black">{category.name}</li>
           </ol>
         </div>
       </nav>
+
+      {/* Subcategories Grid (if parent category) */}
+      {hasSubcategories && (
+        <section className="py-12 px-6 border-b border-gray-100">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-center text-sm tracking-[0.3em] uppercase text-gray-500 mb-8">
+              קטגוריות משנה
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {subcategories.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`${basePath}/category/${sub.slug}`}
+                  className="group relative aspect-[4/3] bg-gray-100 overflow-hidden"
+                >
+                  {sub.imageUrl ? (
+                    <img
+                      src={sub.imageUrl}
+                      alt={sub.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
+                  )}
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                    <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                      {sub.name}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Products Grid */}
       <section className="py-16 px-6">
@@ -84,7 +142,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
           {products.length === 0 ? (
             <div className="text-center py-20">
-              <p className="text-gray-400">אין מוצרים בקטגוריה זו</p>
+              <p className="text-gray-400">
+                {hasSubcategories ? 'עיינו בתתי-הקטגוריות למציאת מוצרים' : 'אין מוצרים בקטגוריה זו'}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8">
@@ -109,4 +169,3 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     </div>
   );
 }
-

@@ -73,6 +73,29 @@ export async function getCategoryBySlug(storeId: string, slug: string) {
   return category;
 }
 
+// Get subcategories by parent ID
+export async function getSubcategories(storeId: string, parentId: string) {
+  return db
+    .select()
+    .from(categories)
+    .where(and(
+      eq(categories.storeId, storeId),
+      eq(categories.parentId, parentId),
+      eq(categories.isActive, true)
+    ))
+    .orderBy(categories.sortOrder);
+}
+
+// Get parent category by ID
+export async function getCategoryById(categoryId: string) {
+  const [category] = await db
+    .select()
+    .from(categories)
+    .where(eq(categories.id, categoryId))
+    .limit(1);
+  return category;
+}
+
 // ============ PRODUCTS ============
 
 export type ProductWithImage = Awaited<ReturnType<typeof getProductsByStore>>[number];

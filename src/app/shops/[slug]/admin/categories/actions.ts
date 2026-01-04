@@ -12,6 +12,7 @@ interface CategoryData {
   imageUrl: string;
   isActive: boolean;
   sortOrder: number;
+  parentId: string | null;
 }
 
 export async function createCategory(storeId: string, data: CategoryData) {
@@ -35,6 +36,7 @@ export async function createCategory(storeId: string, data: CategoryData) {
       imageUrl: data.imageUrl || null,
       isActive: data.isActive,
       sortOrder: data.sortOrder,
+      parentId: data.parentId || null,
     });
 
     revalidatePath('/shops/[slug]/admin/categories', 'page');
@@ -56,6 +58,7 @@ export async function updateCategory(categoryId: string, data: CategoryData) {
         imageUrl: data.imageUrl || null,
         isActive: data.isActive,
         sortOrder: data.sortOrder,
+        parentId: data.parentId || null,
       })
       .where(eq(categories.id, categoryId));
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCategory, updateCategory } from './actions';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 interface Category {
   id: string;
@@ -12,18 +13,28 @@ interface Category {
   imageUrl: string | null;
   isActive: boolean;
   sortOrder: number | null;
+  parentId: string | null;
+}
+
+interface ParentCategory {
+  id: string;
+  name: string;
+  parentId: string | null;
 }
 
 interface CategoryFormProps {
   storeId: string;
+  storeSlug: string;
   mode: 'create' | 'edit';
   category?: Category;
+  allCategories?: ParentCategory[];
 }
 
-export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
+export function CategoryForm({ storeId, storeSlug, mode, category, allCategories = [] }: CategoryFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const router = useRouter();
 
   const [formData, setFormData] = useState({
@@ -33,6 +44,19 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
     imageUrl: category?.imageUrl || '',
     isActive: category?.isActive ?? true,
     sortOrder: category?.sortOrder ?? 0,
+    parentId: category?.parentId || '',
+  });
+
+  // Filter out the current category and its children from parent options
+  const availableParents = allCategories.filter(c => {
+    if (mode === 'edit' && category) {
+      // Can't select self or children as parent
+      if (c.id === category.id) return false;
+      // Check if this category has current category as parent (it's a child)
+      if (c.parentId === category.id) return false;
+    }
+    // Only show top-level categories as potential parents
+    return c.parentId === null;
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,14 +65,19 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
 
     startTransition(async () => {
       try {
+        const data = {
+          ...formData,
+          parentId: formData.parentId || null,
+        };
+        
         if (mode === 'create') {
-          const result = await createCategory(storeId, formData);
+          const result = await createCategory(storeId, data);
           if (result.error) {
             setError(result.error);
             return;
           }
         } else if (category) {
-          const result = await updateCategory(category.id, formData);
+          const result = await updateCategory(category.id, data);
           if (result.error) {
             setError(result.error);
             return;
@@ -65,11 +94,11 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
   const generateSlug = (name: string) => {
     return name
       .trim()
-      .replace(/[\s\u200B-\u200D\uFEFF\u00A0\u2000-\u200A\u2028\u2029]+/g, '-') // All types of spaces
-      .replace(/[.,;:!?()[\]{}'"`~@#$%^&*+=|\\<>\/]+/g, '-') // Punctuation marks
-      .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // Control characters
-      .replace(/-+/g, '-') // Clean up multiple dashes
-      .replace(/^-+|-+$/g, ''); // Remove leading/trailing dashes
+      .replace(/[\s\u200B-\u200D\uFEFF\u00A0\u2000-\u200A\u2028\u2029]+/g, '-')
+      .replace(/[.,;:!?()[\]{}'"`~@#$%^&*+=|\\<>\/]+/g, '-')
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
   };
 
   const handleNameChange = (name: string) => {
@@ -78,6 +107,44 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
       name,
       slug: mode === 'create' ? generateSlug(name) : prev.slug,
     }));
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('נא להעלות קובץ תמונה בלבד');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('גודל הקובץ המקסימלי הוא 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      const result = await uploadToCloudinary(file, {
+        folder: `quickshop/stores/${storeSlug}/categories`,
+        tags: ['quickshop', 'category', storeSlug],
+      });
+
+      setFormData(prev => ({ ...prev, imageUrl: result.secure_url }));
+    } catch (err) {
+      console.error('Upload failed:', err);
+      setError('העלאת התמונה נכשלה. נסה שוב.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, imageUrl: '' }));
   };
 
   return (
@@ -110,7 +177,7 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
         <div className="fixed inset-0 z-50 overflow-y-auto" dir="rtl">
           <div className="fixed inset-0 bg-black/50 cursor-pointer" onClick={() => setIsOpen(false)} />
           <div className="flex min-h-full items-center justify-center p-4">
-            <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 text-right modal-scroll">
+            <div className="relative bg-white rounded-xl shadow-xl max-w-lg w-full p-6 text-right modal-scroll max-h-[90vh] overflow-y-auto">
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900">
@@ -131,6 +198,82 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
                 {error && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
                     {error}
+                  </div>
+                )}
+
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    תמונת קטגוריה
+                  </label>
+                  {formData.imageUrl ? (
+                    <div className="relative">
+                      <img
+                        src={formData.imageUrl}
+                        alt="תצוגה מקדימה"
+                        className="w-full h-40 object-cover rounded-lg"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 left-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label className={`flex flex-col items-center justify-center w-full h-40 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                      isUploading ? 'border-gray-300 bg-gray-50' : 'border-gray-300 hover:border-gray-400 hover:bg-gray-50'
+                    }`}>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploading}
+                        className="hidden"
+                      />
+                      {isUploading ? (
+                        <div className="flex flex-col items-center">
+                          <svg className="w-8 h-8 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mt-2">מעלה תמונה...</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center">
+                          <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-sm text-gray-500 mt-2">לחץ להעלאת תמונה</span>
+                          <span className="text-xs text-gray-400 mt-1">JPG, PNG עד 5MB</span>
+                        </div>
+                      )}
+                    </label>
+                  )}
+                </div>
+
+                {/* Parent Category */}
+                {availableParents.length > 0 && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      קטגוריית אב
+                    </label>
+                    <select
+                      value={formData.parentId}
+                      onChange={(e) => setFormData(prev => ({ ...prev, parentId: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors bg-white"
+                    >
+                      <option value="">ללא (קטגוריה ראשית)</option>
+                      {availableParents.map(parent => (
+                        <option key={parent.id} value={parent.id}>
+                          {parent.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">בחר קטגוריית אב כדי ליצור תת-קטגוריה</p>
                   </div>
                 )}
 
@@ -181,31 +324,6 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
                   />
                 </div>
 
-                {/* Image URL */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    כתובת תמונה
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-                    placeholder="https://..."
-                    dir="ltr"
-                  />
-                  {formData.imageUrl && (
-                    <img
-                      src={formData.imageUrl}
-                      alt="תצוגה מקדימה"
-                      className="mt-2 w-full h-32 object-cover rounded-lg"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  )}
-                </div>
-
                 {/* Sort Order */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -252,7 +370,7 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
                   </button>
                   <button
                     type="submit"
-                    disabled={isPending}
+                    disabled={isPending || isUploading}
                     className="flex-1 py-2.5 px-4 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium"
                   >
                     {isPending ? 'שומר...' : mode === 'create' ? 'צור קטגוריה' : 'שמור שינויים'}
@@ -266,4 +384,3 @@ export function CategoryForm({ storeId, mode, category }: CategoryFormProps) {
     </>
   );
 }
-

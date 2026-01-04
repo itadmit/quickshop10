@@ -20,12 +20,14 @@ type CategoryWithCount = {
   imageUrl: string | null;
   sortOrder: number | null;
   isActive: boolean;
+  parentId: string | null;
   createdAt: Date;
   productCount: number;
 };
 
 interface CategoriesDataTableProps {
   categories: CategoryWithCount[];
+  allCategories: CategoryWithCount[];
   storeSlug: string;
   storeId: string;
   tabs: Tab[];
@@ -41,6 +43,7 @@ interface CategoriesDataTableProps {
 
 export function CategoriesDataTable({
   categories,
+  allCategories,
   storeSlug,
   storeId,
   tabs,
@@ -49,6 +52,16 @@ export function CategoriesDataTable({
   pagination,
 }: CategoriesDataTableProps) {
   const router = useRouter();
+
+  // Create a map for parent names
+  const parentNameMap = new Map(allCategories.map(c => [c.id, c.name]));
+
+  // Prepare categories for form (id, name, parentId)
+  const categoriesForForm = allCategories.map(c => ({
+    id: c.id,
+    name: c.name,
+    parentId: c.parentId,
+  }));
 
   // Bulk Actions
   const bulkActions: BulkAction[] = [
@@ -103,6 +116,14 @@ export function CategoriesDataTable({
       header: 'קטגוריה',
       render: (category) => (
         <div className="flex items-center gap-3">
+          {/* Indent subcategories */}
+          {category.parentId && (
+            <div className="w-4 h-4 flex items-center justify-center text-gray-300 shrink-0">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 18l6-6-6-6" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          )}
           <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-200">
             {category.imageUrl ? (
               <Image
@@ -122,7 +143,13 @@ export function CategoriesDataTable({
           </div>
           <div className="min-w-0">
             <p className="font-medium text-gray-900">{category.name}</p>
-            {category.description && (
+            {category.parentId && (
+              <p className="text-xs text-gray-400 flex items-center gap-1">
+                <span>תת-קטגוריה של:</span>
+                <span className="font-medium">{parentNameMap.get(category.parentId) || 'לא ידוע'}</span>
+              </p>
+            )}
+            {category.description && !category.parentId && (
               <p className="text-sm text-gray-500 truncate max-w-[200px]">
                 {category.description}
               </p>
@@ -181,9 +208,11 @@ export function CategoriesDataTable({
             </svg>
           </Link>
           <CategoryForm 
-            storeId={storeId} 
+            storeId={storeId}
+            storeSlug={storeSlug}
             mode="edit" 
-            category={category} 
+            category={category}
+            allCategories={categoriesForForm}
           />
           <DeleteCategoryButton 
             categoryId={category.id}

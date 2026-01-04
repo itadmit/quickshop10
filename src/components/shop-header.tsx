@@ -6,6 +6,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  parentId: string | null;
 }
 
 interface CustomerData {
@@ -25,7 +26,19 @@ interface ShopHeaderProps {
 }
 
 // Server Component - no 'use client' needed
+// CSS-only dropdowns for subcategories (no JS, no hydration cost)
 export function ShopHeader({ storeName, categories, basePath, customer }: ShopHeaderProps) {
+  // Organize categories into parent/child structure
+  const parentCategories = categories.filter(c => !c.parentId);
+  const childrenMap = new Map<string, Category[]>();
+  
+  categories.forEach(c => {
+    if (c.parentId) {
+      const existing = childrenMap.get(c.parentId) || [];
+      childrenMap.set(c.parentId, [...existing, c]);
+    }
+  });
+
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
       <div className="max-w-[1800px] mx-auto px-6 lg:px-12">
@@ -45,15 +58,43 @@ export function ShopHeader({ storeName, categories, basePath, customer }: ShopHe
             >
               בית
             </Link>
-            {categories.map((category) => (
-              <Link
-                key={category.id}
-                href={`${basePath}/category/${category.slug}`}
-                className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hover:text-black transition-colors duration-300"
-              >
-                {category.name}
-              </Link>
-            ))}
+            {parentCategories.map((category) => {
+              const children = childrenMap.get(category.id) || [];
+              const hasChildren = children.length > 0;
+              
+              return (
+                <div key={category.id} className="relative group">
+                  <Link
+                    href={`${basePath}/category/${category.slug}`}
+                    className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hover:text-black transition-colors duration-300 flex items-center gap-1"
+                  >
+                    {category.name}
+                    {hasChildren && (
+                      <svg className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                  </Link>
+                  
+                  {/* Dropdown for subcategories - CSS only */}
+                  {hasChildren && (
+                    <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                      <div className="bg-white border border-gray-100 shadow-lg min-w-[180px]">
+                        {children.map((child) => (
+                          <Link
+                            key={child.id}
+                            href={`${basePath}/category/${child.slug}`}
+                            className="block px-5 py-3 text-[11px] tracking-[0.15em] uppercase text-gray-600 hover:text-black hover:bg-gray-50 transition-colors"
+                          >
+                            {child.name}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </nav>
 
           {/* Actions - User & Cart */}
@@ -69,4 +110,3 @@ export function ShopHeader({ storeName, categories, basePath, customer }: ShopHe
     </header>
   );
 }
-

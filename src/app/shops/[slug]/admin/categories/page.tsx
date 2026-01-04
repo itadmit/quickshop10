@@ -29,6 +29,7 @@ async function getCategoriesWithProductCount(storeId: string) {
       imageUrl: categories.imageUrl,
       sortOrder: categories.sortOrder,
       isActive: categories.isActive,
+      parentId: categories.parentId,
       createdAt: categories.createdAt,
       productCount: count(products.id),
     })
@@ -95,18 +96,31 @@ export default async function CategoriesPage({ params, searchParams }: Categorie
     { id: 'empty', label: 'ריקות', count: emptyCount },
   ];
 
+  // Prepare parent categories list for the form
+  const parentCategoriesForForm = allCategories.map(c => ({
+    id: c.id,
+    name: c.name,
+    parentId: c.parentId,
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="קטגוריות"
         description={`${allCategories.length} קטגוריות בחנות`}
         actions={
-          <CategoryForm storeId={store.id} mode="create" />
+          <CategoryForm 
+            storeId={store.id} 
+            storeSlug={slug}
+            mode="create" 
+            allCategories={parentCategoriesForForm}
+          />
         }
       />
 
       <CategoriesDataTable
         categories={paginatedCategories}
+        allCategories={allCategories}
         storeSlug={slug}
         storeId={store.id}
         tabs={tabs}
