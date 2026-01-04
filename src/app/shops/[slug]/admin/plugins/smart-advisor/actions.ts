@@ -7,8 +7,9 @@ import {
   advisorQuestions, 
   advisorAnswers, 
   advisorProductRules,
+  storePlugins,
 } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 // Helper to generate URL-safe slug (ASCII only for proper URL handling)
 function generateSlug(title: string): string {
@@ -346,6 +347,57 @@ export async function deleteProductRule(
   } catch (error) {
     console.error('Error deleting product rule:', error);
     return { success: false, error: 'שגיאה במחיקת הכלל' };
+  }
+}
+
+// ============================================
+// Plugin Settings Actions
+// ============================================
+
+export async function updateAdvisorSettings(
+  storeId: string,
+  settings: {
+    floatingButtonPosition?: 'left' | 'right';
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get current plugin
+    const [plugin] = await db
+      .select()
+      .from(storePlugins)
+      .where(
+        and(
+          eq(storePlugins.storeId, storeId),
+          eq(storePlugins.pluginSlug, 'smart-advisor')
+        )
+      )
+      .limit(1);
+
+    if (!plugin) {
+      return { success: false, error: 'התוסף לא מותקן' };
+    }
+
+    // Merge with existing config
+    const currentConfig = (plugin.config as Record<string, unknown>) || {};
+    const newConfig = {
+      ...currentConfig,
+      ...settings,
+    };
+
+    // Update
+    await db
+      .update(storePlugins)
+      .set({
+        config: newConfig,
+        updatedAt: new Date(),
+      })
+      .where(eq(storePlugins.id, plugin.id));
+
+    revalidatePath('/');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating advisor settings:', error);
+    return { success: false, error: 'שגיאה בשמירת ההגדרות' };
   }
 }
 

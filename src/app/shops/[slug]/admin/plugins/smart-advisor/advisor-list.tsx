@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Brain, Plus, Search, MoreHorizontal, Eye, Edit, Trash2,
-  BarChart3, Copy, CheckCircle, XCircle, Zap, HelpCircle,
+  BarChart3, Copy, CheckCircle, XCircle, Zap, HelpCircle, Settings,
 } from 'lucide-react';
-import { createAdvisorQuiz, deleteAdvisorQuiz, toggleAdvisorActive } from './actions';
+import { createAdvisorQuiz, deleteAdvisorQuiz, toggleAdvisorActive, updateAdvisorSettings } from './actions';
 
 interface Quiz {
   id: string;
@@ -21,13 +21,18 @@ interface Quiz {
   createdAt: string;
 }
 
+interface AdvisorSettings {
+  floatingButtonPosition: 'left' | 'right';
+}
+
 interface AdvisorListProps {
   quizzes: Quiz[];
   storeSlug: string;
   storeId: string;
+  settings: AdvisorSettings;
 }
 
-export function AdvisorList({ quizzes, storeSlug, storeId }: AdvisorListProps) {
+export function AdvisorList({ quizzes, storeSlug, storeId, settings }: AdvisorListProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [searchQuery, setSearchQuery] = useState('');
@@ -36,10 +41,18 @@ export function AdvisorList({ quizzes, storeSlug, storeId }: AdvisorListProps) {
   const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
   const [formData, setFormData] = useState({ title: '', description: '' });
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [buttonPosition, setButtonPosition] = useState<'left' | 'right'>(settings.floatingButtonPosition);
 
   const filteredQuizzes = quizzes.filter(quiz =>
     quiz.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handlePositionChange = async (position: 'left' | 'right') => {
+    setButtonPosition(position);
+    startTransition(async () => {
+      await updateAdvisorSettings(storeId, { floatingButtonPosition: position });
+    });
+  };
 
   const activeCount = quizzes.filter(q => q.isActive).length;
   const totalCompletions = quizzes.reduce((acc, q) => acc + q.totalCompletions, 0);
@@ -133,6 +146,41 @@ export function AdvisorList({ quizzes, storeSlug, storeId }: AdvisorListProps) {
               <p className="text-2xl font-bold">--</p>
             </div>
             <Zap className="h-8 w-8 text-yellow-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Settings */}
+      <div className="bg-white rounded-xl border p-4">
+        <div className="flex items-center gap-2 mb-4">
+          <Settings className="h-5 w-5 text-gray-500" />
+          <h3 className="font-medium">הגדרות כפתור צף</h3>
+        </div>
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-600">מיקום הכפתור:</span>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePositionChange('right')}
+              disabled={isPending}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                buttonPosition === 'right'
+                  ? 'bg-purple-100 text-purple-700 border-2 border-purple-500'
+                  : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+              }`}
+            >
+              ימין
+            </button>
+            <button
+              onClick={() => handlePositionChange('left')}
+              disabled={isPending}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                buttonPosition === 'left'
+                  ? 'bg-purple-100 text-purple-700 border-2 border-purple-500'
+                  : 'bg-gray-100 text-gray-600 border-2 border-transparent hover:bg-gray-200'
+              }`}
+            >
+              שמאל
+            </button>
           </div>
         </div>
       </div>

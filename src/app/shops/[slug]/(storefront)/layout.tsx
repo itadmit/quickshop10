@@ -38,12 +38,13 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   // Fetch categories, customer, plugin data, and popups in parallel (server-side)
   const now = new Date();
-  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, activeAdvisors, activePopups] = await Promise.all([
+  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups] = await Promise.all([
     getCategoriesByStore(store.id),
     getCurrentCustomer(),
     isPluginActive(store.id, 'product-stories'),
     getStorePlugin(store.id, 'product-stories'),
     isPluginActive(store.id, 'smart-advisor'),
+    getStorePlugin(store.id, 'smart-advisor'),
     getActiveAdvisorsForFloating(store.id),
     // Fetch active popups with valid date range
     db.query.popups.findMany({
@@ -183,6 +184,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             storeId={store.id} 
             advisors={activeAdvisors}
             basePath={basePath}
+            position={(advisorPlugin?.config as Record<string, unknown>)?.floatingButtonPosition as 'left' | 'right' || 'right'}
           />
         )}
 

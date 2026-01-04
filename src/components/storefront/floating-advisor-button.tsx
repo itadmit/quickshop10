@@ -27,9 +27,10 @@ interface FloatingAdvisorButtonProps {
   storeId: string;
   advisors: AdvisorData[];
   basePath: string;
+  position?: 'left' | 'right'; // Default: right
 }
 
-export function FloatingAdvisorButton({ storeSlug, storeId, advisors, basePath }: FloatingAdvisorButtonProps) {
+export function FloatingAdvisorButton({ storeSlug, storeId, advisors, basePath, position = 'right' }: FloatingAdvisorButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -60,9 +61,12 @@ export function FloatingAdvisorButton({ storeSlug, storeId, advisors, basePath }
     setTimeout(() => setDismissed(true), 300);
   };
 
+  // Position classes based on setting
+  const positionClass = position === 'left' ? 'left-6' : 'right-6';
+
   return (
     <div 
-      className={`fixed bottom-6 left-6 z-50 transition-all duration-500 ${
+      className={`fixed bottom-6 ${positionClass} z-50 transition-all duration-500 ${
         isVisible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-5 scale-95 pointer-events-none'
       }`}
       dir="rtl"
