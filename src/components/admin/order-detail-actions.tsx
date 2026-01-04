@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { fulfillOrder, cancelOrder, refundOrder } from '@/lib/actions/orders';
+import { printOrder } from '@/lib/print-order';
 
 interface OrderDetailActionsProps {
   orderId: string;
@@ -33,8 +34,8 @@ export function OrderDetailActions({
   }, []);
 
   const handlePrint = () => {
-    // פתיחת דף הדפסה נפרד עם פרטי הזמנה מלאים
-    window.open(`/shops/${storeSlug}/admin/orders/print/${orderId}`, '_blank');
+    // הדפסה ישירה דרך API - לא מעביר עמוד
+    printOrder(storeSlug, orderId);
   };
 
   const handleFulfill = async () => {

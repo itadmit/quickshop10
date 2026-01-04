@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
+import { printOrders, printOrder } from '@/lib/print-order';
 
 // ============================================
 // OrdersDataTable - Client Component
@@ -114,9 +115,8 @@ export function OrdersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // פתיחת דף הדפסה עם כל ההזמנות שנבחרו
-        const idsParam = selectedIds.join(',');
-        window.open(`/shops/${storeSlug}/admin/orders/print/bulk?ids=${idsParam}`, '_blank');
+        // הדפסה ישירה דרך API - לא מעביר עמוד
+        printOrders(storeSlug, selectedIds);
       },
     },
     {
@@ -232,7 +232,7 @@ export function OrdersDataTable({
             </svg>
           </Link>
           <button
-            onClick={() => window.open(`/shops/${storeSlug}/admin/orders/print/${order.id}`, '_blank')}
+            onClick={() => printOrder(storeSlug, order.id)}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             title="הדפס"
           >

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { fulfillOrder, cancelOrder, refundOrder } from '@/lib/actions/orders';
+import { printOrder } from '@/lib/print-order';
 
 interface OrderActionsProps {
   orderId: string;
@@ -16,8 +17,8 @@ export function OrderActions({ orderId, storeSlug, fulfillmentStatus, financialS
   const [showMenu, setShowMenu] = useState(false);
 
   const handlePrint = () => {
-    // פתיחת דף הדפסה נפרד עם פרטי הזמנה מלאים
-    window.open(`/shops/${storeSlug}/admin/orders/print/${orderId}`, '_blank');
+    // הדפסה ישירה דרך API - לא מעביר עמוד
+    printOrder(storeSlug, orderId);
   };
 
   const handleFulfill = () => {
