@@ -573,6 +573,9 @@ export const orders = pgTable('orders', {
   isRead: boolean('is_read').default(false).notNull(),
   readAt: timestamp('read_at'),
   
+  // Archive
+  archivedAt: timestamp('archived_at'), // null = not archived, timestamp = when archived
+  
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),

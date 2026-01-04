@@ -300,6 +300,7 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
       total: orders.total,
       createdAt: orders.createdAt,
       isRead: orders.isRead,
+      archivedAt: orders.archivedAt,
       customerName: orders.customerName,
       customerEmail: orders.customerEmail,
       customer: {

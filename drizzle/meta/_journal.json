@@ -50,6 +50,13 @@
       "when": 1767524938741,
       "tag": "0006_add_gift_product_discount_type",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1767543261553,
+      "tag": "0007_add_archived_at_to_orders",
+      "breakpoints": true
     }
   ]
 }
