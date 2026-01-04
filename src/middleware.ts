@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { neon } from '@neondatabase/serverless';
 
-// Known platform domains (add your production domain here)
+// ============================================
+// MULTI-TENANT MIDDLEWARE
+// Fast domain routing with Edge Runtime + Neon HTTP
+// ============================================
+
+// Known platform domains
 const PLATFORM_DOMAINS = [
   'localhost',
   'localhost:3000',
@@ -10,46 +16,104 @@ const PLATFORM_DOMAINS = [
   'quickshop.vercel.app',
 ];
 
+// In-memory cache (persists across requests in same Edge instance)
+// This provides ~0ms lookup for cached domains
+const domainCache = new Map<string, { slug: string; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes - longer TTL for speed
+
 export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const pathname = request.nextUrl.pathname;
   
-  // Add pathname to headers for Server Components
+  // Prepare headers for downstream
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', pathname);
   requestHeaders.set('x-hostname', hostname);
 
-  // Check if this is a custom domain (not a platform domain)
-  const isCustomDomain = !PLATFORM_DOMAINS.some(domain => 
+  // ========== FAST PATH: Skip static files ==========
+  // Most requests are static - handle them first for speed
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/') ||
+    pathname.includes('.') ||
+    pathname === '/favicon.ico'
+  ) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
+  }
+
+  // ========== FAST PATH: Platform domains ==========
+  const isPlatformDomain = PLATFORM_DOMAINS.some(domain => 
     hostname === domain || hostname.endsWith(`.${domain}`)
   );
 
-  // If it's a custom domain and not already in /shops/ path, rewrite to the store
-  if (isCustomDomain && !pathname.startsWith('/shops/') && !pathname.startsWith('/api/')) {
-    // For custom domains, we need to look up the store
-    // We'll pass the hostname to the page and let it handle the lookup
-    requestHeaders.set('x-custom-domain', hostname);
-    
-    // Rewrite to a special custom-domain route that will look up the store
-    const url = request.nextUrl.clone();
-    url.pathname = `/api/custom-domain${pathname}`;
-    url.searchParams.set('domain', hostname);
-    url.searchParams.set('path', pathname);
-    
-    // For now, just pass through and let the app handle it
-    // The actual rewrite logic will be in the API route
+  if (isPlatformDomain) {
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
+
+  // ========== CUSTOM DOMAIN ROUTING ==========
+  const cleanHostname = hostname.replace(/^www\./, '');
   
-  return NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  });
+  console.log('[Middleware] Custom domain detected:', cleanHostname);
+  
+  // Check in-memory cache first (fastest - ~0ms)
+  const cached = domainCache.get(cleanHostname);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    console.log('[Middleware] Cache hit for:', cleanHostname, '-> slug:', cached.slug);
+    return rewriteToStore(request, cached.slug, cleanHostname, requestHeaders);
+  }
+
+  // Query Neon directly from Edge (fast - ~20-50ms with connection pooling)
+  try {
+    console.log('[Middleware] Querying DB for domain:', cleanHostname);
+    const sql = neon(process.env.DATABASE_URL!);
+    const result = await sql`
+      SELECT slug FROM stores 
+      WHERE custom_domain = ${cleanHostname} 
+      LIMIT 1
+    `;
+
+    console.log('[Middleware] DB result:', result);
+
+    if (result.length > 0) {
+      const slug = result[0].slug as string;
+      
+      // Cache for next requests
+      domainCache.set(cleanHostname, { slug, timestamp: Date.now() });
+      
+      console.log('[Middleware] Rewriting to store:', slug);
+      return rewriteToStore(request, slug, cleanHostname, requestHeaders);
+    } else {
+      console.log('[Middleware] No store found for domain:', cleanHostname);
+    }
+  } catch (error) {
+    console.error('[Middleware] Domain lookup error:', error);
+    // On error, continue to default behavior
+  }
+
+  // Domain not found - could redirect to main site or show error
+  // For now, continue normally (will show 404)
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
+
+// Helper to rewrite request to store path
+function rewriteToStore(
+  request: NextRequest, 
+  slug: string, 
+  domain: string,
+  headers: Headers
+): NextResponse {
+  const url = request.nextUrl.clone();
+  url.pathname = `/shops/${slug}${request.nextUrl.pathname}`;
+  
+  headers.set('x-store-slug', slug);
+  headers.set('x-custom-domain', domain);
+  
+  return NextResponse.rewrite(url, { request: { headers } });
 }
 
 export const config = {
   matcher: [
-    // Match all paths except static files and api routes
-    '/((?!_next/static|_next/image|favicon.ico).*)',
+    // Match all paths except static files
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)',
   ],
 };

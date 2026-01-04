@@ -123,11 +123,92 @@ async function getDomainConfigFromVercel(domain: string): Promise<{
   }
 }
 
+// ============ DNS VERIFICATION ============
+
+async function checkDNS(domain: string): Promise<{
+  valid: boolean;
+  type?: 'A' | 'CNAME';
+  value?: string;
+  error?: string;
+}> {
+  try {
+    // Use DNS over HTTPS (Cloudflare's public resolver) for reliable DNS lookups
+    const [aRecordResult, cnameResult] = await Promise.all([
+      fetch(`https://cloudflare-dns.com/dns-query?name=${domain}&type=A`, {
+        headers: { 'Accept': 'application/dns-json' },
+      }).then(r => r.json()).catch(() => null),
+      fetch(`https://cloudflare-dns.com/dns-query?name=${domain}&type=CNAME`, {
+        headers: { 'Accept': 'application/dns-json' },
+      }).then(r => r.json()).catch(() => null),
+    ]);
+
+    // Check A record - should point to Vercel's IP
+    if (aRecordResult?.Answer) {
+      const aRecord = aRecordResult.Answer.find((r: { type: number; data: string }) => r.type === 1);
+      if (aRecord) {
+        const ip = aRecord.data;
+        // Vercel's IPs
+        const vercelIPs = ['76.76.21.21', '76.76.21.123', '76.76.21.93', '76.76.21.98'];
+        if (vercelIPs.includes(ip)) {
+          return { valid: true, type: 'A', value: ip };
+        }
+        return { 
+          valid: false, 
+          type: 'A', 
+          value: ip,
+          error: `רשומת A מצביעה על ${ip} במקום 76.76.21.21 (Vercel)` 
+        };
+      }
+    }
+
+    // Check CNAME record - should point to our branded domain or Vercel's CNAME
+    if (cnameResult?.Answer) {
+      const cnameRecord = cnameResult.Answer.find((r: { type: number; data: string }) => r.type === 5);
+      if (cnameRecord) {
+        const cname = cnameRecord.data.replace(/\.$/, ''); // Remove trailing dot
+        // Accept our branded CNAME or Vercel's direct CNAME
+        const validCNAMEs = ['shops.my-quickshop.com', 'cname.vercel-dns.com'];
+        if (validCNAMEs.includes(cname)) {
+          return { valid: true, type: 'CNAME', value: cname };
+        }
+        return { 
+          valid: false, 
+          type: 'CNAME', 
+          value: cname,
+          error: `רשומת CNAME מצביעה על ${cname} במקום shops.my-quickshop.com` 
+        };
+      }
+    }
+
+    return { 
+      valid: false, 
+      error: 'לא נמצאה רשומת A או CNAME. ודא שהגדרת את ה-DNS נכון.' 
+    };
+  } catch (error) {
+    console.error('DNS check error:', error);
+    return { valid: false, error: 'שגיאה בבדיקת DNS' };
+  }
+}
+
+export async function checkDomainDNS(domain: string) {
+  const result = await checkDNS(domain);
+  return result;
+}
+
 // ============ MAIN ACTIONS ============
 
 export async function updateCustomDomain(storeId: string, domain: string) {
   try {
-    // Check if domain is already in use by another store
+    // Step 1: Verify DNS is configured correctly BEFORE saving
+    const dnsCheck = await checkDNS(domain);
+    if (!dnsCheck.valid) {
+      return { 
+        error: dnsCheck.error || 'ה-DNS לא מוגדר נכון. הגדר את ה-DNS ונסה שוב.',
+        dnsStatus: dnsCheck
+      };
+    }
+
+    // Step 2: Check if domain is already in use by another store
     const existing = await db
       .select({ id: stores.id, customDomain: stores.customDomain })
       .from(stores)
@@ -138,25 +219,25 @@ export async function updateCustomDomain(storeId: string, domain: string) {
       return { error: 'דומיין זה כבר בשימוש על ידי חנות אחרת' };
     }
 
-    // Get the current domain to remove it from Vercel
+    // Step 3: Get the current domain to remove it from Vercel
     const [currentStore] = await db
       .select({ customDomain: stores.customDomain })
       .from(stores)
       .where(eq(stores.id, storeId))
       .limit(1);
 
-    // Remove old domain from Vercel if exists
+    // Step 4: Remove old domain from Vercel if exists
     if (currentStore?.customDomain && currentStore.customDomain !== domain) {
       await removeDomainFromVercel(currentStore.customDomain);
     }
 
-    // Add new domain to Vercel
+    // Step 5: Add new domain to Vercel
     const vercelResult = await addDomainToVercel(domain);
     if (!vercelResult.success) {
       return { error: vercelResult.error };
     }
 
-    // Save to database
+    // Step 6: Save to database
     await db
       .update(stores)
       .set({ 
@@ -166,7 +247,7 @@ export async function updateCustomDomain(storeId: string, domain: string) {
       .where(eq(stores.id, storeId));
 
     revalidatePath('/shops/[slug]/admin/settings/domain', 'page');
-    return { success: true };
+    return { success: true, dnsType: dnsCheck.type };
   } catch (error) {
     console.error('Error updating custom domain:', error);
     return { error: 'אירעה שגיאה בעדכון הדומיין' };

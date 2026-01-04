@@ -327,22 +327,6 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
         </div>
       </div>
 
-      {/* URL Info */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-gray-900 mb-2">כתובות החנות</h3>
-        <div className="text-sm text-gray-600 space-y-1">
-          <p>
-            <span className="text-gray-500">כתובת ראשית:</span>{' '}
-            <code className="bg-gray-100 px-2 py-0.5 rounded">
-              quickshop.co.il/shops/{store.slug}
-            </code>
-          </p>
-          <p className="text-xs text-gray-400 mt-2">
-            לדומיין מותאם אישית, צור קשר עם התמיכה
-          </p>
-        </div>
-      </div>
-
       {/* Submit */}
       <div className="flex items-center gap-4">
         <button

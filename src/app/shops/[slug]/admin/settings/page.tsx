@@ -16,6 +16,7 @@ interface SettingsPageProps {
 
 const settingsTabs = [
   { id: 'general', label: 'כללי', href: '' },
+  { id: 'domain', label: 'דומיין', href: '/domain' },
   { id: 'payments', label: 'תשלומים', href: '/payments' },
   { id: 'tracking', label: 'Tracking', href: '/tracking' },
   { id: 'checkout', label: 'Checkout', href: '/checkout' },
