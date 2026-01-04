@@ -40,6 +40,8 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
     // הגדרות עגלות נטושות
     abandonedCartMinutes: (settings.abandonedCartMinutes as number) || 60,
     lowStockThreshold: (settings.lowStockThreshold as number) || 5,
+    // הגדרות החזרות
+    returnPolicyDays: (settings.returnPolicyDays as number) || 14,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -272,7 +274,7 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
         <h2 className="text-lg font-semibold text-gray-900 mb-4">הגדרות מתקדמות</h2>
         
         <div className="grid gap-6">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 זמן עגלה נטושה (דקות)
@@ -303,6 +305,22 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
               />
               <p className="text-xs text-gray-500 mt-1">
                 מתחת לכמה יחידות המלאי ייחשב כנמוך (ברירת מחדל: 5)
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ימים להחזרה
+              </label>
+              <input
+                type="number"
+                min="0"
+                max="365"
+                value={formData.returnPolicyDays}
+                onChange={(e) => setFormData(prev => ({ ...prev, returnPolicyDays: parseInt(e.target.value) || 14 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                תוך כמה ימים ניתן לבקש החזרה/החלפה (ברירת מחדל: 14 ימים, 0 = ללא הגבלה)
               </p>
             </div>
           </div>

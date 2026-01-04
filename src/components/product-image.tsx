@@ -3,35 +3,33 @@
 import { useState } from 'react';
 
 interface ProductImageProps {
-  src: string | null;
+  src: string | null | undefined;
   alt: string;
   className?: string;
-  fallback?: React.ReactNode;
+  loading?: 'lazy' | 'eager';
 }
 
-export function ProductImage({ src, alt, className = '', fallback }: ProductImageProps) {
-  const [error, setError] = useState(false);
-  
-  if (!src || error) {
-    return (
-      <>
-        {fallback || (
-          <div className={`w-full h-full flex items-center justify-center text-gray-400 text-2xl ${className}`}>
-            📦
-          </div>
-        )}
-      </>
-    );
-  }
-  
+// Default placeholder SVG as data URI
+const PLACEHOLDER_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400' viewBox='0 0 400 400'%3E%3Crect fill='%23f3f4f6' width='400' height='400'/%3E%3Cg fill='%23d1d5db'%3E%3Crect x='150' y='130' width='100' height='80' rx='8'/%3E%3Ccircle cx='175' cy='155' r='12'/%3E%3Cpolygon points='155,200 200,160 245,200'/%3E%3Cpolygon points='180,200 220,170 260,200'/%3E%3C/g%3E%3C/svg%3E`;
+
+export function ProductImage({ src, alt, className = '', loading = 'lazy' }: ProductImageProps) {
+  const [imgSrc, setImgSrc] = useState(src || PLACEHOLDER_SVG);
+  const [hasError, setHasError] = useState(false);
+
+  const handleError = () => {
+    if (!hasError) {
+      setHasError(true);
+      setImgSrc(PLACEHOLDER_SVG);
+    }
+  };
+
   return (
     <img 
-      src={src} 
-      alt={alt} 
+      src={imgSrc}
+      alt={alt}
       className={className}
-      onError={() => setError(true)}
+      loading={loading}
+      onError={handleError}
     />
   );
 }
-
-

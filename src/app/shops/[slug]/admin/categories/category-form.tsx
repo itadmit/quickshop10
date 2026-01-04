@@ -326,12 +326,16 @@ export function CategoryForm({ storeId, storeSlug, mode, category, allCategories
                     <input
                       type="text"
                       value={formData.slug}
-                      onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        slug: e.target.value.replace(/\s+/g, '-').replace(/-+/g, '-')
+                      }))}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-                      placeholder="women"
-                      dir="ltr"
+                      placeholder="נשים"
+                      dir="auto"
                     />
                   </div>
+                  <p className="text-xs text-gray-400 mt-1">ניתן להשתמש בעברית. רווחים יוחלפו ב-</p>
                 </div>
 
                 {/* Description */}

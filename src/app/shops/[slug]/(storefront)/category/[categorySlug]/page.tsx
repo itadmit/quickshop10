@@ -20,7 +20,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  const category = await getCategoryBySlug(store.id, categorySlug);
+  // Decode URL-encoded slug (for Hebrew/Unicode support)
+  const decodedCategorySlug = decodeURIComponent(categorySlug);
+  const category = await getCategoryBySlug(store.id, decodedCategorySlug);
   
   if (!category) {
     notFound();

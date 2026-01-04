@@ -20,6 +20,8 @@ interface GeneralSettingsData {
   // הגדרות עגלות נטושות
   abandonedCartMinutes: number;
   lowStockThreshold: number;
+  // הגדרות החזרות
+  returnPolicyDays: number;
 }
 
 export async function updateStoreSettings(storeId: string, data: GeneralSettingsData) {
@@ -49,6 +51,8 @@ export async function updateStoreSettings(storeId: string, data: GeneralSettings
       // הגדרות עגלות נטושות
       abandonedCartMinutes: data.abandonedCartMinutes || 60,
       lowStockThreshold: data.lowStockThreshold || 5,
+      // הגדרות החזרות
+      returnPolicyDays: data.returnPolicyDays ?? 14,
     };
 
     // Update store

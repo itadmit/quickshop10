@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AddToCartButton } from './add-to-cart-button';
+import { ProductImage } from './product-image';
 
 interface ProductCardProps {
   id: string;
@@ -31,7 +32,7 @@ export function ProductCard({
       {/* Image */}
       <Link href={productUrl} className="block img-zoom mb-4">
         <div className="aspect-[3/4] bg-gray-50 relative overflow-hidden">
-          <img 
+          <ProductImage 
             src={image} 
             alt={name}
             className="w-full h-full object-cover"

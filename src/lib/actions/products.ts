@@ -2,9 +2,53 @@
 
 import { db } from '@/lib/db';
 import { products, productImages, productOptions, productOptionValues, productVariants, productCategories } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, like, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
+
+// ============ HELPERS ============
+
+// Generate unique slug - adds -1, -2 etc. if slug already exists
+async function generateUniqueSlug(storeId: string, baseSlug: string, excludeProductId?: string): Promise<string> {
+  // Sanitize: replace spaces with dashes
+  let slug = baseSlug.trim().replace(/\s+/g, '-').replace(/-+/g, '-');
+  
+  // Check if slug exists
+  const existing = await db
+    .select({ slug: products.slug })
+    .from(products)
+    .where(
+      excludeProductId 
+        ? and(
+            eq(products.storeId, storeId),
+            like(products.slug, `${slug}%`),
+            sql`${products.id} != ${excludeProductId}`
+          )
+        : and(
+            eq(products.storeId, storeId),
+            like(products.slug, `${slug}%`)
+          )
+    );
+
+  if (existing.length === 0) {
+    return slug;
+  }
+
+  // Check exact match and numbered versions
+  const existingSlugs = new Set(existing.map(e => e.slug));
+  
+  if (!existingSlugs.has(slug)) {
+    return slug;
+  }
+
+  // Find next available number
+  let counter = 1;
+  while (existingSlugs.has(`${slug}-${counter}`)) {
+    counter++;
+  }
+  
+  return `${slug}-${counter}`;
+}
 
 // ============ TYPES ============
 
@@ -72,11 +116,14 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
     const session = await auth();
     const userId = session?.user?.id || null;
 
+    // Generate unique slug
+    const uniqueSlug = await generateUniqueSlug(storeId, data.slug);
+
     // Create the product
     const [product] = await db.insert(products).values({
       storeId,
       name: data.name,
-      slug: data.slug,
+      slug: uniqueSlug,
       shortDescription: data.shortDescription || null,
       description: data.description || null,
       price: data.hasVariants ? null : (data.price || null),
@@ -184,11 +231,14 @@ export async function updateProduct(
     const session = await auth();
     const userId = session?.user?.id || null;
 
+    // Generate unique slug (excluding current product)
+    const uniqueSlug = await generateUniqueSlug(storeId, data.slug, productId);
+
     // Update the product
     await db.update(products)
       .set({
         name: data.name,
-        slug: data.slug,
+        slug: uniqueSlug,
         shortDescription: data.shortDescription || null,
         description: data.description || null,
         price: data.hasVariants ? null : (data.price || null),

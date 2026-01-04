@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems } from '@/lib/db/schema';
+import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
@@ -386,9 +386,9 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
     const orderNumber = String(currentCounter);
 
     // Update store counter
-    await db.update(require('@/lib/db/schema').stores)
+    await db.update(stores)
       .set({ orderCounter: currentCounter + 1 })
-      .where(eq(require('@/lib/db/schema').stores.id, store.id));
+      .where(eq(stores.id, store.id));
 
     // Create new order
     const [newOrder] = await db.insert(orders).values({

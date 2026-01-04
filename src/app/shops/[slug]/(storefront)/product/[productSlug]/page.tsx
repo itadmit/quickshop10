@@ -2,6 +2,7 @@ import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductCard } from '@/components/product-card';
+import { ProductImage } from '@/components/product-image';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewProduct } from '@/components/tracking-events';
 import Link from 'next/link';
@@ -22,7 +23,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const product = await getProductBySlug(store.id, productSlug);
+  // Decode URL-encoded slug (for Hebrew/Unicode support)
+  const decodedSlug = decodeURIComponent(productSlug);
+  const product = await getProductBySlug(store.id, decodedSlug);
 
   if (!product) {
     notFound();
@@ -80,10 +83,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
             <div className="space-y-4">
               {/* Main Image */}
               <div className="aspect-[3/4] bg-gray-50 overflow-hidden">
-                <img 
-                  src={mainImage || '/placeholder.jpg'}
+                <ProductImage 
+                  src={mainImage}
                   alt={product.name}
                   className="w-full h-full object-cover"
+                  loading="eager"
                 />
               </div>
               
@@ -92,7 +96,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <div className="grid grid-cols-4 gap-4">
                   {product.images.map((img, i) => (
                     <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-                      <img 
+                      <ProductImage 
                         src={img.url}
                         alt={`${product.name} ${i + 1}`}
                         className="w-full h-full object-cover"

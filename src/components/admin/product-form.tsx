@@ -42,6 +42,7 @@ interface ProductVariant {
 interface ProductFormProps {
   storeId: string;
   storeSlug: string;
+  customDomain?: string | null;
   categories: Category[];
   product?: Product & { 
     images?: { id: string; url: string; alt: string | null; isPrimary: boolean }[];
@@ -64,6 +65,13 @@ function slugify(text: string): string {
     .replace(/-+/g, '-')
     // Remove leading/trailing dashes
     .replace(/^-+|-+$/g, '');
+}
+
+// Sanitize slug input - replace spaces with dashes
+function sanitizeSlug(text: string): string {
+  return text
+    .replace(/\s+/g, '-') // Replace spaces with dash
+    .replace(/-+/g, '-'); // Clean multiple dashes
 }
 
 export function ProductForm({ storeId, storeSlug, categories, product, mode }: ProductFormProps) {
@@ -381,23 +389,6 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
                   required
                 />
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  כתובת URL <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">/products/</span>
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    placeholder="white-cotton-shirt"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors font-mono text-sm"
-                    required
-                  />
-                </div>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -688,6 +679,24 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
             </div>
             <div className="p-4 space-y-4">
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  כתובת URL <span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">/products/</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    onChange={(e) => setSlug(sanitizeSlug(e.target.value))}
+                    placeholder="חולצה-לבנה"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors text-sm"
+                    dir="auto"
+                    required
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">ניתן להשתמש בעברית. רווחים יוחלפו ב-</p>
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">כותרת SEO</label>
                 <input
                   type="text"
@@ -719,8 +728,8 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
                   <p className="text-blue-700 text-lg hover:underline cursor-pointer truncate">
                     {seoTitle || name || 'שם המוצר'}
                   </p>
-                  <p className="text-green-700 text-sm truncate">
-                    {`example.com/products/${slug || 'product-url'}`}
+                  <p className="text-green-700 text-sm truncate" dir="ltr">
+                    {`example.com/products/${slug.replace(/\s+/g, '-') || 'product-url'}`}
                   </p>
                   <p className="text-gray-600 text-sm line-clamp-2">
                     {seoDescription || shortDescription || 'תיאור המוצר יופיע כאן...'}
