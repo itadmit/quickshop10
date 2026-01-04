@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getCurrentCustomer } from '@/lib/customer-auth';
 import { redirect, notFound } from 'next/navigation';

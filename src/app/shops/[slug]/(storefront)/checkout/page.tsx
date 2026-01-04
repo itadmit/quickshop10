@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { CheckoutForm, CheckoutSettings, ShippingSettings } from '@/components/checkout-form';
 import { db } from '@/lib/db';
 import { stores, paymentProviders } from '@/lib/db/schema';

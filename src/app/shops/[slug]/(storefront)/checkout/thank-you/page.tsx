@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 /**
  * Thank You Page - SINGLE SOURCE OF TRUTH for Order Creation
  * SERVER COMPONENT for speed - handles redirects from payment gateways

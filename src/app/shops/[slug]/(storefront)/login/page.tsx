@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { CustomerLoginForm } from '@/components/customer-login-form';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getCurrentCustomer } from '@/lib/customer-auth';

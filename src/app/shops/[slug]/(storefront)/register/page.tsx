@@ -1,3 +1,4 @@
+import { headers } from 'next/headers';
 import { CustomerRegisterForm } from '@/components/customer-register-form';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getCurrentCustomer } from '@/lib/customer-auth';
