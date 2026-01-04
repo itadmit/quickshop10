@@ -368,6 +368,183 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
   });
 }
 
+// ============ ABANDONED CART RECOVERY EMAIL ============
+
+interface AbandonedCartItem {
+  name: string;
+  quantity: number;
+  price: number;
+  variantTitle?: string;
+  image?: string;
+}
+
+interface AbandonedCartEmailData {
+  customerEmail: string;
+  customerName?: string;
+  items: AbandonedCartItem[];
+  subtotal: number;
+  recoveryUrl: string;
+  storeName: string;
+  storeSlug: string;
+  senderName?: string; // שם השולח המותאם
+}
+
+export async function sendAbandonedCartEmail(data: AbandonedCartEmailData) {
+  const {
+    customerEmail,
+    customerName,
+    items,
+    subtotal,
+    recoveryUrl,
+    storeName,
+    storeSlug,
+    senderName,
+  } = data;
+
+  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${storeSlug}`;
+  
+  const itemsHtml = items.slice(0, 3).map(item => {
+    const imageUrl = item.image 
+      ? (item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_APP_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
+      : null;
+    
+    return `
+    <tr>
+      <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+        <table width="100%" cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="width: 60px; vertical-align: top;">
+              ${imageUrl ? `
+              <img src="${imageUrl}" alt="${item.name.replace(/"/g, '&quot;')}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid #f0f0f0;" />
+              ` : `
+              <div style="width: 60px; height: 60px; background: #f3f4f6; border-radius: 8px;"></div>
+              `}
+            </td>
+            <td style="padding: 0 12px; vertical-align: top; text-align: right;">
+              <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 14px;">${item.name}</p>
+              ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">${item.variantTitle}</p>` : ''}
+              <p style="margin: 0; font-size: 12px; color: #666;">כמות: ${item.quantity}</p>
+            </td>
+            <td style="width: 80px; vertical-align: top; text-align: left;">
+              <span style="font-weight: 600; font-size: 14px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  `;
+  }).join('');
+
+  const moreItemsText = items.length > 3 ? `<p style="margin: 12px 0 0; font-size: 14px; color: #666; text-align: center;">+ ${items.length - 3} פריטים נוספים</p>` : '';
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Header with Cart Icon -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <!-- Orange Shopping Cart Circle -->
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 64px; height: 64px; background: #fff7ed; border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: #ea580c; font-size: 28px; line-height: 64px;">🛒</span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin: 0 0 8px; font-size: 26px; font-weight: 400; color: #1a1a1a;">שכחת משהו?</h1>
+            <p style="margin: 0; color: #6b7280; font-size: 16px; line-height: 1.5;">
+              היי ${customerName || 'לך'}! שמנו לב שנשארו פריטים בעגלה שלך.<br>
+              <span style="color: #ea580c;">הם עדיין מחכים לך!</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Cart Items Card -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border: 1px solid #e5e7eb; border-top: none;">
+            
+            <!-- Items Section -->
+            <div style="padding: 24px;">
+              <h2 style="margin: 0 0 16px; font-size: 16px; font-weight: 500; color: #1a1a1a;">
+                הפריטים בעגלה שלך
+              </h2>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${itemsHtml}
+              </table>
+              ${moreItemsText}
+            </div>
+            
+            <!-- Subtotal -->
+            <div style="padding: 20px 24px; background: #f9fafb; border-top: 1px solid #e5e7eb;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="font-size: 16px; font-weight: 500; color: #1a1a1a; text-align: right;">סה״כ בעגלה</td>
+                  <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${subtotal.toFixed(0)}</td>
+                </tr>
+              </table>
+            </div>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA Button -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
+            <a href="${recoveryUrl}" style="display: inline-block; background: #ea580c; color: white !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-weight: 600; font-size: 16px;">
+              השלם את הרכישה
+            </a>
+            <p style="margin: 16px 0 0; font-size: 14px; color: #9ca3af;">
+              או <a href="${storeUrl}" style="color: #1a1a1a; text-decoration: underline;">המשך לגלוש בחנות</a>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px;">
+            <p style="margin: 0 0 8px; color: #9ca3af; font-size: 14px;">קיבלת מייל זה כי נשארו פריטים בעגלת הקניות שלך ב-${storeName}.</p>
+            <p style="margin: 0; color: #9ca3af; font-size: 14px;">© ${storeName}</p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+  
+  // Use custom sender name if provided
+  const customFrom = senderName 
+    ? { email: fromEmail, name: senderName }
+    : { email: fromEmail, name: storeName };
+
+  try {
+    await sgMail.send({
+      to: customerEmail,
+      from: customFrom,
+      subject: `שכחת משהו? הפריטים שלך עדיין בעגלה 🛒 - ${storeName}`,
+      html,
+      text: `היי ${customerName || 'לך'}! שמנו לב שנשארו ${items.length} פריטים בעגלה שלך ב-${storeName}. לחץ כאן להשלמת הרכישה: ${recoveryUrl}`,
+    });
+    return { success: true };
+  } catch (error) {
+    console.error('Error sending abandoned cart email:', error);
+    return { success: false, error: 'Failed to send email' };
+  }
+}
+
 export async function sendWelcomeEmail(email: string, name?: string, storeName?: string) {
   const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
   

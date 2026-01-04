@@ -1,7 +1,8 @@
-import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants } from '@/lib/db/queries';
+import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore } from '@/lib/db/queries';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductCard } from '@/components/product-card';
+import { StoreFooter } from '@/components/store-footer';
 import { TrackViewProduct } from '@/components/tracking-events';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -29,16 +30,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const basePath = `/shops/${slug}`;
 
-  // Get variants if product has them - parallel fetch
-  const [options, variants] = product.hasVariants 
-    ? await Promise.all([
-        getProductOptions(product.id),
-        getProductVariants(product.id),
-      ])
-    : [[], []];
+  // Get variants, related products and categories in parallel - maximum speed!
+  const [options, variants, allProducts, categories] = await Promise.all([
+    product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
+    product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
+    getProductsByStore(store.id, 5),
+    getCategoriesByStore(store.id),
+  ]);
 
   // Get related products
-  const allProducts = await getProductsByStore(store.id, 5);
   const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, 4);
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
@@ -239,6 +239,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </section>
       )}
+
+      {/* Footer */}
+      <StoreFooter 
+        storeName={store.name} 
+        categories={categories} 
+        basePath={basePath} 
+      />
     </div>
   );
 }

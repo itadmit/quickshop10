@@ -21,6 +21,7 @@ export function NotificationsSettingsForm({ storeId, settings, defaultEmail }: N
     emailOnOutOfStock: (settings.emailOnOutOfStock as boolean) ?? true,
     lowStockThreshold: (settings.lowStockThreshold as number) ?? 5,
     notificationEmail: (settings.notificationEmail as string) || defaultEmail,
+    emailSenderName: (settings.emailSenderName as string) || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,23 +40,42 @@ export function NotificationsSettingsForm({ storeId, settings, defaultEmail }: N
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Email Address */}
+      {/* Email Settings */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">כתובת אימייל להתראות</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">הגדרות אימייל</h2>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            אימייל
-          </label>
-          <input
-            type="email"
-            value={formData.notificationEmail}
-            onChange={(e) => setFormData(prev => ({ ...prev, notificationEmail: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-            placeholder="hello@store.com"
-            dir="ltr"
-          />
-          <p className="text-xs text-gray-500 mt-1">כל ההתראות יישלחו לכתובת זו</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              אימייל להתראות
+            </label>
+            <input
+              type="email"
+              value={formData.notificationEmail}
+              onChange={(e) => setFormData(prev => ({ ...prev, notificationEmail: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              placeholder="hello@store.com"
+              dir="ltr"
+            />
+            <p className="text-xs text-gray-500 mt-1">כל ההתראות יישלחו לכתובת זו</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              שם השולח באימיילים ללקוחות
+            </label>
+            <input
+              type="text"
+              value={formData.emailSenderName}
+              onChange={(e) => setFormData(prev => ({ ...prev, emailSenderName: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              placeholder="לדוגמה: צוות החנות שלי"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              השם שיופיע כשולח באימיילים ללקוחות (תזכורת עגלה נטושה, אישור הזמנה וכו&apos;). 
+              אם ריק, ישמש שם החנות.
+            </p>
+          </div>
         </div>
       </div>
 

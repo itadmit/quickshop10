@@ -1,5 +1,6 @@
-import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById, getCategoriesByStore } from '@/lib/db/queries';
 import { ProductCard } from '@/components/product-card';
+import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -25,11 +26,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  // Fetch products, subcategories, and parent category in parallel
-  const [products, subcategories, parentCategory] = await Promise.all([
+  // Fetch products, subcategories, parent category and all categories in parallel
+  const [products, subcategories, parentCategory, allCategories] = await Promise.all([
     getProductsByCategory(store.id, category.id),
     getSubcategories(store.id, category.id),
     category.parentId ? getCategoryById(category.parentId) : null,
+    getCategoriesByStore(store.id),
   ]);
 
   const basePath = `/shops/${slug}`;
@@ -166,6 +168,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
           )}
         </div>
       </section>
+
+      {/* Footer */}
+      <StoreFooter 
+        storeName={store.name} 
+        categories={allCategories} 
+        basePath={basePath} 
+      />
     </div>
   );
 }
