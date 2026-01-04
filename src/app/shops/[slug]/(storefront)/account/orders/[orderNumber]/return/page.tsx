@@ -25,7 +25,8 @@ export default async function ReturnRequestPage({ params }: ReturnPageProps) {
     notFound();
   }
   
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
   const customer = await getCurrentCustomer();
   if (!customer) {

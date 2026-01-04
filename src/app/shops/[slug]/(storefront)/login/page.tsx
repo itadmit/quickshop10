@@ -23,7 +23,8 @@ export default async function CustomerLoginPage({ params, searchParams }: LoginP
     notFound();
   }
   
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
   // If already logged in, redirect
   const customer = await getCurrentCustomer();

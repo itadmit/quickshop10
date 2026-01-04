@@ -3,6 +3,7 @@ import { ShopHeader } from '@/components/shop-header';
 import { CartSidebar } from '@/components/cart-sidebar';
 import { getCurrentCustomer } from '@/lib/customer-auth';
 import { cache } from 'react';
+import { headers } from 'next/headers';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
@@ -98,7 +99,13 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     };
   }
   
-  const basePath = `/shops/${slug}`;
+  // Check if we're on a custom domain
+  const headersList = await headers();
+  const customDomain = headersList.get('x-custom-domain');
+  const isCustomDomain = !!customDomain;
+  
+  // On custom domain: use root paths. On platform: use /shops/slug
+  const basePath = isCustomDomain ? '' : `/shops/${slug}`;
 
   // Check if we should show header (only if there's content)
   const showHeader = categories.length > 0;
@@ -146,59 +153,59 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   return (
     <TrackingProvider config={trackingConfig}>
-      {showHeader && (
-        <>
-          <ShopHeader 
-            storeName={store.name} 
-            categories={categories} 
-            basePath={basePath}
-            customer={customerData}
-          />
-          <CartSidebar basePath={basePath} />
-          {/* Stories Bar - Renders only if plugin is active and there are stories */}
-          {storiesEnabled && storiesSettings && stories.length > 0 && (
-            <StoriesBar
-              storeSlug={slug}
-              stories={stories}
-              settings={storiesSettings}
-              pageType="home"
+        {showHeader && (
+          <>
+            <ShopHeader 
+              storeName={store.name} 
+              categories={categories} 
+              basePath={basePath}
+              customer={customerData}
             />
-          )}
-        </>
-      )}
-      <main>{children}</main>
-      
-      {/* Floating Advisor Button - Renders only if plugin is active and has advisors */}
-      {advisorEnabled && activeAdvisors.length > 0 && (
-        <FloatingAdvisorButton 
-          storeSlug={slug} 
-          storeId={store.id} 
-          advisors={activeAdvisors}
-        />
-      )}
+            <CartSidebar basePath={basePath} />
+            {/* Stories Bar - Renders only if plugin is active and there are stories */}
+            {storiesEnabled && storiesSettings && stories.length > 0 && (
+              <StoriesBar
+                storeSlug={slug}
+                stories={stories}
+                settings={storiesSettings}
+                pageType="home"
+              />
+            )}
+          </>
+        )}
+        <main>{children}</main>
+        
+        {/* Floating Advisor Button - Renders only if plugin is active and has advisors */}
+        {advisorEnabled && activeAdvisors.length > 0 && (
+          <FloatingAdvisorButton 
+            storeSlug={slug} 
+            storeId={store.id} 
+            advisors={activeAdvisors}
+          />
+        )}
 
-      {/* Popup Display - Renders active popups */}
-      {activePopups.length > 0 && (
-        <PopupDisplay 
-          popups={activePopups.map(p => ({
-            id: p.id,
-            name: p.name,
-            type: p.type,
-            trigger: p.trigger,
-            triggerValue: p.triggerValue || 3,
-            position: p.position,
-            frequency: p.frequency,
-            frequencyDays: p.frequencyDays || 7,
-            targetPages: p.targetPages,
-            customTargetUrls: (p.customTargetUrls as string[]) || [],
-            showOnDesktop: p.showOnDesktop,
-            showOnMobile: p.showOnMobile,
-            content: p.content as Record<string, unknown>,
-            style: p.style as Record<string, unknown>,
-          }))}
-          storeSlug={slug}
-        />
-      )}
+        {/* Popup Display - Renders active popups */}
+        {activePopups.length > 0 && (
+          <PopupDisplay 
+            popups={activePopups.map(p => ({
+              id: p.id,
+              name: p.name,
+              type: p.type,
+              trigger: p.trigger,
+              triggerValue: p.triggerValue || 3,
+              position: p.position,
+              frequency: p.frequency,
+              frequencyDays: p.frequencyDays || 7,
+              targetPages: p.targetPages,
+              customTargetUrls: (p.customTargetUrls as string[]) || [],
+              showOnDesktop: p.showOnDesktop,
+              showOnMobile: p.showOnMobile,
+              content: p.content as Record<string, unknown>,
+              style: p.style as Record<string, unknown>,
+            }))}
+            storeSlug={slug}
+          />
+        )}
     </TrackingProvider>
   );
 }

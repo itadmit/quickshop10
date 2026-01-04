@@ -44,7 +44,8 @@ export default async function CustomerReturnsPage({ params }: ReturnsPageProps) 
     notFound();
   }
   
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
   const customer = await getCurrentCustomer();
   if (!customer) {

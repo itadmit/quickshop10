@@ -9,6 +9,7 @@ import {
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 interface ShopPageProps {
@@ -23,7 +24,9 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
     notFound();
   }
 
-  const basePath = `/shops/${slug}`;
+  // Get basePath (empty for custom domain, /shops/slug for platform)
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
 
   // Parallel data fetching - maximum speed!
   const [sections, categories, featuredProducts, allProducts] = await Promise.all([

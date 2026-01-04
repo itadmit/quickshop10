@@ -7,6 +7,7 @@ import { StoreFooter } from '@/components/store-footer';
 import { TrackViewProduct } from '@/components/tracking-events';
 import { ScrollToTop } from '@/components/scroll-to-top';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 // ISR - Revalidate every 60 seconds  
@@ -32,7 +33,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
 
   // Get variants, related products and categories in parallel - maximum speed!
   const [options, variants, allProducts, categories] = await Promise.all([

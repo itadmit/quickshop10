@@ -80,7 +80,8 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
 
 export default async function CheckoutPage({ params }: CheckoutPageProps) {
   const { slug } = await params;
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
   // Get store data including checkout settings
   const storeData = await getStoreDataForCheckout(slug);

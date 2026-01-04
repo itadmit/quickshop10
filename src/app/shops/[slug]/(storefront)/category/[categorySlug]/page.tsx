@@ -3,6 +3,7 @@ import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 // ISR - Revalidate every 60 seconds
@@ -36,7 +37,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     getCategoriesByStore(store.id),
   ]);
 
-  const basePath = `/shops/${slug}`;
+  // Check for custom domain
+  const headersList = await headers();
+  const isCustomDomain = !!headersList.get('x-custom-domain');
+  const basePath = isCustomDomain ? '' : `/shops/${slug}`;
+  
   const hasSubcategories = subcategories.length > 0;
   const isSubcategory = !!category.parentId;
 

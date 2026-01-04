@@ -629,7 +629,8 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     imageUrl: item.imageUrl || (item.productId ? productImageMap.get(item.productId) || null : null),
   }));
 
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
 
   // Payment info from query params or order
   const paymentDetails = (order.paymentDetails || {}) as Record<string, string>;

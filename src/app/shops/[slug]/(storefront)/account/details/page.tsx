@@ -21,7 +21,8 @@ export default async function CustomerDetailsPage({ params }: DetailsPageProps) 
     notFound();
   }
   
-  const basePath = `/shops/${slug}`;
+  const headersList = await headers();
+  const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
   // Check if logged in
   const customer = await getCurrentCustomer();
