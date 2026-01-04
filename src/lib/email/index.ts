@@ -869,6 +869,144 @@ export async function sendReturnRequestUpdateEmail(data: ReturnRequestUpdateEmai
   });
 }
 
+// Exchange Payment Email - sent when customer needs to pay price difference
+interface ExchangePaymentEmailData {
+  customerEmail: string;
+  customerName?: string;
+  storeName: string;
+  storeSlug: string;
+  orderNumber: string;
+  originalProductName: string;
+  newProductName: string;
+  originalValue: number;
+  newProductPrice: number;
+  priceDifference: number;
+  paymentUrl: string;
+}
+
+export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
+  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${data.storeSlug}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Header -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 64px; height: 64px; background: #dbeafe; border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: #2563eb; font-size: 28px; line-height: 64px;">↔️</span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin: 0 0 8px; font-size: 26px; font-weight: 400; color: #1a1a1a;">בקשת ההחלפה שלך אושרה!</h1>
+            <p style="margin: 0; color: #6b7280; font-size: 16px;">
+              נותר הפרש קטן לתשלום
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Content -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border: 1px solid #e5e7eb; border-top: none; padding: 24px;">
+            
+            <p style="margin: 0 0 16px; color: #4b5563; line-height: 1.6;">
+              היי ${data.customerName || 'לקוח יקר'},
+            </p>
+            
+            <p style="margin: 0 0 24px; color: #4b5563; line-height: 1.6;">
+              שמחים לעדכן שבקשת ההחלפה שלך אושרה! המוצר החדש שבחרת יקר מעט יותר מהמוצר המקורי, ולכן נדרש תשלום הפרש קטן.
+            </p>
+            
+            <!-- Exchange Details -->
+            <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+              <h3 style="margin: 0 0 16px; font-size: 14px; color: #6b7280; font-weight: 500;">פרטי ההחלפה</h3>
+              
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">מוצר מקורי:</span>
+                  </td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left;">
+                    <span style="color: #1a1a1a;">${data.originalProductName}</span>
+                    <span style="color: #6b7280; margin-right: 8px;">₪${data.originalValue.toFixed(0)}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                    <span style="color: #6b7280;">מוצר חדש:</span>
+                  </td>
+                  <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left;">
+                    <span style="color: #1a1a1a;">${data.newProductName}</span>
+                    <span style="color: #6b7280; margin-right: 8px;">₪${data.newProductPrice.toFixed(0)}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0;">
+                    <span style="font-weight: 600; color: #1a1a1a;">הפרש לתשלום:</span>
+                  </td>
+                  <td style="padding: 12px 0; text-align: left;">
+                    <span style="font-size: 20px; font-weight: 600; color: #2563eb;">₪${data.priceDifference.toFixed(0)}</span>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            
+            <p style="margin: 0 0 8px; color: #4b5563; line-height: 1.6; text-align: center;">
+              לאחר התשלום, המוצר החדש יישלח אליך בהקדם.
+            </p>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
+            <a href="${data.paymentUrl}" style="display: inline-block; background: #2563eb; color: white !important; text-decoration: none; padding: 16px 48px; border-radius: 10px; font-weight: 600; font-size: 16px;">
+              לתשלום הפרש ₪${data.priceDifference.toFixed(0)}
+            </a>
+            <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
+              הזמנה #${data.orderNumber}
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px;">
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+              <a href="${storeUrl}" style="color: #6b7280; text-decoration: none;">${data.storeName}</a>
+            </p>
+            <p style="margin: 0; color: #9ca3af; font-size: 12px;">מופעל על ידי QuickShop</p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: data.customerEmail,
+    subject: `תשלום הפרש להחלפה - הזמנה #${data.orderNumber} - ${data.storeName}`,
+    html,
+  });
+}
+
 export async function sendWelcomeEmail(email: string, name?: string, storeName?: string) {
   const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
   

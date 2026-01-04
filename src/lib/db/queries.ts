@@ -114,6 +114,7 @@ export const getProductsByStore = cache(async (storeId: string, limit?: number) 
       inventory: products.inventory,
       isFeatured: products.isFeatured,
       categoryId: products.categoryId,
+      hasVariants: products.hasVariants,
       image: productImages.url,
     })
     .from(products)

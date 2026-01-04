@@ -1,11 +1,12 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores } from '@/lib/db/schema';
+import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores, productImages } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
-import { sendReturnRequestUpdateEmail } from '@/lib/email';
+import { sendReturnRequestUpdateEmail, sendExchangePaymentEmail } from '@/lib/email';
+import { getDefaultProvider } from '@/lib/payments';
 
 interface ProcessReturnInput {
   storeSlug: string;
@@ -350,7 +351,7 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
       return { success: false, error: 'בקשה זו לא מיועדת להחלפה' };
     }
 
-    // Get the new product
+    // Get the new product with image
     const [newProduct] = await db
       .select()
       .from(products)
@@ -360,6 +361,13 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
     if (!newProduct) {
       return { success: false, error: 'מוצר לא נמצא' };
     }
+
+    // Get product image
+    const [productImage] = await db
+      .select({ url: productImages.url })
+      .from(productImages)
+      .where(and(eq(productImages.productId, input.newProductId), eq(productImages.isPrimary, true)))
+      .limit(1);
 
     let newProductPrice = Number(newProduct.price);
     let variantTitle = null;
@@ -390,13 +398,22 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
       .set({ orderCounter: currentCounter + 1 })
       .where(eq(stores.id, store.id));
 
+    // Determine financial status based on price difference
+    let financialStatus: 'paid' | 'pending' = 'paid';
+    let paymentUrl: string | undefined;
+    
+    if (priceDifference > 0) {
+      // Customer needs to pay the difference
+      financialStatus = 'pending';
+    }
+
     // Create new order
     const [newOrder] = await db.insert(orders).values({
       storeId: store.id,
       customerId: request.customerId,
       orderNumber,
       status: 'confirmed',
-      financialStatus: priceDifference <= 0 ? 'paid' : 'pending',
+      financialStatus,
       fulfillmentStatus: 'unfulfilled',
       subtotal: String(newProductPrice),
       discountAmount: String(Math.min(originalValue, newProductPrice)),
@@ -417,6 +434,7 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
       quantity: 1,
       price: String(newProductPrice),
       total: String(newProductPrice),
+      imageUrl: productImage?.url || null,
     });
 
     // Decrement inventory for new product
@@ -430,11 +448,96 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
         .where(eq(products.id, input.newProductId));
     }
 
+    // Handle price difference
+    if (priceDifference > 0 && request.customerId) {
+      // Customer needs to pay - create payment link
+      const paymentProvider = await getDefaultProvider(store.id);
+      
+      if (paymentProvider) {
+        // Get customer details
+        const [customer] = await db.select().from(customers).where(eq(customers.id, request.customerId)).limit(1);
+        
+        if (customer?.email) {
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://quickshop.co.il';
+          
+          const paymentResult = await paymentProvider.initiatePayment({
+            storeId: store.id,
+            storeSlug: input.storeSlug,
+            orderReference: newOrder.id,
+            amount: priceDifference,
+            currency: 'ILS',
+            customer: {
+              id: customer.id,
+              name: `${customer.firstName || ''} ${customer.lastName || ''}`.trim() || customer.email,
+              email: customer.email,
+              phone: customer.phone || undefined,
+            },
+            items: [{
+              name: `הפרש תשלום עבור החלפה - ${newProduct.name}`,
+              quantity: 1,
+              price: priceDifference,
+            }],
+            orderData: {
+              orderId: newOrder.id,
+              orderNumber: newOrder.orderNumber,
+              type: 'exchange_difference',
+              returnRequestId: request.id,
+            },
+            successUrl: `${baseUrl}/shops/${input.storeSlug}/checkout/thank-you/${orderNumber}`,
+            failureUrl: `${baseUrl}/shops/${input.storeSlug}/account/orders`,
+          });
+
+          if (paymentResult.success && paymentResult.paymentUrl) {
+            paymentUrl = paymentResult.paymentUrl;
+            
+            // Send email with payment link
+            sendExchangePaymentEmail({
+              customerEmail: customer.email,
+              customerName: customer.firstName || undefined,
+              storeName: store.name,
+              storeSlug: store.slug,
+              orderNumber: newOrder.orderNumber,
+              originalProductName: (request.items as Array<{ name?: string }>)?.[0]?.name || 'המוצר המקורי',
+              newProductName: newProduct.name + (variantTitle ? ` - ${variantTitle}` : ''),
+              originalValue,
+              newProductPrice,
+              priceDifference,
+              paymentUrl,
+            }).catch(err => console.error('Failed to send exchange payment email:', err));
+          }
+        }
+      }
+    } else if (priceDifference < 0 && request.customerId) {
+      // Customer gets credit for the difference
+      const creditAmount = Math.abs(priceDifference);
+      
+      // Get current balance
+      const [customer] = await db.select({ creditBalance: customers.creditBalance }).from(customers).where(eq(customers.id, request.customerId)).limit(1);
+      const currentBalance = Number(customer?.creditBalance || 0);
+      const newBalance = currentBalance + creditAmount;
+
+      // Create credit transaction
+      await db.insert(customerCreditTransactions).values({
+        customerId: request.customerId,
+        storeId: store.id,
+        type: 'credit',
+        amount: String(creditAmount),
+        balanceAfter: String(newBalance),
+        reason: `זיכוי מהחלפה - הזמנה #${newOrder.orderNumber}`,
+        orderId: newOrder.id,
+      });
+
+      // Update customer balance
+      await db.update(customers)
+        .set({ creditBalance: String(newBalance) })
+        .where(eq(customers.id, request.customerId));
+    }
+
     // Update return request
     await db.update(returnRequests)
       .set({
         exchangeOrderId: newOrder.id,
-        status: 'completed',
+        status: priceDifference > 0 ? 'approved' : 'completed', // If pending payment, keep as approved
         updatedAt: new Date(),
       })
       .where(eq(returnRequests.id, input.requestId));
@@ -450,6 +553,9 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
       success: true, 
       orderId: newOrder.id,
       orderNumber: newOrder.orderNumber,
+      priceDifference,
+      paymentUrl,
+      creditIssued: priceDifference < 0 ? Math.abs(priceDifference) : undefined,
     };
   } catch (error) {
     console.error('Error creating exchange order:', error);

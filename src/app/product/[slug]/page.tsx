@@ -66,7 +66,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
               {/* Main Image */}
               <div className="aspect-[3/4] bg-gray-50 overflow-hidden">
                 <img 
-                  src={mainImage || '/placeholder.jpg'}
+                  src={mainImage || '/placeholder.svg'}
                   alt={product.name}
                   className="w-full h-full object-cover"
                 />
@@ -121,7 +121,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <VariantSelector
                   productId={product.id}
                   productName={product.name}
-                  productImage={mainImage || '/placeholder.jpg'}
+                  productImage={mainImage || '/placeholder.svg'}
                   options={options}
                   variants={variants}
                   basePrice={Number(product.price)}
@@ -142,7 +142,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     productId={product.id}
                     name={product.name}
                     price={Number(product.price)}
-                    image={mainImage || '/placeholder.jpg'}
+                    image={mainImage || '/placeholder.svg'}
                     className="w-full mb-4"
                   />
 
@@ -216,7 +216,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   name={product.name}
                   price={Number(product.price)}
                   comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
-                  image={product.image || '/placeholder.jpg'}
+                  image={product.image || '/placeholder.svg'}
                 />
               ))}
             </div>

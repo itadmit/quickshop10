@@ -24,11 +24,17 @@ interface AdminSidebarProps {
   pluginMenuItems?: PluginMenuItem[];
 }
 
+interface SubMenuItem {
+  label: string;
+  href: string;
+}
+
 interface MenuItem {
   label: string;
   href: string;
   icon: React.ReactNode;
   badge?: number;
+  children?: SubMenuItem[];
 }
 
 // Main menu items
@@ -289,6 +295,18 @@ const settingsMenuItems: MenuItem[] = [
         <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
       </svg>
     ),
+    children: [
+      { label: 'כללי', href: '/settings' },
+      { label: 'דומיין מותאם', href: '/settings/domain' },
+      { label: 'משלוחים', href: '/settings/shipping' },
+      { label: 'תשלומים', href: '/settings/payments' },
+      { label: 'צ\'קאאוט', href: '/settings/checkout' },
+      { label: 'מיסים', href: '/settings/tax' },
+      { label: 'התראות', href: '/settings/notifications' },
+      { label: 'מעקב ואנליטיקס', href: '/settings/tracking' },
+      { label: 'צוות', href: '/settings/team' },
+      { label: 'Webhooks', href: '/settings/webhooks' },
+    ],
   },
 ];
 

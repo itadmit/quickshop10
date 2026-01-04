@@ -52,7 +52,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath 
                 name={product.name}
                 price={Number(product.price)}
                 comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
-                image={product.image || '/placeholder.jpg'}
+                image={product.image || '/placeholder.svg'}
                 shortDescription={product.shortDescription}
                 isFeatured={product.isFeatured}
                 basePath={basePath}

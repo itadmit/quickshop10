@@ -5,6 +5,7 @@ import { ProductCard } from '@/components/product-card';
 import { ProductImage } from '@/components/product-image';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewProduct } from '@/components/tracking-events';
+import { ScrollToTop } from '@/components/scroll-to-top';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -59,6 +60,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Scroll to top on page load */}
+      <ScrollToTop />
+      
       {/* Track ViewContent event */}
       <TrackViewProduct product={trackingProduct} />
       
@@ -140,7 +144,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <VariantSelector
                   productId={product.id}
                   productName={product.name}
-                  productImage={mainImage || '/placeholder.jpg'}
+                  productImage={mainImage || '/placeholder.svg'}
                   options={options}
                   variants={variants}
                   basePrice={Number(product.price)}
@@ -161,7 +165,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     productId={product.id}
                     name={product.name}
                     price={Number(product.price)}
-                    image={mainImage || '/placeholder.jpg'}
+                    image={mainImage || '/placeholder.svg'}
                     className="w-full mb-4"
                   />
 
@@ -235,7 +239,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   name={product.name}
                   price={Number(product.price)}
                   comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
-                  image={product.image || '/placeholder.jpg'}
+                  image={product.image || '/placeholder.svg'}
                   basePath={basePath}
                 />
               ))}

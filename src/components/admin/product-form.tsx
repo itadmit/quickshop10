@@ -74,7 +74,9 @@ function sanitizeSlug(text: string): string {
     .replace(/-+/g, '-'); // Clean multiple dashes
 }
 
-export function ProductForm({ storeId, storeSlug, categories, product, mode }: ProductFormProps) {
+export function ProductForm({ storeId, storeSlug, customDomain, categories, product, mode }: ProductFormProps) {
+  // Build the store URL for SEO preview
+  const storeUrl = customDomain || `my-quickshop.com/shops/${storeSlug}`;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   
@@ -679,24 +681,6 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
             </div>
             <div className="p-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  כתובת URL <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500">/products/</span>
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => setSlug(sanitizeSlug(e.target.value))}
-                    placeholder="חולצה-לבנה"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors text-sm"
-                    dir="auto"
-                    required
-                  />
-                </div>
-                <p className="text-xs text-gray-400 mt-1">ניתן להשתמש בעברית. רווחים יוחלפו ב-</p>
-              </div>
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">כותרת SEO</label>
                 <input
                   type="text"
@@ -720,16 +704,31 @@ export function ProductForm({ storeId, storeSlug, categories, product, mode }: P
                 />
                 <p className="text-xs text-gray-400 mt-1">{seoDescription.length}/160</p>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  כתובת URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={slug}
+                  onChange={(e) => setSlug(sanitizeSlug(e.target.value))}
+                  placeholder="חולצה-לבנה"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors text-sm"
+                  dir="auto"
+                  required
+                />
+                <p className="text-xs text-gray-400 mt-1">ניתן להשתמש בעברית. רווחים יוחלפו ב-</p>
+              </div>
 
               {/* SEO Preview */}
               <div className="bg-gray-50 rounded-lg p-4">
-                <p className="text-xs text-gray-500 mb-2">תצוגה מקדימה בגוגל:</p>
-                <div className="space-y-1">
+                <p className="text-xs text-gray-500 mb-2 text-right">תצוגה מקדימה בגוגל:</p>
+                <div className="space-y-1 text-right">
                   <p className="text-blue-700 text-lg hover:underline cursor-pointer truncate">
                     {seoTitle || name || 'שם המוצר'}
                   </p>
-                  <p className="text-green-700 text-sm truncate" dir="ltr">
-                    {`example.com/products/${slug.replace(/\s+/g, '-') || 'product-url'}`}
+                  <p className="text-green-700 text-sm truncate">
+                    {`${storeUrl}/product/${slug.replace(/\s+/g, '-') || 'product-url'}`}
                   </p>
                   <p className="text-gray-600 text-sm line-clamp-2">
                     {seoDescription || shortDescription || 'תיאור המוצר יופיע כאן...'}

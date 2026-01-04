@@ -1,8 +1,12 @@
-import { getStoreBySlug } from '@/lib/db/queries';
+import { getStoreBySlug, getProductsByStore } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getReturnRequestById } from '@/lib/db/queries/returns';
 import { ReturnRequestActions } from './return-actions';
+import { ExchangeProductPicker } from './exchange-product-picker';
+import { db } from '@/lib/db';
+import { productImages } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export const metadata = {
   title: 'פרטי בקשה',
@@ -64,6 +68,31 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
 
   const canProcess = ['pending', 'under_review'].includes(request.status);
   const canComplete = ['approved', 'awaiting_shipment', 'item_received'].includes(request.status);
+  
+  // Check if exchange product picker should be shown
+  const showExchangePicker = request.status === 'approved' && 
+                             request.finalResolution === 'exchange' && 
+                             !request.exchangeOrderId;
+  
+  // Fetch products for exchange picker (only if needed)
+  let exchangeProducts: { id: string; name: string; price: string; image: string | null; hasVariants: boolean }[] = [];
+  if (showExchangePicker) {
+    const allProducts = await getProductsByStore(store.id);
+    // Get primary images for products
+    const imageResults = await db
+      .select({ productId: productImages.productId, url: productImages.url })
+      .from(productImages)
+      .where(eq(productImages.isPrimary, true));
+    const imageMap = new Map(imageResults.map(i => [i.productId, i.url]));
+    
+    exchangeProducts = allProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: p.price || '0',
+      image: imageMap.get(p.id) || null,
+      hasVariants: Boolean(p.hasVariants),
+    }));
+  }
 
   return (
     <div className="space-y-6">
@@ -204,7 +233,7 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
         </div>
 
         {/* Sidebar - Actions */}
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-4">
           <ReturnRequestActions
             storeSlug={slug}
             request={{
@@ -219,6 +248,16 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
             canProcess={canProcess}
             canComplete={canComplete}
           />
+          
+          {/* Exchange Product Picker - shown when approved for exchange */}
+          {showExchangePicker && (
+            <ExchangeProductPicker
+              storeSlug={slug}
+              requestId={request.id}
+              originalValue={Number(request.totalValue)}
+              products={exchangeProducts}
+            />
+          )}
         </div>
       </div>
     </div>

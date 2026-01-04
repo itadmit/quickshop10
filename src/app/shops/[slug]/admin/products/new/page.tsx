@@ -23,6 +23,7 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
     <ProductForm
       storeId={store.id}
       storeSlug={slug}
+      customDomain={store.customDomain}
       categories={categories}
       mode="create"
     />

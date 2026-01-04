@@ -30,6 +30,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     <ProductForm
       storeId={store.id}
       storeSlug={slug}
+      customDomain={store.customDomain}
       categories={categories}
       product={product}
       mode="edit"
