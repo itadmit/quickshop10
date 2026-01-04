@@ -104,8 +104,8 @@ export function OrdersDataTable({
       },
     },
     {
-      id: 'print-labels',
-      label: 'הדפס תוויות',
+      id: 'print-orders',
+      label: 'הדפס הזמנות',
       icon: (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <polyline points="6 9 6 2 18 2 18 9"/>
@@ -114,8 +114,9 @@ export function OrdersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement print labels
-        console.log('Print labels:', selectedIds);
+        // פתיחת דף הדפסה עם כל ההזמנות שנבחרו
+        const idsParam = selectedIds.join(',');
+        window.open(`/shops/${storeSlug}/admin/orders/print/bulk?ids=${idsParam}`, '_blank');
       },
     },
     {
@@ -231,7 +232,7 @@ export function OrdersDataTable({
             </svg>
           </Link>
           <button
-            onClick={() => window.print()}
+            onClick={() => window.open(`/shops/${storeSlug}/admin/orders/print/${order.id}`, '_blank')}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
             title="הדפס"
           >

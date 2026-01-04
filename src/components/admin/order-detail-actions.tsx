@@ -33,7 +33,8 @@ export function OrderDetailActions({
   }, []);
 
   const handlePrint = () => {
-    window.print();
+    // פתיחת דף הדפסה נפרד עם פרטי הזמנה מלאים
+    window.open(`/shops/${storeSlug}/admin/orders/print/${orderId}`, '_blank');
   };
 
   const handleFulfill = async () => {

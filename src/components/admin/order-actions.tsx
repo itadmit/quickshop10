@@ -16,7 +16,8 @@ export function OrderActions({ orderId, storeSlug, fulfillmentStatus, financialS
   const [showMenu, setShowMenu] = useState(false);
 
   const handlePrint = () => {
-    window.print();
+    // פתיחת דף הדפסה נפרד עם פרטי הזמנה מלאים
+    window.open(`/shops/${storeSlug}/admin/orders/print/${orderId}`, '_blank');
   };
 
   const handleFulfill = () => {
