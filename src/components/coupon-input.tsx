@@ -101,8 +101,10 @@ export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, emai
 
   const formatCouponValue = (coupon: AppliedCoupon) => {
     if (coupon.type === 'percentage') return `-${coupon.value}%`;
+    if (coupon.type === 'fixed_amount') return `-₪${coupon.value.toFixed(0)}`;
     if (coupon.type === 'free_shipping') return 'משלוח חינם';
     if (coupon.type === 'gift_card') return `-₪${coupon.value.toFixed(0)}`;
+    if (coupon.type === 'gift_product') return 'מוצר במתנה';
     if (coupon.type === 'buy_x_pay_y' && coupon.buyQuantity && coupon.payAmount) {
       return `קנה ${coupon.buyQuantity} שלם ₪${coupon.payAmount}`;
     }

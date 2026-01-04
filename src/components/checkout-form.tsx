@@ -253,11 +253,30 @@ export function CheckoutForm({
   }, [formData.email, cart.length, fetchAutoDiscounts]);
 
   // ניהול מוצרי מתנה מקופונים
-  // ⚡ מהיר - רץ רק כשקופונים או עגלה משתנים, לא על כל render
+  // ⚡ מהיר ויציב - עם useRef למניעת race conditions
+  const giftItemsRef = useRef<Set<string>>(new Set()); // מעקב אחרי קופונים שמנהלים מוצרי מתנה
+  
   useEffect(() => {
     if (!isHydrated) return;
 
+    let isCancelled = false; // Flag למניעת race conditions
+
     const manageGiftItems = async () => {
+      // קודם כל - מחיקת מוצרי מתנה מקופונים שכבר לא קיימים (סינכרוני - מיידי)
+      const activeCouponIds = new Set(appliedCoupons.map(c => c.id));
+      const giftItemsInCart = cart.filter(item => item.isGift && item.giftFromCouponId);
+      
+      // מחיקת מוצרי מתנה מקופונים שכבר לא פעילים
+      for (const giftItem of giftItemsInCart) {
+        if (giftItem.giftFromCouponId && !activeCouponIds.has(giftItem.giftFromCouponId)) {
+          removeGiftItemsByCoupon(giftItem.giftFromCouponId);
+          giftItemsRef.current.delete(giftItem.giftFromCouponId);
+        }
+      }
+
+      // אם בוטל - לא להמשיך
+      if (isCancelled) return;
+
       // מציאת קופונים עם gift_product (מוצר במתנה)
       const giftProductCoupons = appliedCoupons.filter(
         coupon => 
@@ -268,6 +287,9 @@ export function CheckoutForm({
 
       // ניהול קופוני gift_product (מוצר במתנה)
       for (const coupon of giftProductCoupons) {
+        // אם בוטל - לא להמשיך
+        if (isCancelled) return;
+
         // סינון מוצרים רגילים (לא מתנה) שעונים על התנאים
         const regularItems = cart.filter(item => !item.isGift);
         
@@ -296,6 +318,12 @@ export function CheckoutForm({
           // טעינת פרטי מוצרי המתנה (parallel - מהיר)
           const giftProducts = await getProductsByIds(giftProductIds);
           
+          // אם בוטל אחרי הטעינה - לא להוסיף
+          if (isCancelled) return;
+          
+          // עדכון המעקב
+          giftItemsRef.current.add(coupon.id);
+          
           for (const product of giftProducts) {
             if (!product.isActive) continue; // רק מוצרים פעילים
             
@@ -309,22 +337,20 @@ export function CheckoutForm({
           }
         } else {
           // תנאים לא מתקיימים - מחיקת מוצרי מתנה
-          removeGiftItemsByCoupon(coupon.id);
-        }
-      }
-
-      // מחיקת מוצרי מתנה מקופונים שכבר לא קיימים
-      const activeCouponIds = new Set(appliedCoupons.map(c => c.id));
-      const giftItemsInCart = cart.filter(item => item.isGift && item.giftFromCouponId);
-      
-      for (const giftItem of giftItemsInCart) {
-        if (giftItem.giftFromCouponId && !activeCouponIds.has(giftItem.giftFromCouponId)) {
-          removeGiftItemsByCoupon(giftItem.giftFromCouponId);
+          if (giftItemsRef.current.has(coupon.id)) {
+            removeGiftItemsByCoupon(coupon.id);
+            giftItemsRef.current.delete(coupon.id);
+          }
         }
       }
     };
 
     manageGiftItems();
+
+    // Cleanup function - מסיר race conditions
+    return () => {
+      isCancelled = true;
+    };
   }, [appliedCoupons, cart, isHydrated, addGiftItem, removeGiftItemsByCoupon]);
 
   // Check if customer is already logged in on mount
