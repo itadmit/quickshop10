@@ -457,7 +457,7 @@ export function AdvisorWizard({
 
           <button
             onClick={() => setStarted(true)}
-            className={`px-8 py-4 text-lg font-semibold text-white transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 ${getButtonClass()}`}
+            className={`px-8 py-4 text-lg font-semibold text-white transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 cursor-pointer ${getButtonClass()}`}
             style={{ backgroundColor: quiz.primaryColor }}
           >
             <span className="flex items-center gap-2">
@@ -526,7 +526,7 @@ export function AdvisorWizard({
               </p>
               <button
                 onClick={resetQuiz}
-                className={`mt-6 px-6 py-3 font-semibold text-white ${getButtonClass()}`}
+                className={`mt-6 px-6 py-3 font-semibold text-white cursor-pointer ${getButtonClass()}`}
                 style={{ backgroundColor: quiz.primaryColor }}
               >
                 נסה שוב
@@ -611,7 +611,7 @@ export function AdvisorWizard({
                       <button
                         onClick={() => handleAddToCart(result)}
                         disabled={addingProductId === result.productId}
-                        className={`flex-1 py-2.5 flex items-center justify-center gap-2 font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-70 ${getButtonClass()}`}
+                        className={`flex-1 py-2.5 flex items-center justify-center gap-2 font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-70 cursor-pointer ${getButtonClass()}`}
                         style={{ backgroundColor: quiz.primaryColor }}
                       >
                         {addingProductId === result.productId ? (
@@ -630,7 +630,7 @@ export function AdvisorWizard({
 
           {/* Restart button */}
           <div className="text-center pt-6">
-            <button onClick={resetQuiz} className="text-gray-500 hover:text-gray-700 underline">
+            <button onClick={resetQuiz} className="text-gray-500 hover:text-gray-700 underline cursor-pointer">
               התחל מחדש
             </button>
           </div>
@@ -674,7 +674,7 @@ export function AdvisorWizard({
         {quiz.allowBackNavigation && currentIndex > 0 ? (
           <button
             onClick={handleBack}
-            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-1 text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
           >
             <ChevronRight className="h-5 w-5" />
             חזרה
@@ -736,7 +736,7 @@ export function AdvisorWizard({
                 <button
                   key={answer.id}
                   onClick={() => handleAnswerSelect(answer)}
-                  className={`relative p-4 text-right border-2 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] ${getButtonClass()} ${
+                  className={`relative p-4 text-right border-2 transition-all shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer ${getButtonClass()} ${
                     currentQuestion.answersLayout === 'cards'
                       ? 'aspect-square flex flex-col items-center justify-center text-center'
                       : ''
@@ -833,7 +833,7 @@ export function AdvisorWizard({
               <button
                 onClick={handleNext}
                 disabled={!canProceed()}
-                className={`px-8 py-3 font-semibold text-white transition-all shadow-lg ${getButtonClass()} ${
+                className={`px-8 py-3 font-semibold text-white transition-all shadow-lg cursor-pointer ${getButtonClass()} ${
                   !canProceed()
                     ? 'opacity-50 cursor-not-allowed'
                     : 'hover:opacity-90 hover:shadow-xl'

@@ -188,7 +188,7 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
               </Link>
               
               <Link
-                href={basePath}
+                href={basePath || '/'}
                 className="bg-white border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-colors"
               >
                 <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mb-3">
@@ -226,7 +226,7 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
                   </div>
                   <p className="text-gray-500 text-sm mb-4">אין הזמנות עדיין</p>
                   <Link
-                    href={basePath}
+                    href={basePath || '/'}
                     className="inline-block btn-primary text-sm px-6"
                   >
                     התחל לקנות

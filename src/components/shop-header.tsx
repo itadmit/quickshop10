@@ -44,7 +44,7 @@ export function ShopHeader({ storeName, categories, basePath, customer }: ShopHe
       <div className="max-w-[1800px] mx-auto px-6 lg:px-12">
         <div className="flex items-center justify-between h-20" dir="rtl">
           {/* Logo */}
-          <Link href={basePath} className="group">
+          <Link href={basePath || '/'} className="group">
             <span className="font-display text-2xl tracking-[0.3em] text-black font-light uppercase">
               {storeName}
             </span>
@@ -53,7 +53,7 @@ export function ShopHeader({ storeName, categories, basePath, customer }: ShopHe
           {/* Navigation - Server rendered from DB */}
           <nav className="hidden lg:flex items-center gap-12">
             <Link 
-              href={basePath} 
+              href={basePath || '/'} 
               className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hover:text-black transition-colors duration-300"
             >
               בית

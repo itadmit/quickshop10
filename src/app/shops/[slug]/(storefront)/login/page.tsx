@@ -38,7 +38,7 @@ export default async function CustomerLoginPage({ params, searchParams }: LoginP
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <Link href={basePath} className="inline-block mb-6">
+          <Link href={basePath || '/'} className="inline-block mb-6">
             <span className="font-display text-2xl tracking-[0.3em] text-black font-light uppercase">
               {store.name}
             </span>

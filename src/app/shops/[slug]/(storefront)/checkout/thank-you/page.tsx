@@ -813,7 +813,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         {/* Actions */}
         <div className="mt-8 text-center">
           <Link
-            href={basePath}
+            href={basePath || '/'}
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeftIcon size={16} />

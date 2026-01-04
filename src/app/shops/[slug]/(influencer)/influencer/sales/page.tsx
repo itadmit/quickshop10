@@ -148,19 +148,23 @@ export default async function InfluencerSalesPage({ params, searchParams }: Sale
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
-          <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ מכירות</p>
-          <p className="text-base sm:text-2xl font-bold text-gray-900">{formatCurrency(totals?.totalSales || 0)}</p>
-        </div>
+      <div className={`grid gap-2 sm:gap-4 ${influencer.showOrderDetails && influencer.showCommission ? 'grid-cols-3' : 'grid-cols-2'}`}>
+        {influencer.showOrderDetails && (
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ מכירות</p>
+            <p className="text-base sm:text-2xl font-bold text-gray-900">{formatCurrency(totals?.totalSales || 0)}</p>
+          </div>
+        )}
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
           <p className="text-xs sm:text-sm text-gray-500 mb-1">מספר הזמנות</p>
           <p className="text-base sm:text-2xl font-bold text-gray-900">{totals?.totalOrders || 0}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
-          <p className="text-xs sm:text-sm text-gray-500 mb-1">עמלות</p>
-          <p className="text-base sm:text-2xl font-bold text-purple-600">{formatCurrency(totals?.totalCommission || 0)}</p>
-        </div>
+        {influencer.showCommission && (
+          <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-gray-500 mb-1">עמלות</p>
+            <p className="text-base sm:text-2xl font-bold text-purple-600">{formatCurrency(totals?.totalCommission || 0)}</p>
+          </div>
+        )}
       </div>
 
       {/* Filters */}

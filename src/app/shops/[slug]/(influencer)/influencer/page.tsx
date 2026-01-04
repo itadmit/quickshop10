@@ -158,21 +158,23 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        {/* Total Sales */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+      <div className={`grid gap-3 sm:gap-4 ${influencer.showCommission ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-2'}`}>
+        {/* Total Sales - only show if showOrderDetails is true */}
+        {influencer.showOrderDetails && (
+          <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-green-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <span className="text-xs sm:text-sm text-gray-500">מכירות החודש</span>
             </div>
-            <span className="text-xs sm:text-sm text-gray-500">מכירות החודש</span>
+            <p className="text-lg sm:text-2xl font-bold text-gray-900">
+              {formatCurrency(stats.totalSales)}
+            </p>
           </div>
-          <p className="text-lg sm:text-2xl font-bold text-gray-900">
-            {formatCurrency(stats.totalSales)}
-          </p>
-        </div>
+        )}
 
         {/* Total Orders */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
@@ -189,20 +191,22 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
           </p>
         </div>
 
-        {/* Total Commission */}
-        <div className="col-span-2 lg:col-span-1 bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
-          <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
-              <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
+        {/* Total Commission - only show if showCommission is true */}
+        {influencer.showCommission && (
+          <div className={`${influencer.showOrderDetails ? 'col-span-2 lg:col-span-1' : ''} bg-white rounded-xl border border-gray-200 p-4 sm:p-6`}>
+            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
+              <span className="text-xs sm:text-sm text-gray-500">עמלות החודש</span>
             </div>
-            <span className="text-xs sm:text-sm text-gray-500">עמלות החודש</span>
+            <p className="text-lg sm:text-2xl font-bold text-purple-600">
+              {formatCurrency(stats.totalCommission)}
+            </p>
           </div>
-          <p className="text-lg sm:text-2xl font-bold text-purple-600">
-            {formatCurrency(stats.totalCommission)}
-          </p>
-        </div>
+        )}
       </div>
 
       {/* Active Coupon Card */}
@@ -263,13 +267,17 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
         
         {sales.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[500px]">
+            <table className="w-full min-w-[400px]">
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                 <tr>
                   <th className="px-3 sm:px-5 py-3 text-right font-medium">הזמנה</th>
                   <th className="px-3 sm:px-5 py-3 text-right font-medium">תאריך</th>
-                  <th className="px-3 sm:px-5 py-3 text-right font-medium">סכום</th>
-                  <th className="px-3 sm:px-5 py-3 text-right font-medium">עמלה</th>
+                  {influencer.showOrderDetails && (
+                    <th className="px-3 sm:px-5 py-3 text-right font-medium">סכום</th>
+                  )}
+                  {influencer.showCommission && (
+                    <th className="px-3 sm:px-5 py-3 text-right font-medium">עמלה</th>
+                  )}
                   <th className="px-3 sm:px-5 py-3 text-right font-medium">סטטוס</th>
                 </tr>
               </thead>
@@ -282,12 +290,16 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
                     <td className="px-3 sm:px-5 py-3 sm:py-4 text-gray-500 text-xs sm:text-sm whitespace-nowrap">
                       {formatDate(sale.createdAt)}
                     </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 font-medium text-sm whitespace-nowrap">
-                      {formatCurrency(sale.orderTotal)}
-                    </td>
-                    <td className="px-3 sm:px-5 py-3 sm:py-4 text-purple-600 font-medium text-sm whitespace-nowrap">
-                      {formatCurrency(sale.netCommission)}
-                    </td>
+                    {influencer.showOrderDetails && (
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 font-medium text-sm whitespace-nowrap">
+                        {formatCurrency(sale.orderTotal)}
+                      </td>
+                    )}
+                    {influencer.showCommission && (
+                      <td className="px-3 sm:px-5 py-3 sm:py-4 text-purple-600 font-medium text-sm whitespace-nowrap">
+                        {formatCurrency(sale.netCommission)}
+                      </td>
+                    )}
                     <td className="px-3 sm:px-5 py-3 sm:py-4">
                       <StatusBadge status={sale.orderStatus} />
                     </td>
@@ -312,25 +324,29 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
       {/* All-time Stats */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6">
         <h3 className="font-semibold text-gray-900 mb-3 sm:mb-4 text-sm sm:text-base">סטטיסטיקות כלליות</h3>
-        <div className="grid grid-cols-3 gap-3 sm:gap-6">
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ מכירות</p>
-            <p className="text-base sm:text-xl font-bold text-gray-900">
-              {formatCurrency(influencer.totalSales)}
-            </p>
-          </div>
+        <div className={`grid gap-3 sm:gap-6 ${influencer.showOrderDetails && influencer.showCommission ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          {influencer.showOrderDetails && (
+            <div>
+              <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ מכירות</p>
+              <p className="text-base sm:text-xl font-bold text-gray-900">
+                {formatCurrency(influencer.totalSales)}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ הזמנות</p>
             <p className="text-base sm:text-xl font-bold text-gray-900">
               {influencer.totalOrders}
             </p>
           </div>
-          <div>
-            <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ עמלות</p>
-            <p className="text-base sm:text-xl font-bold text-purple-600">
-              {formatCurrency(influencer.totalCommission)}
-            </p>
-          </div>
+          {influencer.showCommission && (
+            <div>
+              <p className="text-xs sm:text-sm text-gray-500 mb-1">סה"כ עמלות</p>
+              <p className="text-base sm:text-xl font-bold text-purple-600">
+                {formatCurrency(influencer.totalCommission)}
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

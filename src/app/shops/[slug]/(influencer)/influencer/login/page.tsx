@@ -37,7 +37,7 @@ export default async function InfluencerLoginPage({ params }: LoginPageProps) {
           <Link href="/" className="inline-flex flex-col items-center">
             <span className="text-2xl font-logo text-gray-900">Quick Shop</span>
           </Link>
-          <Link href={basePath} className="block mt-1">
+          <Link href={basePath || '/'} className="block mt-1">
             <span className="text-base text-gray-500">{store.name}</span>
           </Link>
         </div>
@@ -64,7 +64,7 @@ export default async function InfluencerLoginPage({ params }: LoginPageProps) {
         {/* Footer */}
         <div className="mt-8 text-center">
           <Link 
-            href={basePath}
+            href={basePath || '/'}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
             ← חזרה לחנות

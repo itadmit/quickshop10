@@ -102,7 +102,7 @@ export default async function CustomerOrdersPage({ params }: OrdersPageProps) {
               לאחר שתבצע הזמנה, היא תופיע כאן
             </p>
             <Link
-              href={basePath}
+              href={basePath || '/'}
               className="inline-block btn-primary px-8"
             >
               התחל לקנות

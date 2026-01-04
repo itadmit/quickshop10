@@ -72,7 +72,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       <nav className="py-6 px-6 border-b border-gray-100">
         <div className="max-w-7xl mx-auto">
           <ol className="flex items-center gap-2 text-sm text-gray-500">
-            <li><Link href={basePath} className="hover:text-black transition-colors">בית</Link></li>
+            <li><Link href={basePath || '/'} className="hover:text-black transition-colors">בית</Link></li>
             <li>/</li>
             <li><Link href={`${basePath}#products`} className="hover:text-black transition-colors">מוצרים</Link></li>
             <li>/</li>
