@@ -22,6 +22,7 @@ async function addDomainToVercel(domain: string): Promise<{ success: boolean; er
   try {
     const teamParam = VERCEL_TEAM_ID ? `?teamId=${VERCEL_TEAM_ID}` : '';
     
+    // Step 1: Add domain to project
     const response = await fetch(
       `${VERCEL_API_URL}/v10/projects/${VERCEL_PROJECT_ID}/domains${teamParam}`,
       {
@@ -37,12 +38,45 @@ async function addDomainToVercel(domain: string): Promise<{ success: boolean; er
     const data = await response.json();
 
     if (!response.ok) {
-      // Domain might already exist - that's fine
-      if (data.error?.code === 'domain_already_in_use') {
-        return { success: true };
+      // Domain might already exist - that's fine, continue to alias
+      if (data.error?.code !== 'domain_already_in_use' && data.error?.code !== 'domain_already_exists') {
+        console.error('Vercel API error:', data);
+        return { success: false, error: data.error?.message || 'שגיאה בהוספת הדומיין ל-Vercel' };
       }
-      console.error('Vercel API error:', data);
-      return { success: false, error: data.error?.message || 'שגיאה בהוספת הדומיין ל-Vercel' };
+    }
+
+    // Step 2: Get current production deployment
+    const deploymentsResponse = await fetch(
+      `${VERCEL_API_URL}/v6/deployments?projectId=${VERCEL_PROJECT_ID}&target=production&limit=1${VERCEL_TEAM_ID ? `&teamId=${VERCEL_TEAM_ID}` : ''}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${VERCEL_TOKEN}`,
+        },
+      }
+    );
+
+    const deploymentsData = await deploymentsResponse.json();
+    const productionDeployment = deploymentsData.deployments?.[0];
+
+    if (productionDeployment) {
+      // Step 3: Add alias to production deployment
+      const aliasResponse = await fetch(
+        `${VERCEL_API_URL}/v2/deployments/${productionDeployment.uid}/aliases${teamParam}`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${VERCEL_TOKEN}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ alias: domain }),
+        }
+      );
+
+      if (!aliasResponse.ok) {
+        const aliasError = await aliasResponse.json();
+        console.warn('Alias warning:', aliasError);
+        // Don't fail - domain is added, alias might already exist
+      }
     }
 
     return { success: true };
