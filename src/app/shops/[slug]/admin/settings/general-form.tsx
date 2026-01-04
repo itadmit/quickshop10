@@ -37,6 +37,9 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
     facebookUrl: (settings.facebookUrl as string) || '',
     instagramUrl: (settings.instagramUrl as string) || '',
     twitterUrl: (settings.twitterUrl as string) || '',
+    // הגדרות עגלות נטושות
+    abandonedCartMinutes: (settings.abandonedCartMinutes as number) || 60,
+    lowStockThreshold: (settings.lowStockThreshold as number) || 5,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -260,6 +263,48 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
               placeholder="https://x.com/..."
               dir="ltr"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced Settings */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">הגדרות מתקדמות</h2>
+        
+        <div className="grid gap-6">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                זמן עגלה נטושה (דקות)
+              </label>
+              <input
+                type="number"
+                min="10"
+                max="1440"
+                value={formData.abandonedCartMinutes}
+                onChange={(e) => setFormData(prev => ({ ...prev, abandonedCartMinutes: parseInt(e.target.value) || 60 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                אחרי כמה דקות הזמנה ממתינה לתשלום נחשבת לעגלה נטושה (ברירת מחדל: 60 דקות)
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                סף מלאי נמוך
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="100"
+                value={formData.lowStockThreshold}
+                onChange={(e) => setFormData(prev => ({ ...prev, lowStockThreshold: parseInt(e.target.value) || 5 }))}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                מתחת לכמה יחידות המלאי ייחשב כנמוך (ברירת מחדל: 5)
+              </p>
+            </div>
           </div>
         </div>
       </div>

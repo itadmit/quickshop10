@@ -4,7 +4,7 @@ import { eq, and, lte, asc, or } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { UpdateInventoryButton } from './update-inventory';
+import { InlineInventoryEditor } from './inline-inventory-editor';
 
 export const dynamic = 'force-dynamic';
 
@@ -256,13 +256,12 @@ export default async function InventoryPage({ params, searchParams }: InventoryP
                     )}
                   </td>
                   <td className="py-4 px-4 text-center">
-                    <span className={`font-medium ${
-                      item.inventory === 0 ? 'text-red-600' : 
-                      item.inventory <= 5 ? 'text-amber-600' : 
-                      'text-gray-900'
-                    }`}>
-                      {item.inventory}
-                    </span>
+                    <InlineInventoryEditor
+                      itemId={item.id}
+                      currentInventory={item.inventory}
+                      isVariant={item.isVariant}
+                      lowStockThreshold={5}
+                    />
                   </td>
                   <td className="py-4 px-4 text-center">
                     {item.inventory === 0 ? (
@@ -280,23 +279,16 @@ export default async function InventoryPage({ params, searchParams }: InventoryP
                     )}
                   </td>
                   <td className="py-4 px-4">
-                    <div className="flex items-center gap-2 justify-end">
-                      <UpdateInventoryButton
-                        itemId={item.id}
-                        itemName={item.variantTitle ? `${item.productName} - ${item.variantTitle}` : item.productName}
-                        currentInventory={item.inventory}
-                        isVariant={item.isVariant}
-                      />
-                      <Link
-                        href={`/shops/${slug}/admin/products/${item.productId}`}
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                        title="ערוך מוצר"
-                      >
-                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </Link>
-                    </div>
+                    <Link
+                      href={`/shops/${slug}/admin/products/${item.productId}`}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="ערוך מוצר"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                      ערוך
+                    </Link>
                   </td>
                 </tr>
               ))}

@@ -94,9 +94,17 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
         title="מוצרים"
         description={`${allProducts.length} מוצרים בקטלוג`}
         actions={
-          <Button href={`/shops/${slug}/admin/products/new`} variant="primary" icon="plus">
-            הוסף מוצר
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button href={`/shops/${slug}/admin/products/inventory`} variant="secondary">
+              מלאי
+            </Button>
+            <Button href={`/shops/${slug}/admin/products/bulk-edit`} variant="secondary">
+              עריכה קבוצתית
+            </Button>
+            <Button href={`/shops/${slug}/admin/products/new`} variant="primary" icon="plus">
+              הוסף מוצר
+            </Button>
+          </div>
         }
       />
 
