@@ -54,6 +54,11 @@ export function CouponForm({ storeId, mode, coupon, influencers = [] }: CouponFo
     endsAt: coupon?.endsAt ? new Date(coupon.endsAt).toISOString().slice(0, 10) : '',
     isActive: coupon?.isActive ?? true,
     influencerId: coupon?.influencerId || '',
+    appliesTo: 'all' as const,
+    categoryIds: [] as string[],
+    productIds: [] as string[],
+    excludeCategoryIds: [] as string[],
+    excludeProductIds: [] as string[],
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

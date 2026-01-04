@@ -19,6 +19,11 @@ interface CouponData {
   endsAt: Date | null;
   isActive: boolean;
   influencerId?: string | null;
+  appliesTo: 'all' | 'category' | 'product' | 'member';
+  categoryIds: string[];
+  productIds: string[];
+  excludeCategoryIds: string[];
+  excludeProductIds: string[];
 }
 
 export async function createCoupon(storeId: string, data: CouponData) {
@@ -51,6 +56,11 @@ export async function createCoupon(storeId: string, data: CouponData) {
       startsAt: data.startsAt,
       endsAt: data.endsAt,
       isActive: data.isActive,
+      appliesTo: data.appliesTo,
+      categoryIds: data.categoryIds,
+      productIds: data.productIds,
+      excludeCategoryIds: data.excludeCategoryIds,
+      excludeProductIds: data.excludeProductIds,
     }).returning();
 
     // Link to influencer if specified
@@ -91,6 +101,11 @@ export async function updateCoupon(couponId: string, data: CouponData) {
         startsAt: data.startsAt,
         endsAt: data.endsAt,
         isActive: data.isActive,
+        appliesTo: data.appliesTo,
+        categoryIds: data.categoryIds,
+        productIds: data.productIds,
+        excludeCategoryIds: data.excludeCategoryIds,
+        excludeProductIds: data.excludeProductIds,
       })
       .where(eq(discounts.id, couponId));
 

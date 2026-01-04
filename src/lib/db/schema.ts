@@ -79,6 +79,10 @@ export const popupPositionEnum = pgEnum('popup_position', ['center', 'bottom_rig
 export const popupFrequencyEnum = pgEnum('popup_frequency', ['once', 'once_per_session', 'always', 'every_x_days']);
 export const popupTargetEnum = pgEnum('popup_target', ['all', 'homepage', 'products', 'categories', 'custom']);
 
+// Contact types for leads/subscribers
+export const contactTypeEnum = pgEnum('contact_type', ['newsletter', 'club_member', 'contact_form', 'popup_form']);
+export const contactStatusEnum = pgEnum('contact_status', ['active', 'unsubscribed', 'spam']);
+
 // ============ USERS & AUTH ============
 
 export const users = pgTable('users', {
@@ -462,6 +466,60 @@ export const customerCreditTransactions = pgTable('customer_credit_transactions'
   index('idx_credit_transactions_store').on(table.storeId),
 ]);
 
+// ============ CONTACTS (LEADS) ============
+
+// Unified table for all types of leads: newsletter, club members, contact form, popup form
+export const contacts = pgTable('contacts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Contact info
+  email: varchar('email', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 100 }),
+  lastName: varchar('last_name', { length: 100 }),
+  phone: varchar('phone', { length: 50 }),
+  
+  // Type of contact
+  type: contactTypeEnum('type').notNull(),
+  status: contactStatusEnum('status').default('active').notNull(),
+  
+  // Additional data (flexible for different form types)
+  // For contact_form: { subject, message }
+  // For club_member: { birthday, preferences }
+  // For popup_form: { popupId, customFields }
+  metadata: jsonb('metadata').default({}).notNull(),
+  
+  // Source tracking
+  source: varchar('source', { length: 100 }), // 'footer_form', 'popup', 'contact_page', 'checkout'
+  sourceUrl: text('source_url'),
+  popupId: uuid('popup_id').references(() => popups.id, { onDelete: 'set null' }),
+  
+  // UTM tracking
+  utmSource: varchar('utm_source', { length: 100 }),
+  utmMedium: varchar('utm_medium', { length: 100 }),
+  utmCampaign: varchar('utm_campaign', { length: 100 }),
+  
+  // Device info
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  
+  // Link to customer if they become a customer
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  
+  // Read status for admin
+  isRead: boolean('is_read').default(false).notNull(),
+  readAt: timestamp('read_at'),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_contacts_store').on(table.storeId),
+  index('idx_contacts_store_type').on(table.storeId, table.type),
+  index('idx_contacts_store_email').on(table.storeId, table.email),
+  index('idx_contacts_unread').on(table.storeId, table.isRead),
+]);
+
 // ============ ORDERS ============
 
 export const orders = pgTable('orders', {
@@ -553,6 +611,16 @@ export const discounts = pgTable('discounts', {
   startsAt: timestamp('starts_at'),
   endsAt: timestamp('ends_at'),
   isActive: boolean('is_active').default(true).notNull(),
+  
+  // What the coupon applies to
+  appliesTo: discountAppliesToEnum('applies_to').default('all').notNull(),
+  categoryIds: jsonb('category_ids').default([]), // Array of category IDs when appliesTo = 'category'
+  productIds: jsonb('product_ids').default([]), // Array of product IDs when appliesTo = 'product'
+  
+  // Exclusions - products/categories to exclude from the coupon even if appliesTo matches
+  excludeCategoryIds: jsonb('exclude_category_ids').default([]),
+  excludeProductIds: jsonb('exclude_product_ids').default([]),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('idx_discounts_store_code').on(table.storeId, table.code),
@@ -1131,6 +1199,22 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   sessions: many(customerSessions),
   otpCodes: many(customerOtpCodes),
   creditTransactions: many(customerCreditTransactions),
+  contacts: many(contacts),
+}));
+
+export const contactsRelations = relations(contacts, ({ one }) => ({
+  store: one(stores, {
+    fields: [contacts.storeId],
+    references: [stores.id],
+  }),
+  customer: one(customers, {
+    fields: [contacts.customerId],
+    references: [customers.id],
+  }),
+  popup: one(popups, {
+    fields: [contacts.popupId],
+    references: [popups.id],
+  }),
 }));
 
 export const customerCreditTransactionsRelations = relations(customerCreditTransactions, ({ one }) => ({
@@ -2070,6 +2154,8 @@ export type CustomerSession = typeof customerSessions.$inferSelect;
 export type NewCustomerSession = typeof customerSessions.$inferInsert;
 export type CustomerOtpCode = typeof customerOtpCodes.$inferSelect;
 export type NewCustomerOtpCode = typeof customerOtpCodes.$inferInsert;
+export type Contact = typeof contacts.$inferSelect;
+export type NewContact = typeof contacts.$inferInsert;
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;

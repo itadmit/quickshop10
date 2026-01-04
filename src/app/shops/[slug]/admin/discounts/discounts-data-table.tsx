@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
-import { CouponForm } from './coupon-form';
 import { DeleteCouponButton, ToggleCouponButton } from './coupon-buttons';
 
 // ============================================
@@ -38,6 +38,7 @@ interface Influencer {
 interface DiscountsDataTableProps {
   coupons: Coupon[];
   storeId: string;
+  storeSlug: string;
   tabs: Tab[];
   currentTab: string;
   searchValue?: string;
@@ -76,6 +77,7 @@ function formatDate(date: Date | null) {
 export function DiscountsDataTable({
   coupons,
   storeId,
+  storeSlug,
   tabs,
   currentTab,
   searchValue,
@@ -234,7 +236,15 @@ export function DiscountsDataTable({
       align: 'left',
       render: (coupon) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
-          <CouponForm storeId={storeId} mode="edit" coupon={coupon} influencers={influencers} />
+          <Link
+            href={`/shops/${storeSlug}/admin/discounts/${coupon.id}`}
+            className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            title="ערוך"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </Link>
           <ToggleCouponButton couponId={coupon.id} isActive={coupon.isActive} />
           <DeleteCouponButton couponId={coupon.id} couponCode={coupon.code} />
         </div>

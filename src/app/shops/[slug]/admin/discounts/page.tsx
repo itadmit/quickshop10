@@ -3,9 +3,9 @@ import { discounts, influencers } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { PageHeader, StatCard, StatCardGrid } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
-import { CouponForm } from './coupon-form';
 import { DiscountsDataTable } from './discounts-data-table';
 
 export const dynamic = 'force-dynamic';
@@ -101,7 +101,15 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
         title="קופונים"
         description={`${activeCoupons.length} קופונים פעילים`}
         actions={
-          <CouponForm storeId={store.id} mode="create" influencers={storeInfluencers} />
+          <Link
+            href={`/shops/${slug}/admin/discounts/new`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            קופון חדש
+          </Link>
         }
       />
 
@@ -147,6 +155,7 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
       <DiscountsDataTable
         coupons={paginatedCoupons}
         storeId={store.id}
+        storeSlug={slug}
         tabs={tabs}
         currentTab={filter || 'all'}
         searchValue={search}

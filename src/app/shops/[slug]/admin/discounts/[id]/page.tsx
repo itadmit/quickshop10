@@ -1,0 +1,92 @@
+import { db } from '@/lib/db';
+import { discounts, categories, products, influencers } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
+import { getStoreBySlug } from '@/lib/db/queries';
+import { notFound, redirect } from 'next/navigation';
+import { CouponFormPage } from '../coupon-form-page';
+
+export const dynamic = 'force-dynamic';
+
+interface EditCouponPageProps {
+  params: Promise<{ slug: string; id: string }>;
+}
+
+export default async function EditCouponPage({ params }: EditCouponPageProps) {
+  const { slug, id } = await params;
+  const store = await getStoreBySlug(slug);
+  
+  if (!store) {
+    notFound();
+  }
+
+  // Fetch the coupon
+  const [coupon] = await db
+    .select()
+    .from(discounts)
+    .where(and(eq(discounts.storeId, store.id), eq(discounts.id, id)))
+    .limit(1);
+
+  if (!coupon) {
+    redirect(`/shops/${slug}/admin/discounts`);
+  }
+
+  // Fetch categories
+  const storeCategories = await db
+    .select({ id: categories.id, name: categories.name })
+    .from(categories)
+    .where(eq(categories.storeId, store.id))
+    .orderBy(categories.name);
+
+  // Fetch products
+  const storeProducts = await db
+    .select({ id: products.id, name: products.name, categoryId: products.categoryId })
+    .from(products)
+    .where(eq(products.storeId, store.id))
+    .orderBy(products.name);
+
+  // Fetch influencers
+  const storeInfluencers = await db
+    .select({ id: influencers.id, name: influencers.name, email: influencers.email, discountId: influencers.discountId })
+    .from(influencers)
+    .where(eq(influencers.storeId, store.id))
+    .orderBy(influencers.name);
+
+  // Find if this coupon is linked to an influencer
+  const linkedInfluencer = storeInfluencers.find(inf => inf.discountId === coupon.id);
+
+  // Prepare coupon data for the form
+  const couponData = {
+    id: coupon.id,
+    code: coupon.code,
+    title: coupon.title,
+    type: coupon.type,
+    value: coupon.value,
+    minimumAmount: coupon.minimumAmount,
+    usageLimit: coupon.usageLimit,
+    oncePerCustomer: coupon.oncePerCustomer,
+    firstOrderOnly: coupon.firstOrderOnly,
+    stackable: coupon.stackable,
+    startsAt: coupon.startsAt,
+    endsAt: coupon.endsAt,
+    isActive: coupon.isActive,
+    influencerId: linkedInfluencer?.id || null,
+    appliesTo: coupon.appliesTo || 'all' as const,
+    categoryIds: (coupon.categoryIds as string[]) || [],
+    productIds: (coupon.productIds as string[]) || [],
+    excludeCategoryIds: (coupon.excludeCategoryIds as string[]) || [],
+    excludeProductIds: (coupon.excludeProductIds as string[]) || [],
+  };
+
+  return (
+    <CouponFormPage
+      storeSlug={slug}
+      storeId={store.id}
+      mode="edit"
+      coupon={couponData}
+      categories={storeCategories}
+      products={storeProducts}
+      influencers={storeInfluencers}
+    />
+  );
+}
+

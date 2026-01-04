@@ -16,6 +16,11 @@ export type CouponResult = {
     stackable: boolean;
     isGiftCard?: boolean;
     giftCardBalance?: number;
+    appliesTo?: 'all' | 'category' | 'product' | 'member';
+    categoryIds?: string[];
+    productIds?: string[];
+    excludeCategoryIds?: string[];
+    excludeProductIds?: string[];
   };
 } | {
   success: false;
@@ -156,6 +161,11 @@ export async function validateCoupon(code: string, cartTotal: number, email?: st
       value: Number(discount.value),
       minimumAmount: discount.minimumAmount ? Number(discount.minimumAmount) : null,
       stackable: discount.stackable ?? true,
+      appliesTo: discount.appliesTo ?? 'all',
+      categoryIds: (discount.categoryIds as string[]) || [],
+      productIds: (discount.productIds as string[]) || [],
+      excludeCategoryIds: (discount.excludeCategoryIds as string[]) || [],
+      excludeProductIds: (discount.excludeProductIds as string[]) || [],
     }
   };
 }
