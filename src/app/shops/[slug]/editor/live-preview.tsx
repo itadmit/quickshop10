@@ -76,6 +76,27 @@ export function LivePreview({
     }
   }, [refreshKey]);
 
+  // Send scroll command to iframe when selectedSectionId changes
+  useEffect(() => {
+    if (selectedSectionId && iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'SCROLL_TO_SECTION',
+        sectionId: selectedSectionId,
+      }, '*');
+    }
+  }, [selectedSectionId]);
+
+  // Listen for messages from iframe (section clicks)
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'SECTION_CLICKED' && event.data?.sectionId) {
+        onSelectSection(event.data.sectionId);
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [onSelectSection]);
+
   // Storefront URL - use special editor preview mode
   const previewUrl = `/shops/${storeSlug}?preview=true&t=${refreshKey}`;
 

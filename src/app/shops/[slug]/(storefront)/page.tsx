@@ -8,7 +8,7 @@ import {
   NewsletterSection 
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
-import Link from 'next/link';
+import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
@@ -27,6 +27,9 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   // Get basePath (empty for custom domain, /shops/slug for platform)
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
+  
+  // Check if preview mode (from editor iframe)
+  const isPreviewMode = headersList.get('x-preview-mode') === 'true';
   
   // Get price display settings
   const storeSettings = (store.settings as Record<string, unknown>) || {};
@@ -102,16 +105,31 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
     );
   }
 
+  // Get section display name for preview mode
+  const getSectionName = (type: string) => {
+    const names: Record<string, string> = {
+      hero: 'Hero',
+      categories: 'קטגוריות',
+      products: 'מוצרים',
+      video_banner: 'וידאו',
+      split_banner: 'באנר מפוצל',
+      newsletter: 'ניוזלטר',
+    };
+    return names[type] || type;
+  };
+
   // Render sections dynamically from database
+  // In preview mode: wrap with data attributes for editor interaction
   const renderSection = (section: typeof sections[0], index: number) => {
     const content = section.content as Record<string, unknown>;
     const settings = section.settings as Record<string, unknown>;
 
+    let sectionElement: React.ReactNode = null;
+
     switch (section.type) {
       case 'hero':
-        return (
+        sectionElement = (
           <HeroSection
-            key={section.id}
             title={section.title}
             subtitle={section.subtitle}
             content={content as { imageUrl?: string; buttonText?: string; buttonLink?: string }}
@@ -119,23 +137,23 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             basePath={basePath}
           />
         );
+        break;
 
       case 'categories':
-        return (
+        sectionElement = (
           <CategoriesSection
-            key={section.id}
             categories={categories}
             settings={settings as { columns?: number; gap?: number }}
             basePath={basePath}
           />
         );
+        break;
 
       case 'products':
         const productContent = content as { type?: string; limit?: number };
         const productsToShow = productContent.type === 'featured' ? featuredProducts : allProducts;
-        return (
+        sectionElement = (
           <ProductsSection
-            key={section.id}
             title={section.title}
             subtitle={section.subtitle}
             products={productsToShow}
@@ -144,11 +162,11 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             showDecimalPrices={showDecimalPrices}
           />
         );
+        break;
 
       case 'video_banner':
-        return (
+        sectionElement = (
           <VideoBannerSection
-            key={section.id}
             title={section.title}
             subtitle={section.subtitle}
             content={content as { videoUrl?: string; imageUrl?: string; buttonText?: string; buttonLink?: string }}
@@ -156,35 +174,55 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             basePath={basePath}
           />
         );
+        break;
 
       case 'split_banner':
-        return (
+        sectionElement = (
           <SplitBannerSection
-            key={section.id}
             content={content as { items?: { title: string; imageUrl: string; link: string }[] }}
             settings={settings as { height?: string }}
             basePath={basePath}
           />
         );
+        break;
 
       case 'newsletter':
-        return (
+        sectionElement = (
           <NewsletterSection
-            key={section.id}
             title={section.title}
             subtitle={section.subtitle}
             content={content as { placeholder?: string; buttonText?: string }}
             settings={settings as { maxWidth?: string }}
           />
         );
+        break;
 
       default:
         return null;
     }
+
+    // In preview mode: wrap with data attributes for editor interaction
+    // In production: render directly (no wrapper overhead)
+    if (isPreviewMode) {
+      return (
+        <div 
+          key={section.id}
+          data-section-id={section.id}
+          data-section-name={getSectionName(section.type)}
+        >
+          {sectionElement}
+        </div>
+      );
+    }
+
+    return <div key={section.id}>{sectionElement}</div>;
   };
 
   return (
     <div className="min-h-screen">
+      {/* Editor Section Highlighter - ONLY in preview mode */}
+      {isPreviewMode && <EditorSectionHighlighter />}
+      
       {/* Render all sections from database */}
       {sections.map((section, i) => renderSection(section, i))}
 
