@@ -70,6 +70,7 @@ export interface ShippingSettings {
 interface CheckoutFormProps {
   basePath?: string;
   storeSlug?: string;
+  storeId?: string;
   hasActivePaymentProvider?: boolean;
   checkoutSettings?: CheckoutSettings;
   shippingSettings?: ShippingSettings;
@@ -93,6 +94,7 @@ const defaultShippingSettings: ShippingSettings = {
 export function CheckoutForm({ 
   basePath = '', 
   storeSlug, 
+  storeId,
   hasActivePaymentProvider = false,
   checkoutSettings = defaultCheckoutSettings,
   shippingSettings = defaultShippingSettings,
@@ -184,7 +186,8 @@ export function CheckoutForm({
         price: item.price,
         quantity: item.quantity,
       }));
-      const discounts = await getAutomaticDiscounts(cartItems, cartTotal, email);
+      if (!storeId) return;
+      const discounts = await getAutomaticDiscounts(storeId, cartItems, cartTotal, email);
       setAutoDiscounts(discounts);
     } catch (error) {
       console.error('Failed to fetch auto discounts:', error);
@@ -1345,6 +1348,7 @@ export function CheckoutForm({
           <div className="lg:col-span-2 space-y-6">
             {/* Coupon - Separate Component */}
             <CouponInput
+              storeId={storeId || ''}
               cartTotal={cartTotal}
               appliedCoupons={appliedCoupons}
               onApply={(coupon) => setAppliedCoupons(prev => [...prev, coupon])}

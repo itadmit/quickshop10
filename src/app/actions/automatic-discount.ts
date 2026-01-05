@@ -35,14 +35,12 @@ export type CartItemForDiscount = {
 };
 
 export async function getAutomaticDiscounts(
+  storeId: string,
   cartItems: CartItemForDiscount[],
   cartTotal: number,
   email?: string
 ): Promise<AutomaticDiscountResult[]> {
-  // Get the demo store
-  const [store] = await db.query.stores.findMany({ limit: 1 });
-  
-  if (!store) return [];
+  if (!storeId) return [];
 
   const now = new Date();
   
@@ -51,7 +49,7 @@ export async function getAutomaticDiscounts(
     .select()
     .from(automaticDiscounts)
     .where(and(
-      eq(automaticDiscounts.storeId, store.id),
+      eq(automaticDiscounts.storeId, storeId),
       eq(automaticDiscounts.isActive, true),
       or(
         isNull(automaticDiscounts.startsAt),
@@ -174,7 +172,7 @@ export async function getAutomaticDiscounts(
             .select()
             .from(customers)
             .where(and(
-              eq(customers.storeId, store.id),
+              eq(customers.storeId, storeId),
               eq(customers.email, email.toLowerCase())
             ))
             .limit(1);

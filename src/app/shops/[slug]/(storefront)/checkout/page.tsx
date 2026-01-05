@@ -18,6 +18,7 @@ interface CheckoutPageProps {
 }
 
 async function getStoreDataForCheckout(storeSlug: string): Promise<{
+  storeId: string;
   hasActivePaymentProvider: boolean;
   checkoutSettings: CheckoutSettings;
   shippingSettings: ShippingSettings;
@@ -70,6 +71,7 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
     };
     
     return {
+      storeId: store.id,
       hasActivePaymentProvider: !!activeProvider,
       checkoutSettings,
       shippingSettings,
@@ -88,6 +90,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   const storeData = await getStoreDataForCheckout(slug);
   
   // Default settings if store not found
+  const storeId = storeData?.storeId ?? '';
   const hasActivePaymentProvider = storeData?.hasActivePaymentProvider ?? false;
   const checkoutSettings = storeData?.checkoutSettings ?? {
     requirePhone: true,
@@ -119,6 +122,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
         <CheckoutForm 
           basePath={basePath} 
           storeSlug={slug}
+          storeId={storeId}
           hasActivePaymentProvider={hasActivePaymentProvider}
           checkoutSettings={checkoutSettings}
           shippingSettings={shippingSettings}

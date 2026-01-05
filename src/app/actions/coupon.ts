@@ -47,30 +47,28 @@ export type CouponResult = {
 };
 
 export async function validateCoupon(
+  storeId: string,
   code: string, 
   cartTotal: number, 
   email?: string,
   cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>
 ): Promise<CouponResult> {
+  if (!storeId) {
+    return { success: false, error: 'שגיאה בטעינת החנות' };
+  }
+  
   if (!code || code.trim() === '') {
     return { success: false, error: 'נא להזין קוד קופון' };
   }
 
   const normalizedCode = code.toUpperCase().trim();
 
-  // Get the demo store first
-  const [store] = await db.query.stores.findMany({ limit: 1 });
-  
-  if (!store) {
-    return { success: false, error: 'שגיאה בטעינת החנות' };
-  }
-
   // Find the discount
   const [discount] = await db
     .select()
     .from(discounts)
     .where(and(
-      eq(discounts.storeId, store.id),
+      eq(discounts.storeId, storeId),
       eq(discounts.code, normalizedCode),
       eq(discounts.isActive, true)
     ))
@@ -82,7 +80,7 @@ export async function validateCoupon(
       .select()
       .from(giftCards)
       .where(and(
-        eq(giftCards.storeId, store.id),
+        eq(giftCards.storeId, storeId),
         eq(giftCards.code, normalizedCode),
         eq(giftCards.status, 'active'),
         gt(giftCards.currentBalance, '0')
@@ -146,7 +144,7 @@ export async function validateCoupon(
       .select()
       .from(customers)
       .where(and(
-        eq(customers.storeId, store.id),
+        eq(customers.storeId, storeId),
         eq(customers.email, email.toLowerCase())
       ))
       .limit(1);
@@ -164,7 +162,7 @@ export async function validateCoupon(
       .from(orders)
       .innerJoin(customers, eq(orders.customerId, customers.id))
       .where(and(
-        eq(orders.storeId, store.id),
+        eq(orders.storeId, storeId),
         eq(customers.email, email.toLowerCase()),
         eq(orders.discountCode, discount.code)
       ))

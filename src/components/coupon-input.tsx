@@ -41,6 +41,7 @@ export type AppliedCoupon = {
 };
 
 interface CouponInputProps {
+  storeId: string;
   cartTotal: number;
   appliedCoupons: AppliedCoupon[];
   onApply: (coupon: AppliedCoupon) => void;
@@ -49,7 +50,7 @@ interface CouponInputProps {
   cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>;
 }
 
-export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, email, cartItems }: CouponInputProps) {
+export function CouponInput({ storeId, cartTotal, appliedCoupons, onApply, onRemove, email, cartItems }: CouponInputProps) {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
@@ -78,7 +79,7 @@ export function CouponInput({ cartTotal, appliedCoupons, onApply, onRemove, emai
     setIsValidating(true);
     
     try {
-      const result = await validateCoupon(couponCode, cartTotal, email, cartItems);
+      const result = await validateCoupon(storeId, couponCode, cartTotal, email, cartItems);
       
       if (result.success) {
         // Check if new coupon is stackable when we have existing coupons
