@@ -21,6 +21,7 @@ interface SectionTreeProps {
   onAddSection: (type: string, afterSectionId?: string) => void;
   onRemoveSection: (id: string) => void;
   onReorderSections: (fromIndex: number, toIndex: number) => void;
+  headerLayout?: 'logo-right' | 'logo-left' | 'logo-center';
 }
 
 const sectionTypes = [
@@ -40,6 +41,7 @@ export function SectionTree({
   onAddSection,
   onRemoveSection,
   onReorderSections,
+  headerLayout,
 }: SectionTreeProps) {
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
@@ -105,16 +107,27 @@ export function SectionTree({
           <SectionItem
             icon="header"
             label="פס הודעות"
-            isSelected={false}
-            onClick={() => {}}
+            isSelected={selectedSectionId === 'announcement-bar'}
+            onClick={() => onSelectSection('announcement-bar')}
           />
           <SectionItem
             icon="header"
             label="הדר"
-            isSelected={false}
-            onClick={() => {}}
+            isSelected={selectedSectionId === 'header'}
+            onClick={() => onSelectSection('header')}
             hasChildren
+            isExpanded={expandedSections.has('header')}
+            onToggle={() => toggleExpand('header')}
           />
+          {/* Header layout preview when expanded */}
+          {expandedSections.has('header') && (
+            <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+              <span className="text-xs text-gray-500">
+                פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
+                         headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
+              </span>
+            </div>
+          )}
           <AddSectionButton onClick={() => setShowAddMenu(true)} small />
         </div>
 
@@ -166,14 +179,23 @@ export function SectionTree({
           <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
             פוטר
           </div>
-          <AddSectionButton onClick={() => {}} small />
           <SectionItem
             icon="footer"
             label="פוטר"
-            isSelected={false}
-            onClick={() => {}}
+            isSelected={selectedSectionId === 'footer'}
+            onClick={() => onSelectSection('footer')}
             hasChildren
+            isExpanded={expandedSections.has('footer')}
+            onToggle={() => toggleExpand('footer')}
           />
+          {/* Footer sub-items when expanded */}
+          {expandedSections.has('footer') && (
+            <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+              <span className="text-xs text-gray-500">
+                לוגו • ניוזלטר • רשתות חברתיות
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

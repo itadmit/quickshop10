@@ -15,14 +15,57 @@ interface Section {
   settings: Record<string, unknown>;
 }
 
+type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
+
+// Store theme settings interface
+interface ThemeSettings {
+  // Header settings
+  headerLayout?: HeaderLayout;
+  headerSticky?: boolean;
+  headerTransparent?: boolean;
+  headerShowSearch?: boolean;
+  headerShowCart?: boolean;
+  headerShowAccount?: boolean;
+  
+  // Announcement bar settings
+  announcementEnabled?: boolean;
+  announcementText?: string;
+  announcementLink?: string;
+  announcementBgColor?: string;
+  announcementTextColor?: string;
+  
+  // Footer settings
+  footerShowLogo?: boolean;
+  footerShowNewsletter?: boolean;
+  footerNewsletterTitle?: string;
+  footerNewsletterSubtitle?: string;
+  footerShowSocial?: boolean;
+  footerShowPayments?: boolean;
+  footerCopyright?: string;
+  footerBgColor?: string;
+  footerTextColor?: string;
+  
+  // Social links
+  socialFacebook?: string;
+  socialInstagram?: string;
+  socialTwitter?: string;
+  socialTiktok?: string;
+  socialYoutube?: string;
+}
+
 interface SectionSettingsProps {
   section: Section;
   onUpdate: (updates: Partial<Section>) => void;
   onRemove: () => void;
+  // Theme settings props
+  themeSettings?: ThemeSettings;
+  onThemeSettingsChange?: (settings: Partial<ThemeSettings>) => void;
 }
 
-export function SectionSettings({ section, onUpdate, onRemove }: SectionSettingsProps) {
+export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange }: SectionSettingsProps) {
   const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
+  const settings = themeSettings || {};
+  const updateSettings = onThemeSettingsChange || (() => {});
 
   const getSectionTitle = () => {
     const titles: Record<string, string> = {
@@ -32,9 +75,229 @@ export function SectionSettings({ section, onUpdate, onRemove }: SectionSettings
       newsletter: 'ניוזלטר',
       video_banner: 'באנר וידאו',
       split_banner: 'תמונה עם טקסט',
+      header: 'הדר',
+      'announcement-bar': 'פס הודעות',
+      footer: 'פוטר',
     };
     return titles[section.type] || 'סקשן';
   };
+
+  // Special handling for header settings
+  if (section.type === 'header') {
+    return (
+      <div className="flex flex-col h-full" dir="rtl">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">הגדרות הדר</h3>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 space-y-6">
+          {/* Layout Selection */}
+          <HeaderLayoutSettings 
+            currentLayout={settings.headerLayout || 'logo-right'} 
+            onLayoutChange={(layout) => updateSettings({ headerLayout: layout })} 
+          />
+          
+          {/* Header Options */}
+          <SettingsGroup title="אפשרויות הדר">
+            <SwitchField
+              label="הדר נדבק"
+              description="ההדר יישאר למעלה בזמן גלילה"
+              value={settings.headerSticky ?? true}
+              onChange={(v) => updateSettings({ headerSticky: v })}
+            />
+            <SwitchField
+              label="רקע שקוף"
+              description="רקע שקוף בראש העמוד (רק בדף הבית)"
+              value={settings.headerTransparent ?? false}
+              onChange={(v) => updateSettings({ headerTransparent: v })}
+            />
+          </SettingsGroup>
+          
+          {/* Show/Hide Elements */}
+          <SettingsGroup title="אלמנטים">
+            <SwitchField
+              label="הצג חיפוש"
+              value={settings.headerShowSearch ?? true}
+              onChange={(v) => updateSettings({ headerShowSearch: v })}
+            />
+            <SwitchField
+              label="הצג עגלה"
+              value={settings.headerShowCart ?? true}
+              onChange={(v) => updateSettings({ headerShowCart: v })}
+            />
+            <SwitchField
+              label="הצג חשבון"
+              value={settings.headerShowAccount ?? true}
+              onChange={(v) => updateSettings({ headerShowAccount: v })}
+            />
+          </SettingsGroup>
+        </div>
+      </div>
+    );
+  }
+
+  // Special handling for announcement bar settings
+  if (section.type === 'announcement-bar') {
+    return (
+      <div className="flex flex-col h-full" dir="rtl">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">פס הודעות</h3>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 space-y-6">
+          <SettingsGroup title="הגדרות">
+            <SwitchField
+              label="הצג פס הודעות"
+              value={settings.announcementEnabled ?? false}
+              onChange={(v) => updateSettings({ announcementEnabled: v })}
+            />
+          </SettingsGroup>
+          
+          {settings.announcementEnabled && (
+            <>
+              <SettingsGroup title="תוכן">
+                <TextField
+                  label="טקסט ההודעה"
+                  value={settings.announcementText || ''}
+                  onChange={(v) => updateSettings({ announcementText: v })}
+                  placeholder="משלוח חינם בקניה מעל ₪200!"
+                />
+                <TextField
+                  label="קישור (אופציונלי)"
+                  value={settings.announcementLink || ''}
+                  onChange={(v) => updateSettings({ announcementLink: v })}
+                  placeholder="/products"
+                />
+              </SettingsGroup>
+              
+              <SettingsGroup title="צבעים">
+                <ColorField
+                  label="צבע רקע"
+                  value={settings.announcementBgColor || '#000000'}
+                  onChange={(v) => updateSettings({ announcementBgColor: v })}
+                />
+                <ColorField
+                  label="צבע טקסט"
+                  value={settings.announcementTextColor || '#ffffff'}
+                  onChange={(v) => updateSettings({ announcementTextColor: v })}
+                />
+              </SettingsGroup>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Special handling for footer settings
+  if (section.type === 'footer') {
+    return (
+      <div className="flex flex-col h-full" dir="rtl">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">הגדרות פוטר</h3>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 space-y-6">
+          {/* Display Options */}
+          <SettingsGroup title="אלמנטים להצגה">
+            <SwitchField
+              label="הצג לוגו"
+              value={settings.footerShowLogo ?? true}
+              onChange={(v) => updateSettings({ footerShowLogo: v })}
+            />
+            <SwitchField
+              label="הצג טופס ניוזלטר"
+              value={settings.footerShowNewsletter ?? true}
+              onChange={(v) => updateSettings({ footerShowNewsletter: v })}
+            />
+            <SwitchField
+              label="הצג רשתות חברתיות"
+              value={settings.footerShowSocial ?? true}
+              onChange={(v) => updateSettings({ footerShowSocial: v })}
+            />
+            <SwitchField
+              label="הצג אמצעי תשלום"
+              value={settings.footerShowPayments ?? true}
+              onChange={(v) => updateSettings({ footerShowPayments: v })}
+            />
+          </SettingsGroup>
+
+          {/* Newsletter */}
+          {settings.footerShowNewsletter && (
+            <SettingsGroup title="ניוזלטר">
+              <TextField
+                label="כותרת"
+                value={settings.footerNewsletterTitle || ''}
+                onChange={(v) => updateSettings({ footerNewsletterTitle: v })}
+                placeholder="הירשמו לניוזלטר"
+              />
+              <TextField
+                label="תת-כותרת"
+                value={settings.footerNewsletterSubtitle || ''}
+                onChange={(v) => updateSettings({ footerNewsletterSubtitle: v })}
+                placeholder="קבלו עדכונים על מוצרים חדשים והנחות"
+                multiline
+              />
+            </SettingsGroup>
+          )}
+
+          {/* Social Links */}
+          {settings.footerShowSocial && (
+            <SettingsGroup title="רשתות חברתיות">
+              <TextField
+                label="Facebook"
+                value={settings.socialFacebook || ''}
+                onChange={(v) => updateSettings({ socialFacebook: v })}
+                placeholder="https://facebook.com/..."
+              />
+              <TextField
+                label="Instagram"
+                value={settings.socialInstagram || ''}
+                onChange={(v) => updateSettings({ socialInstagram: v })}
+                placeholder="https://instagram.com/..."
+              />
+              <TextField
+                label="TikTok"
+                value={settings.socialTiktok || ''}
+                onChange={(v) => updateSettings({ socialTiktok: v })}
+                placeholder="https://tiktok.com/..."
+              />
+              <TextField
+                label="YouTube"
+                value={settings.socialYoutube || ''}
+                onChange={(v) => updateSettings({ socialYoutube: v })}
+                placeholder="https://youtube.com/..."
+              />
+            </SettingsGroup>
+          )}
+
+          {/* Copyright */}
+          <SettingsGroup title="זכויות יוצרים">
+            <TextField
+              label="טקסט Copyright"
+              value={settings.footerCopyright || ''}
+              onChange={(v) => updateSettings({ footerCopyright: v })}
+              placeholder="© 2026 שם החנות. כל הזכויות שמורות."
+            />
+          </SettingsGroup>
+
+          {/* Colors */}
+          <SettingsGroup title="צבעים">
+            <ColorField
+              label="צבע רקע"
+              value={settings.footerBgColor || '#111111'}
+              onChange={(v) => updateSettings({ footerBgColor: v })}
+            />
+            <ColorField
+              label="צבע טקסט"
+              value={settings.footerTextColor || '#ffffff'}
+              onChange={(v) => updateSettings({ footerTextColor: v })}
+            />
+          </SettingsGroup>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full" dir="rtl">
@@ -760,5 +1023,144 @@ function UploadIcon() {
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
     </svg>
+  );
+}
+
+// Header Layout Settings Component
+function HeaderLayoutSettings({ 
+  currentLayout, 
+  onLayoutChange 
+}: { 
+  currentLayout: HeaderLayout; 
+  onLayoutChange: (layout: HeaderLayout) => void;
+}) {
+  const layouts: { id: HeaderLayout; title: string; description: string }[] = [
+    {
+      id: 'logo-right',
+      title: 'לוגו בימין',
+      description: 'לוגו בימין, תפריט במרכז, אייקונים משמאל',
+    },
+    {
+      id: 'logo-left',
+      title: 'לוגו בשמאל',
+      description: 'לוגו בשמאל, תפריט במרכז, אייקונים מימין',
+    },
+    {
+      id: 'logo-center',
+      title: 'לוגו במרכז',
+      description: 'לוגו במרכז, חיפוש מימין ושאר אייקונים משמאל, תפריט מתחת',
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h4 className="text-sm font-medium text-gray-900 mb-1">פריסת הדר</h4>
+        <p className="text-xs text-gray-500 mb-4">בחרו את סגנון פריסת ההדר לחנות שלכם</p>
+      </div>
+      
+      <div className="space-y-3">
+        {layouts.map((layout) => (
+          <button
+            key={layout.id}
+            onClick={() => onLayoutChange(layout.id)}
+            className={`w-full p-3 rounded-xl border-2 transition-all text-right ${
+              currentLayout === layout.id
+                ? 'border-black bg-gray-50'
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            {/* Layout Preview */}
+            <div className={`bg-white rounded-lg border border-gray-100 p-2 mb-3 ${
+              currentLayout === layout.id ? 'ring-1 ring-black/10' : ''
+            }`}>
+              <HeaderLayoutPreview layout={layout.id} isSelected={currentLayout === layout.id} />
+            </div>
+            
+            {/* Title & Description */}
+            <div className="flex items-start gap-2">
+              <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
+                currentLayout === layout.id 
+                  ? 'border-black bg-black' 
+                  : 'border-gray-300'
+              }`}>
+                {currentLayout === layout.id && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                    <path d="M20 6L9 17l-5-5" />
+                  </svg>
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-sm text-gray-900">{layout.title}</p>
+                <p className="text-xs text-gray-500 mt-0.5">{layout.description}</p>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Header Layout Preview Component - shows visual representation
+function HeaderLayoutPreview({ layout, isSelected }: { layout: HeaderLayout; isSelected: boolean }) {
+  const dotColor = isSelected ? 'bg-gray-600' : 'bg-gray-300';
+  const barColor = isSelected ? 'bg-gray-800' : 'bg-gray-400';
+  
+  if (layout === 'logo-right') {
+    // Logo right, menu center, icons left (RTL default)
+    return (
+      <div className="flex items-center justify-between h-6" dir="rtl">
+        <div className={`w-8 h-3 ${barColor} rounded`} /> {/* Logo */}
+        <div className="flex gap-1">
+          <div className={`w-4 h-1.5 ${dotColor} rounded`} />
+          <div className={`w-4 h-1.5 ${dotColor} rounded`} />
+          <div className={`w-4 h-1.5 ${dotColor} rounded`} />
+        </div>
+        <div className="flex gap-1">
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+        </div>
+      </div>
+    );
+  }
+  
+  if (layout === 'logo-left') {
+    // Logo left, menu center, icons right
+    return (
+      <div className="flex items-center justify-between h-6" dir="rtl">
+        <div className="flex gap-1">
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+        </div>
+        <div className="flex gap-1">
+          <div className={`w-4 h-1.5 ${dotColor} rounded`} />
+          <div className={`w-4 h-1.5 ${dotColor} rounded`} />
+          <div className={`w-4 h-1.5 ${dotColor} rounded`} />
+        </div>
+        <div className={`w-8 h-3 ${barColor} rounded`} /> {/* Logo */}
+      </div>
+    );
+  }
+  
+  // logo-center - Logo center, search right, icons left, menu below
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between h-5" dir="rtl">
+        <div className={`w-3 h-2 ${dotColor} rounded`} /> {/* Search */}
+        <div className={`w-8 h-3 ${barColor} rounded`} /> {/* Logo */}
+        <div className="flex gap-1">
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+          <div className={`w-2 h-2 ${dotColor} rounded-full`} />
+        </div>
+      </div>
+      <div className="flex justify-center gap-1 pt-1 border-t border-gray-100">
+        <div className={`w-4 h-1 ${dotColor} rounded`} />
+        <div className={`w-4 h-1 ${dotColor} rounded`} />
+        <div className={`w-4 h-1 ${dotColor} rounded`} />
+      </div>
+    </div>
   );
 }

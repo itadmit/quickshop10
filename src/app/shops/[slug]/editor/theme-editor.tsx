@@ -28,6 +28,38 @@ interface Store {
   slug: string;
   logoUrl: string | null;
   themeSettings: unknown;
+  settings: unknown;
+}
+
+type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
+
+// Theme settings interface (mirrors section-settings.tsx)
+interface ThemeSettings {
+  headerLayout?: HeaderLayout;
+  headerSticky?: boolean;
+  headerTransparent?: boolean;
+  headerShowSearch?: boolean;
+  headerShowCart?: boolean;
+  headerShowAccount?: boolean;
+  announcementEnabled?: boolean;
+  announcementText?: string;
+  announcementLink?: string;
+  announcementBgColor?: string;
+  announcementTextColor?: string;
+  footerShowLogo?: boolean;
+  footerShowNewsletter?: boolean;
+  footerNewsletterTitle?: string;
+  footerNewsletterSubtitle?: string;
+  footerShowSocial?: boolean;
+  footerShowPayments?: boolean;
+  footerCopyright?: string;
+  footerBgColor?: string;
+  footerTextColor?: string;
+  socialFacebook?: string;
+  socialInstagram?: string;
+  socialTwitter?: string;
+  socialTiktok?: string;
+  socialYoutube?: string;
 }
 
 interface ThemeEditorProps {
@@ -52,8 +84,93 @@ export function ThemeEditor({
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop');
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Theme settings state - loaded from store settings
+  const initialThemeSettings: ThemeSettings = {
+    headerLayout: 'logo-right',
+    headerSticky: true,
+    headerShowSearch: true,
+    headerShowCart: true,
+    headerShowAccount: true,
+    announcementEnabled: false,
+    footerShowLogo: true,
+    footerShowNewsletter: true,
+    footerShowSocial: true,
+    footerShowPayments: true,
+    ...(store.settings as ThemeSettings || {}),
+  };
+  const [themeSettings, setThemeSettings] = useState<ThemeSettings>(initialThemeSettings);
 
-  const selectedSection = sections.find(s => s.id === selectedSectionId) || null;
+  // Get selected section - handle special sections like header, footer
+  const getSelectedSection = (): Section | null => {
+    if (selectedSectionId === 'header') {
+      return {
+        id: 'header',
+        type: 'header',
+        title: 'הדר',
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: -1,
+        isActive: true,
+      };
+    }
+    if (selectedSectionId === 'announcement-bar') {
+      return {
+        id: 'announcement-bar',
+        type: 'announcement-bar',
+        title: 'פס הודעות',
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: -2,
+        isActive: true,
+      };
+    }
+    if (selectedSectionId === 'footer') {
+      return {
+        id: 'footer',
+        type: 'footer',
+        title: 'פוטר',
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: 999,
+        isActive: true,
+      };
+    }
+    return sections.find(s => s.id === selectedSectionId) || null;
+  };
+
+  const selectedSection = getSelectedSection();
+  
+  // Handle theme settings change (debounced save)
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const handleThemeSettingsChange = useCallback((updates: Partial<ThemeSettings>) => {
+    // Update local state immediately (optimistic)
+    setThemeSettings(prev => ({ ...prev, ...updates }));
+    setHasChanges(true);
+    
+    // Debounce save to DB
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(async () => {
+      try {
+        await fetch(`/api/shops/${slug}/settings/theme`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+        // Refresh preview to show changes
+        setPreviewRefreshKey(prev => prev + 1);
+      } catch (error) {
+        console.error('Failed to save theme settings:', error);
+      }
+    }, 500); // 500ms debounce
+  }, [slug]);
 
   // Update section data
   const updateSection = useCallback((sectionId: string, updates: Partial<Section>) => {
@@ -323,6 +440,8 @@ export function ThemeEditor({
               section={selectedSection}
               onUpdate={(updates) => updateSection(selectedSection.id, updates)}
               onRemove={() => removeSection(selectedSection.id)}
+              themeSettings={themeSettings}
+              onThemeSettingsChange={handleThemeSettingsChange}
             />
           ) : (
             <div className="p-6 text-center text-gray-400" dir="rtl">
@@ -351,6 +470,7 @@ export function ThemeEditor({
             onAddSection={addSection}
             onRemoveSection={removeSection}
             onReorderSections={reorderSections}
+            headerLayout={themeSettings.headerLayout}
           />
         </div>
       </div>
