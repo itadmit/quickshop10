@@ -11,6 +11,7 @@ import { PopupDisplay } from '@/components/storefront/popup-display';
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
 import { PreviewSettingsProvider } from '@/components/storefront/preview-settings-provider';
+import { SmartHeader, ServerHeaderHider } from '@/components/storefront/smart-header';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups } from '@/lib/db/schema';
@@ -170,14 +171,33 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       <PreviewSettingsProvider initialSettings={storeSettings as Record<string, unknown>}>
         {showHeader && (
           <>
-            <ShopHeader 
-              storeName={store.name} 
+            {/* Server header - hidden in preview mode */}
+            <ServerHeaderHider>
+              <ShopHeader 
+                storeName={store.name} 
+                storeId={store.id}
+                categories={categories} 
+                basePath={basePath}
+                customer={customerData}
+                layout={headerLayout}
+              />
+            </ServerHeaderHider>
+            
+            {/* Client header - only shown in preview mode for live updates */}
+            <SmartHeader
+              storeName={store.name}
               storeId={store.id}
-              categories={categories} 
+              categories={categories}
               basePath={basePath}
               customer={customerData}
               layout={headerLayout}
+              headerSticky={Boolean(storeSettings.headerSticky ?? true)}
+              headerTransparent={Boolean(storeSettings.headerTransparent)}
+              headerShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
+              headerShowCart={Boolean(storeSettings.headerShowCart ?? true)}
+              headerShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
             />
+            
             <CartSidebar basePath={basePath} />
             {/* Stories Bar - Renders only if plugin is active and there are stories */}
             {storiesEnabled && storiesSettings && stories.length > 0 && (
