@@ -156,9 +156,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // Get price display settings
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
   
-  // Get header layout from theme settings
-  const themeSettings = (store.themeSettings as Record<string, unknown>) || {};
-  const headerLayout = (themeSettings.headerLayout as HeaderLayout) || 'logo-right';
+  // Get header layout from store settings
+  const headerLayout = (storeSettings.headerLayout as HeaderLayout) || 'logo-right';
 
   return (
     <TrackingProvider config={trackingConfig}>
@@ -170,6 +169,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           <>
             <ShopHeader 
               storeName={store.name} 
+              storeId={store.id}
               categories={categories} 
               basePath={basePath}
               customer={customerData}

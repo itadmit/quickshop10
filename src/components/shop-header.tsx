@@ -28,6 +28,7 @@ export type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
 
 interface ShopHeaderProps {
   storeName: string;
+  storeId: string;
   categories: Category[];
   basePath: string;
   customer?: CustomerData | null;
@@ -39,6 +40,7 @@ interface ShopHeaderProps {
 // Mobile menu and search are small client islands for interactivity
 export function ShopHeader({ 
   storeName, 
+  storeId,
   categories, 
   basePath, 
   customer,
@@ -116,10 +118,10 @@ export function ShopHeader({
   // Icons component (search, user, cart)
   const Icons = ({ searchFirst = false }: { searchFirst?: boolean }) => (
     <div className="flex items-center gap-1 sm:gap-2">
-      {searchFirst && <SearchButton basePath={basePath} />}
+      {searchFirst && <SearchButton basePath={basePath} storeId={storeId} />}
       <UserButton basePath={basePath} initialCustomer={customer} />
       <CartButton />
-      {!searchFirst && <SearchButton basePath={basePath} />}
+      {!searchFirst && <SearchButton basePath={basePath} storeId={storeId} />}
     </div>
   );
 
@@ -177,7 +179,7 @@ export function ShopHeader({
         <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
           {/* Right: Search */}
           <div className="flex items-center">
-            <SearchButton basePath={basePath} />
+            <SearchButton basePath={basePath} storeId={storeId} />
             <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
           </div>
 

@@ -96,6 +96,7 @@ export default async function DesignPage({ params }: DesignPageProps) {
 
   // Get current theme from store settings
   const themeSettings = store.themeSettings as Record<string, unknown> || {};
+  const storeSettings = store.settings as Record<string, unknown> || {};
   const currentTemplateId = (themeSettings.templateId as string) || 'noir';
 
   return (
@@ -103,6 +104,12 @@ export default async function DesignPage({ params }: DesignPageProps) {
       <PageHeader
         title="עיצוב החנות"
         description="בחרו תבנית עיצוב והתאימו אותה לסגנון שלכם"
+      />
+
+      {/* Header Layout Selector */}
+      <HeaderLayoutSelector 
+        currentLayout={(storeSettings.headerLayout as string) || 'logo-right'}
+        storeSlug={slug}
       />
 
       {/* Current Theme Card */}
@@ -213,12 +220,6 @@ export default async function DesignPage({ params }: DesignPageProps) {
           </div>
         </div>
       </div>
-
-      {/* Header Layout Selector */}
-      <HeaderLayoutSelector 
-        currentLayout={(themeSettings.headerLayout as string) || 'logo-right'}
-        storeSlug={slug}
-      />
 
       {/* Templates Gallery */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">

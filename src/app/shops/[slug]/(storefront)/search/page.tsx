@@ -72,20 +72,20 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   
   return (
     <div className="min-h-screen bg-white" dir="rtl">
-      {/* Header */}
-      <div className="border-b border-gray-100 py-8 px-6">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="font-display text-3xl font-light tracking-wide mb-4">חיפוש</h1>
+      {/* Header - Centered */}
+      <div className="border-b border-gray-100 py-12 px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <h1 className="font-display text-3xl font-light tracking-wide mb-6">חיפוש</h1>
           
-          {/* Search Form */}
-          <form method="get" className="max-w-xl">
+          {/* Search Form - Centered */}
+          <form method="get" className="w-full">
             <div className="flex gap-2">
               <input
                 type="text"
                 name="q"
                 defaultValue={query}
                 placeholder="חפש מוצרים..."
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-black focus:outline-none transition-colors"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-black focus:outline-none transition-colors text-right"
                 autoFocus
               />
               <button
@@ -103,7 +103,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
       <div className="max-w-6xl mx-auto px-6 py-12">
         {query ? (
           <>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-8 text-center">
               {searchResults.length > 0 
                 ? `נמצאו ${searchResults.length} תוצאות עבור "${query}"`
                 : `לא נמצאו תוצאות עבור "${query}"`
