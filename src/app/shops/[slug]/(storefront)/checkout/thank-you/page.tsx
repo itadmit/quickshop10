@@ -19,7 +19,7 @@ import { headers } from 'next/headers';
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, influencerSales, influencers } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, automaticDiscounts, influencerSales, influencers } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -246,6 +246,161 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 })
                 .where(eq(customers.id, existingOrder.customerId));
             }
+            
+            // ========== POST-PAYMENT LOGIC FOR NEW FLOW ==========
+            // Decrement inventory (non-blocking for speed)
+            decrementInventory(cartItems).catch(err => {
+              console.error('Thank you page (new flow): Failed to decrement inventory:', err);
+            });
+            
+            // Increment discount/coupon usage count
+            if (pendingPayment.discountCode) {
+              db.update(discounts)
+                .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
+                .where(
+                  and(
+                    eq(discounts.storeId, store.id),
+                    eq(discounts.code, pendingPayment.discountCode)
+                  )
+                )
+                .then(() => {
+                  console.log(`Thank you page (new flow): Incremented usage count for coupon ${pendingPayment.discountCode}`);
+                })
+                .catch(err => {
+                  console.error(`Thank you page (new flow): Failed to increment coupon usage:`, err);
+                });
+              
+              // Create influencer sale record if coupon is linked to an influencer
+              const totalAmount = Number(updatedOrder.total);
+              db.select({
+                influencerId: influencers.id,
+                commissionType: influencers.commissionType,
+                commissionValue: influencers.commissionValue,
+              })
+                .from(discounts)
+                .innerJoin(influencers, eq(influencers.discountId, discounts.id))
+                .where(
+                  and(
+                    eq(discounts.storeId, store.id),
+                    eq(discounts.code, pendingPayment.discountCode),
+                    eq(influencers.isActive, true)
+                  )
+                )
+                .limit(1)
+                .then(async ([result]) => {
+                  if (!result) return;
+                  
+                  const commissionType = result.commissionType || 'percentage';
+                  const commissionValue = Number(result.commissionValue) || 10;
+                  
+                  let commissionAmount = 0;
+                  if (commissionType === 'percentage') {
+                    commissionAmount = (totalAmount * commissionValue) / 100;
+                  } else {
+                    commissionAmount = commissionValue;
+                  }
+                  
+                  await db.insert(influencerSales).values({
+                    influencerId: result.influencerId,
+                    orderId: updatedOrder.id,
+                    orderTotal: String(totalAmount),
+                    commissionAmount: String(commissionAmount),
+                    netCommission: String(commissionAmount),
+                    status: 'pending',
+                  });
+                  
+                  await db.update(influencers)
+                    .set({
+                      totalSales: sql`COALESCE(${influencers.totalSales}, 0) + ${totalAmount}`,
+                      totalCommission: sql`COALESCE(${influencers.totalCommission}, 0) + ${commissionAmount}`,
+                      totalOrders: sql`COALESCE(${influencers.totalOrders}, 0) + 1`,
+                      updatedAt: new Date(),
+                    })
+                    .where(eq(influencers.id, result.influencerId));
+                  
+                  console.log(`Thank you page (new flow): Created influencer sale for ${result.influencerId}`);
+                })
+                .catch(err => {
+                  console.error(`Thank you page (new flow): Failed to create influencer sale:`, err);
+                });
+            }
+            
+            // Increment automatic discount usage counts (non-blocking)
+            const appliedAutoDiscounts = (orderData as { autoDiscounts?: Array<{ id: string; name: string }> })?.autoDiscounts || [];
+            if (appliedAutoDiscounts.length > 0) {
+              const autoDiscountIds = appliedAutoDiscounts.map(d => d.id);
+              db.update(automaticDiscounts)
+                .set({ usageCount: sql`COALESCE(${automaticDiscounts.usageCount}, 0) + 1` })
+                .where(inArray(automaticDiscounts.id, autoDiscountIds))
+                .then(() => {
+                  console.log(`Thank you page (new flow): Incremented usage count for ${autoDiscountIds.length} automatic discounts`);
+                })
+                .catch(err => {
+                  console.error(`Thank you page (new flow): Failed to increment automatic discount usage:`, err);
+                });
+            }
+            
+            // Send order confirmation email (non-blocking)
+            const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
+            const discountAmount = Number(pendingPayment.discountAmount) || 0;
+            const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
+            
+            sendOrderConfirmationEmail({
+              orderNumber: updatedOrder.orderNumber,
+              customerName: updatedOrder.customerName || 'לקוח יקר',
+              customerEmail: updatedOrder.customerEmail || '',
+              items: cartItems.map(item => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                image: item.image || undefined,
+                variantTitle: item.variantTitle || undefined,
+              })),
+              subtotal,
+              shippingAmount: shippingCost,
+              discountAmount,
+              creditUsed,
+              total: Number(updatedOrder.total),
+              shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
+              storeName: store.name,
+              storeSlug: store.slug,
+              paymentInfo: {
+                lastFour: search.four_digits,
+                brand: search.brand_name,
+                approvalNum: search.approval_num,
+              },
+            }).catch(err => console.error('Failed to send order confirmation email:', err));
+            
+            // Emit order.created event
+            emitOrderCreated(
+              store.id,
+              updatedOrder.id,
+              updatedOrder.orderNumber,
+              updatedOrder.customerEmail || '',
+              Number(updatedOrder.total),
+              cartItems.length
+            );
+            
+            // Check for low stock
+            Promise.all(
+              cartItems.map(async (item) => {
+                if (!item.productId) return;
+                try {
+                  const [product] = await db
+                    .select({ id: products.id, name: products.name, inventory: products.inventory })
+                    .from(products)
+                    .where(eq(products.id, item.productId))
+                    .limit(1);
+                  
+                  if (product && product.inventory !== null) {
+                    emitLowStock(store.id, product.id, product.name, product.inventory);
+                  }
+                } catch (err) {
+                  console.error('Failed to check low stock:', err);
+                }
+              })
+            ).catch(err => console.error('Failed to check low stock:', err));
           }
           
           // Update pending payment status
@@ -393,6 +548,21 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             })
             .catch(err => {
               console.error(`Thank you page: Failed to increment coupon usage:`, err);
+            });
+        }
+        
+        // Increment automatic discount usage counts (non-blocking)
+        const legacyAutoDiscounts = (orderData as { autoDiscounts?: Array<{ id: string; name: string }> })?.autoDiscounts || [];
+        if (legacyAutoDiscounts.length > 0) {
+          const autoDiscountIds = legacyAutoDiscounts.map(d => d.id);
+          db.update(automaticDiscounts)
+            .set({ usageCount: sql`COALESCE(${automaticDiscounts.usageCount}, 0) + 1` })
+            .where(inArray(automaticDiscounts.id, autoDiscountIds))
+            .then(() => {
+              console.log(`Thank you page: Incremented usage count for ${autoDiscountIds.length} automatic discounts`);
+            })
+            .catch(err => {
+              console.error(`Thank you page: Failed to increment automatic discount usage:`, err);
             });
         }
         

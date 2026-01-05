@@ -751,6 +751,9 @@ export const automaticDiscounts = pgTable('automatic_discounts', {
   excludeCategoryIds: jsonb('exclude_category_ids').default([]),
   excludeProductIds: jsonb('exclude_product_ids').default([]),
   
+  // Usage tracking
+  usageCount: integer('usage_count').default(0),
+  
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
