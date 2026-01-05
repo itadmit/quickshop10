@@ -30,6 +30,20 @@ export default function RegisterPage() {
       return;
     }
 
+    // Validate store name - only English letters, numbers, spaces, hyphens, and underscores
+    const storeNameRegex = /^[a-zA-Z0-9\s_-]+$/;
+    if (!storeNameRegex.test(storeName)) {
+      setErrorMsg('שם החנות יכול להכיל רק אותיות אנגליות, מספרים, רווחים, מקפים ותווים תחתונים');
+      return;
+    }
+
+    // Check if store name contains at least one English letter or number
+    const hasValidChars = /[a-zA-Z0-9]/.test(storeName);
+    if (!hasValidChars) {
+      setErrorMsg('שם החנות חייב להכיל לפחות אות אנגלית אחת או מספר');
+      return;
+    }
+
     startTransition(async () => {
       const result = await register({ name, email, password, storeName });
 
@@ -165,22 +179,33 @@ export default function RegisterPage() {
 
             <div>
               <label htmlFor="storeName" className="block text-sm font-medium text-gray-700 mb-1">
-                שם החנות
+                שם החנות (אנגלית בלבד)
               </label>
               <input
                 id="storeName"
                 type="text"
                 value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
+                onChange={(e) => {
+                  // Only allow English letters, numbers, spaces, hyphens, and underscores
+                  const value = e.target.value;
+                  if (value === '' || /^[a-zA-Z0-9\s_-]*$/.test(value)) {
+                    setStoreName(value);
+                  }
+                }}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
-                placeholder="החנות שלי"
+                placeholder="my-store"
                 required
+                pattern="[a-zA-Z0-9\s_-]+"
+                title="רק אותיות אנגליות, מספרים, רווחים, מקפים ותווים תחתונים"
               />
               {storeName && (
                 <p className="mt-1 text-xs text-gray-500">
-                  הכתובת תהיה: {storeName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')}.quickshop.co.il
+                  הכתובת תהיה: http://my-quickshop.com/shops/{storeName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')}
                 </p>
               )}
+              <p className="mt-1 text-xs text-gray-400">
+                רק אותיות אנגליות, מספרים, רווחים, מקפים (-) ותווים תחתונים (_)
+              </p>
             </div>
 
             <button

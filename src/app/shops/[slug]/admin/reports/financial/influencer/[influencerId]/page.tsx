@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getInfluencerOrders } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import { db } from '@/lib/db';
 import { influencers } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -71,12 +71,14 @@ async function InfluencerOrdersContent({
   storeId, 
   storeSlug,
   influencerId, 
-  period 
+  period,
+  customRange
 }: { 
   storeId: string; 
   storeSlug: string;
   influencerId: string; 
-  period: '7d' | '30d' | '90d' 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
 }) {
   // Get influencer details
   const [influencer] = await db
@@ -98,7 +100,7 @@ async function InfluencerOrdersContent({
     notFound();
   }
 
-  const orders = await getInfluencerOrders(storeId, influencerId, period);
+  const orders = await getInfluencerOrders(storeId, influencerId, period, customRange);
 
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
   const totalDiscount = orders.reduce((sum, o) => sum + o.discountAmount, 0);
@@ -228,7 +230,7 @@ export default async function InfluencerDetailPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -244,7 +246,8 @@ export default async function InfluencerDetailPage({
           storeId={store.id} 
           storeSlug={slug}
           influencerId={influencerId} 
-          period={period} 
+          period={period}
+          customRange={customRange}
         />
       </Suspense>
     </div>

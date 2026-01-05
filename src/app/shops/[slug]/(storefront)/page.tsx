@@ -105,21 +105,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
     );
   }
 
-  // Get section display name for preview mode
-  const getSectionName = (type: string) => {
-    const names: Record<string, string> = {
-      hero: 'Hero',
-      categories: 'קטגוריות',
-      products: 'מוצרים',
-      video_banner: 'וידאו',
-      split_banner: 'באנר מפוצל',
-      newsletter: 'ניוזלטר',
-    };
-    return names[type] || type;
-  };
-
   // Render sections dynamically from database
-  // In preview mode: wrap with data attributes for editor interaction
+  // Each section component has data-section-id built-in for editor interaction
   const renderSection = (section: typeof sections[0], index: number) => {
     const content = section.content as Record<string, unknown>;
     const settings = section.settings as Record<string, unknown>;
@@ -135,31 +122,53 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             content={content as { imageUrl?: string; buttonText?: string; buttonLink?: string }}
             settings={settings as { height?: string; overlay?: number }}
             basePath={basePath}
+            sectionId={section.id}
           />
         );
         break;
 
       case 'categories':
+        // Filter categories if specific ones are selected
+        const categoryIds = content.categoryIds as string[] | undefined;
+        // In preview mode: show all categories (filtering done via CSS)
+        // In production: only show selected categories
+        const categoriesToShow = isPreviewMode 
+          ? categories 
+          : (categoryIds && categoryIds.length > 0 ? categories.filter(cat => categoryIds.includes(cat.id)) : categories);
+        
         sectionElement = (
           <CategoriesSection
-            categories={categories}
-            settings={settings as { columns?: number; gap?: number }}
+            title={section.title}
+            subtitle={section.subtitle}
+            categories={categoriesToShow}
+            settings={settings as { columns?: number; gap?: number; textAlign?: 'right' | 'center' | 'left' }}
             basePath={basePath}
+            sectionId={section.id}
+            selectedCategoryIds={isPreviewMode ? categoryIds : undefined}
           />
         );
         break;
 
       case 'products':
         const productContent = content as { type?: string; limit?: number };
-        const productsToShow = productContent.type === 'featured' ? featuredProducts : allProducts;
+        const allProductsToShow = productContent.type === 'featured' ? featuredProducts : allProducts;
+        const productLimit = productContent.limit || 8;
+        // In preview mode: show all products (limiting done via CSS for live preview)
+        // In production: slice to limit
+        const productsToShow = isPreviewMode 
+          ? allProductsToShow 
+          : allProductsToShow.slice(0, productLimit);
+        
         sectionElement = (
           <ProductsSection
             title={section.title}
             subtitle={section.subtitle}
             products={productsToShow}
-            settings={settings as { columns?: number; gap?: number; showCount?: boolean }}
+            settings={settings as { columns?: number; gap?: number; showCount?: boolean; textAlign?: 'right' | 'center' | 'left' }}
             basePath={basePath}
             showDecimalPrices={showDecimalPrices}
+            sectionId={section.id}
+            displayLimit={isPreviewMode ? productLimit : undefined}
           />
         );
         break;
@@ -169,9 +178,24 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
           <VideoBannerSection
             title={section.title}
             subtitle={section.subtitle}
-            content={content as { videoUrl?: string; imageUrl?: string; buttonText?: string; buttonLink?: string }}
-            settings={settings as { height?: string; overlay?: number }}
+            content={content as { 
+              videoUrl?: string; 
+              imageUrl?: string; 
+              mobileVideoUrl?: string;
+              mobileImageUrl?: string;
+              buttonText?: string; 
+              buttonLink?: string;
+            }}
+            settings={settings as { 
+              height?: string; 
+              overlay?: number;
+              autoplay?: boolean;
+              loop?: boolean;
+              muted?: boolean;
+              controls?: boolean;
+            }}
             basePath={basePath}
+            sectionId={section.id}
           />
         );
         break;
@@ -179,9 +203,16 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
       case 'split_banner':
         sectionElement = (
           <SplitBannerSection
-            content={content as { items?: { title: string; imageUrl: string; link: string }[] }}
+            content={content as { 
+              // New structure
+              right?: { title?: string; imageUrl?: string; mobileImageUrl?: string; link?: string };
+              left?: { title?: string; imageUrl?: string; mobileImageUrl?: string; link?: string };
+              // Legacy support
+              items?: { title: string; imageUrl: string; mobileImageUrl?: string; link: string }[];
+            }}
             settings={settings as { height?: string }}
             basePath={basePath}
+            sectionId={section.id}
           />
         );
         break;
@@ -193,6 +224,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             subtitle={section.subtitle}
             content={content as { placeholder?: string; buttonText?: string }}
             settings={settings as { maxWidth?: string }}
+            sectionId={section.id}
           />
         );
         break;
@@ -201,20 +233,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         return null;
     }
 
-    // In preview mode: wrap with data attributes for editor interaction
-    // In production: render directly (no wrapper overhead)
-    if (isPreviewMode) {
-      return (
-        <div 
-          key={section.id}
-          data-section-id={section.id}
-          data-section-name={getSectionName(section.type)}
-        >
-          {sectionElement}
-        </div>
-      );
-    }
-
+    // Each section component now has data-section-id built-in
+    // No need for wrapper overhead in either mode
     return <div key={section.id}>{sectionElement}</div>;
   };
 

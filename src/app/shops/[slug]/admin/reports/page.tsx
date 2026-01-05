@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getReportsDashboard } from '@/lib/actions/reports';
 import { DateRangePicker } from '@/components/admin/date-range-picker';
+import { getReportPeriodParams } from '@/components/admin/report-header';
 
 // Components
 import { StatCard } from '@/components/admin/ui';
@@ -98,15 +99,27 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
     );
   }
 
+  // Check if data is by hour (contains time in date string)
+  const isByHour = data[0]?.date.includes(' ') && data[0]?.date.includes(':');
+  
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
   
   return (
     <div className="h-64">
-      <div className="h-56 flex items-end gap-0.5">
+      <div className="flex items-end gap-0.5 h-52">
         {data.map((day, i) => {
-          const heightPercent = (day.revenue / maxRevenue) * 100;
-          const date = new Date(day.date);
-          const dayLabel = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          const height = (day.revenue / maxRevenue) * 100;
+          
+          // Format label based on whether it's by hour or by day
+          let label = '';
+          if (isByHour) {
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+            const date = new Date(day.date);
+            label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          }
           
           return (
             <div 
@@ -117,7 +130,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                 <div className="bg-black text-white text-xs px-3 py-2 rounded shadow-lg whitespace-nowrap">
-                  <div className="font-medium">{dayLabel}</div>
+                  <div className="font-medium">{label}</div>
                   <div>{formatCurrency(day.revenue)}</div>
                   <div className="text-gray-300">{day.orders} הזמנות</div>
                 </div>
@@ -127,7 +140,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
               <div className="absolute bottom-0 left-0 right-0 flex items-end h-full">
                 <div 
                   className="w-full bg-black hover:bg-gray-700 transition-colors rounded-t-sm"
-                  style={{ height: `${Math.max(heightPercent, 2)}%` }}
+                  style={{ height: `${Math.max(height, 2)}%` }}
                 />
               </div>
             </div>
@@ -136,15 +149,29 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
       </div>
       
       {/* X-axis labels */}
-      <div className="h-8 flex gap-0.5 mt-1">
+      <div className="h-12 flex gap-0.5 mt-1 overflow-hidden">
         {data.map((day, i) => {
-          const date = new Date(day.date);
-          const showLabel = data.length <= 14 || i % Math.ceil(data.length / 10) === 0;
+          // For hours: show every 3 hours (0, 3, 6, 9, 12, 15, 18, 21)
+          // For days: show based on data length
+          const showLabel = isByHour
+            ? i % 3 === 0 // Show every 3 hours
+            : data.length <= 14 || i % Math.ceil(data.length / 10) === 0;
+          
+          let label = '';
+          if (isByHour) {
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+            const date = new Date(day.date);
+            label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          }
+          
           return (
-            <div key={i} className="flex-1 text-center overflow-hidden">
+            <div key={i} className="flex-1 text-center">
               {showLabel && (
                 <span className="text-[9px] text-gray-400">
-                  {date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
+                  {label}
                 </span>
               )}
             </div>
@@ -263,8 +290,16 @@ function ConversionFunnel({
 }
 
 // Dashboard Content
-async function DashboardContent({ storeId, period }: { storeId: string; period: '7d' | '30d' | '90d' }) {
-  const dashboard = await getReportsDashboard(storeId, period);
+async function DashboardContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
+  const dashboard = await getReportsDashboard(storeId, period, customRange);
 
   return (
     <>
@@ -368,31 +403,12 @@ export default async function ReportsPage({
   searchParams: Promise<{ period?: string }>;
 }) {
   const { slug } = await params;
-  const { period: periodParam } = await searchParams;
+  const resolvedSearchParams = await searchParams;
   
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  // Map period to days for the report function
-  const periodToDays: Record<string, number> = {
-    'today': 1,
-    'yesterday': 1,
-    '7d': 7,
-    '30d': 30,
-    '90d': 90,
-    '6m': 180,
-    '1y': 365,
-  };
-
-  const validPeriods = ['today', 'yesterday', '7d', '30d', '90d', '6m', '1y', 'custom'];
-  const period = validPeriods.includes(periodParam || '') 
-    ? periodParam as string
-    : '30d';
-
-  // Convert to the format expected by getReportsDashboard
-  const reportPeriod = period === 'today' || period === 'yesterday' ? '7d' 
-    : period === '6m' || period === '1y' ? '90d'
-    : (period as '7d' | '30d' | '90d');
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -404,8 +420,8 @@ export default async function ReportsPage({
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Date Range Picker */}
-          <DateRangePicker basePath={`/shops/${slug}/admin/reports`} />
+          {/* Date Range Picker - uses current pathname automatically */}
+          <DateRangePicker />
           
           {/* Realtime Button */}
           <Link
@@ -497,9 +513,10 @@ export default async function ReportsPage({
           </div>
         </>
       }>
-        <DashboardContent storeId={store.id} period={reportPeriod} />
+        <DashboardContent storeId={store.id} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );
 }
+
 

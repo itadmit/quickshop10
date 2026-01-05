@@ -10,17 +10,27 @@ interface NewsletterSectionProps {
   };
 }
 
-export function NewsletterSection({ title, subtitle, content }: NewsletterSectionProps) {
+export function NewsletterSection({ title, subtitle, content, sectionId }: NewsletterSectionProps & { sectionId?: string }) {
   return (
-    <section className="py-24 px-6 bg-gray-50">
+    <section 
+      className="py-24 px-6 bg-gray-50"
+      data-section-id={sectionId}
+      data-section-name="הצטרפו למועדון"
+    >
       <div className="max-w-xl mx-auto text-center">
         {title && (
-          <h2 className="font-display text-2xl md:text-3xl font-light tracking-[0.15em] uppercase mb-4">
+          <h2 
+            className="font-display text-2xl md:text-3xl font-light tracking-[0.15em] uppercase mb-4"
+            data-section-title
+          >
             {title}
           </h2>
         )}
         {subtitle && (
-          <p className="text-gray-500 text-sm mb-10">
+          <p 
+            className="text-gray-500 text-sm mb-10"
+            data-section-subtitle
+          >
             {subtitle}
           </p>
         )}

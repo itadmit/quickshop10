@@ -7,7 +7,7 @@ import {
   getLandingPages,
   getConversionFunnel
 } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import {
   SmartphoneIcon,
   MonitorIcon,
@@ -273,13 +273,21 @@ function ConversionFunnel({
 }
 
 // Content Component
-async function TrafficContent({ storeId, period }: { storeId: string; period: '7d' | '30d' | '90d' }) {
+async function TrafficContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
   // Parallel data fetching
   const [sources, devices, landingPages, funnel] = await Promise.all([
-    getTrafficSources(storeId, period),
-    getDeviceStats(storeId, period),
-    getLandingPages(storeId, period, 10),
-    getConversionFunnel(storeId, period),
+    getTrafficSources(storeId, period, customRange),
+    getDeviceStats(storeId, period, customRange),
+    getLandingPages(storeId, period, 10, customRange),
+    getConversionFunnel(storeId, period, customRange),
   ]);
 
   // Calculate totals
@@ -355,7 +363,7 @@ export default async function TrafficReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -367,7 +375,7 @@ export default async function TrafficReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <TrafficContent storeId={store.id} period={period} />
+        <TrafficContent storeId={store.id} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );

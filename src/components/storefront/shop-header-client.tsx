@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { MobileMenu } from '@/components/mobile-menu';
 import { CartButton } from '@/components/cart-button';
 import { UserButton } from '@/components/user-button';
@@ -17,6 +18,86 @@ import { usePreviewSettings } from './preview-settings-provider';
  * - Only loaded inside preview iframe
  * - Server component used in production
  */
+
+// Announcement Bar Component - supports rotating messages with slide animation
+function AnnouncementBar({ 
+  enabled, 
+  text, 
+  link, 
+  bgColor, 
+  textColor,
+  onClose,
+}: {
+  enabled: boolean;
+  text: string;
+  link?: string;
+  bgColor: string;
+  textColor: string;
+  onClose?: () => void;
+}) {
+  // Support multiple messages (each line = separate message)
+  const messages = text.split('\n').filter(line => line.trim());
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Rotate messages every 4 seconds with animation
+  useEffect(() => {
+    if (messages.length <= 1) return;
+    
+    const interval = setInterval(() => {
+      setIsAnimating(true);
+      setTimeout(() => {
+        setCurrentIndex(prev => (prev + 1) % messages.length);
+        setIsAnimating(false);
+      }, 300); // Half of animation duration
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [messages.length]);
+  
+  if (!enabled || messages.length === 0) return null;
+  
+  const currentMessage = messages[currentIndex];
+  
+  return (
+    <div 
+      className="relative text-center py-2.5 text-sm font-medium overflow-hidden"
+      style={{ backgroundColor: bgColor, color: textColor }}
+      data-section-id="announcement-bar"
+      data-section-name="פס הודעות"
+    >
+      <div className="max-w-[1800px] mx-auto px-12 relative h-5">
+        <div 
+          className={`absolute inset-0 flex items-center justify-center transition-all duration-300 ease-in-out ${
+            isAnimating ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+          }`}
+        >
+          {link ? (
+            <a href={link} className="hover:underline">
+              {currentMessage}
+            </a>
+          ) : (
+            <span>{currentMessage}</span>
+          )}
+        </div>
+        
+        {/* Close button */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute left-0 top-1/2 -translate-y-1/2 p-1 hover:opacity-70 transition-opacity z-10"
+            style={{ color: textColor }}
+            aria-label="סגור הודעה"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface Category {
   id: string;
@@ -64,6 +145,7 @@ export function ShopHeaderClient({
   defaultShowAccount = true,
 }: ShopHeaderClientProps) {
   const { settings, isPreviewMode } = usePreviewSettings();
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   
   // Get settings from preview or use defaults
   const layout = isPreviewMode && settings.headerLayout ? settings.headerLayout : defaultLayout;
@@ -72,6 +154,13 @@ export function ShopHeaderClient({
   const showSearch = isPreviewMode ? (settings.headerShowSearch ?? defaultShowSearch) : defaultShowSearch;
   const showCart = isPreviewMode ? (settings.headerShowCart ?? defaultShowCart) : defaultShowCart;
   const showAccount = isPreviewMode ? (settings.headerShowAccount ?? defaultShowAccount) : defaultShowAccount;
+  
+  // Announcement bar settings (only in preview mode)
+  const announcementEnabled = isPreviewMode ? (settings.announcementEnabled ?? false) : false;
+  const announcementText = settings.announcementText || '';
+  const announcementLink = settings.announcementLink || '';
+  const announcementBgColor = settings.announcementBgColor || '#000000';
+  const announcementTextColor = settings.announcementTextColor || '#ffffff';
 
   // Organize categories into parent/child structure
   const parentCategories = categories.filter(c => !c.parentId);
@@ -171,62 +260,83 @@ export function ShopHeaderClient({
     transition-all duration-300
   `;
 
+  // Announcement bar component (shared)
+  const AnnouncementBarSection = announcementEnabled && !announcementDismissed && (
+    <AnnouncementBar
+      enabled={announcementEnabled}
+      text={announcementText}
+      link={announcementLink}
+      bgColor={announcementBgColor}
+      textColor={announcementTextColor}
+      onClose={() => setAnnouncementDismissed(true)}
+    />
+  );
+
   // Layout 1: Logo Right (RTL default)
   if (layout === 'logo-right') {
     return (
-      <header className={headerClasses}>
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-            <div className="flex items-center gap-2">
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
-              <Logo />
+      <>
+        {AnnouncementBarSection}
+        <header className={headerClasses} data-section-id="header">
+          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+            <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+              <div className="flex items-center gap-2">
+                <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+                <Logo />
+              </div>
+              <Navigation />
+              <Icons />
             </div>
-            <Navigation />
-            <Icons />
           </div>
-        </div>
-      </header>
+        </header>
+      </>
     );
   }
 
   // Layout 2: Logo Left
   if (layout === 'logo-left') {
     return (
-      <header className={headerClasses}>
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-            <Icons />
-            <Navigation />
-            <div className="flex items-center gap-2">
-              <Logo />
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+      <>
+        {AnnouncementBarSection}
+        <header className={headerClasses} data-section-id="header">
+          <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+            <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+              <Icons />
+              <Navigation />
+              <div className="flex items-center gap-2">
+                <Logo />
+                <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+              </div>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
+      </>
     );
   }
 
   // Layout 3: Logo Center
   return (
-    <header className={headerClasses}>
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
-        <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-          <div className="flex items-center">
-            {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
-            <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+    <>
+      {AnnouncementBarSection}
+      <header className={headerClasses} data-section-id="header">
+        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+          <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+            <div className="flex items-center">
+              {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
+              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+            </div>
+            <Logo className="absolute left-1/2 -translate-x-1/2" />
+            <div className="flex items-center gap-1 sm:gap-2">
+              {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
+              {showCart && <CartButton />}
+            </div>
           </div>
-          <Logo className="absolute left-1/2 -translate-x-1/2" />
-          <div className="flex items-center gap-1 sm:gap-2">
-            {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
-            {showCart && <CartButton />}
+          <div className="hidden lg:flex justify-center border-t border-gray-100 py-3">
+            <Navigation />
           </div>
         </div>
-        <div className="hidden lg:flex justify-center border-t border-gray-100 py-3">
-          <Navigation />
-        </div>
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 

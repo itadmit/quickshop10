@@ -7,7 +7,7 @@ import {
   getAbandonedCartsStats,
   getRecentAbandonedCarts
 } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams, toLegacyPeriod } from '@/components/admin/report-header';
 import {
   LightbulbIcon,
   CheckCircleIcon,
@@ -268,12 +268,20 @@ function RecentAbandonedCartsTable({
 }
 
 // Content Component
-async function BehaviorContent({ storeId, period }: { storeId: string; period: '7d' | '30d' | '90d' }) {
+async function BehaviorContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
   // Parallel data fetching
   const [funnel, topSearches, abandonedStats, recentAbandoned] = await Promise.all([
-    getConversionFunnel(storeId, period),
-    getTopSearches(storeId, period, 20),
-    getAbandonedCartsStats(storeId, period),
+    getConversionFunnel(storeId, period, customRange),
+    getTopSearches(storeId, period, 20, customRange),
+    getAbandonedCartsStats(storeId, period, customRange),
     getRecentAbandonedCarts(storeId, 10),
   ]);
 
@@ -387,7 +395,7 @@ export default async function BehaviorReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -399,7 +407,7 @@ export default async function BehaviorReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <BehaviorContent storeId={store.id} period={period} />
+        <BehaviorContent storeId={store.id} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );

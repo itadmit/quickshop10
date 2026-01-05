@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { getStoreBySlug, getPageSections } from '@/lib/db/queries';
+import { getStoreBySlug, getPageSections, getCategoriesByStore } from '@/lib/db/queries';
 import { auth } from '@/lib/auth';
 import { ThemeEditor } from './theme-editor';
 
@@ -44,6 +44,16 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     settings: (s.settings || {}) as Record<string, unknown>,
   }));
 
+  // Fetch categories for the editor (simple list for checkbox selection)
+  const storeCategories = await getCategoriesByStore(store.id);
+  const categoriesForEditor = storeCategories.map(c => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    imageUrl: c.imageUrl,
+    parentId: c.parentId,
+  }));
+
   // Get theme settings
   const themeSettings = (store.themeSettings || {}) as Record<string, unknown>;
   const currentTemplateId = template || (themeSettings.templateId as string) || 'noir';
@@ -54,6 +64,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
       slug={slug}
       sections={sections}
       templateId={currentTemplateId}
+      categories={categoriesForEditor}
     />
   );
 }

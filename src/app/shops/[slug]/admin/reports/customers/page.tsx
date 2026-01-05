@@ -7,7 +7,7 @@ import {
   getNewVsReturning,
   getSalesOverview 
 } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import {
   StarIcon,
   RefreshCwIcon,
@@ -189,6 +189,9 @@ function NewVsReturningChart({
     );
   }
 
+  // Check if data is by hour (contains time in date string)
+  const isByHour = data[0]?.date.includes(' ') && data[0]?.date.includes(':');
+  
   const maxValue = Math.max(...data.map(d => d.newCustomers + d.returningCustomers), 1);
 
   return (
@@ -198,26 +201,73 @@ function NewVsReturningChart({
           const newHeight = (day.newCustomers / maxValue) * 100;
           const returningHeight = (day.returningCustomers / maxValue) * 100;
           
+          // Format label based on whether it's by hour or by day
+          let label = '';
+          if (isByHour) {
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+            label = new Date(day.date).toLocaleDateString('he-IL');
+          }
+          
           return (
             <div 
               key={i} 
-              className="flex-1 flex flex-col items-center group"
-              title={`${new Date(day.date).toLocaleDateString('he-IL')}: ${day.newCustomers} חדשים, ${day.returningCustomers} חוזרים`}
+              className="flex-1 flex flex-col items-center group relative"
             >
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
+                <div className="bg-black text-white text-xs px-3 py-2 rounded shadow-lg whitespace-nowrap">
+                  <div className="font-medium">{label}</div>
+                  <div className="text-blue-300">{day.newCustomers} חדשים</div>
+                  <div className="text-green-300">{day.returningCustomers} חוזרים</div>
+                </div>
+              </div>
+              
               <div className="w-full flex flex-col-reverse h-full justify-start">
                 <div 
-                  className="w-full bg-blue-500"
-                  style={{ height: `${newHeight}%` }}
+                  className="w-full bg-blue-500 hover:bg-blue-600 transition-colors"
+                  style={{ height: `${Math.max(newHeight, 2)}%` }}
                 />
                 <div 
-                  className="w-full bg-green-500"
-                  style={{ height: `${returningHeight}%` }}
+                  className="w-full bg-green-500 hover:bg-green-600 transition-colors"
+                  style={{ height: `${Math.max(returningHeight, 2)}%` }}
                 />
               </div>
             </div>
           );
         })}
       </div>
+      
+      {/* X-axis labels */}
+      <div className="h-12 flex gap-1 mt-1">
+        {data.map((day, i) => {
+          const showLabel = isByHour
+            ? i % 3 === 0 // Show every 3 hours
+            : data.length <= 14 || i % Math.ceil(data.length / 10) === 0;
+          
+          let label = '';
+          if (isByHour) {
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+            label = new Date(day.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          }
+          
+          return (
+            <div key={i} className="flex-1 text-center">
+              {showLabel && (
+                <span className="text-[9px] text-gray-400">
+                  {label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
       <div className="flex justify-center gap-6 mt-4">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 bg-blue-500" />
@@ -233,13 +283,21 @@ function NewVsReturningChart({
 }
 
 // Content Component
-async function CustomersContent({ storeId, period }: { storeId: string; period: '7d' | '30d' | '90d' }) {
+async function CustomersContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
   // Parallel data fetching
   const [segments, topCustomers, newVsReturning, overview] = await Promise.all([
     getCustomerSegments(storeId),
     getTopCustomers(storeId, 20),
-    getNewVsReturning(storeId, period),
-    getSalesOverview(storeId, period),
+    getNewVsReturning(storeId, period, customRange),
+    getSalesOverview(storeId, period, customRange),
   ]);
 
   return (
@@ -338,7 +396,7 @@ export default async function CustomersReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -350,7 +408,7 @@ export default async function CustomersReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <CustomersContent storeId={store.id} period={period} />
+        <CustomersContent storeId={store.id} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );

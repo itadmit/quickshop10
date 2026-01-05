@@ -141,34 +141,90 @@ export const getSalesOverview = cache(async (
   };
 });
 
-// Sales by day - for charts
+// Sales by day - for charts (or by hour if single day)
 export const getSalesByDay = cache(async (
   storeId: string,
   period: '7d' | '30d' | '90d' | 'custom' = '30d',
   customRange?: DateRange
 ) => {
   const { from, to } = getDateRange(period, customRange);
+  
+  // Check if it's a single day (less than 25 hours difference)
+  const isSingleDay = (to.getTime() - from.getTime()) < 25 * 60 * 60 * 1000;
+  
+  if (isSingleDay) {
+    // Group by hour for single day - get actual data
+    const result = await db
+      .select({
+        date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')`,
+        revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+        orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+      })
+      .from(orders)
+      .where(and(
+        eq(orders.storeId, storeId),
+        gte(orders.createdAt, from),
+        lte(orders.createdAt, to)
+      ))
+      .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')`)
+      .orderBy(asc(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')`));
 
-  const result = await db
-    .select({
-      date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
-      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
-      orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
-    })
-    .from(orders)
-    .where(and(
-      eq(orders.storeId, storeId),
-      gte(orders.createdAt, from),
-      lte(orders.createdAt, to)
-    ))
-    .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`)
-    .orderBy(asc(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`));
+    // Create a map of hour -> data
+    const dataMap = new Map<string, { revenue: number; orders: number }>();
+    result.forEach(r => {
+      const dateStr = String(r.date);
+      dataMap.set(dateStr, {
+        revenue: parseFloat(String(r.revenue)) || 0,
+        orders: parseInt(String(r.orderCount)) || 0,
+      });
+    });
 
-  return result.map(r => ({
-    date: String(r.date),
-    revenue: parseFloat(String(r.revenue)) || 0,
-    orders: parseInt(String(r.orderCount)) || 0,
-  }));
+    // Generate all 24 hours for the day
+    const dayStart = new Date(from);
+    dayStart.setHours(0, 0, 0, 0);
+    const allHours: Array<{ date: string; revenue: number; orders: number }> = [];
+    
+    // Get the date string in YYYY-MM-DD format
+    const year = dayStart.getFullYear();
+    const month = String(dayStart.getMonth() + 1).padStart(2, '0');
+    const day = String(dayStart.getDate()).padStart(2, '0');
+    
+    for (let hour = 0; hour < 24; hour++) {
+      const hourStr = String(hour).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day} ${hourStr}:00:00`;
+      
+      const data = dataMap.get(dateStr) || { revenue: 0, orders: 0 };
+      allHours.push({
+        date: dateStr,
+        revenue: data.revenue,
+        orders: data.orders,
+      });
+    }
+
+    return allHours;
+  } else {
+    // Group by day for multiple days
+    const result = await db
+      .select({
+        date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
+        revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+        orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+      })
+      .from(orders)
+      .where(and(
+        eq(orders.storeId, storeId),
+        gte(orders.createdAt, from),
+        lte(orders.createdAt, to)
+      ))
+      .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`)
+      .orderBy(asc(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`));
+
+    return result.map(r => ({
+      date: String(r.date),
+      revenue: parseFloat(String(r.revenue)) || 0,
+      orders: parseInt(String(r.orderCount)) || 0,
+    }));
+  }
 });
 
 // Top products
@@ -428,10 +484,17 @@ export const getNewVsReturning = cache(async (
   customRange?: DateRange
 ) => {
   const { from, to } = getDateRange(period, customRange);
+  
+  // Check if it's a single day (less than 25 hours difference)
+  const isSingleDay = (to.getTime() - from.getTime()) < 25 * 60 * 60 * 1000;
+  
+  const dateFormat = isSingleDay 
+    ? sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')`
+    : sql<string>`DATE(${orders.createdAt})`;
 
   const result = await db
     .select({
-      date: sql<string>`DATE(${orders.createdAt})`,
+      date: dateFormat,
       newCustomers: sql<number>`COUNT(DISTINCT CASE WHEN c.total_orders = 1 THEN ${orders.customerId} END)`,
       returningCustomers: sql<number>`COUNT(DISTINCT CASE WHEN c.total_orders > 1 THEN ${orders.customerId} END)`,
     })
@@ -446,8 +509,44 @@ export const getNewVsReturning = cache(async (
       lte(orders.createdAt, to),
       sql`${orders.status} != 'cancelled'`
     ))
-    .groupBy(sql`DATE(${orders.createdAt})`)
-    .orderBy(asc(sql`DATE(${orders.createdAt})`));
+    .groupBy(isSingleDay ? sql`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')` : sql`DATE(${orders.createdAt})`)
+    .orderBy(asc(isSingleDay ? sql`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')` : sql`DATE(${orders.createdAt})`));
+
+  if (isSingleDay) {
+    // Create a map of hour -> data
+    const dataMap = new Map<string, { newCustomers: number; returningCustomers: number }>();
+    result.forEach(r => {
+      const dateStr = String(r.date);
+      dataMap.set(dateStr, {
+        newCustomers: Number(r.newCustomers),
+        returningCustomers: Number(r.returningCustomers),
+      });
+    });
+
+    // Generate all 24 hours for the day
+    const dayStart = new Date(from);
+    dayStart.setHours(0, 0, 0, 0);
+    const allHours: Array<{ date: string; newCustomers: number; returningCustomers: number }> = [];
+    
+    // Get the date string in YYYY-MM-DD format
+    const year = dayStart.getFullYear();
+    const month = String(dayStart.getMonth() + 1).padStart(2, '0');
+    const day = String(dayStart.getDate()).padStart(2, '0');
+    
+    for (let hour = 0; hour < 24; hour++) {
+      const hourStr = String(hour).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day} ${hourStr}:00:00`;
+      
+      const data = dataMap.get(dateStr) || { newCustomers: 0, returningCustomers: 0 };
+      allHours.push({
+        date: dateStr,
+        newCustomers: data.newCustomers,
+        returningCustomers: data.returningCustomers,
+      });
+    }
+
+    return allHours;
+  }
 
   return result.map(r => ({
     date: String(r.date),

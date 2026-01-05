@@ -41,6 +41,80 @@ export function EditorSectionHighlighter() {
       if (event.data?.type === 'THEME_SETTINGS_UPDATE') {
         // Already handled by PreviewSettingsProvider
       }
+      if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
+        // Live update section content in DOM
+        const { sectionId, updates } = event.data;
+        const element = document.querySelector(`[data-section-id="${sectionId}"]`);
+        if (element) {
+          // Update title (show/hide based on content)
+          if (updates.title !== undefined) {
+            const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
+            if (titleEl) {
+              titleEl.textContent = updates.title;
+              // Show if has content, hide if empty
+              if (updates.title) {
+                titleEl.classList.remove('hidden');
+                titleEl.classList.add('mb-4');
+              } else {
+                titleEl.classList.add('hidden');
+                titleEl.classList.remove('mb-4');
+              }
+            }
+          }
+          // Update subtitle (show/hide based on content)
+          if (updates.subtitle !== undefined) {
+            const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
+            if (subtitleEl) {
+              subtitleEl.textContent = updates.subtitle;
+              // Show if has content, hide if empty
+              if (updates.subtitle) {
+                subtitleEl.classList.remove('hidden');
+                subtitleEl.classList.add('mb-20');
+              } else {
+                subtitleEl.classList.add('hidden');
+                subtitleEl.classList.remove('mb-20');
+              }
+            }
+          }
+          // Update content.buttonText
+          if (updates.content?.buttonText !== undefined) {
+            const btnEl = element.querySelector('[data-section-button]');
+            if (btnEl) btnEl.textContent = updates.content.buttonText;
+          }
+          
+          // Update category visibility based on selection
+          if (updates.content?.categoryIds !== undefined) {
+            const categoryIds = updates.content.categoryIds as string[] || [];
+            const categoryElements = element.querySelectorAll('[data-category-id]');
+            categoryElements.forEach((catEl) => {
+              const catId = (catEl as HTMLElement).dataset.categoryId;
+              if (categoryIds.length === 0 || (catId && categoryIds.includes(catId))) {
+                catEl.classList.remove('hidden');
+              } else {
+                catEl.classList.add('hidden');
+              }
+            });
+            // Update data attribute
+            (element as HTMLElement).dataset.selectedCategories = categoryIds.join(',');
+          }
+          
+          // Update product limit visibility
+          if (updates.content?.limit !== undefined) {
+            const limit = updates.content.limit as number;
+            const productElements = element.querySelectorAll('[data-product-index]');
+            productElements.forEach((prodEl) => {
+              const index = parseInt((prodEl as HTMLElement).dataset.productIndex || '0', 10);
+              if (index < limit) {
+                prodEl.classList.remove('hidden');
+              } else {
+                prodEl.classList.add('hidden');
+              }
+            });
+            // Update data attribute
+            (element as HTMLElement).dataset.displayLimit = String(limit);
+          }
+        }
+      }
     };
 
     window.addEventListener('message', handleMessage);

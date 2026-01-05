@@ -9,7 +9,7 @@ import {
   getSalesByCategory,
   getRecentOrders 
 } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 
 // Format helpers
 function formatCurrency(value: number) {
@@ -86,6 +86,9 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
     );
   }
 
+  // Check if data is by hour (contains time in date string)
+  const isByHour = data[0]?.date.includes(' ') && data[0]?.date.includes(':');
+  
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
   
   return (
@@ -93,8 +96,18 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
       <div className="flex items-end gap-0.5 h-52">
         {data.map((day, i) => {
           const height = (day.revenue / maxRevenue) * 100;
-          const date = new Date(day.date);
-          const dayLabel = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          
+          // Format label based on whether it's by hour or by day
+          let label = '';
+          if (isByHour) {
+            // Extract hour from date string (format: YYYY-MM-DD HH:00:00)
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+            const date = new Date(day.date);
+            label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          }
           
           return (
             <div 
@@ -105,7 +118,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
               {/* Tooltip */}
               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
                 <div className="bg-black text-white text-xs px-3 py-2 rounded shadow-lg whitespace-nowrap">
-                  <div className="font-medium">{dayLabel}</div>
+                  <div className="font-medium">{label}</div>
                   <div>{formatCurrency(day.revenue)}</div>
                   <div className="text-gray-300">{day.orders} הזמנות</div>
                 </div>
@@ -126,13 +139,28 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
       {/* X-axis labels */}
       <div className="h-12 flex gap-0.5 mt-1 overflow-hidden">
         {data.map((day, i) => {
-          const date = new Date(day.date);
-          const showLabel = data.length <= 14 || i % Math.ceil(data.length / 10) === 0;
+          // For hours: show every 3 hours (0, 3, 6, 9, 12, 15, 18, 21)
+          // For days: show based on data length
+          const showLabel = isByHour
+            ? i % 3 === 0 // Show every 3 hours
+            : data.length <= 14 || i % Math.ceil(data.length / 10) === 0;
+          
+          let label = '';
+          if (isByHour) {
+            // Extract hour from date string (format: YYYY-MM-DD HH:00:00)
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+            const date = new Date(day.date);
+            label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
+          }
+          
           return (
             <div key={i} className="flex-1 text-center">
               {showLabel && (
                 <span className="text-[9px] text-gray-400">
-                  {date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' })}
+                  {label}
                 </span>
               )}
             </div>
@@ -305,14 +333,24 @@ function CategoriesTable({
 }
 
 // Content Component
-async function SalesContent({ storeId, storeSlug, period }: { storeId: string; storeSlug: string; period: '7d' | '30d' | '90d' }) {
+async function SalesContent({ 
+  storeId, 
+  storeSlug, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  storeSlug: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
   // Parallel data fetching
   const [overview, salesByDay, topProducts, salesByCategory, recentOrders] = await Promise.all([
-    getSalesOverview(storeId, period),
-    getSalesByDay(storeId, period),
-    getTopProducts(storeId, period, 20),
-    getSalesByCategory(storeId, period),
-    getRecentOrders(storeId, period),
+    getSalesOverview(storeId, period, customRange),
+    getSalesByDay(storeId, period, customRange),
+    getTopProducts(storeId, period, 20, customRange),
+    getSalesByCategory(storeId, period, customRange),
+    getRecentOrders(storeId, period, customRange),
   ]);
 
   return (
@@ -389,7 +427,7 @@ export default async function SalesReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -401,7 +439,7 @@ export default async function SalesReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <SalesContent storeId={store.id} storeSlug={slug} period={period} />
+        <SalesContent storeId={store.id} storeSlug={slug} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );

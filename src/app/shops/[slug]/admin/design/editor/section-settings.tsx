@@ -121,12 +121,6 @@ function ContentSettings({
           onChange={(v) => onUpdate({ subtitle: v })}
           multiline
         />
-        <TextField
-          label="Description"
-          value={(section.content.description as string) || ''}
-          onChange={(v) => updateContent('description', v)}
-          multiline
-        />
         <ToggleField
           label="Text alignment"
           options={['Left', 'Center']}

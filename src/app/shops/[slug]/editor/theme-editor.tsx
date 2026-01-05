@@ -62,11 +62,20 @@ interface ThemeSettings {
   socialYoutube?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl: string | null;
+  parentId: string | null;
+}
+
 interface ThemeEditorProps {
   store: Store;
   slug: string;
   sections: Section[];
   templateId: string;
+  categories?: Category[];
 }
 
 export function ThemeEditor({
@@ -74,6 +83,7 @@ export function ThemeEditor({
   slug,
   sections: initialSections,
   templateId,
+  categories = [],
 }: ThemeEditorProps) {
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
@@ -204,6 +214,15 @@ export function ThemeEditor({
       return newSections;
     });
     setHasChanges(true);
+    
+    // Send live update to iframe (no DB save!)
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'SECTION_CONTENT_UPDATE',
+        sectionId,
+        updates,
+      }, '*');
+    }
   }, []);
 
   // Save all changes to DB (sections + theme settings)
@@ -470,6 +489,7 @@ export function ThemeEditor({
               onRemove={() => removeSection(selectedSection.id)}
               themeSettings={themeSettings}
               onThemeSettingsChange={handleThemeSettingsChange}
+              categories={categories}
             />
           ) : (
             <div className="p-6 text-center text-gray-400" dir="rtl">

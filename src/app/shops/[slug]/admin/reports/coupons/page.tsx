@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getCouponStats, getCouponOrders } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import { CouponsTable } from './coupons-table';
 
 // Format helpers
@@ -37,14 +37,24 @@ function TableSkeleton() {
 }
 
 // Content Component
-async function CouponsContent({ storeId, storeSlug, period }: { storeId: string; storeSlug: string; period: '7d' | '30d' | '90d' }) {
-  const { coupons, totals } = await getCouponStats(storeId, period);
+async function CouponsContent({ 
+  storeId, 
+  storeSlug, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  storeSlug: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
+  const { coupons, totals } = await getCouponStats(storeId, period, customRange);
 
   // Get orders for top 10 coupons in parallel
   const top10Coupons = coupons.slice(0, 10);
   const couponOrdersResults = await Promise.all(
     top10Coupons.map(c => 
-      getCouponOrders(storeId, c.code, period).then(orders => ({ code: c.code, orders }))
+      getCouponOrders(storeId, c.code, period, customRange).then(orders => ({ code: c.code, orders }))
     )
   );
   
@@ -107,7 +117,7 @@ export default async function CouponsReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -119,7 +129,7 @@ export default async function CouponsReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <CouponsContent storeId={store.id} storeSlug={slug} period={period} />
+        <CouponsContent storeId={store.id} storeSlug={slug} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );

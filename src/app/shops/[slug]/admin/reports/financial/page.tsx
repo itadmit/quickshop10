@@ -11,7 +11,7 @@ import {
   getGiftCardDetails,
   getStoreCreditDetails
 } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import {
   GiftIcon,
   CreditCardIcon,
@@ -268,13 +268,21 @@ function RevenueSummary({
 }
 
 // Content Component
-async function FinancialContent({ storeId, period }: { storeId: string; period: '7d' | '30d' | '90d' }) {
+async function FinancialContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
   // Parallel data fetching
   const [salesOverview, giftCardStats, influencerStats, refundStats, creditStats] = await Promise.all([
-    getSalesOverview(storeId, period),
+    getSalesOverview(storeId, period, customRange),
     getGiftCardStats(storeId),
     getInfluencerStats(storeId),
-    getRefundStats(storeId, period),
+    getRefundStats(storeId, period, customRange),
     getStoreCreditStats(storeId),
   ]);
 
@@ -368,7 +376,7 @@ export default async function FinancialReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
   const activeTab = resolvedSearchParams.tab || 'overview';
 
   return (
@@ -403,10 +411,10 @@ export default async function FinancialReportPage({
       </div>
 
       <Suspense fallback={<TableSkeleton />}>
-        {activeTab === 'overview' && <FinancialContent storeId={store.id} period={period} />}
+        {activeTab === 'overview' && <FinancialContent storeId={store.id} period={period} customRange={customRange} />}
         {activeTab === 'giftcards' && <GiftCardsDetailContent storeId={store.id} />}
         {activeTab === 'credits' && <CreditsDetailContent storeId={store.id} />}
-        {activeTab === 'influencers' && <InfluencersDetailContent storeId={store.id} storeSlug={slug} period={period} />}
+        {activeTab === 'influencers' && <InfluencersDetailContent storeId={store.id} storeSlug={slug} period={period} customRange={customRange} />}
       </Suspense>
     </div>
   );
@@ -539,7 +547,17 @@ async function CreditsDetailContent({ storeId }: { storeId: string }) {
 }
 
 // Influencers Detail Content
-async function InfluencersDetailContent({ storeId, storeSlug, period }: { storeId: string; storeSlug: string; period: '7d' | '30d' | '90d' }) {
+async function InfluencersDetailContent({ 
+  storeId, 
+  storeSlug, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  storeSlug: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
   const { influencers } = await getInfluencerStats(storeId);
 
   return (

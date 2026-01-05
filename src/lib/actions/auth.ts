@@ -29,6 +29,18 @@ export async function register(data: RegisterData) {
       return { success: false, error: 'הסיסמה חייבת להכיל לפחות 8 תווים' };
     }
 
+    // Validate store name - only English letters, numbers, spaces, hyphens, and underscores
+    const storeNameRegex = /^[a-zA-Z0-9\s_-]+$/;
+    if (!storeNameRegex.test(data.storeName)) {
+      return { success: false, error: 'שם החנות יכול להכיל רק אותיות אנגליות, מספרים, רווחים, מקפים ותווים תחתונים' };
+    }
+
+    // Check if store name contains at least one English letter or number
+    const hasValidChars = /[a-zA-Z0-9]/.test(data.storeName);
+    if (!hasValidChars) {
+      return { success: false, error: 'שם החנות חייב להכיל לפחות אות אנגלית אחת או מספר' };
+    }
+
     // Check if email exists
     const [existingUser] = await db
       .select()

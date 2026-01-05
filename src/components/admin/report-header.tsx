@@ -15,8 +15,6 @@ export function ReportHeader({
   storeSlug,
   backHref,
 }: ReportHeaderProps) {
-  const basePath = `/shops/${storeSlug}/admin/reports`;
-  
   return (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
       <div className="flex items-center gap-4">
@@ -35,7 +33,8 @@ export function ReportHeader({
       </div>
       
       <div className="flex items-center gap-3">
-        <DateRangePicker basePath={basePath} />
+        {/* No basePath - DateRangePicker will use current pathname */}
+        <DateRangePicker />
       </div>
     </div>
   );
@@ -102,6 +101,54 @@ export function toLegacyPeriod(searchParams: { period?: string }): '7d' | '30d' 
     return '90d';
   }
   return '30d';
+}
+
+// Get period params for report functions - supports exact dates
+export function getReportPeriodParams(searchParams: { 
+  period?: string; 
+  from?: string; 
+  to?: string 
+}): { 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+} {
+  const { period, from, to } = searchParams;
+  
+  // Custom date range
+  if (period === 'custom' && from && to) {
+    const fromDate = new Date(from);
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(to);
+    toDate.setHours(23, 59, 59, 999);
+    return { period: 'custom', customRange: { from: fromDate, to: toDate } };
+  }
+  
+  // Today - use custom with today's dates
+  if (period === 'today') {
+    const today = new Date();
+    const fromDate = new Date(today);
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(today);
+    toDate.setHours(23, 59, 59, 999);
+    return { period: 'custom', customRange: { from: fromDate, to: toDate } };
+  }
+  
+  // Yesterday - use custom with yesterday's dates
+  if (period === 'yesterday') {
+    const yesterday = new Date(Date.now() - 86400000);
+    const fromDate = new Date(yesterday);
+    fromDate.setHours(0, 0, 0, 0);
+    const toDate = new Date(yesterday);
+    toDate.setHours(23, 59, 59, 999);
+    return { period: 'custom', customRange: { from: fromDate, to: toDate } };
+  }
+  
+  // Standard periods
+  if (period === '7d') return { period: '7d' };
+  if (period === '90d') return { period: '90d' };
+  if (period === '6m' || period === '1y') return { period: '90d' }; // Fallback to 90d for longer periods
+  
+  return { period: '30d' }; // Default
 }
 
 

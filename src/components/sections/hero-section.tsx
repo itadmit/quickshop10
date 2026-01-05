@@ -15,12 +15,17 @@ interface HeroSectionProps {
   basePath: string;
 }
 
-export function HeroSection({ title, subtitle, content, settings, basePath }: HeroSectionProps) {
+export function HeroSection({ title, subtitle, content, settings, basePath, sectionId }: HeroSectionProps & { sectionId?: string }) {
   const height = settings.height || '90vh';
   const overlay = settings.overlay ?? 0.1;
 
   return (
-    <section className="relative bg-gray-50 overflow-hidden" style={{ height }}>
+    <section 
+      className="relative bg-gray-50 overflow-hidden" 
+      style={{ height }}
+      data-section-id={sectionId}
+      data-section-name="באנר ראשי"
+    >
       <div className="absolute inset-0">
         {content.imageUrl && (
           <img 
@@ -34,12 +39,18 @@ export function HeroSection({ title, subtitle, content, settings, basePath }: He
       
       <div className="relative z-10 h-full flex flex-col items-center justify-end text-center px-6 pb-24">
         {title && (
-          <h1 className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase">
+          <h1 
+            className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"
+            data-section-title
+          >
             {title}
           </h1>
         )}
         {subtitle && (
-          <p className="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12 animate-slide-up">
+          <p 
+            className="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12 animate-slide-up"
+            data-section-subtitle
+          >
             {subtitle}
           </p>
         )}
@@ -48,6 +59,7 @@ export function HeroSection({ title, subtitle, content, settings, basePath }: He
             href={content.buttonLink.startsWith('/') ? `${basePath}${content.buttonLink}` : content.buttonLink}
             className="btn-secondary !bg-transparent !text-white !border-white hover:!bg-white hover:!text-black animate-slide-up"
             style={{ animationDelay: '200ms' }}
+            data-section-button
           >
             {content.buttonText}
           </Link>

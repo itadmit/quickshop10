@@ -23,34 +23,50 @@ interface ProductsSectionProps {
     columns?: number;
     gap?: number;
     showCount?: boolean;
+    textAlign?: 'right' | 'center' | 'left';
   };
   basePath: string;
   showDecimalPrices?: boolean;
+  displayLimit?: number; // For preview mode - hide products beyond limit
 }
 
-export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false }: ProductsSectionProps) {
+export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit }: ProductsSectionProps & { sectionId?: string }) {
+  // Text alignment classes
+  const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
+  
   return (
-    <section id="products" className="py-20 px-6 bg-white border-t border-gray-100">
+    <section 
+      id="products" 
+      className="py-20 px-6 bg-white border-t border-gray-100"
+      data-section-id={sectionId}
+      data-section-name="מוצרים נבחרים"
+      data-display-limit={displayLimit || ''}
+    >
       <div className="max-w-7xl mx-auto">
-        {title && (
-          <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-[0.15em] uppercase">
-            {title}
-          </h2>
-        )}
-        {subtitle && (
-          <p className="text-center text-gray-400 text-xs tracking-[0.2em] uppercase mb-20">
-            {subtitle}
-          </p>
-        )}
-        {settings.showCount && !subtitle && (
-          <p className="text-center text-gray-400 text-xs tracking-[0.2em] uppercase mb-20">
-            {products.length} פריטים
-          </p>
-        )}
+        {/* Always render title element for live editing */}
+        <h2 
+          className={`font-display text-2xl md:text-3xl ${alignClass} mb-4 font-light tracking-[0.15em] uppercase ${!title ? 'hidden' : ''}`}
+          data-section-title
+        >
+          {title || ''}
+        </h2>
         
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8">
+        {/* Always render subtitle element for live editing */}
+        <p 
+          className={`${alignClass} text-gray-400 text-xs tracking-[0.2em] uppercase mb-20 ${!subtitle ? 'hidden' : ''}`}
+          data-section-subtitle
+        >
+          {subtitle || ''}
+        </p>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8" data-products-grid>
           {products.map((product, i) => (
-            <div key={product.id} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
+            <div 
+              key={product.id} 
+              className={`animate-slide-up ${displayLimit && i >= displayLimit ? 'hidden' : ''}`}
+              style={{ animationDelay: `${i * 50}ms` }}
+              data-product-index={i}
+            >
               <ProductCard
                 id={product.id}
                 slug={product.slug}

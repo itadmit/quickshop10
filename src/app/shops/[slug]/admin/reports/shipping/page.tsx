@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getShippingStats } from '@/lib/actions/reports';
-import { ReportHeader, toLegacyPeriod } from '@/components/admin/report-header';
+import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 
 // Format helpers
 function formatCurrency(value: number) {
@@ -72,8 +72,16 @@ function ShippingMethodsChart({
 }
 
 // Content Component
-async function ShippingContent({ storeId, period }: { storeId: string; period: '7d' | '30d' | '90d' }) {
-  const stats = await getShippingStats(storeId, period);
+async function ShippingContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
+  const stats = await getShippingStats(storeId, period, customRange);
 
   return (
     <>
@@ -179,7 +187,7 @@ export default async function ShippingReportPage({
   const store = await getStoreBySlug(slug);
   if (!store) notFound();
 
-  const period = toLegacyPeriod(resolvedSearchParams);
+  const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
 
   return (
     <div>
@@ -191,7 +199,7 @@ export default async function ShippingReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <ShippingContent storeId={store.id} period={period} />
+        <ShippingContent storeId={store.id} period={period} customRange={customRange} />
       </Suspense>
     </div>
   );

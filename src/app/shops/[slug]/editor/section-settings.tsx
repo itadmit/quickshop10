@@ -53,6 +53,14 @@ interface ThemeSettings {
   socialYoutube?: string;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  imageUrl: string | null;
+  parentId: string | null;
+}
+
 interface SectionSettingsProps {
   section: Section;
   onUpdate: (updates: Partial<Section>) => void;
@@ -60,9 +68,11 @@ interface SectionSettingsProps {
   // Theme settings props
   themeSettings?: ThemeSettings;
   onThemeSettingsChange?: (settings: Partial<ThemeSettings>) => void;
+  // Categories for picker
+  categories?: Category[];
 }
 
-export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange }: SectionSettingsProps) {
+export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [] }: SectionSettingsProps) {
   const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
   const settings = themeSettings || {};
   const updateSettings = onThemeSettingsChange || (() => {});
@@ -156,11 +166,12 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
           {settings.announcementEnabled && (
             <>
               <SettingsGroup title="תוכן">
-                <TextField
+                <TextAreaField
                   label="טקסט ההודעה"
                   value={settings.announcementText || ''}
                   onChange={(v) => updateSettings({ announcementText: v })}
-                  placeholder="משלוח חינם בקניה מעל ₪200!"
+                  placeholder="משלוח חינם בקניה מעל ₪200!&#10;חדש! קולקציית קיץ 2026&#10;20% הנחה לחברי מועדון"
+                  hint="כל שורה = הודעה נפרדת (מתחלפת אוטומטית)"
                 />
                 <TextField
                   label="קישור (אופציונלי)"
@@ -334,7 +345,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
       {/* Scrollable Content */}
       <div className="flex-1 overflow-auto">
         {activeTab === 'content' ? (
-          <ContentSettings section={section} onUpdate={onUpdate} />
+          <ContentSettings section={section} onUpdate={onUpdate} categories={categories} />
         ) : (
           <DesignSettings section={section} onUpdate={onUpdate} />
         )}
@@ -357,10 +368,12 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 // Content Settings (varies by section type)
 function ContentSettings({ 
   section, 
-  onUpdate 
+  onUpdate,
+  categories = []
 }: { 
   section: Section; 
   onUpdate: (updates: Partial<Section>) => void;
+  categories?: Category[];
 }) {
   const handleTitleChange = (value: string) => {
     onUpdate({ title: value || null });
@@ -399,18 +412,11 @@ function ContentSettings({
           multiline
           placeholder="הזן תת-כותרת"
         />
-        <TextField
-          label="תיאור"
-          value={(section.content.description as string) || ''}
-          onChange={(v) => updateContent('description', v)}
-          multiline
-          placeholder="הזן תיאור"
-        />
         <ToggleField
           label="יישור טקסט"
-          options={['שמאל', 'מרכז']}
-          value={(section.settings.textAlign as string) === 'Left' ? 'שמאל' : 'מרכז'}
-          onChange={(v) => updateSettings('textAlign', v === 'שמאל' ? 'Left' : 'Center')}
+          options={['ימין', 'מרכז', 'שמאל']}
+          value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
+          onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
         />
       </SettingsGroup>
 
@@ -419,13 +425,19 @@ function ContentSettings({
         <HeroContentSettings section={section} onUpdate={onUpdate} />
       )}
       {section.type === 'categories' && (
-        <CategoriesContentSettings />
+        <CategoriesContentSettings section={section} onUpdate={onUpdate} categories={categories} />
       )}
       {section.type === 'products' && (
         <ProductsContentSettings section={section} onUpdate={onUpdate} />
       )}
       {section.type === 'newsletter' && (
         <NewsletterContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'split_banner' && (
+        <SplitBannerContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'video_banner' && (
+        <VideoBannerContentSettings section={section} onUpdate={onUpdate} />
       )}
     </div>
   );
@@ -646,12 +658,105 @@ function HeroContentSettings({ section, onUpdate }: { section: Section; onUpdate
   );
 }
 
-function CategoriesContentSettings() {
+function CategoriesContentSettings({ 
+  section, 
+  onUpdate, 
+  categories = [] 
+}: { 
+  section: Section; 
+  onUpdate: (updates: Partial<Section>) => void;
+  categories?: Category[];
+}) {
+  const selectedIds = (section.content.categoryIds as string[]) || [];
+  
+  const toggleCategory = (categoryId: string) => {
+    const newIds = selectedIds.includes(categoryId)
+      ? selectedIds.filter(id => id !== categoryId)
+      : [...selectedIds, categoryId];
+    onUpdate({ content: { ...section.content, categoryIds: newIds } });
+  };
+
+  const selectAll = () => {
+    onUpdate({ content: { ...section.content, categoryIds: categories.map(c => c.id) } });
+  };
+
+  const clearAll = () => {
+    onUpdate({ content: { ...section.content, categoryIds: [] } });
+  };
+
+  // Build hierarchical structure (main categories first, then subcategories)
+  const mainCategories = categories.filter(c => !c.parentId);
+  const getSubcategories = (parentId: string) => categories.filter(c => c.parentId === parentId);
+
   return (
     <SettingsGroup title="קטגוריות">
-      <p className="text-sm text-gray-500">
-        הקטגוריות נטענות אוטומטית מהחנות שלך.
-      </p>
+      <div className="space-y-3">
+        {/* Quick actions */}
+        <div className="flex gap-2 text-xs">
+          <button 
+            onClick={selectAll}
+            className="text-blue-600 hover:underline"
+          >
+            בחר הכל
+          </button>
+          <span className="text-gray-300">|</span>
+          <button 
+            onClick={clearAll}
+            className="text-blue-600 hover:underline"
+          >
+            נקה הכל
+          </button>
+          <span className="text-gray-400 mr-auto">
+            {selectedIds.length} נבחרו
+          </span>
+        </div>
+
+        {/* Category list with checkboxes */}
+        <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+          {categories.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-4">
+              אין קטגוריות. הוסף קטגוריות בניהול החנות.
+            </p>
+          ) : (
+            mainCategories.map(category => (
+              <div key={category.id}>
+                {/* Main category */}
+                <label className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(category.id)}
+                    onChange={() => toggleCategory(category.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium">{category.name}</span>
+                </label>
+                
+                {/* Subcategories */}
+                {getSubcategories(category.id).map(sub => (
+                  <label 
+                    key={sub.id} 
+                    className="flex items-center gap-2 p-2 pr-8 hover:bg-gray-50 rounded cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(sub.id)}
+                      onChange={() => toggleCategory(sub.id)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-600">{sub.name}</span>
+                  </label>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+
+        <p className="text-xs text-gray-400">
+          {selectedIds.length === 0 
+            ? 'אם לא נבחרו קטגוריות, יוצגו כל הקטגוריות'
+            : 'רק הקטגוריות שנבחרו יוצגו'}
+        </p>
+      </div>
     </SettingsGroup>
   );
 }
@@ -703,6 +808,173 @@ function NewsletterContentSettings({ section, onUpdate }: { section: Section; on
         placeholder="הרשמה"
       />
     </SettingsGroup>
+  );
+}
+
+// Split Banner (באנר מפוצל) Settings - 2 images: right & left
+function SplitBannerContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateSide = (side: 'right' | 'left', key: string, value: string) => {
+    onUpdate({ 
+      content: { 
+        ...section.content, 
+        [side]: { 
+          ...((section.content[side] as Record<string, string>) || {}), 
+          [key]: value 
+        } 
+      } 
+    });
+  };
+
+  const right = (section.content.right as { title?: string; imageUrl?: string; mobileImageUrl?: string; link?: string }) || {};
+  const left = (section.content.left as { title?: string; imageUrl?: string; mobileImageUrl?: string; link?: string }) || {};
+
+  return (
+    <div className="space-y-4">
+      {/* Right Side (First in RTL) */}
+      <CollapsibleGroup title={`תמונה ימין${right.title ? ` - ${right.title}` : ''}`} defaultOpen={true}>
+        <div className="space-y-3 pt-2">
+          <TextField
+            label="כותרת"
+            value={right.title || ''}
+            onChange={(v) => updateSide('right', 'title', v)}
+            placeholder="נשים"
+          />
+          <ImageField
+            label="תמונה (מחשב)"
+            value={right.imageUrl || ''}
+            onChange={(v) => updateSide('right', 'imageUrl', v)}
+          />
+          <ImageField
+            label="תמונה (מובייל)"
+            value={right.mobileImageUrl || ''}
+            onChange={(v) => updateSide('right', 'mobileImageUrl', v)}
+          />
+          <TextField
+            label="קישור"
+            value={right.link || ''}
+            onChange={(v) => updateSide('right', 'link', v)}
+            placeholder="/category/women"
+          />
+        </div>
+      </CollapsibleGroup>
+
+      {/* Left Side (Second in RTL) */}
+      <CollapsibleGroup title={`תמונה שמאל${left.title ? ` - ${left.title}` : ''}`} defaultOpen={false}>
+        <div className="space-y-3 pt-2">
+          <TextField
+            label="כותרת"
+            value={left.title || ''}
+            onChange={(v) => updateSide('left', 'title', v)}
+            placeholder="גברים"
+          />
+          <ImageField
+            label="תמונה (מחשב)"
+            value={left.imageUrl || ''}
+            onChange={(v) => updateSide('left', 'imageUrl', v)}
+          />
+          <ImageField
+            label="תמונה (מובייל)"
+            value={left.mobileImageUrl || ''}
+            onChange={(v) => updateSide('left', 'mobileImageUrl', v)}
+          />
+          <TextField
+            label="קישור"
+            value={left.link || ''}
+            onChange={(v) => updateSide('left', 'link', v)}
+            placeholder="/category/men"
+          />
+        </div>
+      </CollapsibleGroup>
+    </div>
+  );
+}
+
+// Video Banner Settings
+function VideoBannerContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="מדיה - מחשב">
+        <TextField
+          label="קישור וידאו"
+          value={(section.content.videoUrl as string) || ''}
+          onChange={(v) => updateContent('videoUrl', v)}
+          placeholder="https://..."
+        />
+        <ImageField
+          label="תמונת רקע (אם אין וידאו)"
+          value={(section.content.imageUrl as string) || ''}
+          onChange={(v) => updateContent('imageUrl', v)}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="מדיה - מובייל">
+        <TextField
+          label="קישור וידאו מובייל"
+          value={(section.content.mobileVideoUrl as string) || ''}
+          onChange={(v) => updateContent('mobileVideoUrl', v)}
+          placeholder="https://... (אופציונלי)"
+        />
+        <ImageField
+          label="תמונת מובייל"
+          value={(section.content.mobileImageUrl as string) || ''}
+          onChange={(v) => updateContent('mobileImageUrl', v)}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="הגדרות וידאו">
+        <SwitchField
+          label="הפעלה אוטומטית"
+          value={(section.settings.autoplay as boolean) ?? true}
+          onChange={(v) => updateSettings('autoplay', v)}
+        />
+        <SwitchField
+          label="לולאה"
+          value={(section.settings.loop as boolean) ?? true}
+          onChange={(v) => updateSettings('loop', v)}
+        />
+        <SwitchField
+          label="השתקה"
+          value={(section.settings.muted as boolean) ?? true}
+          onChange={(v) => updateSettings('muted', v)}
+        />
+        <SwitchField
+          label="הצג פקדים"
+          value={(section.settings.controls as boolean) ?? false}
+          onChange={(v) => updateSettings('controls', v)}
+        />
+        <SliderField
+          label="שקיפות שכבה"
+          value={Math.round(((section.settings.overlay as number) || 0.2) * 100)}
+          min={0}
+          max={100}
+          suffix="%"
+          onChange={(v) => updateSettings('overlay', v / 100)}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="כפתור">
+        <TextField
+          label="טקסט כפתור"
+          value={(section.content.buttonText as string) || ''}
+          onChange={(v) => updateContent('buttonText', v)}
+          placeholder="גלה עוד"
+        />
+        <TextField
+          label="קישור כפתור"
+          value={(section.content.buttonLink as string) || ''}
+          onChange={(v) => updateContent('buttonLink', v)}
+          placeholder="/products"
+        />
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -782,6 +1054,38 @@ function TextField({
           placeholder={placeholder}
           className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
         />
+      )}
+    </div>
+  );
+}
+
+function TextAreaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  hint,
+  rows = 3,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  hint?: string;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
+      />
+      {hint && (
+        <p className="text-xs text-gray-400 mt-1">{hint}</p>
       )}
     </div>
   );

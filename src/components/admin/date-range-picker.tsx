@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 
 type PeriodOption = {
   value: string;
@@ -82,12 +82,16 @@ function formatDateHebrew(dateStr: string): string {
   });
 }
 
-export function DateRangePicker({ basePath }: { basePath: string }) {
+export function DateRangePicker({ basePath }: { basePath?: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [showCustom, setShowCustom] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Use current pathname instead of fixed basePath to stay on the same page
+  const targetPath = basePath || pathname;
 
   // Get current selection from URL
   const currentPeriod = searchParams.get('period') || '30d';
@@ -122,7 +126,7 @@ export function DateRangePicker({ basePath }: { basePath: string }) {
   const handleSelectPeriod = (option: PeriodOption) => {
     const params = new URLSearchParams();
     params.set('period', option.value);
-    router.push(`${basePath}?${params.toString()}`);
+    router.push(`${targetPath}?${params.toString()}`);
     setIsOpen(false);
     setShowCustom(false);
   };
@@ -134,7 +138,7 @@ export function DateRangePicker({ basePath }: { basePath: string }) {
     params.set('period', 'custom');
     params.set('from', customFromDate);
     params.set('to', customToDate);
-    router.push(`${basePath}?${params.toString()}`);
+    router.push(`${targetPath}?${params.toString()}`);
     setIsOpen(false);
     setShowCustom(false);
   };
