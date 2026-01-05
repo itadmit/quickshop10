@@ -22,6 +22,12 @@ type Product = {
   trackInventory: boolean;
   image?: string | null;
   categoryId: string | null;
+  categoryName?: string | null;
+};
+
+type Category = {
+  id: string;
+  name: string;
 };
 
 interface ProductsDataTableProps {
@@ -30,6 +36,8 @@ interface ProductsDataTableProps {
   tabs: Tab[];
   currentTab: string;
   searchValue?: string;
+  categories: Category[];
+  currentCategory?: string;
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -44,9 +52,31 @@ export function ProductsDataTable({
   tabs,
   currentTab,
   searchValue,
+  categories,
+  currentCategory,
   pagination,
 }: ProductsDataTableProps) {
   const router = useRouter();
+
+  // Handle category filter change
+  const handleCategoryChange = (categoryId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    if (categoryId) {
+      params.set('category', categoryId);
+    } else {
+      params.delete('category');
+    }
+    params.delete('page'); // Reset to page 1
+    router.push(`/shops/${storeSlug}/admin/products?${params.toString()}`);
+  };
+
+  // Handle perPage change
+  const handlePerPageChange = (newPerPage: number) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('perPage', newPerPage.toString());
+    params.delete('page'); // Reset to page 1
+    router.push(`/shops/${storeSlug}/admin/products?${params.toString()}`);
+  };
 
   // Bulk Actions
   const bulkActions: BulkAction[] = [
@@ -139,6 +169,16 @@ export function ProductsDataTable({
       ),
     },
     {
+      key: 'category',
+      header: 'קטגוריה',
+      width: '140px',
+      render: (product) => (
+        <span className="text-gray-600 text-sm truncate">
+          {product.categoryName || <span className="text-gray-400">-</span>}
+        </span>
+      ),
+    },
+    {
       key: 'status',
       header: 'סטטוס',
       width: '100px',
@@ -217,31 +257,90 @@ export function ProductsDataTable({
     },
   ];
 
+  const perPageOptions = [10, 20, 50, 100];
+
   return (
-    <DataTable
-      data={products}
-      columns={columns}
-      getRowKey={(product) => product.id}
-      getRowHref={(product) => `/shops/${storeSlug}/admin/products/${product.id}`}
-      tabs={tabs}
-      currentTab={currentTab}
-      selectable
-      bulkActions={bulkActions}
-      searchable
-      searchPlaceholder="חיפוש לפי שם מוצר..."
-      searchValue={searchValue}
-      pagination={pagination}
-      emptyState={
-        <EmptyState
-          icon="products"
-          title="אין מוצרים"
-          description={searchValue ? 'לא נמצאו מוצרים התואמים לחיפוש' : 'הוסף את המוצר הראשון לחנות'}
-          action={{
-            label: 'הוסף מוצר',
-            href: `/shops/${storeSlug}/admin/products/new`,
-          }}
-        />
-      }
-    />
+    <div className="space-y-4">
+      {/* Filter Bar */}
+      <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-lg p-3">
+        {/* Category Filter */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-500">קטגוריה:</label>
+          <select
+            value={currentCategory || ''}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+          >
+            <option value="">הכל</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="h-6 w-px bg-gray-200" />
+
+        {/* Per Page Selector */}
+        <div className="flex items-center gap-2">
+          <label className="text-sm text-gray-500">פריטים בעמוד:</label>
+          <select
+            value={pagination.perPage}
+            onChange={(e) => handlePerPageChange(parseInt(e.target.value, 10))}
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10"
+          >
+            {perPageOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Active Filters Summary */}
+        {currentCategory && (
+          <>
+            <div className="h-6 w-px bg-gray-200" />
+            <button
+              onClick={() => handleCategoryChange('')}
+              className="flex items-center gap-1 px-2 py-1 text-sm bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              <span>{categories.find(c => c.id === currentCategory)?.name}</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Data Table */}
+      <DataTable
+        data={products}
+        columns={columns}
+        getRowKey={(product) => product.id}
+        getRowHref={(product) => `/shops/${storeSlug}/admin/products/${product.id}`}
+        tabs={tabs}
+        currentTab={currentTab}
+        selectable
+        bulkActions={bulkActions}
+        searchable
+        searchPlaceholder="חיפוש לפי שם מוצר..."
+        searchValue={searchValue}
+        pagination={pagination}
+        emptyState={
+          <EmptyState
+            icon="products"
+            title="אין מוצרים"
+            description={searchValue ? 'לא נמצאו מוצרים התואמים לחיפוש' : 'הוסף את המוצר הראשון לחנות'}
+            action={{
+              label: 'הוסף מוצר',
+              href: `/shops/${storeSlug}/admin/products/new`,
+            }}
+          />
+        }
+      />
+    </div>
   );
 }

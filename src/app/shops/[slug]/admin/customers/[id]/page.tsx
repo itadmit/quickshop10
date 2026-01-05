@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { customers, orders, customerCreditTransactions } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { CreditForm } from '@/components/admin/credit-form';
+import { EditCustomerForm } from '../edit-customer-form';
 
 interface CustomerPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -69,23 +70,26 @@ export default async function CustomerDetailPage({ params }: CustomerPageProps) 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href={`/shops/${slug}/admin/customers`}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path d="M19 12H5M12 19l-7-7 7-7"/>
-          </svg>
-        </Link>
-        <div>
-          <h1 className="text-xl font-semibold text-gray-900">
-            {customer.firstName || customer.lastName
-              ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
-              : customer.email}
-          </h1>
-          <p className="text-sm text-gray-500">{customer.email}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link
+            href={`/shops/${slug}/admin/customers`}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+          </Link>
+          <div>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {customer.firstName || customer.lastName
+                ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
+                : customer.email}
+            </h1>
+            <p className="text-sm text-gray-500">{customer.email}</p>
+          </div>
         </div>
+        <EditCustomerForm customer={customer} storeSlug={slug} />
       </div>
 
       <div className="grid grid-cols-12 gap-6">

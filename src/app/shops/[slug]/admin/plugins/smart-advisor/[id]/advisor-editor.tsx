@@ -26,6 +26,7 @@ import {
   updateAdvisorAnswer,
   deleteAdvisorAnswer,
   saveProductRule,
+  deleteProductRule,
   regenerateAdvisorSlug,
 } from '../actions';
 
@@ -373,6 +374,16 @@ export function AdvisorEditor({ quiz: initialQuiz, products, storeSlug }: Adviso
     });
   }, [selectedProduct, ruleWeights, quiz.id, products, rules]);
 
+  const handleDeleteRule = useCallback((ruleId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('האם למחוק את המוצר מרשימת ההתאמות?')) return;
+
+    startTransition(async () => {
+      await deleteProductRule(ruleId);
+      setRules(prev => prev.filter(r => r.id !== ruleId));
+    });
+  }, []);
+
   const toggleQuestion = useCallback((questionId: string) => {
     setExpandedQuestions(prev => {
       const next = new Set(prev);
@@ -652,12 +663,21 @@ export function AdvisorEditor({ quiz: initialQuiz, products, storeSlug }: Adviso
                   <div
                     key={rule.id}
                     onClick={() => openRuleDialog(rule.productId)}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors group"
                   >
                     <span className="font-medium">{rule.productName || 'מוצר לא ידוע'}</span>
-                    <span className="text-sm text-gray-500">
-                      {rule.answerWeights?.length || 0} כללים
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500">
+                        {rule.answerWeights?.length || 0} כללים
+                      </span>
+                      <button
+                        onClick={(e) => handleDeleteRule(rule.id, e)}
+                        className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                        title="מחק מהרשימה"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

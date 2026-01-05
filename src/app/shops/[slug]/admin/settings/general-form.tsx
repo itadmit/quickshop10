@@ -42,6 +42,8 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
     lowStockThreshold: (settings.lowStockThreshold as number) || 5,
     // הגדרות החזרות
     returnPolicyDays: (settings.returnPolicyDays as number) || 14,
+    // הגדרות תצוגת מחירים
+    showDecimalPrices: (settings.showDecimalPrices as boolean) ?? false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -169,6 +171,26 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
                 <option value="America/New_York">ניו יורק (America/New_York)</option>
               </select>
             </div>
+          </div>
+
+          {/* Price Display */}
+          <div className="pt-4 border-t border-gray-100">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.showDecimalPrices}
+                onChange={(e) => setFormData(prev => ({ ...prev, showDecimalPrices: e.target.checked }))}
+                className="w-5 h-5 rounded border-gray-300 text-black focus:ring-black mt-0.5"
+              />
+              <div>
+                <span className="font-medium text-gray-900">הצג מחירים עם אגורות</span>
+                <p className="text-sm text-gray-500">
+                  {formData.showDecimalPrices 
+                    ? 'דוגמה: ₪99.90, ₪100.00' 
+                    : 'דוגמה: ₪100, ₪99'}
+                </p>
+              </div>
+            </label>
           </div>
         </div>
       </div>

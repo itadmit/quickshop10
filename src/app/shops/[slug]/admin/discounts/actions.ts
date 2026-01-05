@@ -43,10 +43,14 @@ interface CouponData {
   buyQuantity?: number | null;
   payAmount?: number | null;
   getQuantity?: number | null;
+  getDiscountPercent?: number | null;      // אחוז הנחה על Y (100 = חינם)
   giftProductIds?: string[];
   giftSameProduct?: boolean;
   quantityTiers?: QuantityTier[];
   spendAmount?: number | null;
+  // Gift product specific
+  minimumQuantity?: number | null;         // מינימום כמות להפעלה
+  triggerCouponCodes?: string[];           // קופונים שמפעילים את המתנה
 }
 
 export async function createCoupon(storeId: string, data: CouponData) {
@@ -88,10 +92,14 @@ export async function createCoupon(storeId: string, data: CouponData) {
       buyQuantity: data.buyQuantity || null,
       payAmount: data.payAmount?.toString() || null,
       getQuantity: data.getQuantity || null,
+      getDiscountPercent: data.getDiscountPercent ?? 100,
       giftProductIds: data.giftProductIds || [],
       giftSameProduct: data.giftSameProduct ?? true,
       quantityTiers: data.quantityTiers || [],
       spendAmount: data.spendAmount?.toString() || null,
+      // Gift product specific
+      minimumQuantity: data.minimumQuantity || null,
+      triggerCouponCodes: data.triggerCouponCodes || [],
     }).returning();
 
     // Link to influencer if specified
@@ -141,10 +149,14 @@ export async function updateCoupon(couponId: string, data: CouponData) {
         buyQuantity: data.buyQuantity || null,
         payAmount: data.payAmount?.toString() || null,
         getQuantity: data.getQuantity || null,
+        getDiscountPercent: data.getDiscountPercent ?? 100,
         giftProductIds: data.giftProductIds || [],
         giftSameProduct: data.giftSameProduct ?? true,
         quantityTiers: data.quantityTiers || [],
         spendAmount: data.spendAmount?.toString() || null,
+        // Gift product specific
+        minimumQuantity: data.minimumQuantity || null,
+        triggerCouponCodes: data.triggerCouponCodes || [],
       })
       .where(eq(discounts.id, couponId));
 

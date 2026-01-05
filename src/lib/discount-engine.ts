@@ -71,10 +71,14 @@ export interface Discount {
   buyQuantity?: number | null;      // buy_x_pay_y, buy_x_get_y
   payAmount?: number | null;        // buy_x_pay_y, spend_x_pay_y
   getQuantity?: number | null;      // buy_x_get_y
+  getDiscountPercent?: number | null; // buy_x_get_y - אחוז הנחה על Y (100 = חינם, 50 = 50% הנחה)
   giftProductIds?: string[];        // buy_x_get_y, gift_product - רשימת מוצרים במתנה
   giftSameProduct?: boolean;        // buy_x_get_y - האם המתנה היא אותו מוצר
   quantityTiers?: QuantityTier[];   // quantity_discount
   spendAmount?: number | null;      // spend_x_pay_y
+  
+  // טריגר קופונים - gift_product יופעל כאשר אחד מהקופונים ברשימה מופעל
+  triggerCouponCodes?: string[];
 }
 
 export interface DiscountResult {
@@ -299,6 +303,7 @@ function calculateBuyXGetY(
 ): DiscountResult | null {
   const buyQty = discount.buyQuantity || 0;
   const getQty = discount.getQuantity || 0;
+  const discountPercent = discount.getDiscountPercent ?? 100; // ברירת מחדל: 100 = חינם
   
   if (buyQty <= 0 || getQty <= 0) return null;
   
@@ -309,37 +314,44 @@ function calculateBuyXGetY(
   if (totalMatchingQty < buyQty) return null;
   
   // כמה פעמים המבצע מתקיים
-  const requiredForOneGift = buyQty + getQty; // כדי לקבל 1 חינם צריך לקנות buyQty
+  const requiredForOneGift = buyQty + getQty; // כדי לקבל 1 בהנחה צריך לקנות buyQty
   const timesApplied = Math.floor(totalMatchingQty / requiredForOneGift);
   
   if (timesApplied <= 0) return null;
   
-  const freeItems = getQty * timesApplied;
+  const discountedItems = getQty * timesApplied;
   
-  // מחשבים את ההנחה לפי הפריטים הזולים ביותר (שהם אלה שיהיו חינם)
+  // מחשבים את ההנחה לפי הפריטים הזולים ביותר
   const sortedItems = [...matchingItems].sort((a, b) => a.price - b.price);
   
-  let itemsToFree = freeItems;
+  let itemsToDiscount = discountedItems;
   let amount = 0;
   const giftItems: CartItem[] = [];
   
   for (const item of sortedItems) {
-    const qtyFromThis = Math.min(item.quantity, itemsToFree);
-    amount += qtyFromThis * item.price;
+    const qtyFromThis = Math.min(item.quantity, itemsToDiscount);
+    // חישוב ההנחה לפי האחוז שהוגדר
+    const itemDiscount = qtyFromThis * item.price * (discountPercent / 100);
+    amount += itemDiscount;
     
     if (qtyFromThis > 0) {
       giftItems.push({
         ...item,
         quantity: qtyFromThis,
-        price: 0, // חינם
+        price: item.price * (1 - discountPercent / 100), // המחיר המוזל
       });
     }
     
-    itemsToFree -= qtyFromThis;
-    if (itemsToFree <= 0) break;
+    itemsToDiscount -= qtyFromThis;
+    if (itemsToDiscount <= 0) break;
   }
   
   if (amount <= 0) return null;
+  
+  // תיאור ההנחה
+  const discountDesc = discountPercent === 100 
+    ? `קנה ${buyQty} קבל ${getQty} חינם`
+    : `קנה ${buyQty} קבל ${getQty} ב-${discountPercent}% הנחה`;
   
   return {
     discountId: discount.id,
@@ -347,7 +359,7 @@ function calculateBuyXGetY(
     title: discount.title,
     type: 'buy_x_get_y',
     amount,
-    description: `קנה ${buyQty} קבל ${getQty} חינם`,
+    description: discountDesc,
     affectedItems: matchingItems.map(i => i.id),
     giftItems,
   };
@@ -677,9 +689,10 @@ export function validateDiscount(discount: Partial<Discount>): string[] {
       if (!discount.giftProductIds || discount.giftProductIds.length === 0) {
         errors.push('חייב לבחור לפחות מוצר אחד במתנה');
       }
-      // צריך לפחות תנאי אחד: minimumAmount או minimumQuantity
-      if (!discount.minimumAmount && !discount.minimumQuantity) {
-        errors.push('חייב להגדיר תנאי מינימום (סכום או כמות)');
+      // צריך לפחות תנאי אחד: minimumAmount, minimumQuantity, או triggerCouponCodes
+      if (!discount.minimumAmount && !discount.minimumQuantity && 
+          (!discount.triggerCouponCodes || discount.triggerCouponCodes.length === 0)) {
+        errors.push('חייב להגדיר תנאי הפעלה: מינימום סכום, מינימום כמות, או טריגר קופון');
       }
       break;
       
@@ -742,10 +755,12 @@ export function dbDiscountToEngine(dbDiscount: {
   buyQuantity?: number | null;
   payAmount?: string | number | null;
   getQuantity?: number | null;
+  getDiscountPercent?: number | null;
   giftProductIds?: unknown;
   giftSameProduct?: boolean | null;
   quantityTiers?: unknown;
   spendAmount?: string | number | null;
+  triggerCouponCodes?: unknown;
 }): Discount {
   return {
     id: dbDiscount.id,
@@ -764,10 +779,12 @@ export function dbDiscountToEngine(dbDiscount: {
     buyQuantity: dbDiscount.buyQuantity || null,
     payAmount: dbDiscount.payAmount ? Number(dbDiscount.payAmount) : null,
     getQuantity: dbDiscount.getQuantity || null,
+    getDiscountPercent: dbDiscount.getDiscountPercent ?? 100,
     giftProductIds: (dbDiscount.giftProductIds as string[]) || [],
     giftSameProduct: dbDiscount.giftSameProduct ?? true,
     quantityTiers: (dbDiscount.quantityTiers as QuantityTier[]) || [],
     spendAmount: dbDiscount.spendAmount ? Number(dbDiscount.spendAmount) : null,
+    triggerCouponCodes: (dbDiscount.triggerCouponCodes as string[]) || [],
   };
 }
 
@@ -785,7 +802,12 @@ export function getDiscountDescription(discount: Discount): string {
     case 'buy_x_pay_y':
       return `קנה ${discount.buyQuantity} שלם ₪${discount.payAmount}`;
     case 'buy_x_get_y':
-      return `קנה ${discount.buyQuantity} קבל ${discount.getQuantity} חינם`;
+      const percent = discount.getDiscountPercent ?? 100;
+      return percent === 100 
+        ? `קנה ${discount.buyQuantity} קבל ${discount.getQuantity} חינם`
+        : `קנה ${discount.buyQuantity} קבל ${discount.getQuantity} ב-${percent}% הנחה`;
+    case 'gift_product':
+      return 'מוצר במתנה';
     case 'quantity_discount':
       const tiers = discount.quantityTiers || [];
       if (tiers.length === 0) return 'הנחות כמות';
@@ -796,5 +818,61 @@ export function getDiscountDescription(discount: Discount): string {
     default:
       return 'הנחה';
   }
+}
+
+/**
+ * 🎁 בדיקה אילו קופוני מתנה צריכים להיות מופעלים בהתבסס על קופון שהוזן
+ * 
+ * כאשר לקוח מזין קופון (למשל "SAVE20"), המערכת בודקת אם יש קופוני gift_product
+ * שמוגדרים להיות מופעלים על ידי הקופון הזה (דרך triggerCouponCodes).
+ * 
+ * @param appliedCouponCode - קוד הקופון שהוזן
+ * @param allGiftCoupons - כל הקופונים מסוג gift_product
+ * @returns רשימת קופוני מתנה שצריך להפעיל
+ */
+export function getTriggeredGiftCoupons(
+  appliedCouponCode: string,
+  allGiftCoupons: Discount[]
+): Discount[] {
+  if (!appliedCouponCode) return [];
+  
+  const normalizedCode = appliedCouponCode.toUpperCase().trim();
+  
+  return allGiftCoupons.filter(giftCoupon => {
+    // בדיקה האם הקופון המופעל נמצא ברשימת הטריגרים
+    const triggerCodes = giftCoupon.triggerCouponCodes || [];
+    return triggerCodes.some(code => code.toUpperCase().trim() === normalizedCode);
+  });
+}
+
+/**
+ * 🎁 בדיקה אילו קופוני מתנה צריכים להיות מופעלים בהתבסס על רשימת קופונים שהוזנו
+ * 
+ * גרסה מורחבת שתומכת במספר קופונים (לתמיכה ב-stackable coupons)
+ * 
+ * @param appliedCouponCodes - רשימת קודי הקופונים שהוזנו
+ * @param allGiftCoupons - כל הקופונים מסוג gift_product
+ * @returns רשימת קופוני מתנה שצריך להפעיל (ללא כפילויות)
+ */
+export function getAllTriggeredGiftCoupons(
+  appliedCouponCodes: string[],
+  allGiftCoupons: Discount[]
+): Discount[] {
+  if (!appliedCouponCodes || appliedCouponCodes.length === 0) return [];
+  
+  const triggeredIds = new Set<string>();
+  const triggered: Discount[] = [];
+  
+  for (const code of appliedCouponCodes) {
+    const giftCoupons = getTriggeredGiftCoupons(code, allGiftCoupons);
+    for (const gc of giftCoupons) {
+      if (!triggeredIds.has(gc.id)) {
+        triggeredIds.add(gc.id);
+        triggered.push(gc);
+      }
+    }
+  }
+  
+  return triggered;
 }
 

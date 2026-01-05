@@ -1,7 +1,7 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { db } from '@/lib/db';
 import { discounts, influencers } from '@/lib/db/schema';
-import { eq, and, notInArray, sql } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { InfluencerForm } from '../influencer-form';
@@ -29,19 +29,10 @@ export default async function EditInfluencerPage({ params }: EditInfluencerPageP
     notFound();
   }
 
-  // Get discount IDs already linked to other influencers (not this one)
-  const linkedDiscountIds = await db
-    .select({ discountId: influencers.discountId })
-    .from(influencers)
-    .where(and(
-      eq(influencers.storeId, store.id),
-      sql`${influencers.discountId} IS NOT NULL`,
-      sql`${influencers.id} != ${id}`
-    ));
-
-  const usedIds = linkedDiscountIds.map(r => r.discountId).filter(Boolean) as string[];
-
-  // Fetch available discounts (not linked to other influencers)
+  // Get influencer's linked discounts
+  const influencerDiscountIds = (influencer.discountIds as string[]) || [];
+  
+  // Fetch ALL available active discounts (influencer can have multiple now)
   const availableDiscounts = await db
     .select({
       id: discounts.id,
@@ -52,10 +43,15 @@ export default async function EditInfluencerPage({ params }: EditInfluencerPageP
     .from(discounts)
     .where(and(
       eq(discounts.storeId, store.id),
-      eq(discounts.isActive, true),
-      usedIds.length > 0 ? notInArray(discounts.id, usedIds) : sql`1=1`
+      eq(discounts.isActive, true)
     ))
     .orderBy(discounts.code);
+  
+  // Add discountIds to the influencer object for the form
+  const influencerWithDiscountIds = {
+    ...influencer,
+    discountIds: influencerDiscountIds,
+  };
 
   return (
     <div className="space-y-6">
@@ -77,7 +73,7 @@ export default async function EditInfluencerPage({ params }: EditInfluencerPageP
         storeId={store.id}
         storeSlug={slug}
         mode="edit"
-        influencer={influencer}
+        influencer={influencerWithDiscountIds}
         availableDiscounts={availableDiscounts}
       />
     </div>

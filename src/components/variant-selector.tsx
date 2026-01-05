@@ -39,7 +39,7 @@ export function VariantSelector({
   basePrice,
   baseComparePrice,
 }: VariantSelectorProps) {
-  const { addToCart } = useStore();
+  const { addToCart, formatPrice } = useStore();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [added, setAdded] = useState(false);
@@ -103,10 +103,10 @@ export function VariantSelector({
     <div className="space-y-6">
       {/* Price */}
       <div className="flex items-center gap-4">
-        <span className="text-2xl font-display">₪{currentPrice.toFixed(0)}</span>
+        <span className="text-2xl font-display">{formatPrice(currentPrice)}</span>
         {hasDiscount && (
           <span className="text-lg text-gray-400 line-through">
-            ₪{currentComparePrice!.toFixed(0)}
+            {formatPrice(currentComparePrice)}
           </span>
         )}
       </div>

@@ -2,43 +2,7 @@
 
 import { useState } from 'react';
 import { validateCoupon } from '@/app/actions/coupon';
-
-type DiscountType = 
-  | 'percentage' 
-  | 'fixed_amount' 
-  | 'free_shipping'
-  | 'buy_x_pay_y'
-  | 'buy_x_get_y'
-  | 'gift_product'        // מוצר במתנה (עם תנאים, בחירת מוצר ספציפי)
-  | 'quantity_discount'
-  | 'spend_x_pay_y'
-  | 'gift_card';
-
-export type AppliedCoupon = {
-  id: string;
-  code: string;
-  title: string | null;
-  type: DiscountType;
-  value: number;
-  stackable: boolean;
-  minimumAmount: number | null;
-  minimumQuantity?: number | null;
-  isGiftCard?: boolean;
-  giftCardBalance?: number;
-  // שדות חדשים לסוגי הנחות מתקדמים
-  buyQuantity?: number | null;
-  payAmount?: number | null;
-  getQuantity?: number | null;
-  giftProductIds?: string[];
-  giftSameProduct?: boolean;
-  quantityTiers?: Array<{ minQuantity: number; discountPercent: number }>;
-  spendAmount?: number | null;
-  appliesTo?: 'all' | 'category' | 'product' | 'member';
-  categoryIds?: string[];
-  productIds?: string[];
-  excludeCategoryIds?: string[];
-  excludeProductIds?: string[];
-};
+import { useStore, type AppliedCoupon } from '@/lib/store-context';
 
 interface CouponInputProps {
   storeId: string;
@@ -48,16 +12,32 @@ interface CouponInputProps {
   onRemove: (couponId: string) => void;
   email?: string;
   cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>;
+  onTriggeredGiftCoupons?: (coupons: AppliedCoupon[]) => void; // קופוני מתנה שמופעלים אוטומטית
+  hasNonStackableAutoDiscount?: boolean; // האם יש הנחה אוטומטית שלא ניתנת לשילוב
+  nonStackableAutoDiscountName?: string; // שם ההנחה האוטומטית (לחיווי טוב יותר)
 }
 
-export function CouponInput({ storeId, cartTotal, appliedCoupons, onApply, onRemove, email, cartItems }: CouponInputProps) {
+export function CouponInput({ 
+  storeId, 
+  cartTotal, 
+  appliedCoupons, 
+  onApply, 
+  onRemove, 
+  email, 
+  cartItems, 
+  onTriggeredGiftCoupons,
+  hasNonStackableAutoDiscount = false,
+  nonStackableAutoDiscountName,
+}: CouponInputProps) {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
+  const { formatPrice } = useStore();
 
   // Check if we can add more coupons
   const hasNonStackableCoupon = appliedCoupons.some(c => !c.stackable);
-  const canAddMore = !hasNonStackableCoupon && appliedCoupons.length < 3; // Max 3 coupons
+  // אם יש הנחה אוטומטית לא ניתנת לשילוב, לא ניתן להוסיף קופונים
+  const canAddMore = !hasNonStackableCoupon && !hasNonStackableAutoDiscount && appliedCoupons.length < 3; // Max 3 coupons
 
   const handleApply = async () => {
     setCouponError('');
@@ -90,6 +70,23 @@ export function CouponInput({ storeId, cartTotal, appliedCoupons, onApply, onRem
         
         onApply(result.coupon);
         setCouponCode('');
+        
+        // טיפול בקופוני מתנה שמופעלים אוטומטית
+        if (result.triggeredGiftCoupons && result.triggeredGiftCoupons.length > 0 && onTriggeredGiftCoupons) {
+          // המרה לפורמט AppliedCoupon
+          const giftCoupons: AppliedCoupon[] = result.triggeredGiftCoupons.map(gc => ({
+            id: gc.id,
+            code: gc.code,
+            title: gc.title,
+            type: gc.type,
+            value: gc.value,
+            minimumAmount: gc.minimumAmount,
+            minimumQuantity: gc.minimumQuantity,
+            stackable: gc.stackable,
+            giftProductIds: gc.giftProductIds,
+          }));
+          onTriggeredGiftCoupons(giftCoupons);
+        }
       } else {
         setCouponError(result.error);
       }
@@ -102,12 +99,12 @@ export function CouponInput({ storeId, cartTotal, appliedCoupons, onApply, onRem
 
   const formatCouponValue = (coupon: AppliedCoupon) => {
     if (coupon.type === 'percentage') return `-${coupon.value}%`;
-    if (coupon.type === 'fixed_amount') return `-₪${coupon.value.toFixed(0)}`;
+    if (coupon.type === 'fixed_amount') return `-${formatPrice(coupon.value)}`;
     if (coupon.type === 'free_shipping') return 'משלוח חינם';
-    if (coupon.type === 'gift_card') return `-₪${coupon.value.toFixed(0)}`;
+    if (coupon.type === 'gift_card') return `-${formatPrice(coupon.value)}`;
     if (coupon.type === 'gift_product') return 'מוצר במתנה';
     if (coupon.type === 'buy_x_pay_y' && coupon.buyQuantity && coupon.payAmount) {
-      return `קנה ${coupon.buyQuantity} שלם ₪${coupon.payAmount}`;
+      return `קנה ${coupon.buyQuantity} שלם ${formatPrice(coupon.payAmount)}`;
     }
     if (coupon.type === 'buy_x_get_y' && coupon.buyQuantity && coupon.getQuantity) {
       return `קנה ${coupon.buyQuantity} קבל ${coupon.getQuantity} חינם`;
@@ -159,7 +156,7 @@ export function CouponInput({ storeId, cartTotal, appliedCoupons, onApply, onRem
                 </span>
                 {coupon.isGiftCard && coupon.giftCardBalance && (
                   <span className="text-[10px] text-purple-400 mr-1">
-                    יתרה: ₪{coupon.giftCardBalance.toFixed(0)}
+                    יתרה: {formatPrice(coupon.giftCardBalance)}
                   </span>
                 )}
                 {!coupon.stackable && !coupon.isGiftCard && (
@@ -201,12 +198,16 @@ export function CouponInput({ storeId, cartTotal, appliedCoupons, onApply, onRem
         </div>
       )}
       
-      {/* Info text when max coupons reached */}
-      {!canAddMore && appliedCoupons.length > 0 && (
+      {/* Info text when coupons cannot be added */}
+      {!canAddMore && (
         <p className="text-xs text-gray-400 mt-2">
-          {hasNonStackableCoupon 
-            ? 'הקופון שהוחל לא ניתן לשילוב עם קופונים אחרים'
-            : 'הגעת למקסימום הקופונים'}
+          {hasNonStackableAutoDiscount
+            ? `לא ניתן לשלב קופון עם ההנחה האוטומטית${nonStackableAutoDiscountName ? ` "${nonStackableAutoDiscountName}"` : ''}`
+            : hasNonStackableCoupon 
+              ? 'הקופון שהוחל לא ניתן לשילוב עם קופונים אחרים'
+              : appliedCoupons.length >= 3
+                ? 'הגעת למקסימום הקופונים'
+                : null}
         </p>
       )}
       

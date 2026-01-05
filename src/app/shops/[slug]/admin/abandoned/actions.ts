@@ -110,4 +110,62 @@ export async function deleteAbandonedCart(cartId: string, slug: string) {
   }
 }
 
+// Recover cart by token - called from checkout page
+export async function recoverCartByToken(recoveryToken: string) {
+  try {
+    const cart = await db.query.abandonedCarts.findFirst({
+      where: eq(abandonedCarts.recoveryToken, recoveryToken),
+    });
+
+    if (!cart) {
+      return { success: false, error: 'עגלה לא נמצאה' };
+    }
+
+    // Check if already recovered
+    if (cart.recoveredAt) {
+      return { success: false, error: 'העגלה כבר שוחזרה', alreadyRecovered: true };
+    }
+
+    // Return cart items for restoration
+    const items = (cart.items as CartItem[]) || [];
+    
+    return { 
+      success: true, 
+      items: items.map(item => ({
+        productId: (item as any).productId || '',
+        variantId: (item as any).variantId,
+        name: item.name,
+        variant: item.variant,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image,
+      })),
+      cartId: cart.id,
+      email: cart.email,
+    };
+  } catch (error) {
+    console.error('Error recovering cart:', error);
+    return { success: false, error: 'שגיאה בשחזור העגלה' };
+  }
+}
+
+// Mark cart as recovered
+export async function markCartAsRecovered(cartId: string, orderId?: string) {
+  try {
+    await db
+      .update(abandonedCarts)
+      .set({
+        recoveredAt: new Date(),
+        recoveredOrderId: orderId || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(abandonedCarts.id, cartId));
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error marking cart as recovered:', error);
+    return { success: false, error: 'שגיאה בעדכון העגלה' };
+  }
+}
+
 

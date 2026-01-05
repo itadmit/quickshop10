@@ -27,6 +27,10 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   // Get basePath (empty for custom domain, /shops/slug for platform)
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
+  
+  // Get price display settings
+  const storeSettings = (store.settings as Record<string, unknown>) || {};
+  const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
 
   // Parallel data fetching - maximum speed!
   const [sections, categories, featuredProducts, allProducts] = await Promise.all([
@@ -137,6 +141,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             products={productsToShow}
             settings={settings as { columns?: number; gap?: number; showCount?: boolean }}
             basePath={basePath}
+            showDecimalPrices={showDecimalPrices}
           />
         );
 

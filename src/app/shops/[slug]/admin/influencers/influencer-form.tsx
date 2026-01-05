@@ -30,6 +30,7 @@ interface Influencer {
   showOrderDetails: boolean;
   couponCode: string | null;
   discountId: string | null;
+  discountIds: string[];  // מערך של מזהי קופונים
   isActive: boolean;
   notes: string | null;
 }
@@ -69,7 +70,7 @@ export function InfluencerForm({
     showCommission: influencer?.showCommission ?? true,
     showCustomerNames: influencer?.showCustomerNames ?? true,
     showOrderDetails: influencer?.showOrderDetails ?? true,
-    discountId: influencer?.discountId || '',
+    discountIds: influencer?.discountIds || [],
     isActive: influencer?.isActive ?? true,
     notes: influencer?.notes || '',
   });
@@ -111,7 +112,7 @@ export function InfluencerForm({
           showCommission: formData.showCommission,
           showCustomerNames: formData.showCustomerNames,
           showOrderDetails: formData.showOrderDetails,
-          discountId: formData.discountId || null,
+          discountIds: formData.discountIds,
           isActive: formData.isActive,
           notes: formData.notes.trim() || null,
         };
@@ -136,8 +137,18 @@ export function InfluencerForm({
     });
   };
 
-  // Get selected discount info
-  const selectedDiscount = availableDiscounts.find(d => d.id === formData.discountId);
+  // Get selected discounts info
+  const selectedDiscounts = availableDiscounts.filter(d => formData.discountIds.includes(d.id));
+  
+  // Toggle discount selection
+  const toggleDiscount = (discountId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      discountIds: prev.discountIds.includes(discountId)
+        ? prev.discountIds.filter(id => id !== discountId)
+        : [...prev.discountIds, discountId]
+    }));
+  };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
@@ -335,37 +346,70 @@ export function InfluencerForm({
         </div>
       </div>
 
-      {/* Linked Discount */}
+      {/* Linked Discounts */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">קופון משויך</h2>
-        <p className="text-sm text-gray-500 mb-4">שייך קופון למעקב אחרי המכירות של המשפיען</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">קופונים משויכים</h2>
+        <p className="text-sm text-gray-500 mb-4">שייך קופונים למעקב אחרי המכירות של המשפיען (ניתן לבחור מספר קופונים)</p>
         
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            בחר קופון
-          </label>
-          <select
-            value={formData.discountId}
-            onChange={(e) => setFormData(prev => ({ ...prev, discountId: e.target.value }))}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors"
-          >
-            <option value="">ללא שיוך</option>
-            {availableDiscounts.map(discount => (
-              <option key={discount.id} value={discount.id}>
-                {discount.code} ({discount.value}{discount.type === 'percentage' ? '%' : '₪'})
-              </option>
+        {/* Selected Discounts */}
+        {selectedDiscounts.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {selectedDiscounts.map(discount => (
+              <span
+                key={discount.id}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-100 text-purple-800 rounded-full text-sm"
+              >
+                <span className="font-medium">{discount.code}</span>
+                <span className="text-purple-600">({discount.value}{discount.type === 'percentage' ? '%' : '₪'})</span>
+                <button
+                  type="button"
+                  onClick={() => toggleDiscount(discount.id)}
+                  className="mr-1 p-0.5 hover:bg-purple-200 rounded-full transition-colors"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </span>
             ))}
-          </select>
-          {selectedDiscount && (
-            <div className="mt-3 p-3 bg-purple-50 border border-purple-100 rounded-lg">
-              <p className="text-sm text-purple-700">
-                <strong>{selectedDiscount.code}</strong> - {selectedDiscount.value}{selectedDiscount.type === 'percentage' ? '%' : '₪'} הנחה
-              </p>
+          </div>
+        )}
+        
+        {/* Available Discounts */}
+        <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+          {availableDiscounts.length === 0 ? (
+            <div className="p-4 text-center text-gray-500 text-sm">
+              אין קופונים זמינים. צור קופון חדש כדי לשייך למשפיען.
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {availableDiscounts.map(discount => (
+                <label
+                  key={discount.id}
+                  className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.discountIds.includes(discount.id)}
+                    onChange={() => toggleDiscount(discount.id)}
+                    className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium text-gray-900">{discount.code}</span>
+                    <span className="text-gray-500 mr-2">
+                      ({discount.value}{discount.type === 'percentage' ? '%' : '₪'} הנחה)
+                    </span>
+                  </div>
+                </label>
+              ))}
             </div>
           )}
         </div>
         
-        <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+          <span className="text-sm text-gray-500">
+            {formData.discountIds.length} קופונים משויכים
+          </span>
           <Link
             href={`/shops/${storeSlug}/admin/discounts/new`}
             className="text-sm text-purple-600 hover:text-purple-700 font-medium"

@@ -4,7 +4,8 @@ import { useStore } from '@/lib/store-context';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CouponInput, type AppliedCoupon } from './coupon-input';
+import { CouponInput } from './coupon-input';
+import type { AppliedCoupon } from '@/lib/store-context';
 import { CheckoutLogin } from './checkout-login';
 import { createOrder } from '@/app/actions/order';
 import { getAutomaticDiscounts, type AutomaticDiscountResult, type CartItemForDiscount } from '@/app/actions/automatic-discount';
@@ -99,7 +100,7 @@ export function CheckoutForm({
   checkoutSettings = defaultCheckoutSettings,
   shippingSettings = defaultShippingSettings,
 }: CheckoutFormProps) {
-  const { cart, cartTotal, clearCart, isHydrated, addGiftItem, removeGiftItemsByCoupon } = useStore();
+  const { cart, cartTotal, clearCart, isHydrated, addGiftItem, removeGiftItemsByCoupon, appliedCoupons, addCoupon, removeCoupon, clearCoupons, formatPrice, addToCart } = useStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const homeUrl = basePath || '/';
@@ -108,6 +109,10 @@ export function CheckoutForm({
   const errorParam = searchParams.get('error');
   const paymentError = errorParam === 'payment_failed' || errorParam === 'payment_error' || errorParam === 'payment_cancelled';
   const [step, setStep] = useState<'details' | 'shipping' | 'payment'>('details');
+  
+  // Track recovery state
+  const [recoveryAttempted, setRecoveryAttempted] = useState(false);
+  const [recoveredCartId, setRecoveredCartId] = useState<string | null>(null);
   
   // Clear error from URL after showing it (to prevent it from showing again)
   useEffect(() => {
@@ -124,7 +129,6 @@ export function CheckoutForm({
     }
   }, [paymentError, step, searchParams, router]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
   const [orderError, setOrderError] = useState<string | null>(null);
   const [emailExists, setEmailExists] = useState<{ exists: boolean; hasAccount: boolean } | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
@@ -135,9 +139,120 @@ export function CheckoutForm({
   const [loggedInCustomer, setLoggedInCustomer] = useState<LoggedInCustomer | null>(null);
   const [useCredit, setUseCredit] = useState(false);
   const [couponWarning, setCouponWarning] = useState<string | null>(null);
+  const [urlCouponApplied, setUrlCouponApplied] = useState(false);
   
-  // Re-validate coupons when cart total DECREASES (no loop - uses functional update)
+  // Recover abandoned cart from URL (e.g., ?recover=TOKEN)
+  useEffect(() => {
+    if (!isHydrated || recoveryAttempted) return;
+    
+    const recoverToken = searchParams.get('recover');
+    if (!recoverToken) {
+      setRecoveryAttempted(true);
+      return;
+    }
+    
+    // Don't recover if cart already has items
+    if (cart.length > 0) {
+      setRecoveryAttempted(true);
+      // Clean URL
+      const newSearchParams = new URLSearchParams(searchParams.toString());
+      newSearchParams.delete('recover');
+      const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''}`;
+      router.replace(newUrl, { scroll: false });
+      return;
+    }
+    
+    const recoverCart = async () => {
+      try {
+        const { recoverCartByToken } = await import('@/app/shops/[slug]/admin/abandoned/actions');
+        const result = await recoverCartByToken(recoverToken);
+        
+        if (result.success && result.items && result.items.length > 0) {
+          // Add items to cart
+          for (const item of result.items) {
+            if (item.productId) {
+              addToCart({
+                productId: item.productId,
+                variantId: item.variantId,
+                name: item.name,
+                variantTitle: item.variant,
+                price: item.price,
+                image: item.image || '',
+              }, item.quantity);
+            }
+          }
+          
+          // Store cartId for marking as recovered later
+          if (result.cartId) {
+            setRecoveredCartId(result.cartId);
+          }
+          
+          // Pre-fill email if available
+          if (result.email && formData.email === '') {
+            setFormData(prev => ({ ...prev, email: result.email || '' }));
+          }
+        }
+      } catch (error) {
+        console.error('Failed to recover cart:', error);
+      } finally {
+        setRecoveryAttempted(true);
+        // Clean URL without refreshing
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('recover');
+        const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''}`;
+        router.replace(newUrl, { scroll: false });
+      }
+    };
+    
+    recoverCart();
+  }, [isHydrated, recoveryAttempted, searchParams, router, cart.length, addToCart]);
+  
+  // Apply coupon from URL (e.g., ?coupon=SUMMER20)
+  useEffect(() => {
+    if (!isHydrated || urlCouponApplied || cart.length === 0 || !storeId) return;
+    
+    const couponCode = searchParams.get('coupon');
+    if (!couponCode) return;
+    
+    // Check if already applied
+    if (appliedCoupons.some(c => c.code.toUpperCase() === couponCode.toUpperCase())) {
+      setUrlCouponApplied(true);
+      return;
+    }
+    
+    // Validate and apply the coupon
+    const applyCouponFromUrl = async () => {
+      try {
+        const { validateCoupon } = await import('@/app/actions/coupon');
+        const result = await validateCoupon(
+          storeId,
+          couponCode,
+          cartTotal,
+          undefined, // email
+          cart.map(item => ({ productId: item.productId, categoryId: undefined, quantity: item.quantity }))
+        );
+        
+        if (result.success && result.coupon) {
+          addCoupon(result.coupon as AppliedCoupon);
+        }
+      } catch (error) {
+        console.error('Failed to apply coupon from URL:', error);
+      } finally {
+        setUrlCouponApplied(true);
+        // Clean URL without refreshing
+        const newSearchParams = new URLSearchParams(searchParams.toString());
+        newSearchParams.delete('coupon');
+        const newUrl = `${window.location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ''}`;
+        router.replace(newUrl, { scroll: false });
+      }
+    };
+    
+    applyCouponFromUrl();
+  }, [isHydrated, urlCouponApplied, cart, storeId, searchParams, cartTotal, appliedCoupons, addCoupon, router]);
+  
+  // Re-validate coupons when cart total DECREASES
   const prevCartTotalRef = useRef(cartTotal);
+  const couponsCheckedRef = useRef<string[]>([]); // מניעת בדיקה כפולה
   useEffect(() => {
     // Only check when cart total decreased
     if (cartTotal >= prevCartTotalRef.current) {
@@ -146,31 +261,31 @@ export function CheckoutForm({
     }
     prevCartTotalRef.current = cartTotal;
     
-    // Use functional update to avoid stale closure and infinite loops
-    setAppliedCoupons(currentCoupons => {
-      if (currentCoupons.length === 0) return currentCoupons;
-      
-      const invalidCoupons = currentCoupons.filter(coupon => 
-        coupon.minimumAmount && cartTotal < coupon.minimumAmount
-      );
-      
-      if (invalidCoupons.length === 0) return currentCoupons;
-      
-      // Show warning
-      const removedCodes = invalidCoupons.map(c => c.code).join(', ');
-      setCouponWarning(
-        invalidCoupons.length === 1
-          ? `הקופון ${removedCodes} הוסר - סכום ההזמנה נמוך מהמינימום הנדרש`
-          : `הקופונים ${removedCodes} הוסרו - סכום ההזמנה נמוך מהמינימום הנדרש`
-      );
-      setTimeout(() => setCouponWarning(null), 5000);
-      
-      // Return filtered coupons
-      return currentCoupons.filter(coupon =>
-        !coupon.minimumAmount || cartTotal >= coupon.minimumAmount
-      );
-    });
-  }, [cartTotal]); // Only depends on cartTotal - no appliedCoupons dependency!
+    if (appliedCoupons.length === 0) return;
+    
+    const invalidCoupons = appliedCoupons.filter(coupon => 
+      coupon.minimumAmount && cartTotal < coupon.minimumAmount
+    );
+    
+    if (invalidCoupons.length === 0) return;
+    
+    // מניעת בדיקה כפולה
+    const newInvalidIds = invalidCoupons.map(c => c.id).filter(id => !couponsCheckedRef.current.includes(id));
+    if (newInvalidIds.length === 0) return;
+    couponsCheckedRef.current = [...couponsCheckedRef.current, ...newInvalidIds];
+    
+    // Show warning
+    const removedCodes = invalidCoupons.map(c => c.code).join(', ');
+    setCouponWarning(
+      invalidCoupons.length === 1
+        ? `הקופון ${removedCodes} הוסר - סכום ההזמנה נמוך מהמינימום הנדרש`
+        : `הקופונים ${removedCodes} הוסרו - סכום ההזמנה נמוך מהמינימום הנדרש`
+    );
+    setTimeout(() => setCouponWarning(null), 5000);
+    
+    // Remove invalid coupons
+    invalidCoupons.forEach(coupon => removeCoupon(coupon.id));
+  }, [cartTotal, appliedCoupons, removeCoupon]);
   
   // Fetch automatic discounts when cart or email changes
   const fetchAutoDiscounts = useCallback(async (email?: string) => {
@@ -747,9 +862,20 @@ export function CheckoutForm({
             
             localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orderData));
             
+            // Mark abandoned cart as recovered if this was a recovery
+            if (recoveredCartId) {
+              try {
+                const { markCartAsRecovered } = await import('@/app/shops/[slug]/admin/abandoned/actions');
+                await markCartAsRecovered(recoveredCartId, result.orderId);
+              } catch (error) {
+                console.error('Failed to mark cart as recovered:', error);
+              }
+            }
+            
             // Mark as redirecting BEFORE clearing cart to prevent flash of empty state
             setIsRedirecting(true);
             clearCart();
+            clearCoupons();
             
             // Redirect to thank you page with order number in path and token in query
             router.push(`${basePath}/checkout/thank-you/${result.orderNumber}?t=${token}`);
@@ -1340,7 +1466,7 @@ export function CheckoutForm({
                   className="btn-primary flex-1"
                 >
                   {isSubmitting ? 'מעבד...' : 
-                   step === 'payment' ? `לתשלום ₪${total.toFixed(0)}` : 'המשך'}
+                   step === 'payment' ? `לתשלום ${formatPrice(total)}` : 'המשך'}
                 </button>
               </div>
             </form>
@@ -1353,12 +1479,10 @@ export function CheckoutForm({
               storeId={storeId || ''}
               cartTotal={cartTotal}
               appliedCoupons={appliedCoupons}
-              onApply={(coupon) => setAppliedCoupons(prev => [...prev, coupon])}
+              onApply={(coupon) => addCoupon(coupon)}
               onRemove={(couponId) => { 
-                setAppliedCoupons(prev => prev.filter(c => c.id !== couponId)); 
+                removeCoupon(couponId);
                 setCouponWarning(null);
-                // מחיקת מוצרי מתנה של הקופון שנמחק
-                removeGiftItemsByCoupon(couponId);
               }}
               email={formData.email}
               cartItems={cart.map(item => ({
@@ -1366,6 +1490,17 @@ export function CheckoutForm({
                 categoryId: undefined, // TODO: צריך להוסיף categoryId ל-cart items
                 quantity: item.quantity,
               }))}
+              onTriggeredGiftCoupons={(giftCoupons) => {
+                // הוספת קופוני מתנה שמופעלים אוטומטית
+                for (const gc of giftCoupons) {
+                  // וידוא שלא כבר מופעל
+                  if (!appliedCoupons.some(c => c.id === gc.id)) {
+                    addCoupon(gc);
+                  }
+                }
+              }}
+              hasNonStackableAutoDiscount={autoDiscounts.some(d => !d.stackable)}
+              nonStackableAutoDiscountName={autoDiscounts.find(d => !d.stackable)?.name}
             />
             
             {/* Coupon Warning */}
@@ -1404,7 +1539,7 @@ export function CheckoutForm({
                         <p className="text-xs text-gray-500">{item.variantTitle}</p>
                       )}
                       <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
-                      <p className="text-sm">₪{(item.price * item.quantity).toFixed(0)}</p>
+                      <p className="text-sm">{formatPrice(item.price * item.quantity)}</p>
                     </div>
                   </li>
                 ))}
@@ -1415,30 +1550,33 @@ export function CheckoutForm({
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">סכום ביניים</span>
-                  <span>₪{cartTotal.toFixed(0)}</span>
+                  <span>{formatPrice(cartTotal)}</span>
                 </div>
                 
                 {/* Member Discount */}
                 {memberDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>הנחת חברי מועדון (5%)</span>
-                    <span>-₪{memberDiscount.toFixed(0)}</span>
+                    <span>-{formatPrice(memberDiscount)}</span>
                   </div>
                 )}
                 
-                {/* Auto Product Discounts */}
-                {autoProductDiscount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>הנחה אוטומטית</span>
-                    <span>-₪{autoProductDiscount.toFixed(0)}</span>
-                  </div>
-                )}
+                {/* Auto Product Discounts - show each discount with its name */}
+                {autoDiscountResults.filter(d => engineAutoDiscounts.find(ed => ed.id === d.discountId)?.appliesTo !== 'member').map(d => {
+                  const discountInfo = autoDiscounts.find(ad => ad.id === d.discountId);
+                  return (
+                    <div key={d.discountId} className="flex justify-between text-green-600">
+                      <span>הנחה אוטומטית{discountInfo?.name ? `: ${discountInfo.name}` : ''}</span>
+                      <span>-{formatPrice(d.amount)}</span>
+                    </div>
+                  );
+                })}
                 
                 {/* Coupon Discounts */}
                 {appliedCoupons.length > 0 && couponDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>קופונים ({appliedCoupons.filter(c => c.type !== 'free_shipping').map(c => c.code).join(', ')})</span>
-                    <span>-₪{couponDiscount.toFixed(0)}</span>
+                    <span>-{formatPrice(couponDiscount)}</span>
                   </div>
                 )}
                 
@@ -1470,7 +1608,7 @@ export function CheckoutForm({
                       </svg>
                       <span className="text-sm font-medium text-blue-800">יתרת קרדיט</span>
                     </div>
-                    <span className="text-sm font-medium text-blue-800">₪{creditBalance.toFixed(0)}</span>
+                    <span className="text-sm font-medium text-blue-800">{formatPrice(creditBalance)}</span>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -1480,7 +1618,7 @@ export function CheckoutForm({
                       className="w-4 h-4 border-blue-300 rounded text-blue-600 focus:ring-blue-500"
                     />
                     <span className="text-sm text-blue-700">
-                      השתמש בקרדיט {creditUsed > 0 && `(-₪${creditUsed.toFixed(0)})`}
+                      השתמש בקרדיט {creditUsed > 0 && `(-${formatPrice(creditUsed)})`}
                     </span>
                   </label>
                 </div>
@@ -1490,7 +1628,7 @@ export function CheckoutForm({
               {creditUsed > 0 && (
                 <div className="flex justify-between text-sm text-blue-600 mt-4">
                   <span>קרדיט</span>
-                  <span>-₪{creditUsed.toFixed(0)}</span>
+                  <span>-{formatPrice(creditUsed)}</span>
                 </div>
               )}
 
@@ -1498,7 +1636,7 @@ export function CheckoutForm({
 
               <div className="flex justify-between text-lg font-display">
                 <span>סה״כ</span>
-                <span>₪{step === 'details' ? (cartTotal - totalDiscount).toFixed(0) : total.toFixed(0)}</span>
+                <span>{step === 'details' ? formatPrice(cartTotal - totalDiscount) : formatPrice(total)}</span>
               </div>
             </div>
           </div>

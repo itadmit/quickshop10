@@ -5,6 +5,7 @@ import { eq, desc, sql, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { InfluencerButtons } from './influencer-buttons';
+import { CopyLoginLinkButton } from './copy-login-link-button';
 
 interface InfluencersPageProps {
   params: Promise<{ slug: string }>;
@@ -59,15 +60,18 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
           <h1 className="text-2xl font-bold text-gray-900">משפיענים</h1>
           <p className="text-gray-500 text-sm mt-1">ניהול משפיענים ושותפים שיווקיים</p>
         </div>
-        <Link
-          href={`/shops/${slug}/admin/influencers/new`}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          משפיען חדש
-        </Link>
+        <div className="flex items-center gap-3">
+          <CopyLoginLinkButton slug={slug} />
+          <Link
+            href={`/shops/${slug}/admin/influencers/new`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            משפיען חדש
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}

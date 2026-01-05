@@ -1,11 +1,12 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { printOrders, printOrder } from '@/lib/print-order';
-import { archiveOrders } from './actions';
+import { archiveOrders, permanentlyDeleteOrders, unarchiveOrders } from './actions';
 
 // ============================================
 // OrdersDataTable - Client Component
@@ -88,9 +89,29 @@ export function OrdersDataTable({
   pagination,
 }: OrdersDataTableProps) {
   const router = useRouter();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [ordersToDelete, setOrdersToDelete] = useState<string[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const isArchiveTab = currentTab === 'archived';
 
-  // Bulk Actions
-  const bulkActions: BulkAction[] = [
+  // Handle permanent delete confirmation
+  const handleDeleteConfirm = async () => {
+    if (ordersToDelete.length === 0) return;
+    
+    setIsDeleting(true);
+    try {
+      await permanentlyDeleteOrders(ordersToDelete);
+      router.refresh();
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteModal(false);
+      setOrdersToDelete([]);
+    }
+  };
+
+  // Base bulk actions (for all tabs)
+  const baseBulkActions: BulkAction[] = [
     {
       id: 'mark-fulfilled',
       label: 'סמן כנשלח',
@@ -116,7 +137,6 @@ export function OrdersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // הדפסה ישירה דרך API - לא מעביר עמוד
         printOrders(storeSlug, selectedIds);
       },
     },
@@ -131,10 +151,46 @@ export function OrdersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement export
         console.log('Export:', selectedIds);
       },
     },
+  ];
+
+  // Archive-specific bulk actions
+  const archiveBulkActions: BulkAction[] = [
+    ...baseBulkActions,
+    {
+      id: 'unarchive',
+      label: 'שחזר מארכיון',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+      ),
+      onAction: async (selectedIds) => {
+        await unarchiveOrders(selectedIds);
+        router.refresh();
+      },
+    },
+    {
+      id: 'permanent-delete',
+      label: 'מחק לצמיתות',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      ),
+      variant: 'danger' as const,
+      onAction: async (selectedIds) => {
+        setOrdersToDelete(selectedIds);
+        setShowDeleteModal(true);
+      },
+    },
+  ];
+
+  // Regular bulk actions (not archived)
+  const regularBulkActions: BulkAction[] = [
+    ...baseBulkActions,
     {
       id: 'archive',
       label: 'העבר לארכיון',
@@ -151,6 +207,8 @@ export function OrdersDataTable({
       },
     },
   ];
+
+  const bulkActions = isArchiveTab ? archiveBulkActions : regularBulkActions;
 
   // Define columns inside Client Component
   const columns: Column<Order>[] = [
@@ -262,26 +320,101 @@ export function OrdersDataTable({
   ];
 
   return (
-    <DataTable
-      data={orders}
-      columns={columns}
-      getRowKey={(order) => order.id}
-      getRowHref={(order) => `/shops/${storeSlug}/admin/orders/${order.id}`}
-      tabs={tabs}
-      currentTab={currentTab}
-      selectable
-      bulkActions={bulkActions}
-      searchable
-      searchPlaceholder="חיפוש לפי מספר הזמנה, שם או אימייל..."
-      searchValue={searchValue}
-      pagination={pagination}
-      emptyState={
-        <EmptyState
-          icon="orders"
-          title="אין הזמנות"
-          description={searchValue ? 'לא נמצאו הזמנות התואמות לחיפוש' : 'עדיין לא התקבלו הזמנות בחנות'}
-        />
-      }
-    />
+    <>
+      <DataTable
+        data={orders}
+        columns={columns}
+        getRowKey={(order) => order.id}
+        getRowHref={(order) => `/shops/${storeSlug}/admin/orders/${order.id}`}
+        tabs={tabs}
+        currentTab={currentTab}
+        selectable
+        bulkActions={bulkActions}
+        searchable
+        searchPlaceholder="חיפוש לפי מספר הזמנה, שם או אימייל..."
+        searchValue={searchValue}
+        pagination={pagination}
+        emptyState={
+          <EmptyState
+            icon="orders"
+            title="אין הזמנות"
+            description={searchValue ? 'לא נמצאו הזמנות התואמות לחיפוש' : 'עדיין לא התקבלו הזמנות בחנות'}
+          />
+        }
+      />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/50" 
+            onClick={() => !isDeleting && setShowDeleteModal(false)}
+          />
+          
+          {/* Modal */}
+          <div className="relative bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6 animate-in fade-in zoom-in-95 duration-200">
+            {/* Warning Icon */}
+            <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
+              <svg className="w-7 h-7 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            
+            {/* Title */}
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-2">
+              מחיקה לצמיתות
+            </h3>
+            
+            {/* Description */}
+            <p className="text-gray-600 text-center mb-2">
+              האם אתה בטוח שברצונך למחוק{' '}
+              <span className="font-semibold text-gray-900">
+                {ordersToDelete.length} הזמנות
+              </span>
+              ?
+            </p>
+            
+            {/* Warning */}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
+              <p className="text-sm text-red-700 text-center font-medium">
+                ⚠️ שים לב: זוהי פעולה בלתי הפיכה!
+              </p>
+              <p className="text-xs text-red-600 text-center mt-1">
+                ההזמנות יימחקו לצמיתות מהמסד ולא ניתן יהיה לשחזר אותן.
+              </p>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    מוחק...
+                  </>
+                ) : (
+                  'מחק לצמיתות'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

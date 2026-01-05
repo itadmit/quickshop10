@@ -6,6 +6,8 @@ import { ProductImage } from '@/components/product-image';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewProduct } from '@/components/tracking-events';
 import { ScrollToTop } from '@/components/scroll-to-top';
+import { formatPrice } from '@/lib/format-price';
+import { isOutOfStock } from '@/lib/inventory';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -35,6 +37,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
+  
+  // Get price display settings
+  const storeSettings = (store.settings as Record<string, unknown>) || {};
+  const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
+  const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
 
   // Get variants, related products and categories in parallel - maximum speed!
   const [options, variants, allProducts, categories] = await Promise.all([
@@ -156,9 +163,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <>
                   {/* Price */}
                   <div className="flex items-center gap-4 mb-8">
-                    <span className="text-2xl font-display">₪{Number(product.price).toFixed(0)}</span>
+                    <span className="text-2xl font-display">{format(product.price)}</span>
                     {hasDiscount && (
-                      <span className="text-lg text-gray-400 line-through">₪{Number(product.comparePrice).toFixed(0)}</span>
+                      <span className="text-lg text-gray-400 line-through">{format(product.comparePrice)}</span>
                     )}
                   </div>
 
@@ -168,16 +175,35 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     name={product.name}
                     price={Number(product.price)}
                     image={mainImage || '/placeholder.svg'}
+                    inventory={product.inventory}
+                    trackInventory={product.trackInventory}
+                    allowBackorder={product.allowBackorder}
                     className="w-full mb-4"
                   />
 
                   {/* Stock Status */}
-                  <p className="text-sm text-gray-500 text-center mb-8">
-                    {product.inventory && product.inventory > 0 
-                      ? `${product.inventory} יחידות במלאי` 
-                      : 'במלאי'
+                  {(() => {
+                    const outOfStock = isOutOfStock(product.trackInventory, product.inventory, product.allowBackorder);
+                    if (outOfStock) {
+                      return (
+                        <p className="text-sm text-red-500 text-center mb-8">
+                          אזל מהמלאי
+                        </p>
+                      );
                     }
-                  </p>
+                    if (product.trackInventory && product.inventory !== null && product.inventory > 0) {
+                      return (
+                        <p className="text-sm text-gray-500 text-center mb-8">
+                          {product.inventory} יחידות במלאי
+                        </p>
+                      );
+                    }
+                    return (
+                      <p className="text-sm text-green-600 text-center mb-8">
+                        במלאי
+                      </p>
+                    );
+                  })()}
                 </>
               )}
 
@@ -233,16 +259,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </p>
             
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
-              {relatedProducts.map((product) => (
+              {relatedProducts.map((p) => (
                 <ProductCard
-                  key={product.id}
-                  id={product.id}
-                  slug={product.slug}
-                  name={product.name}
-                  price={Number(product.price)}
-                  comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
-                  image={product.image || '/placeholder.svg'}
+                  key={p.id}
+                  id={p.id}
+                  slug={p.slug}
+                  name={p.name}
+                  price={Number(p.price)}
+                  comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
+                  image={p.image || '/placeholder.svg'}
                   basePath={basePath}
+                  showDecimalPrices={showDecimalPrices}
+                  inventory={p.inventory}
+                  trackInventory={p.trackInventory}
+                  allowBackorder={p.allowBackorder}
                 />
               ))}
             </div>

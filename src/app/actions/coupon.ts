@@ -40,7 +40,22 @@ export type CouponResult = {
     giftSameProduct?: boolean;
     quantityTiers?: Array<{ minQuantity: number; discountPercent: number }>;
     spendAmount?: number | null;
+    // שדות gift_product
+    minimumQuantity?: number | null;
+    triggerCouponCodes?: string[];
   };
+  // קופוני מתנה שמופעלים על ידי הקופון הזה
+  triggeredGiftCoupons?: Array<{
+    id: string;
+    code: string;
+    title: string | null;
+    type: 'gift_product';
+    value: number;
+    giftProductIds: string[];
+    minimumAmount?: number | null;
+    minimumQuantity?: number | null;
+    stackable: boolean;
+  }>;
 } | {
   success: false;
   error: string;
@@ -224,11 +239,12 @@ export async function validateCoupon(
       case 'quantity_discount':
         const quantityTiers = (discount.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [];
         if (quantityTiers.length > 0) {
-          const maxTier = quantityTiers.reduce((max, tier) => tier.minQuantity > max.minQuantity ? tier : max, quantityTiers[0]);
-          if (totalMatchingQty < maxTier.minQuantity) {
+          // מציאת המדרגה המינימלית (לא המקסימלית!) - כדי לבדוק אם הלקוח עומד בתנאי המינימום
+          const minTier = quantityTiers.reduce((min, tier) => tier.minQuantity < min.minQuantity ? tier : min, quantityTiers[0]);
+          if (totalMatchingQty < minTier.minQuantity) {
             return { 
               success: false, 
-              error: `קופון זה תקף לקניית לפחות ${maxTier.minQuantity} מוצרים מתאימים` 
+              error: `קופון זה תקף לקניית לפחות ${minTier.minQuantity} מוצרים מתאימים` 
             };
           }
         }
@@ -249,6 +265,32 @@ export async function validateCoupon(
         break;
     }
   }
+
+  // מציאת קופוני מתנה שמופעלים על ידי הקופון הזה
+  const triggeredGiftCoupons = await db
+    .select()
+    .from(discounts)
+    .where(and(
+      eq(discounts.storeId, storeId),
+      eq(discounts.isActive, true),
+      eq(discounts.type, 'gift_product')
+    ));
+
+  // סינון קופונים שיש להם triggerCouponCodes שכולל את הקוד הנוכחי
+  const triggeredCoupons = triggeredGiftCoupons.filter(gc => {
+    const triggerCodes = (gc.triggerCouponCodes as string[]) || [];
+    return triggerCodes.some(tc => tc.toUpperCase().trim() === normalizedCode);
+  }).map(gc => ({
+    id: gc.id,
+    code: gc.code,
+    title: gc.title,
+    type: 'gift_product' as const,
+    value: Number(gc.value),
+    giftProductIds: (gc.giftProductIds as string[]) || [],
+    minimumAmount: gc.minimumAmount ? Number(gc.minimumAmount) : null,
+    minimumQuantity: gc.minimumQuantity || null,
+    stackable: gc.stackable ?? true,
+  }));
 
   return {
     success: true,
@@ -273,6 +315,11 @@ export async function validateCoupon(
       giftSameProduct: discount.giftSameProduct ?? true,
       quantityTiers: (discount.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [],
       spendAmount: discount.spendAmount ? Number(discount.spendAmount) : null,
-    }
+      // שדות gift_product
+      minimumQuantity: discount.minimumQuantity || null,
+      triggerCouponCodes: (discount.triggerCouponCodes as string[]) || [],
+    },
+    // קופוני מתנה שמופעלים
+    triggeredGiftCoupons: triggeredCoupons.length > 0 ? triggeredCoupons : undefined,
   };
 }

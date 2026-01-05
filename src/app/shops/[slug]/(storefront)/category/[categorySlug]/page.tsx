@@ -44,6 +44,10 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   
   const hasSubcategories = subcategories.length > 0;
   const isSubcategory = !!category.parentId;
+  
+  // Get price display settings
+  const storeSettings = (store.settings as Record<string, unknown>) || {};
+  const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
 
   return (
     <div className="min-h-screen bg-white">
@@ -168,6 +172,10 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     image={product.image || '/placeholder.svg'}
                     isFeatured={product.isFeatured}
                     basePath={basePath}
+                    showDecimalPrices={showDecimalPrices}
+                    inventory={product.inventory}
+                    trackInventory={product.trackInventory}
+                    allowBackorder={product.allowBackorder}
                   />
                 </div>
               ))}

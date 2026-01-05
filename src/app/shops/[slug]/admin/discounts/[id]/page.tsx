@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { discounts, categories, products, influencers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound, redirect } from 'next/navigation';
 import { CouponFormPage } from '../coupon-form-page';
@@ -54,6 +54,18 @@ export default async function EditCouponPage({ params }: EditCouponPageProps) {
   // Find if this coupon is linked to an influencer
   const linkedInfluencer = storeInfluencers.find(inf => inf.discountId === coupon.id);
 
+  // Fetch other coupons for trigger selection (only non-gift_product coupons, excluding current)
+  const otherCoupons = await db
+    .select({ id: discounts.id, code: discounts.code, title: discounts.title })
+    .from(discounts)
+    .where(and(
+      eq(discounts.storeId, store.id),
+      eq(discounts.isActive, true),
+      ne(discounts.type, 'gift_product'),
+      ne(discounts.id, id) // Exclude current coupon
+    ))
+    .orderBy(discounts.code);
+
   // Prepare coupon data for the form
   const couponData = {
     id: coupon.id,
@@ -79,10 +91,14 @@ export default async function EditCouponPage({ params }: EditCouponPageProps) {
     buyQuantity: coupon.buyQuantity,
     payAmount: coupon.payAmount,
     getQuantity: coupon.getQuantity,
+    getDiscountPercent: coupon.getDiscountPercent ?? 100,
     giftProductIds: (coupon.giftProductIds as string[]) || [],
     giftSameProduct: coupon.giftSameProduct ?? true,
     quantityTiers: (coupon.quantityTiers as { minQuantity: number; discountPercent: number }[]) || [],
     spendAmount: coupon.spendAmount,
+    // Gift product specific
+    minimumQuantity: coupon.minimumQuantity,
+    triggerCouponCodes: (coupon.triggerCouponCodes as string[]) || [],
   };
 
   return (
@@ -94,6 +110,7 @@ export default async function EditCouponPage({ params }: EditCouponPageProps) {
       categories={storeCategories}
       products={storeProducts}
       influencers={storeInfluencers}
+      otherCoupons={otherCoupons}
     />
   );
 }

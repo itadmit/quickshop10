@@ -10,12 +10,12 @@ import { ProductsDataTable } from './products-data-table';
 
 interface ProductsPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ status?: string; category?: string; search?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; category?: string; search?: string; page?: string; perPage?: string }>;
 }
 
 export default async function ProductsPage({ params, searchParams }: ProductsPageProps) {
   const { slug } = await params;
-  const { status, category, search, page } = await searchParams;
+  const { status, category, search, page, perPage: perPageParam } = await searchParams;
   
   const store = await getStoreBySlug(slug);
   
@@ -28,6 +28,9 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
     getStoreProductsAdmin(store.id),
     getCategoriesByStore(store.id),
   ]);
+
+  // Create a category map for quick lookup
+  const categoryMap = new Map(categories.map(c => [c.id, c.name]));
   
   // Filter by status tab
   let filteredProducts = allProducts;
@@ -61,14 +64,20 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
     );
   }
   
-  // Pagination
-  const perPage = 20;
+  // Pagination with configurable perPage
+  const perPage = Math.min(Math.max(parseInt(perPageParam || '20', 10), 10), 100);
   const currentPage = parseInt(page || '1', 10);
   const totalPages = Math.ceil(filteredProducts.length / perPage);
   const paginatedProducts = filteredProducts.slice(
     (currentPage - 1) * perPage,
     currentPage * perPage
   );
+
+  // Add category name to products for display
+  const productsWithCategory = paginatedProducts.map(p => ({
+    ...p,
+    categoryName: p.categoryId ? categoryMap.get(p.categoryId) || null : null,
+  }));
   
   // Count for tabs
   const activeCount = allProducts.filter(p => p.isActive).length;
@@ -109,11 +118,13 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
       />
 
       <ProductsDataTable
-        products={paginatedProducts}
+        products={productsWithCategory}
         storeSlug={slug}
         tabs={tabs}
         currentTab={status || 'all'}
         searchValue={search}
+        categories={categories}
+        currentCategory={category}
         pagination={{
           currentPage,
           totalPages,

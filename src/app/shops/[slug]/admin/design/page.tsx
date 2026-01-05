@@ -4,6 +4,7 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { PageHeader } from '@/components/admin/ui';
 import { CheckIcon } from '@/components/admin/icons';
 import { ExportThemeButton } from './export-theme-button';
+import { HeaderLayoutSelector } from './header-layout-selector';
 
 // ============================================
 // Design Templates Page
@@ -212,6 +213,12 @@ export default async function DesignPage({ params }: DesignPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Header Layout Selector */}
+      <HeaderLayoutSelector 
+        currentLayout={(themeSettings.headerLayout as string) || 'logo-right'}
+        storeSlug={slug}
+      />
 
       {/* Templates Gallery */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">

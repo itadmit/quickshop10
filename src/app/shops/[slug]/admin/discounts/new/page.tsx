@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { categories, products, influencers } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { categories, products, influencers, discounts } from '@/lib/db/schema';
+import { eq, and, ne } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { CouponFormPage } from '../coupon-form-page';
@@ -40,6 +40,17 @@ export default async function NewCouponPage({ params }: NewCouponPageProps) {
     .where(eq(influencers.storeId, store.id))
     .orderBy(influencers.name);
 
+  // Fetch other coupons for trigger selection (only non-gift_product coupons)
+  const otherCoupons = await db
+    .select({ id: discounts.id, code: discounts.code, title: discounts.title })
+    .from(discounts)
+    .where(and(
+      eq(discounts.storeId, store.id),
+      eq(discounts.isActive, true),
+      ne(discounts.type, 'gift_product')
+    ))
+    .orderBy(discounts.code);
+
   return (
     <CouponFormPage
       storeSlug={slug}
@@ -48,6 +59,7 @@ export default async function NewCouponPage({ params }: NewCouponPageProps) {
       categories={storeCategories}
       products={storeProducts}
       influencers={storeInfluencers}
+      otherCoupons={otherCoupons}
     />
   );
 }

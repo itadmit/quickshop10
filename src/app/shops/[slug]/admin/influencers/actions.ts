@@ -1,10 +1,11 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { influencers, discounts } from '@/lib/db/schema';
+import { influencers, discounts, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import bcrypt from 'bcryptjs';
+import { sendInfluencerWelcomeEmail } from '@/lib/email';
 
 interface InfluencerData {
   name: string;
@@ -24,6 +25,7 @@ interface InfluencerData {
   showOrderDetails?: boolean;
   couponCode?: string | null;
   discountId?: string | null;
+  discountIds?: string[];  // מערך של מזהי קופונים
   automaticDiscountId?: string | null;
   isActive?: boolean;
   notes?: string | null;
@@ -42,8 +44,16 @@ export async function createInfluencer(storeId: string, slug: string, data: Infl
       return { error: 'משפיען עם אימייל זה כבר קיים' };
     }
 
+    // Get store name for email
+    const [store] = await db
+      .select({ name: stores.name })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+
     // Hash password if provided
     let passwordHash = null;
+    const tempPassword = data.password; // Keep original password for email
     if (data.password) {
       passwordHash = await bcrypt.hash(data.password, 10);
     }
@@ -67,26 +77,29 @@ export async function createInfluencer(storeId: string, slug: string, data: Infl
       showCustomerNames: data.showCustomerNames ?? true,
       showOrderDetails: data.showOrderDetails ?? true,
       couponCode: data.couponCode || null,
-      discountId: data.discountId || null,
+      discountId: data.discountIds?.[0] || data.discountId || null, // backwards compatibility
+      discountIds: data.discountIds || [],
       automaticDiscountId: data.automaticDiscountId || null,
       isActive: data.isActive ?? true,
       notes: data.notes || null,
     }).returning();
 
-    // Update coupon code on influencer if discount is linked
-    if (data.discountId && newInfluencer) {
-      const [linkedDiscount] = await db
-        .select({ code: discounts.code })
-        .from(discounts)
-        .where(eq(discounts.id, data.discountId))
-        .limit(1);
-      
-      if (linkedDiscount) {
-        await db
-          .update(influencers)
-          .set({ couponCode: linkedDiscount.code })
-          .where(eq(influencers.id, newInfluencer.id));
-      }
+    // Send welcome email to influencer
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const loginUrl = `${baseUrl}/shops/${slug}/influencer/login`;
+    
+    try {
+      await sendInfluencerWelcomeEmail({
+        email: data.email,
+        name: data.name,
+        storeName: store?.name || slug,
+        storeSlug: slug,
+        loginUrl,
+        tempPassword: tempPassword || undefined,
+      });
+    } catch (emailError) {
+      console.error('Failed to send influencer welcome email:', emailError);
+      // Don't fail the entire operation if email fails
     }
 
     revalidatePath(`/shops/${slug}/admin/influencers`);
@@ -120,6 +133,11 @@ export async function updateInfluencer(influencerId: string, slug: string, data:
     if (data.showOrderDetails !== undefined) updateData.showOrderDetails = data.showOrderDetails;
     if (data.couponCode !== undefined) updateData.couponCode = data.couponCode || null;
     if (data.discountId !== undefined) updateData.discountId = data.discountId || null;
+    if (data.discountIds !== undefined) {
+      updateData.discountIds = data.discountIds;
+      // backwards compatibility - set discountId to first one
+      updateData.discountId = data.discountIds[0] || null;
+    }
     if (data.automaticDiscountId !== undefined) updateData.automaticDiscountId = data.automaticDiscountId || null;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.notes !== undefined) updateData.notes = data.notes || null;

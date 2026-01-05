@@ -14,7 +14,7 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
   // SSR safety - don't render if store context not available
   if (!store) return null;
   
-  const { cart, cartOpen, cartTotal, closeCart, removeFromCart, updateQuantity } = store;
+  const { cart, cartOpen, cartTotal, closeCart, removeFromCart, updateQuantity, formatPrice } = store;
   const checkoutUrl = basePath ? `${basePath}/checkout` : '/checkout';
 
   // Track remove from cart
@@ -94,12 +94,20 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
               {cart.map(item => (
                 <li key={item.id} className="flex gap-5 pb-6 border-b border-gray-100 last:border-0">
                   {/* Product Image */}
-                  <div className="w-24 h-28 bg-gray-50 shrink-0 overflow-hidden">
-                    <img 
-                      src={item.image} 
-                      alt={item.name}
-                      className="w-full h-full object-cover"
-                    />
+                  <div className="w-24 h-28 bg-gray-100 shrink-0 overflow-hidden flex items-center justify-center">
+                    {item.image ? (
+                      <img 
+                        src={item.image} 
+                        alt={item.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <circle cx="8.5" cy="8.5" r="1.5" />
+                        <path d="M21 15l-5-5L5 21" />
+                      </svg>
+                    )}
                   </div>
                   
                   {/* Product Details */}
@@ -109,7 +117,7 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
                       {item.variantTitle && (
                         <p className="text-xs text-gray-500 mb-1">{item.variantTitle}</p>
                       )}
-                      <p className="text-sm text-gray-500">₪{item.price.toFixed(0)}</p>
+                      <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
                     </div>
                     
                     {/* Quantity Controls */}
@@ -148,7 +156,7 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
           <div className="absolute bottom-0 left-0 right-0 px-8 py-6 bg-white border-t border-gray-100">
             <div className="flex justify-between items-center mb-6">
               <span className="text-sm text-gray-500 tracking-wide">סה״כ</span>
-              <span className="text-lg font-display">₪{cartTotal.toFixed(0)}</span>
+              <span className="text-lg font-display">{formatPrice(cartTotal)}</span>
             </div>
             <Link 
               href={checkoutUrl}

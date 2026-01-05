@@ -210,6 +210,7 @@ function RecentOrdersList({ orders, storeSlug }: {
     orderNumber: string; 
     total: string; 
     status: string;
+    financialStatus: string | null;
     fulfillmentStatus: string | null;
     createdAt: Date | null;
     customer?: { firstName: string | null; lastName: string | null; email: string } | null;
@@ -217,11 +218,11 @@ function RecentOrdersList({ orders, storeSlug }: {
   storeSlug: string;
 }) {
   if (!orders.length) {
-    return <p className="text-gray-500 text-center py-8">אין הזמנות אחרונות</p>;
+    return <p className="text-gray-500 text-center py-8">אין הזמנות ששולמו</p>;
   }
 
-  const statusLabels: Record<string, string> = {
-    unfulfilled: 'ממתין',
+  const fulfillmentLabels: Record<string, string> = {
+    unfulfilled: 'ממתין למשלוח',
     fulfilled: 'נשלח',
     partial: 'חלקי',
   };
@@ -235,7 +236,7 @@ function RecentOrdersList({ orders, storeSlug }: {
           className="flex items-center justify-between py-3 hover:bg-gray-50 -mx-5 px-5 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-400">
+            <div className="w-9 h-9 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600">
               <ShoppingCartIcon size={16} />
             </div>
             <div>
@@ -252,7 +253,7 @@ function RecentOrdersList({ orders, storeSlug }: {
             <p className={`text-xs ${
               order.fulfillmentStatus === 'fulfilled' ? 'text-emerald-600' : 'text-amber-600'
             }`}>
-              {statusLabels[order.fulfillmentStatus || 'unfulfilled']}
+              {fulfillmentLabels[order.fulfillmentStatus || 'unfulfilled']}
             </p>
           </div>
         </Link>
@@ -463,7 +464,7 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
           )}
         </div>
 
-        {/* Recent Orders */}
+        {/* Recent Orders - Paid Orders Only */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-medium">הזמנות אחרונות</h3>
@@ -471,7 +472,10 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
               כל ההזמנות ←
             </Link>
           </div>
-          <RecentOrdersList orders={orders} storeSlug={slug} />
+          <RecentOrdersList 
+            orders={orders.filter(o => o.financialStatus === 'paid')} 
+            storeSlug={slug} 
+          />
         </div>
       </div>
 

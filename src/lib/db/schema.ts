@@ -681,6 +681,7 @@ export const discounts = pgTable('discounts', {
   
   // For buy_x_get_y: קנה X קבל Y במתנה (אותו מוצר או מוצרים מהרשימה)
   getQuantity: integer('get_quantity'), // כמות מוצרים במתנה (buy_x_get_y)
+  getDiscountPercent: integer('get_discount_percent').default(100), // אחוז הנחה על Y (100 = חינם, 50 = 50% הנחה)
   giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר (buy_x_get_y)
   
   // For gift_product: מוצר במתנה עם תנאים (מינימום סכום/כמות)
@@ -693,6 +694,13 @@ export const discounts = pgTable('discounts', {
   
   // For spend_x_pay_y: קנה ב-X שלם Y
   spendAmount: decimal('spend_amount', { precision: 10, scale: 2 }), // סכום מינימום להוצאה
+  
+  // For gift_product: תנאים נוספים
+  minimumQuantity: integer('minimum_quantity'), // מינימום כמות פריטים בסל (gift_product)
+  
+  // For gift_product: טריגר על קופונים אחרים
+  // כאשר מזינים אחד מהקופונים ברשימה, הקופון הזה (מוצר מתנה) מופעל אוטומטית
+  triggerCouponCodes: jsonb('trigger_coupon_codes').default([]), // רשימת קודי קופונים שמפעילים את המתנה
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
@@ -735,6 +743,7 @@ export const automaticDiscounts = pgTable('automatic_discounts', {
   
   // For buy_x_get_y: קנה X קבל Y במתנה (אותו מוצר או מוצרים מהרשימה)
   getQuantity: integer('get_quantity'), // כמות מוצרים במתנה (buy_x_get_y)
+  getDiscountPercent: integer('get_discount_percent').default(100), // אחוז הנחה על Y (100 = חינם, 50 = 50% הנחה)
   giftSameProduct: boolean('gift_same_product').default(true), // האם המתנה היא אותו מוצר (buy_x_get_y)
   
   // For gift_product: מוצר במתנה עם תנאים (מינימום סכום/כמות)
@@ -1086,7 +1095,8 @@ export const influencers = pgTable('influencers', {
   
   // Linked discounts (coupon or automatic)
   couponCode: varchar('coupon_code', { length: 50 }),
-  discountId: uuid('discount_id').references(() => discounts.id, { onDelete: 'set null' }),
+  discountId: uuid('discount_id').references(() => discounts.id, { onDelete: 'set null' }), // deprecated - use discountIds
+  discountIds: jsonb('discount_ids').default([]), // מערך מזהי קופונים למשפיען
   automaticDiscountId: uuid('automatic_discount_id').references(() => automaticDiscounts.id, { onDelete: 'set null' }),
   
   // Stats

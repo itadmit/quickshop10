@@ -1,5 +1,5 @@
 import { getStoreBySlug, getCategoriesByStore } from '@/lib/db/queries';
-import { ShopHeader } from '@/components/shop-header';
+import { ShopHeader, type HeaderLayout } from '@/components/shop-header';
 import { CartSidebar } from '@/components/cart-sidebar';
 import { getCurrentCustomer } from '@/lib/customer-auth';
 import { cache } from 'react';
@@ -9,6 +9,7 @@ import { StoriesBar, type Story, type StoriesSettings } from '@/components/store
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
 import { PopupDisplay } from '@/components/storefront/popup-display';
 import { TrackingProvider } from '@/components/tracking-provider';
+import { StoreSettingsProvider } from '@/components/store-settings-provider';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups } from '@/lib/db/schema';
@@ -152,8 +153,19 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     emailVerified: !!customer.emailVerifiedAt,
   } : null;
 
+  // Get price display settings
+  const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
+  
+  // Get header layout from theme settings
+  const themeSettings = (store.themeSettings as Record<string, unknown>) || {};
+  const headerLayout = (themeSettings.headerLayout as HeaderLayout) || 'logo-right';
+
   return (
     <TrackingProvider config={trackingConfig}>
+      <StoreSettingsProvider 
+        showDecimalPrices={showDecimalPrices} 
+        currency={store.currency}
+      >
         {showHeader && (
           <>
             <ShopHeader 
@@ -161,6 +173,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
               categories={categories} 
               basePath={basePath}
               customer={customerData}
+              layout={headerLayout}
             />
             <CartSidebar basePath={basePath} />
             {/* Stories Bar - Renders only if plugin is active and there are stories */}
@@ -210,6 +223,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             storeSlug={slug}
           />
         )}
+      </StoreSettingsProvider>
     </TrackingProvider>
   );
 }

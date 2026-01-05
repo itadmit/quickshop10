@@ -1007,6 +1007,136 @@ export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
   });
 }
 
+// ============ INFLUENCER WELCOME EMAIL ============
+
+interface InfluencerWelcomeEmailData {
+  email: string;
+  name: string;
+  storeName: string;
+  storeSlug: string;
+  loginUrl: string;
+  tempPassword?: string;
+}
+
+export async function sendInfluencerWelcomeEmail(data: InfluencerWelcomeEmailData) {
+  const { email, name, storeName, storeSlug, loginUrl, tempPassword } = data;
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Header -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 64px; height: 64px; background: rgba(255,255,255,0.2); border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: white; font-size: 28px; line-height: 64px;">👑</span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: 400; color: white;">ברוך הבא לצוות המשפיענים!</h1>
+            <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 16px;">
+              ${storeName}
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Content -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border: 1px solid #e5e7eb; border-top: none; padding: 32px;">
+            
+            <p style="margin: 0 0 20px; color: #4b5563; line-height: 1.7; font-size: 16px;">
+              היי ${name}! 👋
+            </p>
+            
+            <p style="margin: 0 0 24px; color: #4b5563; line-height: 1.7; font-size: 16px;">
+              שמחים לעדכן שצורפת כמשפיען/ית של <strong>${storeName}</strong>!
+              <br><br>
+              בפאנל המשפיענים תוכל/י לעקוב אחרי:
+            </p>
+            
+            <ul style="margin: 0 0 24px; padding-right: 20px; color: #4b5563; line-height: 2;">
+              <li>📊 סטטיסטיקות מכירות בזמן אמת</li>
+              <li>💰 עמלות שהורווחו</li>
+              <li>🎟️ קופונים ייחודיים משלך</li>
+              <li>📋 רשימת הזמנות עם הקוד שלך</li>
+            </ul>
+            
+            <!-- Login Details Box -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+              <h3 style="margin: 0 0 16px; font-size: 16px; font-weight: 600; color: #1a1a1a;">פרטי התחברות</h3>
+              
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280;">אימייל:</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #1a1a1a;" dir="ltr">${email}</td>
+                </tr>
+                ${tempPassword ? `
+                <tr>
+                  <td style="padding: 8px 0; color: #6b7280;">סיסמה זמנית:</td>
+                  <td style="padding: 8px 0; text-align: left; font-weight: 500; color: #1a1a1a; font-family: monospace; background: #fef3c7; padding: 4px 8px; border-radius: 4px;" dir="ltr">${tempPassword}</td>
+                </tr>
+                ` : ''}
+              </table>
+              ${tempPassword ? `
+              <p style="margin: 12px 0 0; font-size: 12px; color: #f59e0b;">
+                ⚠️ מומלץ לשנות את הסיסמה לאחר ההתחברות הראשונה
+              </p>
+              ` : ''}
+            </div>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
+            <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); color: white !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-weight: 600; font-size: 16px;">
+              כניסה לפאנל המשפיענים
+            </a>
+            <p style="margin: 16px 0 0; font-size: 13px; color: #9ca3af;">
+              או העתק את הקישור:
+              <br>
+              <span style="color: #6b7280; font-size: 12px; word-break: break-all;" dir="ltr">${loginUrl}</span>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px;">
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+              יש שאלות? צרו קשר עם צוות ${storeName}
+            </p>
+            <p style="margin: 0; color: #9ca3af; font-size: 12px;">© ${storeName} - מופעל על ידי QuickShop</p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `הצטרפת כמשפיען/ית ל-${storeName}! 👑`,
+    html,
+  });
+}
+
 export async function sendWelcomeEmail(email: string, name?: string, storeName?: string) {
   const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
   

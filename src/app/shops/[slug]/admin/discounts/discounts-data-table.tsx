@@ -2,9 +2,46 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { DeleteCouponButton, ToggleCouponButton } from './coupon-buttons';
+
+// Copy Link Button Component
+function CopyLinkButton({ storeSlug, couponCode }: { storeSlug: string; couponCode: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+    const couponUrl = `${baseUrl}/shops/${storeSlug}/checkout?coupon=${encodeURIComponent(couponCode)}`;
+    
+    try {
+      await navigator.clipboard.writeText(couponUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleCopy}
+      className={`p-2 transition-colors ${copied ? 'text-green-600' : 'text-gray-400 hover:text-gray-600'}`}
+      title={copied ? 'הועתק!' : 'העתק לינק קופון'}
+    >
+      {copied ? (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 // ============================================
 // DiscountsDataTable - Client Component
@@ -284,10 +321,11 @@ export function DiscountsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '120px',
+      width: '140px',
       align: 'left',
       render: (coupon) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <CopyLinkButton storeSlug={storeSlug} couponCode={coupon.code} />
           <Link
             href={`/shops/${storeSlug}/admin/discounts/${coupon.id}`}
             className="p-2 text-gray-400 hover:text-gray-600 transition-colors"

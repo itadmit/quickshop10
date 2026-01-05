@@ -30,6 +30,7 @@ import { ClearCartOnLoad } from './clear-cart';
 import { sendOrderConfirmationEmail } from '@/lib/email';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 import { ProductImage } from '@/components/product-image';
+import { formatPrice } from '@/lib/format-price';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
@@ -138,6 +139,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   if (!store) {
     notFound();
   }
+  
+  // Get price display settings
+  const storeSettings = (store.settings as Record<string, unknown>) || {};
+  const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
+  const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
   
   // First try to find existing order by reference
   let order = null;
@@ -897,11 +903,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                     )}
                     <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
                     <p className="text-sm font-medium text-gray-900 mt-1">
-                      ₪{Number(item.total).toFixed(0)}
+                      {format(item.total)}
                     </p>
                   </div>
                   <div className="text-left font-medium">
-                    ₪{Number(item.total).toFixed(0)}
+                    {format(item.total)}
                   </div>
                 </div>
               );
@@ -928,7 +934,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 </p>
               )}
               <p className="text-gray-900 font-medium">
-                סה״כ שולם: ₪{Number(order.total).toFixed(0)}
+                סה״כ שולם: {format(order.total)}
               </p>
             </div>
           </div>
@@ -956,12 +962,12 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-600">סכום ביניים</span>
-                <span>₪{Number(order.subtotal).toFixed(0)}</span>
+                <span>{format(order.subtotal)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">משלוח</span>
                 {Number(order.shippingAmount) > 0 ? (
-                  <span>₪{Number(order.shippingAmount).toFixed(0)}</span>
+                  <span>{format(order.shippingAmount)}</span>
                 ) : (
                   <span className="text-green-600">חינם</span>
                 )}
@@ -969,12 +975,12 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               {Number(order.discountAmount) > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>הנחה</span>
-                  <span>-₪{Number(order.discountAmount).toFixed(0)}</span>
+                  <span>-{format(order.discountAmount)}</span>
                 </div>
               )}
               <div className="flex justify-between font-medium text-lg pt-2 border-t border-gray-200">
                 <span>סה״כ</span>
-                <span>₪{Number(order.total).toFixed(0)}</span>
+                <span>{format(order.total)}</span>
               </div>
             </div>
           </div>

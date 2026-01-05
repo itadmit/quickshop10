@@ -41,6 +41,7 @@ interface AutoDiscountData {
   buyQuantity?: number | null;
   payAmount?: number | null;
   getQuantity?: number | null;
+  getDiscountPercent?: number | null;  // אחוז הנחה על Y (100 = חינם)
   giftProductIds?: string[];
   giftSameProduct?: boolean;
   quantityTiers?: QuantityTier[];
@@ -54,7 +55,7 @@ export async function createAutoDiscount(storeId: string, data: AutoDiscountData
       name: data.name,
       description: data.description,
       type: data.type,
-      value: data.value,
+      value: data.value || '0',
       appliesTo: data.appliesTo,
       categoryIds: data.categoryIds,
       productIds: data.productIds,
@@ -71,14 +72,15 @@ export async function createAutoDiscount(storeId: string, data: AutoDiscountData
       buyQuantity: data.buyQuantity || null,
       payAmount: data.payAmount?.toString() || null,
       getQuantity: data.getQuantity || null,
+      getDiscountPercent: data.getDiscountPercent ?? 100,
       giftProductIds: data.giftProductIds || [],
       giftSameProduct: data.giftSameProduct ?? true,
       quantityTiers: data.quantityTiers || [],
       spendAmount: data.spendAmount?.toString() || null,
     });
 
-    revalidatePath(`/shops/[slug]/admin/discounts/automatic`);
-    revalidatePath(`/shops/[slug]/admin/discounts`);
+    revalidatePath(`/shops/[slug]/admin/discounts/automatic`, 'page');
+    revalidatePath(`/shops/[slug]/admin/discounts`, 'page');
     return { success: true };
   } catch (error) {
     console.error('Error creating auto discount:', error);
@@ -94,7 +96,7 @@ export async function updateAutoDiscount(discountId: string, data: AutoDiscountD
         name: data.name,
         description: data.description,
         type: data.type,
-        value: data.value,
+        value: data.value || '0',
         appliesTo: data.appliesTo,
         categoryIds: data.categoryIds,
         productIds: data.productIds,
@@ -111,6 +113,7 @@ export async function updateAutoDiscount(discountId: string, data: AutoDiscountD
         buyQuantity: data.buyQuantity || null,
         payAmount: data.payAmount?.toString() || null,
         getQuantity: data.getQuantity || null,
+        getDiscountPercent: data.getDiscountPercent ?? 100,
         giftProductIds: data.giftProductIds || [],
         giftSameProduct: data.giftSameProduct ?? true,
         quantityTiers: data.quantityTiers || [],
@@ -118,8 +121,8 @@ export async function updateAutoDiscount(discountId: string, data: AutoDiscountD
       })
       .where(eq(automaticDiscounts.id, discountId));
 
-    revalidatePath(`/shops/[slug]/admin/discounts/automatic`);
-    revalidatePath(`/shops/[slug]/admin/discounts`);
+    revalidatePath(`/shops/[slug]/admin/discounts/automatic`, 'page');
+    revalidatePath(`/shops/[slug]/admin/discounts`, 'page');
     return { success: true };
   } catch (error) {
     console.error('Error updating auto discount:', error);
@@ -134,8 +137,8 @@ export async function toggleAutoDiscount(discountId: string, isActive: boolean) 
       .set({ isActive })
       .where(eq(automaticDiscounts.id, discountId));
 
-    revalidatePath(`/shops/[slug]/admin/discounts/automatic`);
-    revalidatePath(`/shops/[slug]/admin/discounts`);
+    revalidatePath(`/shops/[slug]/admin/discounts/automatic`, 'page');
+    revalidatePath(`/shops/[slug]/admin/discounts`, 'page');
     return { success: true };
   } catch (error) {
     console.error('Error toggling auto discount:', error);
@@ -149,8 +152,8 @@ export async function deleteAutoDiscount(discountId: string) {
       .delete(automaticDiscounts)
       .where(eq(automaticDiscounts.id, discountId));
 
-    revalidatePath(`/shops/[slug]/admin/discounts/automatic`);
-    revalidatePath(`/shops/[slug]/admin/discounts`);
+    revalidatePath(`/shops/[slug]/admin/discounts/automatic`, 'page');
+    revalidatePath(`/shops/[slug]/admin/discounts`, 'page');
     return { success: true };
   } catch (error) {
     console.error('Error deleting auto discount:', error);

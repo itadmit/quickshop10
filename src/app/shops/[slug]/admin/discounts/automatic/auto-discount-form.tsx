@@ -52,6 +52,7 @@ interface AutoDiscount {
   buyQuantity?: number | null;
   payAmount?: string | null;
   getQuantity?: number | null;
+  getDiscountPercent?: number | null;  // אחוז הנחה על Y (100 = חינם)
   giftProductIds?: string[];
   giftSameProduct?: boolean;
   quantityTiers?: QuantityTier[];
@@ -93,6 +94,7 @@ export function AutoDiscountForm({ storeId, mode, discount, categories, products
     buyQuantity: discount?.buyQuantity?.toString() || '',
     payAmount: discount?.payAmount || '',
     getQuantity: discount?.getQuantity?.toString() || '',
+    getDiscountPercent: discount?.getDiscountPercent?.toString() || '100',
     giftProductIds: discount?.giftProductIds || [],
     giftSameProduct: discount?.giftSameProduct ?? true,
     quantityTiers: discount?.quantityTiers || [{ minQuantity: 2, discountPercent: 10 }],
@@ -199,6 +201,7 @@ export function AutoDiscountForm({ storeId, mode, discount, categories, products
       buyQuantity: formData.buyQuantity ? parseInt(formData.buyQuantity) : null,
       payAmount: formData.payAmount ? parseFloat(formData.payAmount) : null,
       getQuantity: formData.getQuantity ? parseInt(formData.getQuantity) : null,
+      getDiscountPercent: formData.getDiscountPercent ? parseInt(formData.getDiscountPercent) : 100,
       giftProductIds: formData.giftProductIds,
       giftSameProduct: formData.giftSameProduct,
       quantityTiers: formData.quantityTiers,
@@ -401,8 +404,8 @@ export function AutoDiscountForm({ storeId, mode, discount, categories, products
                 {/* Buy X Get Y */}
                 {formData.type === 'buy_x_get_y' && (
                   <div className="bg-green-50 rounded-lg p-4 space-y-4">
-                    <p className="text-sm text-green-800 font-medium">קנה X קבל Y מוצרים חינם</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <p className="text-sm text-green-800 font-medium">קנה X קבל Y בהנחה</p>
+                    <div className="grid grid-cols-3 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           קנה (כמות) *
@@ -418,7 +421,7 @@ export function AutoDiscountForm({ storeId, mode, discount, categories, products
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          קבל חינם (כמות) *
+                          קבל בהנחה (כמות) *
                         </label>
                         <input
                           type="number"
@@ -429,6 +432,23 @@ export function AutoDiscountForm({ storeId, mode, discount, categories, products
                           placeholder="1"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          אחוז הנחה (%) *
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={formData.getDiscountPercent}
+                            onChange={(e) => setFormData({ ...formData, getDiscountPercent: e.target.value })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black text-sm"
+                            placeholder="100"
+                          />
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">%</span>
+                        </div>
+                      </div>
                     </div>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -437,9 +457,9 @@ export function AutoDiscountForm({ storeId, mode, discount, categories, products
                         onChange={(e) => setFormData({ ...formData, giftSameProduct: e.target.checked })}
                         className="rounded border-gray-300 text-black focus:ring-black"
                       />
-                      <span className="text-sm text-gray-700">המתנה היא אותו מוצר (הזול מביניהם)</span>
+                      <span className="text-sm text-gray-700">ההנחה על אותו מוצר (הזול מביניהם)</span>
                     </label>
-                    <p className="text-xs text-gray-500">לדוגמה: קנה 2 קבל 1 חינם</p>
+                    <p className="text-xs text-gray-500">לדוגמה: קנה 2 קבל 1 ב-50% הנחה, או קנה 2 קבל 1 חינם (100%)</p>
                   </div>
                 )}
 

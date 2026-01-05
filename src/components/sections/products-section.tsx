@@ -9,6 +9,10 @@ interface Product {
   image: string | null;
   shortDescription?: string | null;
   isFeatured: boolean;
+  // Stock fields
+  inventory?: number | null;
+  trackInventory?: boolean;
+  allowBackorder?: boolean;
 }
 
 interface ProductsSectionProps {
@@ -21,9 +25,10 @@ interface ProductsSectionProps {
     showCount?: boolean;
   };
   basePath: string;
+  showDecimalPrices?: boolean;
 }
 
-export function ProductsSection({ title, subtitle, products, settings, basePath }: ProductsSectionProps) {
+export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false }: ProductsSectionProps) {
   return (
     <section id="products" className="py-20 px-6 bg-white border-t border-gray-100">
       <div className="max-w-7xl mx-auto">
@@ -56,6 +61,10 @@ export function ProductsSection({ title, subtitle, products, settings, basePath 
                 shortDescription={product.shortDescription}
                 isFeatured={product.isFeatured}
                 basePath={basePath}
+                showDecimalPrices={showDecimalPrices}
+                inventory={product.inventory}
+                trackInventory={product.trackInventory}
+                allowBackorder={product.allowBackorder}
               />
             </div>
           ))}

@@ -3,6 +3,10 @@
 import { useStoreOptional } from '@/lib/store-context';
 import { useState } from 'react';
 import { tracker } from '@/lib/tracking';
+import { isOutOfStock } from '@/lib/inventory';
+
+// Re-export for backwards compatibility
+export { isOutOfStock } from '@/lib/inventory';
 
 interface AddToCartButtonProps {
   productId: string;
@@ -12,6 +16,10 @@ interface AddToCartButtonProps {
   variant?: 'primary' | 'secondary';
   className?: string;
   category?: string;
+  // Stock props
+  inventory?: number | null;
+  trackInventory?: boolean;
+  allowBackorder?: boolean;
 }
 
 export function AddToCartButton({ 
@@ -21,17 +29,22 @@ export function AddToCartButton({
   image, 
   variant = 'primary',
   className = '',
-  category 
+  category,
+  inventory,
+  trackInventory = true,
+  allowBackorder = false,
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
+  
+  const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
 
   // If store context not available, render disabled button
   if (!store) {
     const baseStyles = variant === 'primary' ? 'btn-primary' : 'btn-secondary';
     return (
       <button disabled className={`${baseStyles} opacity-50 cursor-not-allowed ${className}`}>
-        הוסף לעגלה
+        {outOfStock ? 'אזל מהמלאי' : 'הוסף לעגלה'}
       </button>
     );
   }
@@ -39,6 +52,8 @@ export function AddToCartButton({
   const { addToCart } = store;
 
   const handleClick = () => {
+    if (outOfStock) return;
+    
     addToCart({ productId, name, price, image });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -59,15 +74,16 @@ export function AddToCartButton({
   return (
     <button
       onClick={handleClick}
-      disabled={added}
+      disabled={added || outOfStock}
       className={`
         ${baseStyles}
         ${added ? '!bg-black !text-white !border-black' : ''}
+        ${outOfStock ? '!bg-gray-100 !text-gray-400 !border-gray-200 cursor-not-allowed' : ''}
         disabled:cursor-not-allowed
         ${className}
       `}
     >
-      {added ? 'נוסף לעגלה ✓' : 'הוסף לעגלה'}
+      {added ? 'נוסף לעגלה ✓' : outOfStock ? 'אזל מהמלאי' : 'הוסף לעגלה'}
     </button>
   );
 }

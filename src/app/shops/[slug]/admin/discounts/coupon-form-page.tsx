@@ -4,7 +4,66 @@ import { useState, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createCoupon, updateCoupon } from './actions';
-import { ArrowRight, Search, X, ChevronDown, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, Search, X, ChevronDown, Plus, Sparkles, Link2, Copy, Check } from 'lucide-react';
+
+// Copy Link Component for coupon URL
+function CouponLinkCopy({ storeSlug, couponCode }: { storeSlug: string; couponCode: string }) {
+  const [copied, setCopied] = useState(false);
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const couponUrl = `${baseUrl}/shops/${storeSlug}/checkout?coupon=${encodeURIComponent(couponCode)}`;
+  
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(couponUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+  
+  return (
+    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+      <div className="flex items-center gap-2 text-sm font-medium text-blue-800">
+        <Link2 className="w-4 h-4" />
+        <span>לינק קופון</span>
+      </div>
+      <p className="text-xs text-blue-600">
+        שתף את הלינק הזה והקופון יופיע אוטומטית בצ'קאאוט
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          readOnly
+          value={couponUrl}
+          className="flex-1 px-3 py-2 bg-white border border-blue-200 rounded-lg text-xs text-gray-600 font-mono"
+          dir="ltr"
+        />
+        <button
+          type="button"
+          onClick={handleCopy}
+          className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-colors ${
+            copied 
+              ? 'bg-green-600 text-white' 
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
+        >
+          {copied ? (
+            <>
+              <Check className="w-4 h-4" />
+              הועתק!
+            </>
+          ) : (
+            <>
+              <Copy className="w-4 h-4" />
+              העתק
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 type DiscountType = 
   | 'percentage' 
@@ -45,10 +104,14 @@ interface Coupon {
   buyQuantity?: number | null;
   payAmount?: string | null;
   getQuantity?: number | null;
+  getDiscountPercent?: number | null;      // אחוז הנחה על Y (100 = חינם)
   giftProductIds?: string[];
   giftSameProduct?: boolean;
   quantityTiers?: QuantityTier[];
   spendAmount?: string | null;
+  // Gift product specific
+  minimumQuantity?: number | null;         // מינימום כמות להפעלה
+  triggerCouponCodes?: string[];           // קופונים שמפעילים את המתנה
 }
 
 interface Category {
@@ -68,6 +131,12 @@ interface Influencer {
   email: string;
 }
 
+interface OtherCoupon {
+  id: string;
+  code: string;
+  title: string | null;
+}
+
 interface CouponFormPageProps {
   storeSlug: string;
   storeId: string;
@@ -76,6 +145,7 @@ interface CouponFormPageProps {
   categories: Category[];
   products: Product[];
   influencers?: Influencer[];
+  otherCoupons?: OtherCoupon[];  // קופונים אחרים לבחירה כטריגר
 }
 
 export function CouponFormPage({ 
@@ -85,7 +155,8 @@ export function CouponFormPage({
   coupon, 
   categories, 
   products, 
-  influencers = [] 
+  influencers = [],
+  otherCoupons = []
 }: CouponFormPageProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -120,10 +191,14 @@ export function CouponFormPage({
     buyQuantity: coupon?.buyQuantity?.toString() || '',
     payAmount: coupon?.payAmount || '',
     getQuantity: coupon?.getQuantity?.toString() || '',
+    getDiscountPercent: coupon?.getDiscountPercent?.toString() || '100',
     giftProductIds: coupon?.giftProductIds || [],
     giftSameProduct: coupon?.giftSameProduct ?? true,
     quantityTiers: coupon?.quantityTiers || [{ minQuantity: 2, discountPercent: 10 }],
     spendAmount: coupon?.spendAmount || '',
+    // Gift product specific fields
+    minimumQuantity: coupon?.minimumQuantity?.toString() || '',
+    triggerCouponCodes: coupon?.triggerCouponCodes || [],
   });
 
   // Filtered lists for search
@@ -244,10 +319,14 @@ export function CouponFormPage({
           buyQuantity: formData.buyQuantity ? parseInt(formData.buyQuantity) : null,
           payAmount: formData.payAmount ? parseFloat(formData.payAmount) : null,
           getQuantity: formData.getQuantity ? parseInt(formData.getQuantity) : null,
+          getDiscountPercent: formData.getDiscountPercent ? parseInt(formData.getDiscountPercent) : 100,
           spendAmount: formData.spendAmount ? parseFloat(formData.spendAmount) : null,
           quantityTiers: formData.quantityTiers,
           giftProductIds: formData.giftProductIds,
           giftSameProduct: formData.giftSameProduct,
+          // Gift product specific
+          minimumQuantity: formData.minimumQuantity ? parseInt(formData.minimumQuantity) : null,
+          triggerCouponCodes: formData.triggerCouponCodes,
         };
 
         if (mode === 'create') {
@@ -386,6 +465,11 @@ export function CouponFormPage({
                 </div>
               </div>
 
+              {/* Coupon Link (only in edit mode) */}
+              {mode === 'edit' && formData.code && (
+                <CouponLinkCopy storeSlug={storeSlug} couponCode={formData.code} />
+              )}
+
               {/* Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -497,8 +581,8 @@ export function CouponFormPage({
               {/* Buy X Get Y */}
               {formData.type === 'buy_x_get_y' && (
                 <div className="bg-green-50 rounded-lg p-4 space-y-4">
-                  <p className="text-sm text-green-800 font-medium">קנה X קבל Y מוצרים חינם</p>
-                  <div className="grid grid-cols-2 gap-4">
+                  <p className="text-sm text-green-800 font-medium">קנה X קבל Y בהנחה</p>
+                  <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
                         קנה (כמות) *
@@ -514,7 +598,7 @@ export function CouponFormPage({
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                        קבל חינם (כמות) *
+                        קבל בהנחה (כמות) *
                       </label>
                       <input
                         type="number"
@@ -525,6 +609,23 @@ export function CouponFormPage({
                         placeholder="1"
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        אחוז הנחה (%) *
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={formData.getDiscountPercent}
+                          onChange={(e) => setFormData(prev => ({ ...prev, getDiscountPercent: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black/10 focus:border-black transition-colors text-sm"
+                          placeholder="100"
+                        />
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">%</span>
+                      </div>
+                    </div>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -533,9 +634,11 @@ export function CouponFormPage({
                       onChange={(e) => setFormData(prev => ({ ...prev, giftSameProduct: e.target.checked }))}
                       className="rounded border-gray-300 text-black focus:ring-black"
                     />
-                    <span className="text-sm text-gray-700">המתנה היא אותו מוצר (הזול מביניהם)</span>
+                    <span className="text-sm text-gray-700">ההנחה על אותו מוצר (הזול מביניהם)</span>
                   </label>
-                  <p className="text-xs text-gray-500">לדוגמה: קנה 2 קבל 1 חינם</p>
+                  <p className="text-xs text-gray-500">
+                    לדוגמה: קנה 2 קבל 1 ב-50% הנחה, או קנה 2 קבל 1 חינם (100%)
+                  </p>
                 </div>
               )}
 
@@ -625,8 +728,94 @@ export function CouponFormPage({
                   </div>
                   
                   <p className="text-xs text-gray-500">
-                    <strong>הערה:</strong> התנאים (מינימום סכום/כמות) מוגדרים למטה. אם הלקוח עומד בהם, הוא יקבל את המוצר הראשון מהרשימה במתנה.
+                    <strong>הערה:</strong> התנאים (מינימום סכום/כמות או טריגר קופון) מוגדרים למטה. אם הלקוח עומד בהם, הוא יקבל את המוצר הראשון מהרשימה במתנה.
                   </p>
+                  
+                  {/* Minimum Quantity */}
+                  <div className="bg-white rounded-lg p-3 space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      כמות מינימום של פריטים בסל
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.minimumQuantity}
+                      onChange={(e) => setFormData(prev => ({ ...prev, minimumQuantity: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-black/10 focus:border-black"
+                      placeholder="ללא מינימום"
+                    />
+                    <p className="text-xs text-gray-500">השאר ריק לללא מינימום כמות. סכום מינימום מוגדר בחלק הכללי למטה.</p>
+                  </div>
+                  
+                  {/* Trigger Coupons */}
+                  <div className="bg-white rounded-lg p-3 space-y-2 border-2 border-dashed border-green-300">
+                    <label className="block text-sm font-medium text-green-800">
+                      🎯 טריגר: הפעלה על ידי קופון אחר
+                    </label>
+                    <p className="text-xs text-gray-600">
+                      בחר קופונים שכאשר מזינים אותם - גם מוצר המתנה הזה יופעל אוטומטית.
+                    </p>
+                    
+                    {/* Selected Trigger Coupons */}
+                    {formData.triggerCouponCodes.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pb-2">
+                        {formData.triggerCouponCodes.map((code, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-700 text-white text-xs rounded-full font-mono"
+                          >
+                            {code}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newCodes = formData.triggerCouponCodes.filter((_, i) => i !== index);
+                                setFormData(prev => ({ ...prev, triggerCouponCodes: newCodes }));
+                              }}
+                              className="hover:bg-white/20 rounded-full p-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Available Coupons */}
+                    <div className="max-h-32 overflow-y-auto space-y-1 border border-gray-100 rounded-lg p-2">
+                      {otherCoupons.filter(c => 
+                        c.code !== formData.code && 
+                        !formData.triggerCouponCodes.includes(c.code)
+                      ).length === 0 ? (
+                        <p className="text-xs text-gray-400 text-center py-2">אין קופונים זמינים</p>
+                      ) : (
+                        otherCoupons
+                          .filter(c => c.code !== formData.code && !formData.triggerCouponCodes.includes(c.code))
+                          .map(c => (
+                            <label 
+                              key={c.id} 
+                              className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors text-xs"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={false}
+                                onChange={() => {
+                                  setFormData(prev => ({ 
+                                    ...prev, 
+                                    triggerCouponCodes: [...prev.triggerCouponCodes, c.code] 
+                                  }));
+                                }}
+                                className="rounded border-gray-300 text-green-600 focus:ring-green-500 w-3.5 h-3.5"
+                              />
+                              <span className="font-mono text-gray-800">{c.code}</span>
+                              {c.title && <span className="text-gray-400">- {c.title}</span>}
+                            </label>
+                          ))
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      לדוגמה: כשהלקוח מזין קופון "SAVE20" - הוא מקבל גם מוצר מתנה.
+                    </p>
+                  </div>
                 </div>
               )}
 

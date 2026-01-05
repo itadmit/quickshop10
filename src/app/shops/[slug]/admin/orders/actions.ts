@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { orders } from '@/lib/db/schema';
-import { inArray } from 'drizzle-orm';
+import { orders, orderItems } from '@/lib/db/schema';
+import { inArray, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -27,6 +27,32 @@ export async function archiveOrders(orderIds: string[]) {
   } catch (error) {
     console.error('Failed to archive orders:', error);
     return { success: false, error: 'Failed to archive orders' };
+  }
+}
+
+/**
+ * Permanently delete orders from the database
+ * ⚠️ This action is irreversible!
+ */
+export async function permanentlyDeleteOrders(orderIds: string[]) {
+  if (!orderIds || orderIds.length === 0) {
+    return { success: false, error: 'No orders selected' };
+  }
+
+  try {
+    // Delete order items first (due to foreign key constraint)
+    for (const orderId of orderIds) {
+      await db.delete(orderItems).where(eq(orderItems.orderId, orderId));
+    }
+    
+    // Delete the orders
+    await db.delete(orders).where(inArray(orders.id, orderIds));
+
+    revalidatePath('/shops/[slug]/admin/orders');
+    return { success: true, deletedCount: orderIds.length };
+  } catch (error) {
+    console.error('Failed to permanently delete orders:', error);
+    return { success: false, error: 'Failed to delete orders' };
   }
 }
 
