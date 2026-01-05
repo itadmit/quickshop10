@@ -8,6 +8,7 @@ import { LivePreview } from './live-preview';
 
 // ============================================
 // Theme Editor - Client Component (Shopify Style)
+// Uses real iframe preview for pixel-perfect accuracy
 // ============================================
 
 interface Section {
@@ -68,6 +69,7 @@ export function ThemeEditor({
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop');
+  const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const selectedSection = sections.find(s => s.id === selectedSectionId) || null;
@@ -77,19 +79,16 @@ export function ThemeEditor({
     setSections(prev => {
       const newSections = prev.map(s => {
         if (s.id === sectionId) {
-          // Handle direct property updates
           const updated = { ...s };
           
           if (updates.title !== undefined) updated.title = updates.title;
           if (updates.subtitle !== undefined) updated.subtitle = updates.subtitle;
           if (updates.isActive !== undefined) updated.isActive = updates.isActive;
           
-          // Deep merge for content
           if (updates.content) {
             updated.content = { ...s.content, ...updates.content };
           }
           
-          // Deep merge for settings
           if (updates.settings) {
             updated.settings = { ...s.settings, ...updates.settings };
           }
@@ -103,7 +102,7 @@ export function ThemeEditor({
     setHasChanges(true);
   }, []);
 
-  // Save all changes
+  // Save all changes and refresh preview
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -115,7 +114,8 @@ export function ThemeEditor({
       
       if (response.ok) {
         setHasChanges(false);
-        alert('נשמר בהצלחה!');
+        // Refresh the preview iframe to show changes
+        setPreviewRefreshKey(prev => prev + 1);
       } else {
         alert('שגיאה בשמירה');
       }
@@ -147,7 +147,7 @@ export function ThemeEditor({
             sortOrder: i,
           })));
           setHasChanges(true);
-          alert('התבנית יובאה בהצלחה!');
+          alert('התבנית יובאה בהצלחה! לחץ על "שמור" לראות את השינויים.');
         } else {
           alert('קובץ JSON לא תקין');
         }
@@ -156,7 +156,7 @@ export function ThemeEditor({
       }
     };
     reader.readAsText(file);
-    e.target.value = ''; // Reset input
+    e.target.value = '';
   };
 
   // Export template to JSON
@@ -231,11 +231,10 @@ export function ThemeEditor({
         className="hidden"
       />
 
-      {/* Top Bar - RTL */}
+      {/* Top Bar */}
       <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50">
-        {/* Right - Save Button (appears on right in RTL) */}
+        {/* Right - Save Button */}
         <div className="flex items-center gap-2">
-          {/* Save Button */}
           <button
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
@@ -245,7 +244,7 @@ export function ThemeEditor({
                 : 'bg-white/10 text-white/50 cursor-not-allowed'
             }`}
           >
-            {isSaving ? 'שומר...' : 'שמור'}
+            {isSaving ? 'שומר...' : hasChanges ? 'שמור שינויים' : 'שמור'}
           </button>
 
           {/* Undo/Redo */}
@@ -262,7 +261,7 @@ export function ThemeEditor({
           <div className="flex items-center bg-white/5 rounded-lg p-1">
             <button
               onClick={() => setPreviewMode('desktop')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md transition-colors cursor-pointer ${
                 previewMode === 'desktop' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
               }`}
               title="דסקטופ"
@@ -271,7 +270,7 @@ export function ThemeEditor({
             </button>
             <button
               onClick={() => setPreviewMode('tablet')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md transition-colors cursor-pointer ${
                 previewMode === 'tablet' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
               }`}
               title="טאבלט"
@@ -280,7 +279,7 @@ export function ThemeEditor({
             </button>
             <button
               onClick={() => setPreviewMode('mobile')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md transition-colors cursor-pointer ${
                 previewMode === 'mobile' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
               }`}
               title="מובייל"
@@ -296,13 +295,13 @@ export function ThemeEditor({
           <span className="text-white text-sm">דף הבית</span>
         </div>
 
-        {/* Left - Back, Store Name & Import (appears on left in RTL) */}
+        {/* Left - Back, Store Name & Import/Export */}
         <div className="flex items-center gap-3">
           {/* Import/Export */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleImportJSON}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
               title="ייבא תבנית"
             >
               <ImportIcon />
@@ -310,7 +309,7 @@ export function ThemeEditor({
             </button>
             <button
               onClick={handleExportJSON}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
               title="ייצא תבנית"
             >
               <ExportIcon />
@@ -351,17 +350,14 @@ export function ThemeEditor({
           )}
         </div>
 
-        {/* Center - Live Preview */}
-        <div className="flex-1 bg-gray-100 overflow-auto flex items-start justify-center p-6">
+        {/* Center - Live Preview (iframe of actual storefront) */}
+        <div className="flex-1 bg-gray-200 overflow-auto flex items-start justify-center p-4">
           <LivePreview
-            sections={sections}
-            categories={categories}
-            products={products}
-            store={store}
-            slug={slug}
+            storeSlug={slug}
             previewMode={previewMode}
             selectedSectionId={selectedSectionId}
             onSelectSection={setSelectedSectionId}
+            refreshKey={previewRefreshKey}
           />
         </div>
 
