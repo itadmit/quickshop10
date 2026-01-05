@@ -208,7 +208,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       />
     </PreviewSettingsProvider>
   ) : (
-    // PRODUCTION: Server component (zero JS)
+    // PRODUCTION: Server component (zero JS) - respects DB settings
     <ShopHeader 
       storeName={store.name} 
       storeId={store.id}
@@ -216,6 +216,10 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       basePath={basePath}
       customer={customerData}
       layout={headerLayout}
+      showSearch={Boolean(storeSettings.headerShowSearch ?? true)}
+      showCart={Boolean(storeSettings.headerShowCart ?? true)}
+      showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+      isSticky={Boolean(storeSettings.headerSticky ?? true)}
     />
   );
 

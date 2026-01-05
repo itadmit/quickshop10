@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { MobileMenu } from './mobile-menu';
-import { HeaderIcons } from './storefront/header-icons';
+import { CartButton } from './cart-button';
+import { UserButton } from './user-button';
+import { SearchButton } from './search-button';
 
 interface Category {
   id: string;
@@ -31,6 +33,11 @@ interface ShopHeaderProps {
   basePath: string;
   customer?: CustomerData | null;
   layout?: HeaderLayout;
+  // Visibility settings from DB
+  showSearch?: boolean;
+  showCart?: boolean;
+  showAccount?: boolean;
+  isSticky?: boolean;
 }
 
 // Server Component - no 'use client' needed
@@ -42,7 +49,11 @@ export function ShopHeader({
   categories, 
   basePath, 
   customer,
-  layout = 'logo-right'
+  layout = 'logo-right',
+  showSearch = true,
+  showCart = true,
+  showAccount = true,
+  isSticky = true,
 }: ShopHeaderProps) {
   // Organize categories into parent/child structure
   const parentCategories = categories.filter(c => !c.parentId);
@@ -113,22 +124,24 @@ export function ShopHeader({
     </Link>
   );
 
-  // Icons component (search, user, cart) - Client component for live preview
+  // Icons component - renders client components directly (no wrapper overhead)
+  // Per REQUIREMENTS.md: "use client" only for cart button, search form, etc.
   const Icons = ({ searchFirst = false }: { searchFirst?: boolean }) => (
     <div className="flex items-center gap-1 sm:gap-2">
-      <HeaderIcons 
-        basePath={basePath} 
-        storeId={storeId}
-        customer={customer}
-        searchFirst={searchFirst}
-      />
+      {searchFirst && showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
+      {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
+      {showCart && <CartButton />}
+      {!searchFirst && showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
     </div>
   );
+  
+  // Header wrapper class based on sticky setting
+  const headerClass = `${isSticky ? 'sticky top-0' : 'relative'} z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100`;
 
   // Layout 1: Logo Right (RTL default) - לוגו בימין, תפריט במרכז, אייקונים משמאל
   if (layout === 'logo-right') {
     return (
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <header className={headerClass}>
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
             {/* Right: Mobile Menu + Logo */}
@@ -151,7 +164,7 @@ export function ShopHeader({
   // Layout 2: Logo Left - לוגו בשמאל, תפריט במרכז, אייקונים מימין
   if (layout === 'logo-left') {
     return (
-      <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+      <header className={headerClass}>
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
             {/* Right: Icons */}
@@ -173,20 +186,13 @@ export function ShopHeader({
 
   // Layout 3: Logo Center - לוגו במרכז, חיפוש מימין ושאר אייקונים משמאל, תפריט מתחת
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100">
+    <header className={headerClass}>
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Top row: Search - Logo - Icons */}
         <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
           {/* Right: Search + Mobile Menu */}
           <div className="flex items-center">
-            <HeaderIcons 
-              basePath={basePath} 
-              storeId={storeId}
-              customer={customer}
-              searchFirst={true}
-              showCart={false}
-              showAccount={false}
-            />
+            {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
             <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
           </div>
 
@@ -195,12 +201,8 @@ export function ShopHeader({
 
           {/* Left: User & Cart (no search, it's on the right) */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <HeaderIcons 
-              basePath={basePath} 
-              storeId={storeId}
-              customer={customer}
-              showSearch={false}
-            />
+            {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
+            {showCart && <CartButton />}
           </div>
         </div>
 
