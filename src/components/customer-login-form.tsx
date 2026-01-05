@@ -7,11 +7,12 @@ interface CustomerLoginFormProps {
   basePath: string;
   callbackUrl?: string;
   storeName: string;
+  storeId: string;
 }
 
 type LoginStep = 'email' | 'password' | 'otp';
 
-export function CustomerLoginForm({ basePath, callbackUrl, storeName }: CustomerLoginFormProps) {
+export function CustomerLoginForm({ basePath, callbackUrl, storeName, storeId }: CustomerLoginFormProps) {
   const router = useRouter();
   const [step, setStep] = useState<LoginStep>('email');
   const [email, setEmail] = useState('');
@@ -47,7 +48,7 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName }: Customer
       const response = await fetch('/api/customer/check-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, storeId }),
       });
       
       const data = await response.json();
@@ -82,7 +83,7 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName }: Customer
       const response = await fetch('/api/customer/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, storeId }),
       });
       
       const data = await response.json();
@@ -119,7 +120,7 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName }: Customer
       const response = await fetch('/api/customer/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, storeId }),
       });
       
       const data = await response.json();
@@ -159,7 +160,7 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName }: Customer
       const response = await fetch('/api/customer/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code: otpCode }),
+        body: JSON.stringify({ email, code: otpCode, storeId }),
       });
       
       const data = await response.json();

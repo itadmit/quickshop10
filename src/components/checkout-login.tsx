@@ -20,11 +20,12 @@ interface CheckoutLoginProps {
   onLoginSuccess: (customer: CustomerData) => void;
   onClose: () => void;
   initialEmail?: string;
+  storeId: string;
 }
 
 type LoginStep = 'email' | 'password' | 'otp';
 
-export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '' }: CheckoutLoginProps) {
+export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', storeId }: CheckoutLoginProps) {
   const [step, setStep] = useState<LoginStep>('email');
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
@@ -57,7 +58,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '' }: Ch
       const response = await fetch('/api/customer/check-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, storeId }),
       });
       
       const data = await response.json();
@@ -91,7 +92,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '' }: Ch
       const response = await fetch('/api/customer/auth/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, storeId }),
       });
       
       const data = await response.json();
@@ -129,7 +130,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '' }: Ch
       const response = await fetch('/api/customer/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, storeId }),
       });
       
       const data = await response.json();
@@ -168,7 +169,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '' }: Ch
       const response = await fetch('/api/customer/auth/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code: otpCode }),
+        body: JSON.stringify({ email, code: otpCode, storeId }),
       });
       
       const data = await response.json();

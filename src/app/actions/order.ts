@@ -2,7 +2,6 @@
 
 import { db } from '@/lib/db';
 import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions } from '@/lib/db/schema';
-import { getDemoStore } from '@/lib/db/queries';
 import { eq, and, sql, gte, lte, gt, or, isNull, desc } from 'drizzle-orm';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 
@@ -71,6 +70,7 @@ export type CreateOrderResult = {
 };
 
 export async function createOrder(
+  storeId: string,
   cart: CartItem[],
   customerInfo: CustomerInfo,
   coupon: CouponInfo,
@@ -85,7 +85,12 @@ export async function createOrder(
   console.log('[Order] Subtotal:', subtotal, 'Discount:', discount, 'Shipping:', shipping, 'Credit:', creditUsed, 'Total:', total);
   
   try {
-    const store = await getDemoStore();
+    if (!storeId) {
+      return { success: false, error: 'מזהה חנות חסר' };
+    }
+    
+    // Get store by ID
+    const [store] = await db.select().from(stores).where(eq(stores.id, storeId)).limit(1);
     console.log('[Order] Store found:', store?.id);
     
     if (!store) {

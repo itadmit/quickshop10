@@ -690,6 +690,7 @@ export function CheckoutForm({
           // Simulation mode - create order directly (backward compatibility)
           const primaryCoupon = appliedCoupons.length > 0 ? appliedCoupons[0] : null;
           const result = await createOrder(
+            storeId || '',
             cart.map(item => ({
               productId: item.productId,
               name: item.name,
@@ -892,6 +893,7 @@ export function CheckoutForm({
                       onLoginSuccess={handleLoginSuccess}
                       onClose={() => setShowLoginForm(false)}
                       initialEmail={formData.email}
+                      storeId={storeId || ''}
                     />
                   ) : (
                     <div className="bg-gray-50 p-4 mb-6 rounded">
@@ -1385,8 +1387,16 @@ export function CheckoutForm({
               <ul className="space-y-4 mb-6">
                 {cart.map(item => (
                   <li key={item.id} className="flex gap-4">
-                    <div className="w-16 h-20 bg-gray-50 overflow-hidden shrink-0">
-                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="w-16 h-20 bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="1.5">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <path d="M21 15l-5-5L5 21" />
+                        </svg>
+                      )}
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{item.name}</p>

@@ -21,18 +21,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get store - either from body or get the first one (demo)
-    let targetStoreId = storeId;
-    if (!targetStoreId) {
-      const [store] = await db.query.stores.findMany({ limit: 1 });
-      if (!store) {
-        return NextResponse.json(
-          { success: false, error: 'חנות לא נמצאה' },
-          { status: 404 }
-        );
-      }
-      targetStoreId = store.id;
+    // Get store - storeId is required for multi-tenant support
+    if (!storeId) {
+      return NextResponse.json(
+        { success: false, error: 'מזהה חנות חסר' },
+        { status: 400 }
+      );
     }
+    const targetStoreId = storeId;
 
     // Find customer
     const [customer] = await db

@@ -56,6 +56,7 @@ export default async function CustomerLoginPage({ params, searchParams }: LoginP
           basePath={basePath} 
           callbackUrl={callbackUrl}
           storeName={store.name}
+          storeId={store.id}
         />
 
         {/* Footer Links */}

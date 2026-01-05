@@ -6,17 +6,15 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email } = body;
+    const { email, storeId } = body;
 
     if (!email) {
       return NextResponse.json({ exists: false });
     }
 
-    // Get the demo store
-    const [store] = await db.query.stores.findMany({ limit: 1 });
-    
-    if (!store) {
-      return NextResponse.json({ exists: false });
+    // storeId is required for multi-tenant support
+    if (!storeId) {
+      return NextResponse.json({ exists: false, error: 'מזהה חנות חסר' });
     }
 
     // Check if customer exists
@@ -24,7 +22,7 @@ export async function POST(request: NextRequest) {
       .select({ id: customers.id, hasPassword: customers.passwordHash })
       .from(customers)
       .where(and(
-        eq(customers.storeId, store.id),
+        eq(customers.storeId, storeId),
         eq(customers.email, email.toLowerCase().trim())
       ))
       .limit(1);
