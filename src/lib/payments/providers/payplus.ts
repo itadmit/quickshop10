@@ -62,15 +62,41 @@ interface RefundData {
   amount: number;
 }
 
-// PayPlus Callback body structure
+// PayPlus Callback body structure - supports both old and new formats
 interface PayPlusCallbackBody {
-  transaction_uid: string;
+  // New format - nested structure
+  transaction_type?: string;
+  transaction?: {
+    uid?: string;
+    payment_page_request_uid?: string;
+    status_code?: string;
+    approval_number?: string;
+    voucher_number?: string;
+    amount?: number;
+    currency?: string;
+    more_info?: string;
+    more_info_1?: string;
+    more_info_2?: string;
+  };
+  data?: {
+    customer_email?: string;
+    card_information?: {
+      four_digits?: string;
+      brand_id?: number;
+      card_holder_name?: string;
+      expiry_month?: string;
+      expiry_year?: string;
+    };
+  };
+  
+  // Old format - flat structure (kept for backward compatibility)
+  transaction_uid?: string;
   page_request_uid?: string;
-  status_code: string;
+  status_code?: string;
   approval_num?: string;
   voucher_num?: string;
-  amount: number;
-  currency_code: string;
+  amount?: number;
+  currency_code?: string;
   more_info?: string;
   more_info_1?: string;
   more_info_2?: string;
@@ -435,20 +461,18 @@ export class PayPlusProvider extends BasePaymentProvider {
   
   /**
    * Parse callback/webhook body from PayPlus
+   * Supports both new (nested) and old (flat) formats
    */
   parseCallback(body: unknown): ParsedCallback {
     // Handle both JSON and form data formats
     let data: PayPlusCallbackBody;
     
     if (typeof body === 'object' && body !== null) {
-      // Check if it's already an object (from JSON.parse)
       data = body as PayPlusCallbackBody;
     } else if (typeof body === 'string') {
-      // Try to parse as JSON string
       try {
         data = JSON.parse(body) as PayPlusCallbackBody;
       } catch {
-        // If that fails, treat as empty object
         this.logError('Failed to parse callback body', { body });
         data = {} as PayPlusCallbackBody;
       }
@@ -456,36 +480,76 @@ export class PayPlusProvider extends BasePaymentProvider {
       data = {} as PayPlusCallbackBody;
     }
     
+    // Determine format: new (nested) or old (flat)
+    const isNewFormat = !!data?.transaction;
+    
+    // Extract values based on format
+    let statusCode: string;
+    let transactionUid: string;
+    let pageRequestUid: string | undefined;
+    let moreInfo: string | undefined;
+    let amount: number;
+    let currency: string;
+    let approvalNumber: string | undefined;
+    let fourDigits: string | undefined;
+    let brandName: string | undefined;
+    
+    if (isNewFormat && data.transaction) {
+      // New format - data is nested in transaction object
+      const tx = data.transaction;
+      const cardInfo = data.data?.card_information;
+      
+      statusCode = tx.status_code || '';
+      transactionUid = tx.uid || '';
+      pageRequestUid = tx.payment_page_request_uid;
+      moreInfo = tx.more_info;
+      amount = tx.amount || 0;
+      currency = tx.currency || 'ILS';
+      approvalNumber = tx.approval_number || tx.voucher_number;
+      fourDigits = cardInfo?.four_digits;
+      brandName = cardInfo?.brand_id ? String(cardInfo.brand_id) : undefined;
+    } else {
+      // Old format - flat structure
+      statusCode = data?.status_code || '';
+      transactionUid = data?.transaction_uid || '';
+      pageRequestUid = data?.page_request_uid;
+      moreInfo = data?.more_info;
+      amount = data?.amount || 0;
+      currency = data?.currency_code || 'ILS';
+      approvalNumber = data?.approval_num || data?.voucher_num;
+      fourDigits = data?.four_digits;
+      brandName = data?.brand_name;
+    }
+    
     // Log raw data for debugging
     this.log('Parsing callback body', { 
-      hasData: !!data,
-      keys: Object.keys(data || {}),
-      statusCode: data?.status_code,
-      transactionUid: data?.transaction_uid,
-      pageRequestUid: data?.page_request_uid,
-      moreInfo: data?.more_info,
+      format: isNewFormat ? 'new (nested)' : 'old (flat)',
+      statusCode,
+      transactionUid,
+      pageRequestUid,
+      moreInfo,
+      amount,
     });
     
     // Determine success based on status_code
-    const statusCode = data?.status_code || '';
     const status = this.mapStatusCode(statusCode);
     const isSuccess = status === 'success';
     
     return {
       success: isSuccess,
       status,
-      providerTransactionId: data?.transaction_uid || '',
-      providerRequestId: data?.page_request_uid,
-      approvalNumber: data?.approval_num || data?.voucher_num,
-      amount: data?.amount ? Number(data.amount) : 0,
-      currency: data?.currency_code || 'ILS',
+      providerTransactionId: transactionUid,
+      providerRequestId: pageRequestUid,
+      approvalNumber,
+      amount: Number(amount),
+      currency,
       
       // Our reference stored in more_info
-      orderReference: data?.more_info,
+      orderReference: moreInfo,
       
       // Card info
-      cardBrand: data?.brand_name,
-      cardLastFour: data?.four_digits,
+      cardBrand: brandName,
+      cardLastFour: fourDigits,
       
       // Error info if failed
       errorCode: data?.error?.error_code,
