@@ -200,7 +200,7 @@ export default function RegisterPage() {
               />
               {storeName && (
                 <p className="mt-1 text-xs text-gray-500">
-                  הכתובת תהיה: http://my-quickshop.com/shops/{storeName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')}
+                  הכתובת תהיה: https://my-quickshop.com/shops/{storeName.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '-').replace(/^-+|-+$/g, '')}
                 </p>
               )}
               <p className="mt-1 text-xs text-gray-400">
