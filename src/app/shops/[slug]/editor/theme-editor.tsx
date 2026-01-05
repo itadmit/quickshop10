@@ -353,24 +353,55 @@ export function ThemeEditor({
         className="hidden"
       />
 
-      {/* Top Bar */}
-      <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50">
-        {/* Right - Save Button */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleSave}
-            disabled={!hasChanges || isSaving}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-              hasChanges
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-white/10 text-white/50 cursor-not-allowed'
-            }`}
+      {/* Top Bar - RTL layout */}
+      <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50" dir="rtl">
+        {/* Right - Back & Store Name */}
+        <div className="flex items-center gap-3">
+          <Link 
+            href={`/shops/${slug}/admin/design`}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            title="חזרה לדשבורד"
           >
-            {isSaving ? 'שומר...' : hasChanges ? 'שמור שינויים' : 'שמור'}
-          </button>
+            <ArrowRightIcon />
+          </Link>
+          <span className="text-white font-medium">{store.name}</span>
+          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-medium rounded-full">
+            ● פעיל
+          </span>
+        </div>
+
+        {/* Center - Page Selector */}
+        <div className="flex items-center gap-2">
+          <HomeIcon />
+          <span className="text-white text-sm">דף הבית</span>
+        </div>
+
+        {/* Left - Actions */}
+        <div className="flex items-center gap-2">
+          {/* Import/Export */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={handleImportJSON}
+              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="ייבא תבנית"
+            >
+              <ImportIcon />
+              <span>ייבוא</span>
+            </button>
+            <button
+              onClick={handleExportJSON}
+              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="ייצא תבנית"
+            >
+              <ExportIcon />
+              <span>ייצוא</span>
+            </button>
+          </div>
+
+          <div className="w-px h-6 bg-white/10" />
 
           {/* Undo/Redo */}
-          <div className="flex items-center gap-1 mx-2">
+          <div className="flex items-center gap-1">
             <button className="p-2 text-white/30 cursor-not-allowed" title="בטל">
               <UndoIcon />
             </button>
@@ -409,48 +440,21 @@ export function ThemeEditor({
               <MobileIcon />
             </button>
           </div>
-        </div>
-
-        {/* Center - Page Selector */}
-        <div className="flex items-center gap-2">
-          <HomeIcon />
-          <span className="text-white text-sm">דף הבית</span>
-        </div>
-
-        {/* Left - Back, Store Name & Import/Export */}
-        <div className="flex items-center gap-3">
-          {/* Import/Export */}
-          <div className="flex items-center gap-1">
-            <button
-              onClick={handleImportJSON}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="ייבא תבנית"
-            >
-              <ImportIcon />
-              <span>ייבוא</span>
-            </button>
-            <button
-              onClick={handleExportJSON}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
-              title="ייצא תבנית"
-            >
-              <ExportIcon />
-              <span>ייצוא</span>
-            </button>
-          </div>
 
           <div className="w-px h-6 bg-white/10" />
 
-          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-medium rounded-full">
-            ● פעיל
-          </span>
-          <span className="text-white/60 text-sm">{store.name}</span>
-          <Link 
-            href={`/shops/${slug}/admin/design`}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            disabled={!hasChanges || isSaving}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+              hasChanges
+                ? 'bg-green-500 text-white hover:bg-green-600'
+                : 'bg-white/10 text-white/50 cursor-not-allowed'
+            }`}
           >
-            <ArrowRightIcon />
-          </Link>
+            {isSaving ? 'שומר...' : hasChanges ? 'שמור שינויים' : 'שמור'}
+          </button>
         </div>
       </header>
 

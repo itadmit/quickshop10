@@ -4,7 +4,6 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { PageHeader } from '@/components/admin/ui';
 import { CheckIcon } from '@/components/admin/icons';
 import { ExportThemeButton } from './export-theme-button';
-import { HeaderLayoutSelector } from './header-layout-selector';
 
 // ============================================
 // Design Templates Page
@@ -96,7 +95,6 @@ export default async function DesignPage({ params }: DesignPageProps) {
 
   // Get current theme from store settings
   const themeSettings = store.themeSettings as Record<string, unknown> || {};
-  const storeSettings = store.settings as Record<string, unknown> || {};
   const currentTemplateId = (themeSettings.templateId as string) || 'noir';
 
   return (
@@ -104,12 +102,6 @@ export default async function DesignPage({ params }: DesignPageProps) {
       <PageHeader
         title="עיצוב החנות"
         description="בחרו תבנית עיצוב והתאימו אותה לסגנון שלכם"
-      />
-
-      {/* Header Layout Selector */}
-      <HeaderLayoutSelector 
-        currentLayout={(storeSettings.headerLayout as string) || 'logo-right'}
-        storeSlug={slug}
       />
 
       {/* Current Theme Card */}
