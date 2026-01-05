@@ -12,6 +12,7 @@ interface LivePreviewProps {
   selectedSectionId: string | null;
   onSelectSection: (id: string) => void;
   refreshKey: number; // Increment to force iframe refresh
+  onIframeLoad?: (iframe: HTMLIFrameElement) => void; // Callback to pass iframe ref to parent
 }
 
 export function LivePreview({
@@ -20,6 +21,7 @@ export function LivePreview({
   selectedSectionId,
   onSelectSection,
   refreshKey,
+  onIframeLoad,
 }: LivePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +44,11 @@ export function LivePreview({
   const handleIframeLoad = useCallback(() => {
     setIsLoading(false);
     
+    // Pass iframe reference to parent for live updates
+    if (iframeRef.current && onIframeLoad) {
+      onIframeLoad(iframeRef.current);
+    }
+    
     // Try to inject selection handlers into iframe for section clicking
     try {
       const iframe = iframeRef.current;
@@ -59,7 +66,7 @@ export function LivePreview({
       // Cross-origin restrictions may apply
       console.log('Could not access iframe content');
     }
-  }, [onSelectSection]);
+  }, [onSelectSection, onIframeLoad]);
 
   // Refresh iframe when refreshKey changes
   useEffect(() => {

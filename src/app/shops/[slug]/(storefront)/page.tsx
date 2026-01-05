@@ -190,9 +190,11 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
 
       {/* Footer */}
       <StoreFooter 
-        storeName={store.name} 
+        storeName={store.name}
+        storeSlug={slug}
         categories={categories} 
-        basePath={basePath} 
+        basePath={basePath}
+        settings={store.settings as Record<string, unknown>}
       />
     </div>
   );

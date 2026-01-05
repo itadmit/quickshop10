@@ -282,9 +282,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
       {/* Footer */}
       <StoreFooter 
-        storeName={store.name} 
+        storeName={store.name}
+        storeSlug={slug}
         categories={categories} 
-        basePath={basePath} 
+        basePath={basePath}
+        settings={store.settings as Record<string, unknown>}
       />
     </div>
   );

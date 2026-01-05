@@ -10,6 +10,7 @@ import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-
 import { PopupDisplay } from '@/components/storefront/popup-display';
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
+import { PreviewSettingsProvider } from '@/components/storefront/preview-settings-provider';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups } from '@/lib/db/schema';
@@ -165,6 +166,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         showDecimalPrices={showDecimalPrices} 
         currency={store.currency}
       >
+      {/* Preview settings provider auto-detects iframe mode */}
+      <PreviewSettingsProvider initialSettings={storeSettings as Record<string, unknown>}>
         {showHeader && (
           <>
             <ShopHeader 
@@ -223,6 +226,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             storeSlug={slug}
           />
         )}
+      </PreviewSettingsProvider>
       </StoreSettingsProvider>
     </TrackingProvider>
   );

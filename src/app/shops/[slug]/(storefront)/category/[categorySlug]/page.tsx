@@ -186,9 +186,11 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
       {/* Footer */}
       <StoreFooter 
-        storeName={store.name} 
+        storeName={store.name}
+        storeSlug={slug}
         categories={allCategories} 
-        basePath={basePath} 
+        basePath={basePath}
+        settings={store.settings as Record<string, unknown>}
       />
     </div>
   );

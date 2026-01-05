@@ -84,9 +84,11 @@ export function ThemeEditor({
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop');
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   
   // Theme settings state - loaded from store settings
-  const initialThemeSettings: ThemeSettings = {
+  // Original settings from DB (for comparison)
+  const originalThemeSettings: ThemeSettings = {
     headerLayout: 'logo-right',
     headerSticky: true,
     headerShowSearch: true,
@@ -99,7 +101,8 @@ export function ThemeEditor({
     footerShowPayments: true,
     ...(store.settings as ThemeSettings || {}),
   };
-  const [themeSettings, setThemeSettings] = useState<ThemeSettings>(initialThemeSettings);
+  const [themeSettings, setThemeSettings] = useState<ThemeSettings>(originalThemeSettings);
+  const [pendingThemeSettings, setPendingThemeSettings] = useState<Partial<ThemeSettings>>({});
 
   // Get selected section - handle special sections like header, footer
   const getSelectedSection = (): Section | null => {
@@ -144,33 +147,36 @@ export function ThemeEditor({
 
   const selectedSection = getSelectedSection();
   
-  // Handle theme settings change (debounced save)
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Send live preview update to iframe (NO DB SAVE - just visual preview)
+  const sendPreviewUpdate = useCallback((settings: ThemeSettings) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'THEME_SETTINGS_UPDATE',
+        settings,
+      }, '*');
+    }
+  }, []);
   
+  // Handle theme settings change - LIVE PREVIEW only, no DB save
   const handleThemeSettingsChange = useCallback((updates: Partial<ThemeSettings>) => {
-    // Update local state immediately (optimistic)
-    setThemeSettings(prev => ({ ...prev, ...updates }));
+    // Update local state immediately (for UI)
+    const newSettings = { ...themeSettings, ...updates };
+    setThemeSettings(newSettings);
+    
+    // Track pending changes (not saved yet)
+    setPendingThemeSettings(prev => ({ ...prev, ...updates }));
     setHasChanges(true);
     
-    // Debounce save to DB
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        await fetch(`/api/shops/${slug}/settings/theme`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates),
-        });
-        // Refresh preview to show changes
-        setPreviewRefreshKey(prev => prev + 1);
-      } catch (error) {
-        console.error('Failed to save theme settings:', error);
-      }
-    }, 500); // 500ms debounce
-  }, [slug]);
+    // Send to iframe for LIVE preview (no DB save!)
+    sendPreviewUpdate(newSettings);
+  }, [themeSettings, sendPreviewUpdate]);
+  
+  // Set iframe ref when loaded
+  const handleIframeLoad = useCallback((iframe: HTMLIFrameElement) => {
+    iframeRef.current = iframe;
+    // Send current settings to iframe on load
+    sendPreviewUpdate(themeSettings);
+  }, [themeSettings, sendPreviewUpdate]);
 
   // Update section data
   const updateSection = useCallback((sectionId: string, updates: Partial<Section>) => {
@@ -200,19 +206,37 @@ export function ThemeEditor({
     setHasChanges(true);
   }, []);
 
-  // Save all changes and refresh preview
+  // Save all changes to DB (sections + theme settings)
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const response = await fetch(`/api/shops/${slug}/settings/sections`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sections }),
-      });
+      // Save sections and theme settings in parallel for speed
+      const savePromises: Promise<Response>[] = [
+        fetch(`/api/shops/${slug}/settings/sections`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sections }),
+        }),
+      ];
       
-      if (response.ok) {
+      // Only save theme settings if there are pending changes
+      if (Object.keys(pendingThemeSettings).length > 0) {
+        savePromises.push(
+          fetch(`/api/shops/${slug}/settings/theme`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(pendingThemeSettings),
+          })
+        );
+      }
+      
+      const responses = await Promise.all(savePromises);
+      const allOk = responses.every(r => r.ok);
+      
+      if (allOk) {
         setHasChanges(false);
-        // Refresh the preview iframe to show changes
+        setPendingThemeSettings({}); // Clear pending changes
+        // Refresh the preview iframe to confirm saved state
         setPreviewRefreshKey(prev => prev + 1);
       } else {
         alert('שגיאה בשמירה');
@@ -458,6 +482,7 @@ export function ThemeEditor({
             selectedSectionId={selectedSectionId}
             onSelectSection={setSelectedSectionId}
             refreshKey={previewRefreshKey}
+            onIframeLoad={handleIframeLoad}
           />
         </div>
 

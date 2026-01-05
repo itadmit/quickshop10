@@ -1,8 +1,6 @@
 import Link from 'next/link';
-import { CartButton } from './cart-button';
-import { UserButton } from './user-button';
 import { MobileMenu } from './mobile-menu';
-import { SearchButton } from './search-button';
+import { HeaderIcons } from './storefront/header-icons';
 
 interface Category {
   id: string;
@@ -115,13 +113,15 @@ export function ShopHeader({
     </Link>
   );
 
-  // Icons component (search, user, cart)
+  // Icons component (search, user, cart) - Client component for live preview
   const Icons = ({ searchFirst = false }: { searchFirst?: boolean }) => (
     <div className="flex items-center gap-1 sm:gap-2">
-      {searchFirst && <SearchButton basePath={basePath} storeId={storeId} />}
-      <UserButton basePath={basePath} initialCustomer={customer} />
-      <CartButton />
-      {!searchFirst && <SearchButton basePath={basePath} storeId={storeId} />}
+      <HeaderIcons 
+        basePath={basePath} 
+        storeId={storeId}
+        customer={customer}
+        searchFirst={searchFirst}
+      />
     </div>
   );
 
@@ -177,9 +177,16 @@ export function ShopHeader({
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Top row: Search - Logo - Icons */}
         <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-          {/* Right: Search */}
+          {/* Right: Search + Mobile Menu */}
           <div className="flex items-center">
-            <SearchButton basePath={basePath} storeId={storeId} />
+            <HeaderIcons 
+              basePath={basePath} 
+              storeId={storeId}
+              customer={customer}
+              searchFirst={true}
+              showCart={false}
+              showAccount={false}
+            />
             <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
           </div>
 
@@ -188,8 +195,12 @@ export function ShopHeader({
 
           {/* Left: User & Cart (no search, it's on the right) */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <UserButton basePath={basePath} initialCustomer={customer} />
-            <CartButton />
+            <HeaderIcons 
+              basePath={basePath} 
+              storeId={storeId}
+              customer={customer}
+              showSearch={false}
+            />
           </div>
         </div>
 
