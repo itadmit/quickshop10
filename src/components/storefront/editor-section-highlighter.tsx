@@ -89,14 +89,22 @@ export function EditorSectionHighlighter() {
     };
   }, [getSectionElements]);
 
-  // Inject styles for highlighted sections
+  // Inject styles for highlighted sections + disable links
   useEffect(() => {
     const style = document.createElement('style');
     style.id = 'editor-highlighter-styles';
     style.textContent = `
+      /* Disable all links in preview mode */
+      a {
+        pointer-events: none !important;
+        cursor: default !important;
+      }
+      
+      /* But allow clicks on sections */
       [data-section-id] {
         position: relative;
-        cursor: pointer;
+        cursor: pointer !important;
+        pointer-events: auto !important;
         transition: outline 0.15s ease;
       }
       [data-section-id]:hover {
