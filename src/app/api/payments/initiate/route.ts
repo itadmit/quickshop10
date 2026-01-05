@@ -116,11 +116,26 @@ export async function POST(request: NextRequest) {
     // Generate order reference
     const orderReference = `QS-${nanoid(10)}`;
     
-    // Build URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const successUrl = `${baseUrl}/shops/${body.storeSlug}/checkout/thank-you?ref=${orderReference}`;
-    const failureUrl = `${baseUrl}/shops/${body.storeSlug}/checkout?error=payment_failed`;
-    const cancelUrl = `${baseUrl}/shops/${body.storeSlug}/checkout`;
+    // Build URLs - use custom domain if store has one, otherwise use platform URL
+    const platformUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    
+    // For customer-facing redirects: use custom domain if available
+    let customerFacingUrl: string;
+    let storePath: string;
+    
+    if (store.customDomain) {
+      // Custom domain - no /shops/slug prefix needed
+      customerFacingUrl = `https://${store.customDomain}`;
+      storePath = '';
+    } else {
+      // Platform subdomain - use /shops/slug path
+      customerFacingUrl = platformUrl;
+      storePath = `/shops/${body.storeSlug}`;
+    }
+    
+    const successUrl = `${customerFacingUrl}${storePath}/checkout/thank-you?ref=${orderReference}`;
+    const failureUrl = `${customerFacingUrl}${storePath}/checkout?error=payment_failed`;
+    const cancelUrl = `${customerFacingUrl}${storePath}/checkout`;
     
     // Get client info
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] || 

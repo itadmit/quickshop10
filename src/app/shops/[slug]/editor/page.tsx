@@ -1,10 +1,11 @@
 import { notFound, redirect } from 'next/navigation';
-import { getStoreBySlug, getPageSections, getCategoriesByStore, getProductsByStore } from '@/lib/db/queries';
+import { getStoreBySlug, getPageSections } from '@/lib/db/queries';
 import { auth } from '@/lib/auth';
 import { ThemeEditor } from './theme-editor';
 
 // ============================================
 // Theme Editor Page - Full Screen (No Admin Layout)
+// Preview uses iframe, so no need to fetch categories/products here
 // ============================================
 
 interface EditorPageProps {
@@ -33,12 +34,8 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     redirect('/dashboard');
   }
 
-  // Fetch all data needed for preview - parallel for speed!
-  const [rawSections, categories, products] = await Promise.all([
-    getPageSections(store.id, 'home'),
-    getCategoriesByStore(store.id),
-    getProductsByStore(store.id, 12),
-  ]);
+  // Fetch sections for the editor sidebar
+  const rawSections = await getPageSections(store.id, 'home');
 
   // Type-cast sections to match expected interface
   const sections = rawSections.map(s => ({
@@ -56,10 +53,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
       store={store}
       slug={slug}
       sections={sections}
-      categories={categories}
-      products={products}
       templateId={currentTemplateId}
     />
   );
 }
-

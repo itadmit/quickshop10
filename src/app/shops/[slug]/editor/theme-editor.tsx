@@ -22,21 +22,6 @@ interface Section {
   isActive: boolean;
 }
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  imageUrl: string | null;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: string | null;
-  image: string | null;
-}
-
 interface Store {
   id: string;
   name: string;
@@ -49,8 +34,6 @@ interface ThemeEditorProps {
   store: Store;
   slug: string;
   sections: Section[];
-  categories: Category[];
-  products: Product[];
   templateId: string;
 }
 
@@ -58,8 +41,6 @@ export function ThemeEditor({
   store,
   slug,
   sections: initialSections,
-  categories,
-  products,
   templateId,
 }: ThemeEditorProps) {
   const [sections, setSections] = useState<Section[]>(initialSections);
@@ -238,7 +219,7 @@ export function ThemeEditor({
           <button
             onClick={handleSave}
             disabled={!hasChanges || isSaving}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               hasChanges
                 ? 'bg-green-500 text-white hover:bg-green-600'
                 : 'bg-white/10 text-white/50 cursor-not-allowed'
@@ -377,7 +358,7 @@ export function ThemeEditor({
   );
 }
 
-// Helper functions
+// Helper functions for default section values
 function getSectionDefaultTitle(type: string): string {
   const titles: Record<string, string> = {
     hero: 'באנר ראשי',

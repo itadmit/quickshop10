@@ -55,8 +55,20 @@ export async function sendRecoveryEmail(cartId: string, slug: string) {
     const storeSettings = store.settings as Record<string, unknown> || {};
     const senderName = (storeSettings.emailSenderName as string) || store.name;
 
-    // Build recovery URL
-    const recoveryUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${slug}/checkout?recover=${recoveryToken}`;
+    // Build recovery URL - use custom domain if store has one
+    const platformUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://my-quickshop.com';
+    let customerFacingUrl: string;
+    let storePath: string;
+    
+    if (store.customDomain) {
+      customerFacingUrl = `https://${store.customDomain}`;
+      storePath = '';
+    } else {
+      customerFacingUrl = platformUrl;
+      storePath = `/shops/${slug}`;
+    }
+    
+    const recoveryUrl = `${customerFacingUrl}${storePath}/checkout?recover=${recoveryToken}`;
 
     // Send the email
     const emailResult = await sendAbandonedCartEmail({

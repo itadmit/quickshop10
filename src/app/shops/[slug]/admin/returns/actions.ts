@@ -458,7 +458,18 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
         const [customer] = await db.select().from(customers).where(eq(customers.id, request.customerId)).limit(1);
         
         if (customer?.email) {
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://quickshop.co.il';
+          // Build URLs - use custom domain if store has one
+          const platformUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://my-quickshop.com';
+          let customerFacingUrl: string;
+          let storePath: string;
+          
+          if (store.customDomain) {
+            customerFacingUrl = `https://${store.customDomain}`;
+            storePath = '';
+          } else {
+            customerFacingUrl = platformUrl;
+            storePath = `/shops/${input.storeSlug}`;
+          }
           
           const paymentResult = await paymentProvider.initiatePayment({
             storeId: store.id,
@@ -483,8 +494,8 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
               type: 'exchange_difference',
               returnRequestId: request.id,
             },
-            successUrl: `${baseUrl}/shops/${input.storeSlug}/checkout/thank-you/${orderNumber}`,
-            failureUrl: `${baseUrl}/shops/${input.storeSlug}/account/orders`,
+            successUrl: `${customerFacingUrl}${storePath}/checkout/thank-you/${orderNumber}`,
+            failureUrl: `${customerFacingUrl}${storePath}/account/orders`,
           });
 
           if (paymentResult.success && paymentResult.paymentUrl) {
