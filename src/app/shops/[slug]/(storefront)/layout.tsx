@@ -10,12 +10,21 @@ import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-
 import { PopupDisplay } from '@/components/storefront/popup-display';
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
-import { PreviewSettingsProvider } from '@/components/storefront/preview-settings-provider';
-import { SmartHeader, ServerHeaderHider } from '@/components/storefront/smart-header';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups } from '@/lib/db/schema';
 import { eq, and, lte, or, isNull, gte } from 'drizzle-orm';
+
+// Dynamic imports for preview mode ONLY (keeps production bundle clean)
+import nextDynamic from 'next/dynamic';
+const PreviewSettingsProvider = nextDynamic(
+  () => import('@/components/storefront/preview-settings-provider').then(m => m.PreviewSettingsProvider),
+  { ssr: true }
+);
+const ShopHeaderClient = nextDynamic(
+  () => import('@/components/storefront/shop-header-client').then(m => m.ShopHeaderClient),
+  { ssr: true }
+);
 
 // Force dynamic rendering because we use cookies for customer auth
 export const dynamic = 'force-dynamic';
@@ -160,6 +169,55 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   
   // Get header layout from store settings
   const headerLayout = (storeSettings.headerLayout as HeaderLayout) || 'logo-right';
+  
+  // Check if preview mode (from middleware header)
+  // PERFORMANCE: Only load client components in preview mode
+  const isPreviewMode = headersList.get('x-preview-mode') === 'true';
+
+  // ============================================================
+  // PERFORMANCE ARCHITECTURE (per REQUIREMENTS.md):
+  // 
+  // PRODUCTION (99.9% of requests):
+  // - ShopHeader = Server Component (0 JS, instant HTML)
+  // - No PreviewSettingsProvider loaded
+  // - No ShopHeaderClient loaded
+  // - Result: ~0KB extra JS for header
+  //
+  // PREVIEW MODE (editor iframe only):
+  // - ShopHeaderClient = Client Component (reactive to postMessage)
+  // - PreviewSettingsProvider wraps for live updates
+  // - Result: Full interactivity for editor
+  // ============================================================
+
+  // Header content based on mode
+  const HeaderContent = isPreviewMode ? (
+    // PREVIEW: Client component with live updates
+    <PreviewSettingsProvider initialSettings={storeSettings as Record<string, unknown>}>
+      <ShopHeaderClient
+        storeName={store.name}
+        storeId={store.id}
+        categories={categories}
+        basePath={basePath}
+        customer={customerData}
+        defaultLayout={headerLayout}
+        defaultSticky={Boolean(storeSettings.headerSticky ?? true)}
+        defaultTransparent={Boolean(storeSettings.headerTransparent)}
+        defaultShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
+        defaultShowCart={Boolean(storeSettings.headerShowCart ?? true)}
+        defaultShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+      />
+    </PreviewSettingsProvider>
+  ) : (
+    // PRODUCTION: Server component (zero JS)
+    <ShopHeader 
+      storeName={store.name} 
+      storeId={store.id}
+      categories={categories} 
+      basePath={basePath}
+      customer={customerData}
+      layout={headerLayout}
+    />
+  );
 
   return (
     <TrackingProvider config={trackingConfig}>
@@ -167,37 +225,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         showDecimalPrices={showDecimalPrices} 
         currency={store.currency}
       >
-      {/* Preview settings provider auto-detects iframe mode */}
-      <PreviewSettingsProvider initialSettings={storeSettings as Record<string, unknown>}>
         {showHeader && (
           <>
-            {/* Server header - hidden in preview mode */}
-            <ServerHeaderHider>
-              <ShopHeader 
-                storeName={store.name} 
-                storeId={store.id}
-                categories={categories} 
-                basePath={basePath}
-                customer={customerData}
-                layout={headerLayout}
-              />
-            </ServerHeaderHider>
-            
-            {/* Client header - only shown in preview mode for live updates */}
-            <SmartHeader
-              storeName={store.name}
-              storeId={store.id}
-              categories={categories}
-              basePath={basePath}
-              customer={customerData}
-              layout={headerLayout}
-              headerSticky={Boolean(storeSettings.headerSticky ?? true)}
-              headerTransparent={Boolean(storeSettings.headerTransparent)}
-              headerShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
-              headerShowCart={Boolean(storeSettings.headerShowCart ?? true)}
-              headerShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
-            />
-            
+            {HeaderContent}
             <CartSidebar basePath={basePath} />
             {/* Stories Bar - Renders only if plugin is active and there are stories */}
             {storiesEnabled && storiesSettings && stories.length > 0 && (
@@ -246,7 +276,6 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             storeSlug={slug}
           />
         )}
-      </PreviewSettingsProvider>
       </StoreSettingsProvider>
     </TrackingProvider>
   );

@@ -25,10 +25,18 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get('host') || '';
   const pathname = request.nextUrl.pathname;
   
+  // Check for preview mode (editor iframe)
+  const isPreviewMode = request.nextUrl.searchParams.get('preview') === 'true';
+  
   // Prepare headers for downstream
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set('x-pathname', pathname);
   requestHeaders.set('x-hostname', hostname);
+  
+  // Pass preview mode to layout (for conditional client component loading)
+  if (isPreviewMode) {
+    requestHeaders.set('x-preview-mode', 'true');
+  }
 
   // ========== FAST PATH: Skip static files ==========
   // Most requests are static - handle them first for speed
