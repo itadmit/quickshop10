@@ -223,13 +223,22 @@ export function CategoryPicker({
     setMounted(true);
   }, []);
 
-  // Calculate dropdown position
+  // Calculate dropdown position - open upward if not enough space below
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
+      const dropdownMaxHeight = 340;
+      const spaceBelow = window.innerHeight - rect.bottom - 8;
+      const spaceAbove = rect.top - 8;
+      
+      // Open upward if not enough space below and more space above
+      const openUpward = spaceBelow < dropdownMaxHeight && spaceAbove > spaceBelow;
+      
       setDropdownPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
+        top: openUpward 
+          ? Math.max(8, rect.top - Math.min(dropdownMaxHeight, spaceAbove))  // Open upward
+          : rect.bottom + 4,  // Open downward
+        left: rect.left,
         width: rect.width,
       });
     }
@@ -367,11 +376,12 @@ export function CategoryPicker({
       {isOpen && mounted && createPortal(
         <div 
           ref={dropdownRef}
-          className="fixed bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden"
+          className="fixed bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden flex flex-col"
           style={{
             top: dropdownPosition.top,
             left: dropdownPosition.left,
             width: dropdownPosition.width,
+            maxHeight: '340px',
             zIndex: 9999,
           }}
         >
