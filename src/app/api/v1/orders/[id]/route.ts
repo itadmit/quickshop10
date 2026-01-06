@@ -48,7 +48,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .select({
         id: orderItems.id,
         product_id: orderItems.productId,
-        variant_id: orderItems.variantId,
         name: orderItems.name,
         variant_title: orderItems.variantTitle,
         sku: orderItems.sku,
@@ -56,6 +55,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         price: orderItems.price,
         total: orderItems.total,
         image_url: orderItems.imageUrl,
+        properties: orderItems.properties,
       })
       .from(orderItems)
       .where(eq(orderItems.orderId, order.id));
