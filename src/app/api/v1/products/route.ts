@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
                        products.createdAt;
     const orderDir = sortOrder === 'asc' ? asc(orderColumn) : desc(orderColumn);
     
-    // Get products
+    // Get products with primary image in a single optimized query
     const productsData = await db
       .select({
         id: products.id,
@@ -99,32 +99,44 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .offset(offset);
     
-    // Get images for each product
-    const productsWithImages = await Promise.all(
-      productsData.map(async (product) => {
-        const images = await db
-          .select({
-            id: productImages.id,
-            url: productImages.url,
-            alt: productImages.alt,
-            sort_order: productImages.sortOrder,
-            is_primary: productImages.isPrimary,
-          })
-          .from(productImages)
-          .where(eq(productImages.productId, product.id))
-          .orderBy(asc(productImages.sortOrder))
-          .limit(10);
-        
-        return {
-          ...product,
-          price: product.price ? Number(product.price) : null,
-          compare_price: product.compare_price ? Number(product.compare_price) : null,
-          cost: product.cost ? Number(product.cost) : null,
-          weight: product.weight ? Number(product.weight) : null,
-          images,
-        };
+    // Get all product IDs for batch image query
+    const productIds = productsData.map(p => p.id);
+    
+    // Batch query for all images (1 query instead of N)
+    const allImages = productIds.length > 0 ? await db
+      .select({
+        productId: productImages.productId,
+        id: productImages.id,
+        url: productImages.url,
+        alt: productImages.alt,
+        sort_order: productImages.sortOrder,
+        is_primary: productImages.isPrimary,
       })
-    );
+      .from(productImages)
+      .where(sql`${productImages.productId} IN ${productIds}`)
+      .orderBy(asc(productImages.sortOrder)) : [];
+    
+    // Group images by product ID
+    const imagesByProduct = new Map<string, typeof allImages>();
+    for (const img of allImages) {
+      if (!imagesByProduct.has(img.productId)) {
+        imagesByProduct.set(img.productId, []);
+      }
+      const productImgs = imagesByProduct.get(img.productId)!;
+      if (productImgs.length < 10) { // Limit to 10 images per product
+        productImgs.push(img);
+      }
+    }
+    
+    // Transform products with their images (no N+1!)
+    const productsWithImages = productsData.map((product) => ({
+      ...product,
+      price: product.price ? Number(product.price) : null,
+      compare_price: product.compare_price ? Number(product.compare_price) : null,
+      cost: product.cost ? Number(product.cost) : null,
+      weight: product.weight ? Number(product.weight) : null,
+      images: (imagesByProduct.get(product.id) || []).map(({ productId, ...img }) => img),
+    }));
     
     // Get total count
     const [{ count }] = await db

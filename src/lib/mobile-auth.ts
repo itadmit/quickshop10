@@ -6,7 +6,7 @@
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
 import { mobileDevices, users, stores, storeMembers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 
 export interface MobileAuthResult {
   user: {
@@ -34,6 +34,7 @@ export interface MobileAuthResult {
 /**
  * Validates mobile auth token from request headers
  * Returns user and device info if valid, null otherwise
+ * OPTIMIZED: Uses JOINs to reduce DB roundtrips from 4-5 to 1-2
  */
 export async function getMobileAuth(request: NextRequest): Promise<MobileAuthResult | null> {
   const authHeader = request.headers.get('Authorization');
@@ -49,85 +50,76 @@ export async function getMobileAuth(request: NextRequest): Promise<MobileAuthRes
     return null;
   }
   
-  // Find device by token
-  const [device] = await db
-    .select()
+  // Single query: Get device + user in one roundtrip
+  const [deviceWithUser] = await db
+    .select({
+      device: mobileDevices,
+      user: users,
+    })
     .from(mobileDevices)
+    .innerJoin(users, eq(users.id, mobileDevices.userId))
     .where(eq(mobileDevices.sessionToken, token))
     .limit(1);
   
-  if (!device) {
+  if (!deviceWithUser) {
     return null;
   }
+  
+  const { device, user } = deviceWithUser;
   
   // Check if token is expired
   if (new Date(device.expiresAt) < new Date()) {
     return null;
   }
   
-  // Get user
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, device.userId))
-    .limit(1);
-  
-  if (!user) {
-    return null;
-  }
-  
-  // Update last active
-  await db
-    .update(mobileDevices)
-    .set({ lastActiveAt: new Date() })
-    .where(eq(mobileDevices.id, device.id));
-  
   // Get store info if storeId is set (from header or device)
   const storeId = request.headers.get('X-Store-Id') || device.storeId;
   let storeInfo: MobileAuthResult['store'] = null;
   
   if (storeId) {
-    // Check if user owns the store
-    const [ownedStore] = await db
-      .select()
+    // Single query: Check both ownership and membership in one query
+    const [storeAccess] = await db
+      .select({
+        store: stores,
+        isOwner: sql<boolean>`${stores.ownerId} = ${user.id}`,
+        memberRole: storeMembers.role,
+        memberPermissions: storeMembers.permissions,
+      })
       .from(stores)
-      .where(and(eq(stores.id, storeId), eq(stores.ownerId, user.id)))
+      .leftJoin(storeMembers, and(
+        eq(storeMembers.storeId, stores.id),
+        eq(storeMembers.userId, user.id)
+      ))
+      .where(eq(stores.id, storeId))
       .limit(1);
     
-    if (ownedStore) {
-      storeInfo = {
-        id: ownedStore.id,
-        slug: ownedStore.slug,
-        name: ownedStore.name,
-        role: 'owner',
-        permissions: {},
-      };
-    } else {
-      // Check if user is a member
-      const [membership] = await db
-        .select({
-          store: stores,
-          member: storeMembers,
-        })
-        .from(storeMembers)
-        .innerJoin(stores, eq(stores.id, storeMembers.storeId))
-        .where(and(
-          eq(storeMembers.storeId, storeId),
-          eq(storeMembers.userId, user.id)
-        ))
-        .limit(1);
-      
-      if (membership) {
+    if (storeAccess) {
+      if (storeAccess.isOwner) {
         storeInfo = {
-          id: membership.store.id,
-          slug: membership.store.slug,
-          name: membership.store.name,
-          role: membership.member.role,
-          permissions: membership.member.permissions as Record<string, boolean>,
+          id: storeAccess.store.id,
+          slug: storeAccess.store.slug,
+          name: storeAccess.store.name,
+          role: 'owner',
+          permissions: {},
+        };
+      } else if (storeAccess.memberRole) {
+        storeInfo = {
+          id: storeAccess.store.id,
+          slug: storeAccess.store.slug,
+          name: storeAccess.store.name,
+          role: storeAccess.memberRole,
+          permissions: storeAccess.memberPermissions as Record<string, boolean>,
         };
       }
     }
   }
+  
+  // Update last active asynchronously (fire and forget - doesn't block response)
+  db.update(mobileDevices)
+    .set({ lastActiveAt: new Date() })
+    .where(eq(mobileDevices.id, device.id))
+    .execute()
+    .catch(() => {}); // Silent fail - not critical
   
   return {
     user: {

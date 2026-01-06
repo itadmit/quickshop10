@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     }
     const orderDirection = sortOrder === 'asc' ? asc(orderByColumn) : desc(orderByColumn);
     
-    // Get products with variant count
+    // Get products with variant count, image URL and category in a single optimized query
     const productsData = await db
       .select({
         id: products.id,
@@ -116,46 +116,37 @@ export async function GET(request: NextRequest) {
         isActive: products.isActive,
         isFeatured: products.isFeatured,
         categoryId: products.categoryId,
+        categoryName: categories.name,
         createdAt: products.createdAt,
         variantsCount: sql<number>`(SELECT COUNT(*) FROM ${productVariants} WHERE ${productVariants.productId} = ${products.id})`,
+        imageUrl: sql<string | null>`(SELECT url FROM ${productImages} WHERE ${productImages.productId} = ${products.id} ORDER BY ${productImages.sortOrder} LIMIT 1)`,
       })
       .from(products)
+      .leftJoin(categories, eq(categories.id, products.categoryId))
       .where(and(...conditions))
       .orderBy(orderDirection)
       .limit(limit)
       .offset(offset);
     
-    // Get primary images for products
-    const productsWithImages = await Promise.all(
-      productsData.map(async (product) => {
-        const [image] = await db
-          .select({ url: productImages.url })
-          .from(productImages)
-          .where(eq(productImages.productId, product.id))
-          .orderBy(productImages.sortOrder)
-          .limit(1);
-        
-        // Get category name
-        let categoryName = null;
-        if (product.categoryId) {
-          const [cat] = await db
-            .select({ name: categories.name })
-            .from(categories)
-            .where(eq(categories.id, product.categoryId))
-            .limit(1);
-          categoryName = cat?.name || null;
-        }
-        
-        return {
-          ...product,
-          price: product.price ? Number(product.price) : null,
-          comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-          imageUrl: image?.url || null,
-          variantsCount: Number(product.variantsCount),
-          category: product.categoryId ? { id: product.categoryId, name: categoryName } : null,
-        };
-      })
-    );
+    // Transform to response format (no N+1 queries!)
+    const productsWithImages = productsData.map((product) => ({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: product.price ? Number(product.price) : null,
+      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+      sku: product.sku,
+      barcode: product.barcode,
+      hasVariants: product.hasVariants,
+      trackInventory: product.trackInventory,
+      inventory: product.inventory,
+      isActive: product.isActive,
+      isFeatured: product.isFeatured,
+      createdAt: product.createdAt,
+      imageUrl: product.imageUrl,
+      variantsCount: Number(product.variantsCount),
+      category: product.categoryId ? { id: product.categoryId, name: product.categoryName } : null,
+    }));
     
     // Get total count
     const [{ count }] = await db
