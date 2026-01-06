@@ -371,6 +371,7 @@ export const productCategories = pgTable('product_categories', {
   id: uuid('id').primaryKey().defaultRandom(),
   productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
   categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }).notNull(),
+  sortOrder: integer('sort_order').default(0),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('idx_product_categories_unique').on(table.productId, table.categoryId),

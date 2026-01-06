@@ -189,7 +189,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+    <div className="bg-white border border-gray-200 rounded-lg">
       {/* Bulk actions bar */}
       {selectedItems.size > 0 && (
         <div className="bg-gray-50 border-b border-gray-200 px-4 py-2 flex items-center gap-4">
@@ -205,11 +205,11 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px]">
+      <div className="w-full">
+        <table className="w-full table-fixed">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="w-10 py-3 px-4">
+              <th className="w-[40px] py-3 px-3">
                 <input
                   type="checkbox"
                   checked={selectedItems.size === items.length && items.length > 0}
@@ -217,15 +217,15 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                   className="rounded border-gray-300 text-black focus:ring-black"
                 />
               </th>
-              <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase">מוצר</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">קטגוריה</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מק״ט</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מחיר</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מחיר השוואה</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">עלות</th>
-              <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase w-20">מלאי</th>
-              <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase w-16">פעיל</th>
-              <th className="text-left py-3 px-4 text-xs font-medium text-gray-500 uppercase w-16">פעולות</th>
+              <th className="text-right py-3 px-3 text-xs font-medium text-gray-500 uppercase w-[22%]">מוצר</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[14%]">קטגוריה</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[10%]">מק״ט</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[10%]">מחיר</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[10%]">השוואה</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[10%]">עלות</th>
+              <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[8%]">מלאי</th>
+              <th className="text-center py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[6%]">פעיל</th>
+              <th className="text-left py-3 px-2 text-xs font-medium text-gray-500 uppercase w-[50px]"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
@@ -236,7 +236,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                   selectedItems.has(item.id) ? 'bg-blue-50' : ''
                 }`}
               >
-                <td className="py-3 px-4">
+                <td className="py-2.5 px-3">
                   <input
                     type="checkbox"
                     checked={selectedItems.has(item.id)}
@@ -244,32 +244,32 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                     className="rounded border-gray-300 text-black focus:ring-black"
                   />
                 </td>
-                <td className="py-3 px-4">
-                  <div className="flex items-center gap-3">
+                <td className="py-2.5 px-3">
+                  <div className="flex items-center gap-2">
                     {item.imageUrl ? (
                       <Image
                         src={item.imageUrl}
                         alt={item.productName}
-                        width={40}
-                        height={40}
-                        className="w-10 h-10 object-cover rounded"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 object-cover rounded shrink-0"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
                     )}
-                    <div className="min-w-0">
-                      <p className="font-medium text-gray-900 truncate">{item.productName}</p>
+                    <div className="min-w-0 overflow-hidden">
+                      <p className="font-medium text-gray-900 text-sm truncate">{item.productName}</p>
                       {item.variantTitle && (
-                        <p className="text-xs text-gray-500">{item.variantTitle}</p>
+                        <p className="text-xs text-gray-500 truncate">{item.variantTitle}</p>
                       )}
                     </div>
                   </div>
                 </td>
-                <td className="py-3 px-2">
+                <td className="py-2.5 px-2">
                   {!item.isVariant ? (
                     <InlineCategoryPicker
                       categories={categories}
@@ -280,17 +280,17 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                       }}
                     />
                   ) : (
-                    <span className="text-xs text-gray-400 px-2">-</span>
+                    <span className="text-xs text-gray-400">-</span>
                   )}
                 </td>
-                <td className="py-3 px-2">
+                <td className="py-2.5 px-2">
                   <EditableCell
                     value={item.sku || ''}
                     onSave={async (value) => handleUpdate(item.id, item.isVariant, 'sku', value)}
                     className="text-xs"
                   />
                 </td>
-                <td className="py-3 px-2">
+                <td className="py-2.5 px-2">
                   <EditableCell
                     value={item.price || ''}
                     type="price"
@@ -299,7 +299,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                     className="text-sm font-medium"
                   />
                 </td>
-                <td className="py-3 px-2">
+                <td className="py-2.5 px-2">
                   <EditableCell
                     value={item.comparePrice || ''}
                     type="price"
@@ -308,7 +308,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                     className="text-sm text-gray-500"
                   />
                 </td>
-                <td className="py-3 px-2">
+                <td className="py-2.5 px-2">
                   <EditableCell
                     value={item.cost || ''}
                     type="price"
@@ -317,7 +317,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                     className="text-sm text-gray-500"
                   />
                 </td>
-                <td className="py-3 px-2 text-center">
+                <td className="py-2.5 px-2 text-center">
                   {item.trackInventory ? (
                     <EditableCell
                       value={item.inventory.toString()}
@@ -332,7 +332,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                     <span className="text-xs text-gray-400">∞</span>
                   )}
                 </td>
-                <td className="py-3 px-2 text-center">
+                <td className="py-2.5 px-2 text-center">
                   <ToggleSwitch
                     checked={item.isActive}
                     onChange={(checked) => {
@@ -343,10 +343,10 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                     disabled={isPending}
                   />
                 </td>
-                <td className="py-3 px-4">
+                <td className="py-2.5 px-2">
                   <Link
                     href={`/shops/${storeSlug}/admin/products/${item.productId}`}
-                    className="p-1.5 text-gray-400 hover:text-gray-600 transition-colors inline-flex"
+                    className="p-1 text-gray-400 hover:text-gray-600 transition-colors inline-flex"
                     title="ערוך מוצר"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

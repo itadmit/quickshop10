@@ -51,7 +51,30 @@ export default async function CategoriesPage({ params, searchParams }: Categorie
     notFound();
   }
 
-  const allCategories = await getCategoriesWithProductCount(store.id);
+  const rawCategories = await getCategoriesWithProductCount(store.id);
+  
+  // Sort categories: parents first, then their children underneath
+  const sortedCategories: typeof rawCategories = [];
+  const parentCategories = rawCategories.filter(c => !c.parentId).sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  
+  for (const parent of parentCategories) {
+    sortedCategories.push(parent);
+    // Add children of this parent
+    const children = rawCategories
+      .filter(c => c.parentId === parent.id)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    sortedCategories.push(...children);
+  }
+  
+  // Add any orphaned subcategories (shouldn't happen but just in case)
+  const addedIds = new Set(sortedCategories.map(c => c.id));
+  for (const cat of rawCategories) {
+    if (!addedIds.has(cat.id)) {
+      sortedCategories.push(cat);
+    }
+  }
+  
+  const allCategories = sortedCategories;
 
   // Filter by tab
   let filteredCategories = allCategories;

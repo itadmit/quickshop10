@@ -5,7 +5,6 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
-import { CategoryForm } from './category-form';
 import { DeleteCategoryButton } from './delete-button';
 
 // ============================================
@@ -55,13 +54,6 @@ export function CategoriesDataTable({
 
   // Create a map for parent names
   const parentNameMap = new Map(allCategories.map(c => [c.id, c.name]));
-
-  // Prepare categories for form (id, name, parentId)
-  const categoriesForForm = allCategories.map(c => ({
-    id: c.id,
-    name: c.name,
-    parentId: c.parentId,
-  }));
 
   // Bulk Actions
   const bulkActions: BulkAction[] = [
@@ -159,16 +151,6 @@ export function CategoriesDataTable({
       ),
     },
     {
-      key: 'slug',
-      header: 'סלאג',
-      width: '150px',
-      render: (category) => (
-        <code className="text-sm bg-gray-100 px-2 py-1 rounded text-gray-600">
-          /{category.slug}
-        </code>
-      ),
-    },
-    {
       key: 'products',
       header: 'מוצרים',
       width: '100px',
@@ -207,13 +189,15 @@ export function CategoriesDataTable({
               <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
           </Link>
-          <CategoryForm 
-            storeId={storeId}
-            storeSlug={storeSlug}
-            mode="edit" 
-            category={category}
-            allCategories={categoriesForForm}
-          />
+          <Link
+            href={`/shops/${storeSlug}/admin/categories/${category.id}`}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="ערוך קטגוריה"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+          </Link>
           <DeleteCategoryButton 
             categoryId={category.id}
             categoryName={category.name}
@@ -229,6 +213,7 @@ export function CategoriesDataTable({
       data={categories}
       columns={columns}
       getRowKey={(category) => category.id}
+      getRowHref={(category) => `/shops/${storeSlug}/admin/categories/${category.id}`}
       tabs={tabs}
       currentTab={currentTab}
       tabParamName="filter"
