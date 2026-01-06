@@ -165,7 +165,10 @@ export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
 });
 
 export const getProductsByCategory = cache(async (storeId: string, categoryId: string) => {
-  return db
+  // Query products that belong to this category via junction table
+  // Uses idx_product_categories_category index for fast lookup
+  // Single query with JOIN for performance per REQUIREMENTS.md
+  const results = await db
     .select({
       id: products.id,
       name: products.name,
@@ -177,19 +180,29 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
       trackInventory: products.trackInventory,
       allowBackorder: products.allowBackorder,
       isFeatured: products.isFeatured,
+      createdAt: products.createdAt,
       image: productImages.url,
     })
     .from(products)
+    .innerJoin(productCategories, eq(productCategories.productId, products.id))
     .leftJoin(productImages, and(
       eq(productImages.productId, products.id),
       eq(productImages.isPrimary, true)
     ))
     .where(and(
       eq(products.storeId, storeId),
-      eq(products.categoryId, categoryId),
+      eq(productCategories.categoryId, categoryId),
       eq(products.isActive, true)
     ))
     .orderBy(desc(products.createdAt));
+
+  // Remove duplicates (in case of multiple category assignments) and exclude createdAt from result
+  const seen = new Set<string>();
+  return results.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  }).map(({ createdAt, ...rest }) => rest);
 });
 
 export async function getProductBySlug(storeId: string, slug: string) {

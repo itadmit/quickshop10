@@ -50,8 +50,10 @@ function QuickCreateForm({
     nameInputRef.current?.focus();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.MouseEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation(); // Prevent bubbling to parent form
+    
     if (!name.trim()) {
       setError('שם הקטגוריה הוא שדה חובה');
       return;
@@ -88,8 +90,17 @@ function QuickCreateForm({
     });
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      handleSubmit(e);
+    }
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="p-3 border-t border-gray-100 bg-gray-50">
+    // Use div instead of form to prevent nested form issues (parent ProductForm)
+    <div className="p-3 border-t border-gray-100 bg-gray-50">
       <div className="space-y-3">
         <div>
           <input
@@ -97,6 +108,7 @@ function QuickCreateForm({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="שם הקטגוריה"
             disabled={isPending}
             className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-gray-400 disabled:opacity-50"
@@ -127,7 +139,8 @@ function QuickCreateForm({
 
         <div className="flex items-center gap-2">
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             disabled={isPending || !name.trim()}
             className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
           >
@@ -153,7 +166,7 @@ function QuickCreateForm({
           </button>
         </div>
       </div>
-    </form>
+    </div>
   );
 }
 

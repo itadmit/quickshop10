@@ -119,7 +119,9 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
     // Generate unique slug
     const uniqueSlug = await generateUniqueSlug(storeId, data.slug);
 
-    // Create the product
+    // Create the product - also set categoryId for backward compatibility
+    const primaryCategoryId = data.categoryIds && data.categoryIds.length > 0 ? data.categoryIds[0] : null;
+    
     const [product] = await db.insert(products).values({
       storeId,
       name: data.name,
@@ -140,6 +142,7 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       seoTitle: data.seoTitle || null,
       seoDescription: data.seoDescription || null,
       hasVariants: data.hasVariants,
+      categoryId: primaryCategoryId, // Set legacy categoryId for backward compatibility
       createdBy: userId,
       updatedBy: userId,
     }).returning();
@@ -234,6 +237,9 @@ export async function updateProduct(
     // Generate unique slug (excluding current product)
     const uniqueSlug = await generateUniqueSlug(storeId, data.slug, productId);
 
+    // Set primary categoryId for backward compatibility
+    const primaryCategoryId = data.categoryIds && data.categoryIds.length > 0 ? data.categoryIds[0] : null;
+
     // Update the product
     await db.update(products)
       .set({
@@ -255,6 +261,7 @@ export async function updateProduct(
         seoTitle: data.seoTitle || null,
         seoDescription: data.seoDescription || null,
         hasVariants: data.hasVariants,
+        categoryId: primaryCategoryId, // Set legacy categoryId for backward compatibility
         updatedBy: userId,
         updatedAt: new Date(),
       })
