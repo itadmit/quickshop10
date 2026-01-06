@@ -192,19 +192,38 @@ export default async function BulkEditPage({ params, searchParams }: BulkEditPag
           >
             הכל
           </Link>
-          {categoriesList.map(cat => (
-            <Link
-              key={cat.id}
-              href={`/shops/${slug}/admin/products/bulk-edit?category=${cat.id}`}
-              className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                category === cat.id
-                  ? 'bg-black text-white' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              {cat.name}
-            </Link>
-          ))}
+          {/* Root categories */}
+          {categoriesList.filter(cat => !cat.parentId).map(cat => {
+            const subcats = categoriesList.filter(sub => sub.parentId === cat.id);
+            return (
+              <div key={cat.id} className="flex flex-wrap items-center gap-1">
+                <Link
+                  href={`/shops/${slug}/admin/products/bulk-edit?category=${cat.id}`}
+                  className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                    category === cat.id
+                      ? 'bg-black text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {cat.name}
+                </Link>
+                {/* Subcategories as smaller badges */}
+                {subcats.map(sub => (
+                  <Link
+                    key={sub.id}
+                    href={`/shops/${slug}/admin/products/bulk-edit?category=${sub.id}`}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      category === sub.id
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
+                    }`}
+                  >
+                    {sub.name}
+                  </Link>
+                ))}
+              </div>
+            );
+          })}
         </div>
       </div>
 

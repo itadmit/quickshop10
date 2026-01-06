@@ -13,6 +13,12 @@ import { duplicateProduct } from './actions';
 // עוטף את DataTable עם הגדרות columns
 // ============================================
 
+type ProductCategory = {
+  id: string;
+  name: string;
+  parentId: string | null;
+};
+
 type Product = {
   id: string;
   name: string;
@@ -25,11 +31,13 @@ type Product = {
   image?: string | null;
   categoryId: string | null;
   categoryName?: string | null;
+  productCategories?: ProductCategory[];
 };
 
 type Category = {
   id: string;
   name: string;
+  parentId?: string | null;
 };
 
 interface ProductsDataTableProps {
@@ -189,13 +197,36 @@ export function ProductsDataTable({
     },
     {
       key: 'category',
-      header: 'קטגוריה',
-      width: '140px',
-      render: (product) => (
-        <span className="text-gray-600 text-sm truncate">
-          {product.categoryName || <span className="text-gray-400">-</span>}
-        </span>
-      ),
+      header: 'קטגוריות',
+      width: '180px',
+      render: (product) => {
+        const cats = product.productCategories || [];
+        if (cats.length === 0) {
+          return <span className="text-gray-400 text-sm">-</span>;
+        }
+        return (
+          <div className="flex flex-wrap gap-1">
+            {cats.slice(0, 3).map((cat) => (
+              <span
+                key={cat.id}
+                className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                  cat.parentId 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'bg-gray-100 text-gray-700 border border-gray-200'
+                }`}
+                title={cat.parentId ? 'תת-קטגוריה' : 'קטגוריה ראשית'}
+              >
+                {cat.name}
+              </span>
+            ))}
+            {cats.length > 3 && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-50 text-gray-500">
+                +{cats.length - 3}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'status',
@@ -308,11 +339,23 @@ export function ProductsDataTable({
             className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-gray-900/10"
           >
             <option value="">הכל</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
+            {/* Root categories */}
+            {categories
+              .filter(cat => !cat.parentId)
+              .map((cat) => {
+                const subcats = categories.filter(sub => sub.parentId === cat.id);
+                return (
+                  <optgroup key={cat.id} label={cat.name}>
+                    <option value={cat.id}>כל {cat.name}</option>
+                    {subcats.map(sub => (
+                      <option key={sub.id} value={sub.id}>
+                        ↳ {sub.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })
+            }
           </select>
         </div>
 

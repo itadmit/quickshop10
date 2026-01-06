@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo, useTransition } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { ChevronDown, ChevronLeft, Search, X, Folder, FolderOpen, Check, Plus, Loader2 } from 'lucide-react';
 
 // ============================================
@@ -365,6 +366,7 @@ export function CategoryPicker({
   const [mounted, setMounted] = useState(false);
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [localCategories, setLocalCategories] = useState(categories);
+  const router = useRouter();
 
   // Update local categories when props change
   useEffect(() => {
@@ -454,6 +456,8 @@ export function CategoryPicker({
     if (newCategory.parentId) {
       setExpandedIds(prev => new Set([...prev, newCategory.parentId!]));
     }
+    // Refresh server data to sync categories
+    router.refresh();
   };
 
   // Close on outside click

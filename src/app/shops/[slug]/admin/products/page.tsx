@@ -50,9 +50,11 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
     }
   }
   
-  // Filter by category
+  // Filter by category - check both legacy categoryId and new categories array
   if (category) {
-    filteredProducts = filteredProducts.filter(p => p.categoryId === category);
+    filteredProducts = filteredProducts.filter(p => 
+      p.categoryId === category || p.categories?.some(c => c.id === category)
+    );
   }
   
   // Filter by search
@@ -73,10 +75,12 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
     currentPage * perPage
   );
 
-  // Add category name to products for display (use already-joined category)
+  // Add category info to products for display
   const productsWithCategory = paginatedProducts.map(p => ({
     ...p,
     categoryName: p.category?.name || null,
+    // Include full categories array for badge display
+    productCategories: p.categories || [],
   }));
   
   // Count for tabs

@@ -394,7 +394,8 @@ export const getStoreCustomers = cache(async (storeId: string, limit?: number) =
 export type AdminProduct = Awaited<ReturnType<typeof getStoreProductsAdmin>>[number];
 
 export const getStoreProductsAdmin = cache(async (storeId: string) => {
-  return db
+  // First get all products with their primary image
+  const productsData = await db
     .select({
       id: products.id,
       name: products.name,
@@ -410,20 +411,54 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
       categoryId: products.categoryId,
       createdAt: products.createdAt,
       image: productImages.url,
-      category: {
-        id: categories.id,
-        name: categories.name,
-        slug: categories.slug,
-      },
     })
     .from(products)
     .leftJoin(productImages, and(
       eq(productImages.productId, products.id),
       eq(productImages.isPrimary, true)
     ))
-    .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(eq(products.storeId, storeId))
     .orderBy(desc(products.createdAt));
+
+  // Get all product-category associations for this store's products
+  const productIds = productsData.map(p => p.id);
+  
+  if (productIds.length === 0) {
+    return [];
+  }
+
+  // Get all category associations with category names in a single query
+  const categoryAssociations = await db
+    .select({
+      productId: productCategories.productId,
+      categoryId: productCategories.categoryId,
+      categoryName: categories.name,
+      parentId: categories.parentId,
+    })
+    .from(productCategories)
+    .innerJoin(categories, eq(productCategories.categoryId, categories.id))
+    .innerJoin(products, eq(productCategories.productId, products.id))
+    .where(eq(products.storeId, storeId));
+
+  // Create a map of productId -> categories
+  const productCategoriesMap = new Map<string, Array<{ id: string; name: string; parentId: string | null }>>();
+  for (const assoc of categoryAssociations) {
+    if (!productCategoriesMap.has(assoc.productId)) {
+      productCategoriesMap.set(assoc.productId, []);
+    }
+    productCategoriesMap.get(assoc.productId)!.push({
+      id: assoc.categoryId,
+      name: assoc.categoryName,
+      parentId: assoc.parentId,
+    });
+  }
+
+  // Combine products with their categories
+  return productsData.map(product => ({
+    ...product,
+    category: productCategoriesMap.get(product.id)?.[0] || null, // First category for backward compatibility
+    categories: productCategoriesMap.get(product.id) || [], // All categories
+  }));
 });
 
 // Get full product details for editing
