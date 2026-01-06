@@ -20,6 +20,7 @@ const settingsTabs = [
   { id: 'shipping', label: 'משלוח', href: '/shipping' },
   { id: 'tax', label: 'מיסים', href: '/tax' },
   { id: 'notifications', label: 'התראות', href: '/notifications' },
+  { id: 'gdpr', label: 'עוגיות', href: '/gdpr' },
 ];
 
 export default async function DomainSettingsPage({ params }: DomainSettingsPageProps) {

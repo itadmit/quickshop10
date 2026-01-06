@@ -9,6 +9,7 @@ import { StoriesBar, type Story, type StoriesSettings } from '@/components/store
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
 import { PopupDisplay } from '@/components/storefront/popup-display';
 import { GamificationPopup } from '@/components/storefront/gamification/gamification-popup';
+import { CookieBanner, type GDPRSettings } from '@/components/storefront/cookie-banner';
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
 import { StoreProvider } from '@/lib/store-context';
@@ -184,6 +185,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // Get header layout from store settings
   const headerLayout = (storeSettings.headerLayout as HeaderLayout) || 'logo-right';
   
+  // Get GDPR/Cookie banner settings
+  const gdprSettings = storeSettings.gdpr as GDPRSettings | undefined;
+  
   // Check if preview mode (from middleware header)
   // PERFORMANCE: Only load client components in preview mode
   const isPreviewMode = headersList.get('x-preview-mode') === 'true';
@@ -304,6 +308,11 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             wheelEnabled={wheelEnabled}
             scratchEnabled={scratchEnabled}
           />
+
+          {/* Cookie Consent Banner - GDPR Compliance */}
+          {gdprSettings?.enabled && (
+            <CookieBanner settings={gdprSettings} storeSlug={slug} />
+          )}
         </StoreSettingsProvider>
       </TrackingProvider>
     </StoreProvider>
