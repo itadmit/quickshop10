@@ -98,13 +98,13 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
           <button
             type="button"
             onClick={() => setFormData(prev => ({ ...prev, isPublished: !prev.isPublished }))}
-            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors cursor-pointer ${
               formData.isPublished ? 'bg-green-500' : 'bg-gray-300'
             }`}
           >
             <span
-              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
-                formData.isPublished ? 'translate-x-6' : 'translate-x-1'
+              className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                formData.isPublished ? 'left-6' : 'left-1'
               }`}
             />
           </button>
@@ -119,34 +119,31 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
-                <span className="text-xs text-amber-700">הגנת סיסמה</span>
+                <span className="text-sm text-amber-700">הגנת סיסמה</span>
               </div>
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({ ...prev, comingSoonPasswordEnabled: !prev.comingSoonPasswordEnabled }))}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full transition-colors cursor-pointer ${
                   formData.comingSoonPasswordEnabled ? 'bg-amber-500' : 'bg-gray-300'
                 }`}
               >
                 <span
-                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
-                    formData.comingSoonPasswordEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                  className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-all ${
+                    formData.comingSoonPasswordEnabled ? 'left-6' : 'left-1'
                   }`}
-                  style={{ transform: `translateX(${formData.comingSoonPasswordEnabled ? '18px' : '2px'})` }}
                 />
               </button>
             </div>
             
             {formData.comingSoonPasswordEnabled && (
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={formData.comingSoonPassword}
-                  onChange={(e) => setFormData(prev => ({ ...prev, comingSoonPassword: e.target.value }))}
-                  placeholder="הכנס סיסמה לצפייה באתר..."
-                  className="flex-1 px-2 py-1 text-xs border border-amber-300 rounded bg-white/50 focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
-                />
-              </div>
+              <input
+                type="text"
+                value={formData.comingSoonPassword}
+                onChange={(e) => setFormData(prev => ({ ...prev, comingSoonPassword: e.target.value }))}
+                placeholder="הכנס סיסמה לצפייה באתר..."
+                className="w-full px-3 py-2 text-sm border border-amber-300 rounded-lg bg-white focus:ring-2 focus:ring-amber-400/20 focus:border-amber-400 transition-colors"
+              />
             )}
             
             <p className="text-xs text-amber-700">

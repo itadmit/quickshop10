@@ -214,6 +214,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       <ShopHeaderClient
         storeName={store.name}
         storeId={store.id}
+        logoUrl={store.logoUrl}
         categories={categories}
         basePath={basePath}
         customer={customerData}
@@ -230,6 +231,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     <ShopHeader 
       storeName={store.name} 
       storeId={store.id}
+      logoUrl={store.logoUrl}
       categories={categories} 
       basePath={basePath}
       customer={customerData}

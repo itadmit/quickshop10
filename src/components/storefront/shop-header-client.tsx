@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { MobileMenu } from '@/components/mobile-menu';
 import { CartButton } from '@/components/cart-button';
@@ -120,6 +121,7 @@ export type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
 interface ShopHeaderClientProps {
   storeName: string;
   storeId: string;
+  logoUrl?: string | null;
   categories: Category[];
   basePath: string;
   customer?: CustomerData | null;
@@ -134,6 +136,7 @@ interface ShopHeaderClientProps {
 export function ShopHeaderClient({ 
   storeName, 
   storeId,
+  logoUrl,
   categories, 
   basePath, 
   customer,
@@ -221,12 +224,23 @@ export function ShopHeaderClient({
     </nav>
   );
 
-  // Logo component
+  // Logo component - shows image if logoUrl is provided, otherwise text
   const Logo = ({ className = '' }: { className?: string }) => (
     <Link href={basePath || '/'} className={`group ${className}`}>
-      <span className="font-display text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.3em] text-black font-light uppercase">
-        {storeName}
-      </span>
+      {logoUrl ? (
+        <Image
+          src={logoUrl}
+          alt={storeName}
+          width={150}
+          height={50}
+          className="h-8 sm:h-10 w-auto object-contain"
+          priority
+        />
+      ) : (
+        <span className="font-display text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.3em] text-black font-light uppercase">
+          {storeName}
+        </span>
+      )}
     </Link>
   );
 
