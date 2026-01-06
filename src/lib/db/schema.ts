@@ -2822,6 +2822,154 @@ export const storeTransactionFeesRelations = relations(storeTransactionFees, ({ 
   }),
 }));
 
+// ============ API KEYS ============
+
+// API Keys for public developer API
+export const apiKeys = pgTable('api_keys', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }),
+  
+  // Key info
+  name: varchar('name', { length: 255 }).notNull(),
+  keyPrefix: varchar('key_prefix', { length: 10 }).notNull(), // qs_live_xxxx
+  keyHash: varchar('key_hash', { length: 255 }).notNull(), // SHA256
+  lastFour: varchar('last_four', { length: 4 }).notNull(),
+  
+  // Permissions/Scopes
+  scopes: jsonb('scopes').default([]).notNull(), // ['orders:read', 'products:write']
+  
+  // Rate limiting
+  rateLimit: integer('rate_limit').default(100).notNull(), // per minute
+  
+  // Status
+  isActive: boolean('is_active').default(true).notNull(),
+  expiresAt: timestamp('expires_at'),
+  
+  // Usage tracking
+  lastUsedAt: timestamp('last_used_at'),
+  totalRequests: integer('total_requests').default(0).notNull(),
+  
+  // Metadata
+  description: text('description'),
+  allowedIps: jsonb('allowed_ips'),
+  allowedOrigins: jsonb('allowed_origins'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_api_keys_store').on(table.storeId),
+  index('idx_api_keys_hash').on(table.keyHash),
+  index('idx_api_keys_prefix').on(table.keyPrefix),
+]);
+
+// API Key Usage Logs
+export const apiKeyLogs = pgTable('api_key_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  apiKeyId: uuid('api_key_id').references(() => apiKeys.id, { onDelete: 'cascade' }).notNull(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Request info
+  method: varchar('method', { length: 10 }).notNull(),
+  endpoint: varchar('endpoint', { length: 500 }).notNull(),
+  statusCode: integer('status_code').notNull(),
+  responseTimeMs: integer('response_time_ms'),
+  
+  // Client info
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  
+  // Error tracking
+  errorMessage: text('error_message'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_api_key_logs_key').on(table.apiKeyId),
+  index('idx_api_key_logs_store').on(table.storeId),
+  index('idx_api_key_logs_created').on(table.createdAt),
+]);
+
+// API Keys relations
+export const apiKeysRelations = relations(apiKeys, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [apiKeys.storeId],
+    references: [stores.id],
+  }),
+  user: one(users, {
+    fields: [apiKeys.userId],
+    references: [users.id],
+  }),
+  logs: many(apiKeyLogs),
+}));
+
+export const apiKeyLogsRelations = relations(apiKeyLogs, ({ one }) => ({
+  apiKey: one(apiKeys, {
+    fields: [apiKeyLogs.apiKeyId],
+    references: [apiKeys.id],
+  }),
+  store: one(stores, {
+    fields: [apiKeyLogs.storeId],
+    references: [stores.id],
+  }),
+}));
+
+// ============ MOBILE DEVICES ============
+
+// Platform enum for mobile devices
+export const mobilePlatformEnum = pgEnum('mobile_platform', ['ios', 'android']);
+
+// Mobile devices table for push notifications and mobile sessions
+export const mobileDevices = pgTable('mobile_devices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'set null' }),
+  
+  // Device info
+  deviceId: varchar('device_id', { length: 255 }).notNull(),
+  pushToken: varchar('push_token', { length: 500 }),
+  platform: mobilePlatformEnum('platform').notNull(),
+  appVersion: varchar('app_version', { length: 50 }),
+  osVersion: varchar('os_version', { length: 50 }),
+  deviceName: varchar('device_name', { length: 255 }),
+  
+  // Session
+  sessionToken: varchar('session_token', { length: 255 }).notNull().unique(),
+  refreshToken: varchar('refresh_token', { length: 255 }).unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  
+  // Notification settings
+  notificationsEnabled: boolean('notifications_enabled').default(true).notNull(),
+  notifyNewOrders: boolean('notify_new_orders').default(true).notNull(),
+  notifyLowStock: boolean('notify_low_stock').default(true).notNull(),
+  notifyReturns: boolean('notify_returns').default(true).notNull(),
+  
+  // Tracking
+  lastActiveAt: timestamp('last_active_at'),
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_mobile_devices_user').on(table.userId),
+  index('idx_mobile_devices_store').on(table.storeId),
+  index('idx_mobile_devices_token').on(table.sessionToken),
+  index('idx_mobile_devices_push').on(table.pushToken),
+  uniqueIndex('idx_mobile_devices_user_device').on(table.userId, table.deviceId),
+]);
+
+// Mobile devices relations
+export const mobileDevicesRelations = relations(mobileDevices, ({ one }) => ({
+  user: one(users, {
+    fields: [mobileDevices.userId],
+    references: [users.id],
+  }),
+  store: one(stores, {
+    fields: [mobileDevices.storeId],
+    references: [stores.id],
+  }),
+}));
+
 // ============ TYPES ============
 
 export type User = typeof users.$inferSelect;
@@ -2960,3 +3108,13 @@ export type GamificationEntry = typeof gamificationEntries.$inferSelect;
 export type NewGamificationEntry = typeof gamificationEntries.$inferInsert;
 export type GamificationWin = typeof gamificationWins.$inferSelect;
 export type NewGamificationWin = typeof gamificationWins.$inferInsert;
+
+// Mobile devices types
+export type MobileDevice = typeof mobileDevices.$inferSelect;
+export type NewMobileDevice = typeof mobileDevices.$inferInsert;
+
+// API Keys types
+export type ApiKey = typeof apiKeys.$inferSelect;
+export type NewApiKey = typeof apiKeys.$inferInsert;
+export type ApiKeyLog = typeof apiKeyLogs.$inferSelect;
+export type NewApiKeyLog = typeof apiKeyLogs.$inferInsert;

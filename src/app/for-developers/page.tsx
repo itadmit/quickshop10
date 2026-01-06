@@ -178,8 +178,8 @@ export default function ForDevelopersPage() {
                 <CodeIcon className="ml-2 h-5 w-5" />
                 הצטרפו כמפתח שותף
               </Button>
-              <Button variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20">
-                צפו בתיעוד
+              <Button href="/api-docs" variant="outline" size="lg" className="w-full sm:w-auto bg-white/10 border-white/20 text-white hover:bg-white/20">
+                תיעוד API
                 <ArrowLeftIcon className="mr-2 h-5 w-5" />
               </Button>
             </div>
