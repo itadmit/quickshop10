@@ -245,24 +245,15 @@ export function ShopHeaderClient({
   );
 
   // Icons component - respects visibility settings
-  const Icons = ({ searchFirst = false, hideSearch = false, hideCartAccount = false }: { 
-    searchFirst?: boolean;
-    hideSearch?: boolean;
-    hideCartAccount?: boolean;
-  }) => (
+  // In RTL: first in JSX = rightmost visually, last in JSX = leftmost visually
+  // cartAtStart: cart is FIRST in JSX = rightmost (for logo-left where icons are on right)
+  // default: cart is LAST = leftmost (for logo-right where icons are on left)
+  const Icons = ({ cartAtStart = false }: { cartAtStart?: boolean }) => (
     <div className="flex items-center gap-1 sm:gap-2">
-      {searchFirst && showSearch && !hideSearch && (
-        <SearchButton basePath={basePath} storeId={storeId} />
-      )}
-      {showAccount && !hideCartAccount && (
-        <UserButton basePath={basePath} initialCustomer={customer} />
-      )}
-      {showCart && !hideCartAccount && (
-        <CartButton />
-      )}
-      {!searchFirst && showSearch && !hideSearch && (
-        <SearchButton basePath={basePath} storeId={storeId} />
-      )}
+      {cartAtStart && showCart && <CartButton />}
+      {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
+      {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
+      {!cartAtStart && showCart && <CartButton />}
     </div>
   );
 
@@ -286,7 +277,8 @@ export function ShopHeaderClient({
     />
   );
 
-  // Layout 1: Logo Right (RTL default)
+  // Layout 1: Logo Right (RTL default) - לוגו בימין, תפריט במרכז, אייקונים משמאל
+  // Mobile: hamburger + logo on right, cart at extreme left
   if (layout === 'logo-right') {
     return (
       <>
@@ -294,11 +286,14 @@ export function ShopHeaderClient({
         <header className={headerClasses} data-section-id="header">
           <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
             <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+              {/* Right: Mobile Menu + Logo */}
               <div className="flex items-center gap-2">
-                <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+                <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
                 <Logo />
               </div>
+              {/* Center: Navigation */}
               <Navigation />
+              {/* Left: Icons (cart at extreme left) */}
               <Icons />
             </div>
           </div>
@@ -307,7 +302,8 @@ export function ShopHeaderClient({
     );
   }
 
-  // Layout 2: Logo Left
+  // Layout 2: Logo Left - לוגו בשמאל, תפריט במרכז, אייקונים מימין
+  // Mobile: hamburger at extreme left, logo next to it, cart at extreme right
   if (layout === 'logo-left') {
     return (
       <>
@@ -315,11 +311,14 @@ export function ShopHeaderClient({
         <header className={headerClasses} data-section-id="header">
           <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
             <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-              <Icons />
+              {/* Right: Icons with cart at extreme right */}
+              <Icons cartAtStart />
+              {/* Center: Navigation */}
               <Navigation />
+              {/* Left: Logo + Mobile Menu (hamburger at extreme left) */}
               <div className="flex items-center gap-2">
                 <Logo />
-                <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+                <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
               </div>
             </div>
           </div>
@@ -328,23 +327,30 @@ export function ShopHeaderClient({
     );
   }
 
-  // Layout 3: Logo Center
+  // Layout 3: Logo Center - לוגו במרכז, תפריט מתחת
+  // Mobile: hamburger on right, logo center, cart at extreme left
   return (
     <>
       {AnnouncementBarSection}
       <header className={headerClasses} data-section-id="header">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+          {/* Top row: Hamburger/Search - Logo - Icons */}
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-            <div className="flex items-center">
-              {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
-            </div>
-            <Logo className="absolute left-1/2 -translate-x-1/2" />
+            {/* Right: Mobile Menu + Search (desktop) */}
             <div className="flex items-center gap-1 sm:gap-2">
+              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
+              {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
+            </div>
+            {/* Center: Logo */}
+            <Logo className="absolute left-1/2 -translate-x-1/2" />
+            {/* Left: User, Search (mobile), Cart at extreme left */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              {showSearch && <span className="lg:hidden"><SearchButton basePath={basePath} storeId={storeId} /></span>}
               {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
               {showCart && <CartButton />}
             </div>
           </div>
+          {/* Bottom row: Navigation (desktop only) */}
           <div className="hidden lg:flex justify-center border-t border-gray-100 py-3">
             <Navigation />
           </div>

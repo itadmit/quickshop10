@@ -43,7 +43,7 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
     <>
       {/* Overlay */}
       <div 
-        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-500 ${
+        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${
           cartOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={closeCart}
@@ -51,7 +51,7 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
       
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 left-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-500 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+        className={`fixed top-0 left-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
           cartOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         dir="rtl"

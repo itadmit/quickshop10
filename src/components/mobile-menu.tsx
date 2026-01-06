@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Category {
   id: string;
@@ -14,6 +16,7 @@ interface MobileMenuProps {
   categories: Category[];
   basePath: string;
   storeName: string;
+  logoUrl?: string | null;
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
@@ -32,9 +35,27 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function MobileMenu({ categories, basePath, storeName }: MobileMenuProps) {
+export function MobileMenu({ categories, basePath, storeName, logoUrl }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [mounted, setMounted] = useState(false);
+  
+  // Mount check for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  
+  // Lock body scroll when menu is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
 
   // Organize categories into parent/child structure
   const parentCategories = categories.filter(c => !c.parentId);
@@ -61,41 +82,42 @@ export function MobileMenu({ categories, basePath, storeName }: MobileMenuProps)
 
   const closeMenu = () => setIsOpen(false);
 
-  return (
+  // Mobile menu content - rendered via portal to body to escape header stacking context
+  // Always render for smooth animation, control visibility via CSS
+  const menuContent = mounted ? createPortal(
     <>
-      {/* Hamburger Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="lg:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"
-        aria-label="פתח תפריט"
-      >
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <line x1="3" y1="6" x2="21" y2="6" />
-          <line x1="3" y1="12" x2="21" y2="12" />
-          <line x1="3" y1="18" x2="21" y2="18" />
-        </svg>
-      </button>
-
-      {/* Overlay */}
+      {/* Overlay - Click to close */}
       <div 
-        className={`fixed inset-0 bg-black/30 z-40 transition-opacity duration-300 ${
+        className={`fixed inset-0 bg-black/40 z-[9998] transition-opacity duration-300 ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={closeMenu}
+        aria-hidden="true"
       />
       
-      {/* Sidebar - Opens from right side (RTL) */}
+      {/* Sidebar - Opens from right side (RTL) - Full height with smooth animation */}
       <div 
-        className={`fixed top-0 right-0 h-full w-full max-w-[320px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-out ${
+        className={`fixed top-0 right-0 bottom-0 w-full max-w-[320px] bg-white shadow-2xl z-[9999] flex flex-col transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         dir="rtl"
+        style={{ height: '100dvh' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <span className="font-display text-lg tracking-[0.2em] font-light uppercase">
-            {storeName}
-          </span>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
+          {logoUrl ? (
+            <Image
+              src={logoUrl}
+              alt={storeName}
+              width={120}
+              height={40}
+              className="h-8 w-auto object-contain"
+            />
+          ) : (
+            <span className="font-display text-lg tracking-[0.2em] font-light uppercase">
+              {storeName}
+            </span>
+          )}
           <button 
             onClick={closeMenu}
             className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-black transition-colors cursor-pointer"
@@ -108,8 +130,8 @@ export function MobileMenu({ categories, basePath, storeName }: MobileMenuProps)
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+        {/* Navigation - fills remaining height */}
+        <nav className="flex-1 overflow-y-auto bg-white">
           <ul className="py-4">
             {/* Home Link */}
             <li>
@@ -182,6 +204,26 @@ export function MobileMenu({ categories, basePath, storeName }: MobileMenuProps)
           </ul>
         </nav>
       </div>
+    </>,
+    document.body
+  ) : null;
+
+  return (
+    <>
+      {/* Hamburger Button */}
+      <button
+        onClick={() => setIsOpen(true)}
+        className="lg:hidden w-10 h-10 flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"
+        aria-label="פתח תפריט"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+
+      {menuContent}
     </>
   );
 }

@@ -140,12 +140,15 @@ export function ShopHeader({
 
   // Icons component - renders client components directly (no wrapper overhead)
   // Per REQUIREMENTS.md: "use client" only for cart button, search form, etc.
-  const Icons = ({ searchFirst = false }: { searchFirst?: boolean }) => (
+  // In RTL: first in JSX = rightmost visually, last in JSX = leftmost visually
+  // cartAtEnd (default): cart is LAST in JSX = leftmost (for logo-right where icons are on left)
+  // cartAtStart: cart is FIRST in JSX = rightmost (for logo-left where icons are on right)
+  const Icons = ({ cartAtStart = false }: { cartAtStart?: boolean }) => (
     <div className="flex items-center gap-1 sm:gap-2">
-      {searchFirst && showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
+      {cartAtStart && showCart && <CartButton />}
+      {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
       {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
-      {showCart && <CartButton />}
-      {!searchFirst && showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
+      {!cartAtStart && showCart && <CartButton />}
     </div>
   );
   
@@ -160,7 +163,7 @@ export function ShopHeader({
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
             {/* Right: Mobile Menu + Logo */}
             <div className="flex items-center gap-2">
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
               <Logo />
             </div>
 
@@ -176,21 +179,22 @@ export function ShopHeader({
   }
 
   // Layout 2: Logo Left - לוגו בשמאל, תפריט במרכז, אייקונים מימין
+  // Mobile: hamburger at extreme left, logo next to it, cart at extreme right
   if (layout === 'logo-left') {
     return (
       <header className={headerClass}>
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-            {/* Right: Icons */}
-            <Icons />
+            {/* Right (in RTL = visual right): Icons with cart at extreme right */}
+            <Icons cartAtStart />
 
             {/* Center: Navigation */}
             <Navigation />
 
-            {/* Left: Logo + Mobile Menu */}
+            {/* Left (in RTL = visual left): Mobile Menu at extreme + Logo */}
             <div className="flex items-center gap-2">
               <Logo />
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
             </div>
           </div>
         </div>
@@ -198,23 +202,25 @@ export function ShopHeader({
     );
   }
 
-  // Layout 3: Logo Center - לוגו במרכז, חיפוש מימין ושאר אייקונים משמאל, תפריט מתחת
+  // Layout 3: Logo Center - לוגו במרכז, תפריט מתחת
+  // Mobile: hamburger on right, logo center, cart at extreme left
   return (
     <header className={headerClass}>
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
-        {/* Top row: Search - Logo - Icons */}
+        {/* Top row: Hamburger/Search - Logo - Icons */}
         <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
-          {/* Right: Search + Mobile Menu */}
-          <div className="flex items-center">
-            {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
-            <MobileMenu categories={categories} basePath={basePath} storeName={storeName} />
+          {/* Right: Mobile Menu + Search (desktop) */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
+            {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
           </div>
 
           {/* Center: Logo */}
           <Logo className="absolute left-1/2 -translate-x-1/2" />
 
-          {/* Left: User & Cart (no search, it's on the right) */}
+          {/* Left: User, Search (mobile), Cart at extreme left */}
           <div className="flex items-center gap-1 sm:gap-2">
+            {showSearch && <span className="lg:hidden"><SearchButton basePath={basePath} storeId={storeId} /></span>}
             {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
             {showCart && <CartButton />}
           </div>
