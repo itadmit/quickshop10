@@ -22,7 +22,14 @@ interface SectionTreeProps {
   onRemoveSection: (id: string) => void;
   onReorderSections: (fromIndex: number, toIndex: number) => void;
   headerLayout?: 'logo-right' | 'logo-left' | 'logo-center';
+  currentPage?: string;
 }
+
+// Page labels
+const PAGE_LABELS: Record<string, string> = {
+  home: 'דף הבית',
+  coming_soon: 'Coming Soon',
+};
 
 const sectionTypes = [
   { type: 'hero', label: 'באנר ראשי', icon: '🖼️' },
@@ -42,7 +49,10 @@ export function SectionTree({
   onRemoveSection,
   onReorderSections,
   headerLayout,
+  currentPage = 'home',
 }: SectionTreeProps) {
+  const pageLabel = PAGE_LABELS[currentPage] || currentPage;
+  const isComingSoon = currentPage === 'coming_soon';
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -94,48 +104,64 @@ export function SectionTree({
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header */}
       <div className="p-4 border-b border-gray-200">
-        <h2 className="text-sm font-medium text-gray-900">דף הבית</h2>
+        <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
       </div>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-auto">
-        {/* Header Section */}
-        <div className="border-b border-gray-100">
-          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-            כותרת עליונה
-          </div>
-          <SectionItem
-            icon="header"
-            label="פס הודעות"
-            isSelected={selectedSectionId === 'announcement-bar'}
-            onClick={() => onSelectSection('announcement-bar')}
-          />
-          <SectionItem
-            icon="header"
-            label="הדר"
-            isSelected={selectedSectionId === 'header'}
-            onClick={() => onSelectSection('header')}
-            hasChildren
-            isExpanded={expandedSections.has('header')}
-            onToggle={() => toggleExpand('header')}
-          />
-          {/* Header layout preview when expanded */}
-          {expandedSections.has('header') && (
-            <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-              <span className="text-xs text-gray-500">
-                פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
-                         headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
-              </span>
+        {/* Header Section - only for home page */}
+        {!isComingSoon && (
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              כותרת עליונה
             </div>
-          )}
-          <AddSectionButton onClick={() => setShowAddMenu(true)} small />
-        </div>
+            <SectionItem
+              icon="header"
+              label="פס הודעות"
+              isSelected={selectedSectionId === 'announcement-bar'}
+              onClick={() => onSelectSection('announcement-bar')}
+            />
+            <SectionItem
+              icon="header"
+              label="הדר"
+              isSelected={selectedSectionId === 'header'}
+              onClick={() => onSelectSection('header')}
+              hasChildren
+              isExpanded={expandedSections.has('header')}
+              onToggle={() => toggleExpand('header')}
+            />
+            {/* Header layout preview when expanded */}
+            {expandedSections.has('header') && (
+              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+                <span className="text-xs text-gray-500">
+                  פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
+                           headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
+                </span>
+              </div>
+            )}
+            <AddSectionButton onClick={() => setShowAddMenu(true)} small />
+          </div>
+        )}
 
         {/* Template Sections */}
         <div className="border-b border-gray-100">
           <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-            תבנית
+            {isComingSoon ? 'סקשנים' : 'תבנית'}
           </div>
+          
+          {/* Empty state for Coming Soon */}
+          {sections.length === 0 && isComingSoon && (
+            <div className="px-4 py-6 text-center">
+              <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <path d="M12 8v8M8 12h8" />
+                </svg>
+              </div>
+              <p className="text-sm text-gray-600 mb-1">אין עדיין סקשנים</p>
+              <p className="text-xs text-gray-400">לחץ על &quot;הוסף סקשן&quot; כדי להתחיל</p>
+            </div>
+          )}
           
           {sections.map((section, index) => (
             <div
@@ -174,29 +200,31 @@ export function SectionTree({
           />
         </div>
 
-        {/* Footer Section */}
-        <div>
-          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-            פוטר
-          </div>
-          <SectionItem
-            icon="footer"
-            label="פוטר"
-            isSelected={selectedSectionId === 'footer'}
-            onClick={() => onSelectSection('footer')}
-            hasChildren
-            isExpanded={expandedSections.has('footer')}
-            onToggle={() => toggleExpand('footer')}
-          />
-          {/* Footer sub-items when expanded */}
-          {expandedSections.has('footer') && (
-            <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-              <span className="text-xs text-gray-500">
-                לוגו • ניוזלטר • רשתות חברתיות
-              </span>
+        {/* Footer Section - only for home page */}
+        {!isComingSoon && (
+          <div>
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              פוטר
             </div>
-          )}
-        </div>
+            <SectionItem
+              icon="footer"
+              label="פוטר"
+              isSelected={selectedSectionId === 'footer'}
+              onClick={() => onSelectSection('footer')}
+              hasChildren
+              isExpanded={expandedSections.has('footer')}
+              onToggle={() => toggleExpand('footer')}
+            />
+            {/* Footer sub-items when expanded */}
+            {expandedSections.has('footer') && (
+              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+                <span className="text-xs text-gray-500">
+                  לוגו • ניוזלטר • רשתות חברתיות
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Add Section Modal */}

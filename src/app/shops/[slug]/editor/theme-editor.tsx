@@ -605,6 +605,7 @@ export function ThemeEditor({
             onRemoveSection={removeSection}
             onReorderSections={reorderSections}
             headerLayout={themeSettings.headerLayout}
+            currentPage={currentPage}
           />
         </div>
       </div>

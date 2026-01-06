@@ -2,6 +2,8 @@ import { notFound, redirect } from 'next/navigation';
 import { getStoreBySlug, getPageSections, getCategoriesByStore } from '@/lib/db/queries';
 import { auth } from '@/lib/auth';
 import { ThemeEditor } from './theme-editor';
+import { db } from '@/lib/db';
+import { pageSections } from '@/lib/db/schema';
 
 // ============================================
 // Theme Editor Page - Full Screen (No Admin Layout)
@@ -38,7 +40,50 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
   }
 
   // Fetch sections for the editor sidebar
-  const rawSections = await getPageSections(store.id, currentPage);
+  let rawSections = await getPageSections(store.id, currentPage);
+
+  // For coming_soon page: auto-create default sections if none exist
+  // This handles existing stores that don't have coming_soon sections yet
+  if (currentPage === 'coming_soon' && rawSections.length === 0) {
+    await db.insert(pageSections).values([
+      {
+        storeId: store.id,
+        page: 'coming_soon',
+        type: 'hero',
+        title: 'Coming Soon',
+        subtitle: store.name,
+        content: {
+          imageUrl: 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420',
+          buttonText: '',
+          buttonLink: '',
+        },
+        settings: {
+          height: '100vh',
+          overlay: 0.6,
+        },
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        storeId: store.id,
+        page: 'coming_soon',
+        type: 'newsletter',
+        title: 'הישארו מעודכנים',
+        subtitle: 'אנחנו עובדים על משהו מיוחד. השאירו את האימייל שלכם ונעדכן אתכם כשנפתח.',
+        content: {
+          placeholder: 'כתובת אימייל',
+          buttonText: 'עדכנו אותי',
+        },
+        settings: {
+          maxWidth: '500px',
+        },
+        sortOrder: 1,
+        isActive: true,
+      },
+    ]);
+    // Refetch after creation
+    rawSections = await getPageSections(store.id, currentPage);
+  }
 
   // Type-cast sections to match expected interface
   const sections = rawSections.map(s => ({
