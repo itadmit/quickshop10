@@ -108,6 +108,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
 
   return (
     <ThemeEditor
+      key={currentPage} // Force remount when page changes
       store={store}
       slug={slug}
       sections={sections}
