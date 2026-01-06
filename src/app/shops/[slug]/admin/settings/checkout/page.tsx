@@ -20,6 +20,17 @@ export default async function CheckoutSettingsPage({ params }: CheckoutSettingsP
   const settings = store.settings as Record<string, unknown> || {};
   const checkoutSettings = (settings.checkout as Record<string, unknown>) || {};
 
+  const settingsTabs = [
+    { id: 'general', label: 'כללי', href: '' },
+    { id: 'domain', label: 'דומיין', href: '/domain' },
+    { id: 'payments', label: 'תשלומים', href: '/payments' },
+    { id: 'tracking', label: 'מעקב', href: '/tracking' },
+    { id: 'checkout', label: 'קופה', href: '/checkout' },
+    { id: 'shipping', label: 'משלוח', href: '/shipping' },
+    { id: 'tax', label: 'מיסים', href: '/tax' },
+    { id: 'notifications', label: 'התראות', href: '/notifications' },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -31,13 +42,16 @@ export default async function CheckoutSettingsPage({ params }: CheckoutSettingsP
       </div>
 
       {/* Navigation Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex gap-6 overflow-x-auto">
-          <SettingsTab href={`/shops/${slug}/admin/settings`} label="כללי" />
-          <SettingsTab href={`/shops/${slug}/admin/settings/tracking`} label="Tracking" />
-          <SettingsTab href={`/shops/${slug}/admin/settings/checkout`} label="Checkout" active />
-          <SettingsTab href={`/shops/${slug}/admin/settings/shipping`} label="משלוח" />
-          <SettingsTab href={`/shops/${slug}/admin/settings/notifications`} label="התראות" />
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <nav className="flex border-b border-gray-200 px-4 overflow-x-auto">
+          {settingsTabs.map((tab) => (
+            <SettingsTab
+              key={tab.id}
+              href={`/shops/${slug}/admin/settings${tab.href}`}
+              label={tab.label}
+              active={tab.id === 'checkout'}
+            />
+          ))}
         </nav>
       </div>
 
@@ -51,11 +65,13 @@ function SettingsTab({ href, label, active = false }: { href: string; label: str
   return (
     <Link
       href={href}
-      className={`pb-3 text-sm font-medium border-b-2 transition-colors ${
-        active
-          ? 'border-black text-black'
+      className={`
+        px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap
+        ${active
+          ? 'border-gray-900 text-gray-900'
           : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-      }`}
+        }
+      `}
     >
       {label}
     </Link>

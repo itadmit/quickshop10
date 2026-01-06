@@ -148,7 +148,7 @@ export const getSalesByDay = cache(async (
   customRange?: DateRange
 ) => {
   const { from, to } = getDateRange(period, customRange);
-  
+
   // Check if it's a single day (less than 25 hours difference)
   const isSingleDay = (to.getTime() - from.getTime()) < 25 * 60 * 60 * 1000;
   
@@ -204,26 +204,26 @@ export const getSalesByDay = cache(async (
     return allHours;
   } else {
     // Group by day for multiple days
-    const result = await db
-      .select({
-        date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
-        revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
-        orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
-      })
-      .from(orders)
-      .where(and(
-        eq(orders.storeId, storeId),
-        gte(orders.createdAt, from),
-        lte(orders.createdAt, to)
-      ))
-      .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`)
-      .orderBy(asc(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`));
+  const result = await db
+    .select({
+      date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
+      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+      orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ))
+    .groupBy(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`)
+    .orderBy(asc(sql`to_char(${orders.createdAt}, 'YYYY-MM-DD')`));
 
-    return result.map(r => ({
-      date: String(r.date),
-      revenue: parseFloat(String(r.revenue)) || 0,
-      orders: parseInt(String(r.orderCount)) || 0,
-    }));
+  return result.map(r => ({
+    date: String(r.date),
+    revenue: parseFloat(String(r.revenue)) || 0,
+    orders: parseInt(String(r.orderCount)) || 0,
+  }));
   }
 });
 

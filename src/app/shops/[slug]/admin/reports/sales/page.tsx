@@ -88,7 +88,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
 
   // Check if data is by hour (contains time in date string)
   const isByHour = data[0]?.date.includes(' ') && data[0]?.date.includes(':');
-  
+
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
   
   return (
@@ -105,7 +105,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
             const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
             label = `${hour}:00`;
           } else {
-            const date = new Date(day.date);
+          const date = new Date(day.date);
             label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
           }
           
@@ -152,7 +152,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
             const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
             label = `${hour}:00`;
           } else {
-            const date = new Date(day.date);
+          const date = new Date(day.date);
             label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
           }
           

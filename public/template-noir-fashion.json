@@ -1,0 +1,164 @@
+{
+  "templateId": "noir",
+  "storeName": "Argania",
+  "exportDate": "2026-01-06T08:44:54.143Z",
+  "sections": [
+    {
+      "id": "f6512ffa-558f-414a-9163-8c2cdc2ae3f5",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "hero",
+      "title": "NOIR",
+      "subtitle": "קולקציית סתיו-חורף 2025!",
+      "content": {
+        "imageUrl": "https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420",
+        "buttonLink": "#products",
+        "buttonText": "גלה את הקולקציה"
+      },
+      "settings": {
+        "height": "90vh",
+        "overlay": 0.1
+      },
+      "sortOrder": 0,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:04.790Z",
+      "updatedAt": "2026-01-06T08:42:16.120Z"
+    },
+    {
+      "id": "e8929f18-a723-44ae-91ba-4ebcd013a6cd",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "categories",
+      "title": null,
+      "subtitle": null,
+      "content": {
+        "limit": 4,
+        "showAll": true,
+        "categoryIds": [
+          "168ad570-afb2-4ec7-9079-15d0b9611513",
+          "602e10a9-f488-4cd4-8dd3-361d91280546",
+          "0c6749d9-e3ac-4c7b-919f-bd100ddaa47b",
+          "603c60ad-a9a2-44f1-a9c6-3f521fb418d5"
+        ]
+      },
+      "settings": {
+        "gap": 8,
+        "columns": 4
+      },
+      "sortOrder": 1,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:04.860Z",
+      "updatedAt": "2026-01-06T08:42:16.322Z"
+    },
+    {
+      "id": "8b0f43b9-f562-4c98-8df7-5f7300e1e9f0",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "products",
+      "title": "פריטים נבחרים",
+      "subtitle": "הבחירות שלנו לעונה",
+      "content": {
+        "type": "all",
+        "limit": 4
+      },
+      "settings": {
+        "gap": 8,
+        "columns": 4
+      },
+      "sortOrder": 2,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:04.931Z",
+      "updatedAt": "2026-01-06T08:42:16.391Z"
+    },
+    {
+      "id": "1abbe035-1fa6-47a7-b335-ddc96c9894b3",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "video_banner",
+      "title": "קולקציה חדשה",
+      "subtitle": "חדש בחנות",
+      "content": {
+        "videoUrl": "https://image.hm.com/content/dam/global_campaigns/season_02/women/9000d/9000D-W-6C-16x9-women-spoil.mp4",
+        "buttonLink": "/category/women",
+        "buttonText": "לצפייה בקולקציה"
+      },
+      "settings": {
+        "height": "80vh",
+        "overlay": 0.2
+      },
+      "sortOrder": 3,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:05.003Z",
+      "updatedAt": "2026-01-06T08:42:16.461Z"
+    },
+    {
+      "id": "69300c5b-d27f-4441-b7de-48e9cc30fdb9",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "split_banner",
+      "title": null,
+      "subtitle": null,
+      "content": {
+        "items": [
+          {
+            "link": "/category/women",
+            "title": "נשים",
+            "imageUrl": "https://static.zara.net/assets/public/024c/0dd8/e19e4df78c61/f20fd99a35d2/02335629250-p/02335629250-p.jpg?ts=1752493031914&w=1230"
+          },
+          {
+            "link": "/category/men",
+            "title": "גברים",
+            "imageUrl": "https://static.zara.net/assets/public/a132/8434/0ddd438dbcef/110f9ea930b3/05939539716-p/05939539716-p.jpg?ts=1758270012870&w=2560"
+          }
+        ]
+      },
+      "settings": {
+        "height": "70vh"
+      },
+      "sortOrder": 4,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:05.075Z",
+      "updatedAt": "2026-01-06T08:42:16.531Z"
+    },
+    {
+      "id": "e4d18ce0-1c69-4a3e-8c29-8c152faae16c",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "products",
+      "title": "כל המוצרים",
+      "subtitle": null,
+      "content": {
+        "type": "all",
+        "limit": 4
+      },
+      "settings": {
+        "gap": 8,
+        "columns": 4,
+        "showCount": true
+      },
+      "sortOrder": 5,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:05.143Z",
+      "updatedAt": "2026-01-06T08:42:16.600Z"
+    },
+    {
+      "id": "02162a0e-0b4c-4119-9de9-df438c642b90",
+      "storeId": "d3c2b245-26c6-41c4-975a-a29f733c83a9",
+      "page": "home",
+      "type": "newsletter",
+      "title": "הצטרפו למועדון",
+      "subtitle": "הרשמו לניוזלטר וקבלו 15% הנחה על ההזמנה הראשונה",
+      "content": {
+        "buttonText": "הרשמה",
+        "placeholder": "כתובת אימייל"
+      },
+      "settings": {
+        "maxWidth": "xl"
+      },
+      "sortOrder": 6,
+      "isActive": true,
+      "createdAt": "2026-01-01T18:53:05.213Z",
+      "updatedAt": "2026-01-06T08:42:16.670Z"
+    }
+  ]
+}

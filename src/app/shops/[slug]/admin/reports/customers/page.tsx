@@ -191,7 +191,7 @@ function NewVsReturningChart({
 
   // Check if data is by hour (contains time in date string)
   const isByHour = data[0]?.date.includes(' ') && data[0]?.date.includes(':');
-  
+
   const maxValue = Math.max(...data.map(d => d.newCustomers + d.returningCustomers), 1);
 
   return (

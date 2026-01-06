@@ -246,7 +246,7 @@ export default async function InfluencerDetailPage({
           storeId={store.id} 
           storeSlug={slug}
           influencerId={influencerId} 
-          period={period}
+          period={period} 
           customRange={customRange}
         />
       </Suspense>

@@ -26,7 +26,7 @@ export async function PUT(
   try {
     const { slug } = await params;
     const body = await request.json();
-    const { sections } = body as { sections: Section[] };
+    const { sections, page = 'home' } = body as { sections: Section[]; page?: string };
 
     // Get store
     const [store] = await db
@@ -46,7 +46,7 @@ export async function PUT(
         // Create new section
         await db.insert(pageSections).values({
           storeId: store.id,
-          page: 'home',
+          page: page, // Use the page parameter
           type: section.type as 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom',
           title: section.title,
           subtitle: section.subtitle,
@@ -88,7 +88,7 @@ export async function PUT(
       .where(
         and(
           eq(pageSections.storeId, store.id),
-          eq(pageSections.page, 'home')
+          eq(pageSections.page, page) // Use the page parameter
         )
       );
 

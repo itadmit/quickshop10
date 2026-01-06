@@ -10,12 +10,15 @@ import { ThemeEditor } from './theme-editor';
 
 interface EditorPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ template?: string }>;
+  searchParams: Promise<{ template?: string; page?: string }>;
 }
 
 export default async function EditorPage({ params, searchParams }: EditorPageProps) {
   const { slug } = await params;
-  const { template } = await searchParams;
+  const { template, page: pageParam } = await searchParams;
+  
+  // Current page being edited (home, coming_soon, etc.)
+  const currentPage = pageParam || 'home';
   
   // Check authentication
   const session = await auth();
@@ -35,7 +38,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
   }
 
   // Fetch sections for the editor sidebar
-  const rawSections = await getPageSections(store.id, 'home');
+  const rawSections = await getPageSections(store.id, currentPage);
 
   // Type-cast sections to match expected interface
   const sections = rawSections.map(s => ({
@@ -65,6 +68,8 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
       sections={sections}
       templateId={currentTemplateId}
       categories={categoriesForEditor}
+      currentPage={currentPage}
+      isPublished={store.isPublished}
     />
   );
 }

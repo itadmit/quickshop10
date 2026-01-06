@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SectionTree } from './section-tree';
 import { SectionSettings } from './section-settings';
 import { LivePreview } from './live-preview';
@@ -70,12 +71,20 @@ interface Category {
   parentId: string | null;
 }
 
+// Available pages for editing
+const EDITABLE_PAGES = [
+  { id: 'home', label: 'דף הבית', icon: 'home' },
+  { id: 'coming_soon', label: 'Coming Soon', icon: 'clock' },
+] as const;
+
 interface ThemeEditorProps {
   store: Store;
   slug: string;
   sections: Section[];
   templateId: string;
   categories?: Category[];
+  currentPage?: string;
+  isPublished?: boolean;
 }
 
 export function ThemeEditor({
@@ -84,7 +93,10 @@ export function ThemeEditor({
   sections: initialSections,
   templateId,
   categories = [],
+  currentPage = 'home',
+  isPublished = false,
 }: ThemeEditorProps) {
+  const router = useRouter();
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
     initialSections[0]?.id || null
@@ -93,8 +105,12 @@ export function ThemeEditor({
   const [hasChanges, setHasChanges] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop');
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
+  const [showPageDropdown, setShowPageDropdown] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  
+  // Get current page info
+  const currentPageInfo = EDITABLE_PAGES.find(p => p.id === currentPage) || EDITABLE_PAGES[0];
   
   // Theme settings state - loaded from store settings
   // Original settings from DB (for comparison)
@@ -234,7 +250,7 @@ export function ThemeEditor({
         fetch(`/api/shops/${slug}/settings/sections`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ sections }),
+          body: JSON.stringify({ sections, page: currentPage }),
         }),
       ];
       
@@ -384,15 +400,83 @@ export function ThemeEditor({
             <ArrowRightIcon />
           </Link>
           <span className="text-white font-medium">{store.name}</span>
-          <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-medium rounded-full">
-            ● פעיל
+          <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
+            isPublished 
+              ? 'bg-green-500/20 text-green-400' 
+              : 'bg-amber-500/20 text-amber-400'
+          }`}>
+            ● {isPublished ? 'פעיל' : 'Coming Soon'}
           </span>
         </div>
 
-        {/* Center - Page Selector */}
-        <div className="flex items-center gap-2">
-          <HomeIcon />
-          <span className="text-white text-sm">דף הבית</span>
+        {/* Center - Page Selector Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => setShowPageDropdown(!showPageDropdown)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+          >
+            {currentPageInfo.icon === 'home' ? <HomeIcon /> : <ClockIcon />}
+            <span className="text-white text-sm">{currentPageInfo.label}</span>
+            <ChevronDownIcon />
+          </button>
+          
+          {/* Dropdown */}
+          {showPageDropdown && (
+            <>
+              {/* Backdrop */}
+              <div 
+                className="fixed inset-0 z-40" 
+                onClick={() => setShowPageDropdown(false)} 
+              />
+              
+              {/* Dropdown Menu */}
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-[#2a2a3e] rounded-lg shadow-xl border border-white/10 overflow-hidden z-50">
+                <div className="p-2">
+                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40">עמודים</p>
+                  
+                  {EDITABLE_PAGES.map((page) => (
+                    <button
+                      key={page.id}
+                      onClick={() => {
+                        if (page.id !== currentPage) {
+                          // Navigate to different page
+                          router.push(`/shops/${slug}/editor?page=${page.id}`);
+                        }
+                        setShowPageDropdown(false);
+                      }}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer ${
+                        page.id === currentPage 
+                          ? 'bg-white/10 text-white' 
+                          : 'text-white/70 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      {page.icon === 'home' ? (
+                        <HomeIcon />
+                      ) : (
+                        <ClockIcon />
+                      )}
+                      <span className="text-sm">{page.label}</span>
+                      {page.id === currentPage && (
+                        <span className="mr-auto text-green-400">
+                          <CheckIcon />
+                        </span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+                
+                {/* Store Status */}
+                <div className="border-t border-white/10 p-2">
+                  <div className="px-3 py-2 flex items-center justify-between">
+                    <span className="text-xs text-white/50">מצב האתר:</span>
+                    <span className={`text-xs font-medium ${isPublished ? 'text-green-400' : 'text-yellow-400'}`}>
+                      {isPublished ? '● פתוח' : '● Coming Soon'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Left - Actions */}
@@ -507,6 +591,7 @@ export function ThemeEditor({
             onSelectSection={setSelectedSectionId}
             refreshKey={previewRefreshKey}
             onIframeLoad={handleIframeLoad}
+            currentPage={currentPage}
           />
         </div>
 
@@ -575,8 +660,33 @@ function ArrowRightIcon() {
 
 function HomeIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 6v6l4 2" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M20 6L9 17l-5-5" />
     </svg>
   );
 }

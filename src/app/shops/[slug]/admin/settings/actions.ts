@@ -11,6 +11,7 @@ interface GeneralSettingsData {
   faviconUrl: string;
   currency: string;
   timezone: string;
+  isPublished: boolean;
   contactEmail: string;
   contactPhone: string;
   address: string;
@@ -22,6 +23,8 @@ interface GeneralSettingsData {
   lowStockThreshold: number;
   // הגדרות החזרות
   returnPolicyDays: number;
+  // הגדרות תצוגת מחירים
+  showDecimalPrices: boolean;
 }
 
 export async function updateStoreSettings(storeId: string, data: GeneralSettingsData) {
@@ -53,6 +56,8 @@ export async function updateStoreSettings(storeId: string, data: GeneralSettings
       lowStockThreshold: data.lowStockThreshold || 5,
       // הגדרות החזרות
       returnPolicyDays: data.returnPolicyDays ?? 14,
+      // הגדרות תצוגת מחירים
+      showDecimalPrices: data.showDecimalPrices ?? false,
     };
 
     // Update store
@@ -64,6 +69,7 @@ export async function updateStoreSettings(storeId: string, data: GeneralSettings
         faviconUrl: data.faviconUrl || null,
         currency: data.currency,
         timezone: data.timezone,
+        isPublished: data.isPublished,
         settings: newSettings,
         updatedAt: new Date(),
       })

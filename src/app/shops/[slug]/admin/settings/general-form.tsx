@@ -13,6 +13,7 @@ interface Store {
   faviconUrl: string | null;
   currency: string;
   timezone: string | null;
+  isPublished: boolean;
 }
 
 interface GeneralSettingsFormProps {
@@ -31,6 +32,7 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
     faviconUrl: store.faviconUrl || '',
     currency: store.currency,
     timezone: store.timezone || 'Asia/Jerusalem',
+    isPublished: store.isPublished,
     contactEmail: (settings.contactEmail as string) || '',
     contactPhone: (settings.contactPhone as string) || '',
     address: (settings.address as string) || '',
@@ -62,6 +64,63 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
+      {/* Store Status - Publish Toggle */}
+      <div className={`border rounded-lg p-6 ${formData.isPublished ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.isPublished ? 'bg-green-100' : 'bg-amber-100'}`}>
+              {formData.isPublished ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M8 12l2 2 4-4" />
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 6v6l4 2" />
+                </svg>
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {formData.isPublished ? 'האתר פתוח ללקוחות' : 'האתר במצב Coming Soon'}
+              </h2>
+              <p className="text-sm text-gray-600">
+                {formData.isPublished 
+                  ? 'לקוחות יכולים לגלוש ולרכוש בחנות שלך' 
+                  : 'לקוחות יראו דף "בקרוב" עד שתפתח את האתר'}
+              </p>
+            </div>
+          </div>
+          
+          {/* Toggle Switch */}
+          <button
+            type="button"
+            onClick={() => setFormData(prev => ({ ...prev, isPublished: !prev.isPublished }))}
+            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer ${
+              formData.isPublished ? 'bg-green-500' : 'bg-gray-300'
+            }`}
+          >
+            <span
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
+                formData.isPublished ? 'translate-x-8' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+        
+        {!formData.isPublished && (
+          <div className="mt-4 pt-4 border-t border-amber-200">
+            <p className="text-xs text-amber-700">
+              💡 טיפ: ניתן לערוך את דף ה-Coming Soon דרך{' '}
+              <a href={`/shops/${store.slug}/editor?page=coming_soon`} className="underline font-medium">
+                עורך העיצוב
+              </a>
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Store Info */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">פרטי החנות</h2>

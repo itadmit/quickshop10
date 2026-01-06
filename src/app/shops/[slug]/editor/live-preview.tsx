@@ -13,6 +13,7 @@ interface LivePreviewProps {
   onSelectSection: (id: string) => void;
   refreshKey: number; // Increment to force iframe refresh
   onIframeLoad?: (iframe: HTMLIFrameElement) => void; // Callback to pass iframe ref to parent
+  currentPage?: string; // Page being edited (home, coming_soon, etc.)
 }
 
 export function LivePreview({
@@ -22,6 +23,7 @@ export function LivePreview({
   onSelectSection,
   refreshKey,
   onIframeLoad,
+  currentPage = 'home',
 }: LivePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -98,7 +100,10 @@ export function LivePreview({
   }, [onSelectSection]);
 
   // Storefront URL - use special editor preview mode
-  const previewUrl = `/shops/${storeSlug}?preview=true&t=${refreshKey}`;
+  // For coming_soon page, preview the coming_soon route; otherwise preview home
+  const previewUrl = currentPage === 'coming_soon' 
+    ? `/shops/${storeSlug}/coming-soon?preview=true&t=${refreshKey}`
+    : `/shops/${storeSlug}?preview=true&t=${refreshKey}`;
 
   return (
     <div className="flex flex-col items-center justify-start w-full h-full">

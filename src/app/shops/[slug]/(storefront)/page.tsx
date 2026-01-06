@@ -1,4 +1,4 @@
-import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached } from '@/lib/db/queries';
+import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections } from '@/lib/db/queries';
 import { 
   HeroSection, 
   CategoriesSection, 
@@ -10,7 +10,7 @@ import {
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 interface ShopPageProps {
   params: Promise<{ slug: string }>;
@@ -31,6 +31,11 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   // Check if preview mode (from editor iframe)
   const isPreviewMode = headersList.get('x-preview-mode') === 'true';
   
+  // If store is not published, show Coming Soon page (unless in preview mode)
+  if (!store.isPublished && !isPreviewMode) {
+    redirect(`${basePath}/coming-soon`);
+  }
+  
   // Get price display settings
   const storeSettings = (store.settings as Record<string, unknown>) || {};
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
@@ -43,64 +48,24 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
     getProductsByStore(store.id, 12),
   ]);
 
-  // If no sections exist, show "Coming Soon" page
+  // If no sections exist, show empty state with message to add sections
   if (sections.length === 0) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col">
-        {/* Coming Soon Hero */}
-        <section className="flex-1 flex flex-col items-center justify-center px-6 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1a1a1a_0%,#000_100%)]" />
-          
-          <div className="relative z-10 text-center max-w-2xl mx-auto">
-            <p className="text-white/40 text-[10px] tracking-[0.5em] uppercase mb-8 animate-fade-in">
-              {store.name}
-            </p>
-            
-            <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extralight tracking-[0.2em] mb-8 animate-slide-up uppercase">
-              Coming Soon
-            </h1>
-            
-            <div className="w-16 h-px bg-white/20 mx-auto mb-8" />
-            
-            <p className="text-white/50 text-sm tracking-wide leading-relaxed mb-12 animate-slide-up" style={{ animationDelay: '200ms' }}>
-              אנחנו עובדים על משהו מיוחד.
-              <br />
-              השאירו את האימייל שלכם ונעדכן אתכם כשנפתח.
-            </p>
-
-            {/* Newsletter signup */}
-            <div className="flex flex-col sm:flex-row max-w-md mx-auto gap-3 animate-slide-up" style={{ animationDelay: '400ms' }}>
-              <input 
-                type="email" 
-                placeholder="כתובת אימייל"
-                className="flex-1 px-6 py-4 bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/30 focus:border-white/30 transition-colors"
-              />
-              <button className="px-8 py-4 bg-white text-black text-[11px] tracking-[0.15em] uppercase hover:bg-white/90 transition-colors cursor-pointer">
-                עדכנו אותי
-              </button>
-            </div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8" dir="rtl">
+        <div className="text-center max-w-md">
+          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+              <rect x="3" y="3" width="18" height="18" rx="2" />
+              <path d="M3 9h18M9 21V9" />
+            </svg>
           </div>
-
-          {/* Decorative elements */}
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2">
-            <div className="flex gap-6">
-              <a href="#" className="text-white/30 hover:text-white/60 transition-colors text-xs tracking-wide">Instagram</a>
-              <a href="#" className="text-white/30 hover:text-white/60 transition-colors text-xs tracking-wide">Facebook</a>
-            </div>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="py-6 px-6 border-t border-white/5">
-          <div className="max-w-7xl mx-auto flex justify-between items-center">
-            <p className="text-[10px] text-white/20 tracking-wide">
-              © 2025 {store.name}
-            </p>
-            <p className="text-[10px] text-white/20 tracking-wide">
-              נבנה עם QuickShop ⚡
-            </p>
-          </div>
-        </footer>
+          <h1 className="text-xl font-medium text-gray-900 mb-2">
+            עדיין אין תוכן
+          </h1>
+          <p className="text-gray-500 mb-6">
+            הוסף סקשנים לדף הבית דרך עורך העיצוב
+          </p>
+        </div>
       </div>
     );
   }

@@ -174,6 +174,7 @@ export const stores = pgTable('stores', {
   planExpiresAt: timestamp('plan_expires_at'),
   orderCounter: integer('order_counter').default(1000).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
+  isPublished: boolean('is_published').default(false).notNull(), // false = Coming Soon, true = Live
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { users, stores } from '@/lib/db/schema';
+import { users, stores, pageSections } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { signIn, signOut } from '@/lib/auth';
@@ -87,11 +87,12 @@ export async function register(data: RegisterData) {
     }).returning();
 
     // Create store
-    await db.insert(stores).values({
+    const [newStore] = await db.insert(stores).values({
       ownerId: user.id,
       name: data.storeName,
       slug,
       currency: 'ILS',
+      isPublished: false, // Start with Coming Soon
       settings: {
         contact_email: data.email.toLowerCase(),
       },
@@ -102,7 +103,186 @@ export async function register(data: RegisterData) {
       seoSettings: {
         meta_title: data.storeName,
       },
-    });
+    }).returning();
+
+    // Create default Noir template sections for home page
+    await db.insert(pageSections).values([
+      // Hero Section
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'hero',
+        title: data.storeName.toUpperCase(),
+        subtitle: 'ברוכים הבאים לחנות שלנו',
+        content: {
+          imageUrl: 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420',
+          buttonLink: '#products',
+          buttonText: 'גלה את הקולקציה',
+        },
+        settings: {
+          height: '90vh',
+          overlay: 0.1,
+        },
+        sortOrder: 0,
+        isActive: true,
+      },
+      // Categories Section - show all categories
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'categories',
+        title: null,
+        subtitle: null,
+        content: {
+          showAll: true,
+          categoryIds: [], // Empty = show all
+        },
+        settings: {
+          gap: 8,
+          columns: 4,
+        },
+        sortOrder: 1,
+        isActive: true,
+      },
+      // Products Section - featured
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'products',
+        title: 'פריטים נבחרים',
+        subtitle: 'הבחירות שלנו לעונה',
+        content: {
+          type: 'all',
+          limit: 4,
+        },
+        settings: {
+          gap: 8,
+          columns: 4,
+        },
+        sortOrder: 2,
+        isActive: true,
+      },
+      // Video Banner Section
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'video_banner',
+        title: 'קולקציה חדשה',
+        subtitle: 'חדש בחנות',
+        content: {
+          videoUrl: 'https://image.hm.com/content/dam/global_campaigns/season_02/women/9000d/9000D-W-6C-16x9-women-spoil.mp4',
+          buttonLink: '/products',
+          buttonText: 'לצפייה בקולקציה',
+        },
+        settings: {
+          height: '80vh',
+          overlay: 0.2,
+        },
+        sortOrder: 3,
+        isActive: true,
+      },
+      // Split Banner Section
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'split_banner',
+        title: null,
+        subtitle: null,
+        content: {
+          items: [
+            {
+              link: '/products',
+              title: 'נשים',
+              imageUrl: 'https://static.zara.net/assets/public/024c/0dd8/e19e4df78c61/f20fd99a35d2/02335629250-p/02335629250-p.jpg?ts=1752493031914&w=1230',
+            },
+            {
+              link: '/products',
+              title: 'גברים',
+              imageUrl: 'https://static.zara.net/assets/public/a132/8434/0ddd438dbcef/110f9ea930b3/05939539716-p/05939539716-p.jpg?ts=1758270012870&w=2560',
+            },
+          ],
+        },
+        settings: {
+          height: '70vh',
+        },
+        sortOrder: 4,
+        isActive: true,
+      },
+      // All Products Section
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'products',
+        title: 'כל המוצרים',
+        subtitle: null,
+        content: {
+          type: 'all',
+          limit: 8,
+        },
+        settings: {
+          gap: 8,
+          columns: 4,
+          showCount: true,
+        },
+        sortOrder: 5,
+        isActive: true,
+      },
+      // Newsletter Section
+      {
+        storeId: newStore.id,
+        page: 'home',
+        type: 'newsletter',
+        title: 'הצטרפו למועדון',
+        subtitle: 'הרשמו לניוזלטר וקבלו 15% הנחה על ההזמנה הראשונה',
+        content: {
+          buttonText: 'הרשמה',
+          placeholder: 'כתובת אימייל',
+        },
+        settings: {
+          maxWidth: 'xl',
+        },
+        sortOrder: 6,
+        isActive: true,
+      },
+    ]);
+
+    // Create default Coming Soon sections
+    await db.insert(pageSections).values([
+      {
+        storeId: newStore.id,
+        page: 'coming_soon',
+        type: 'hero',
+        title: 'Coming Soon',
+        subtitle: data.storeName,
+        content: {
+          imageUrl: 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420',
+          buttonText: '',
+          buttonLink: '',
+        },
+        settings: {
+          height: '100vh',
+          overlay: 0.6,
+        },
+        sortOrder: 0,
+        isActive: true,
+      },
+      {
+        storeId: newStore.id,
+        page: 'coming_soon',
+        type: 'newsletter',
+        title: 'הישארו מעודכנים',
+        subtitle: 'אנחנו עובדים על משהו מיוחד. השאירו את האימייל שלכם ונעדכן אתכם כשנפתח.',
+        content: {
+          placeholder: 'כתובת אימייל',
+          buttonText: 'עדכנו אותי',
+        },
+        settings: {
+          maxWidth: '500px',
+        },
+        sortOrder: 1,
+        isActive: true,
+      },
+    ]);
 
     // Send welcome email (don't await - fire and forget)
     sendWelcomeEmail(user.email, user.name || undefined, data.storeName).catch(console.error);
