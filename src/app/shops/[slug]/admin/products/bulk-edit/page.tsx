@@ -167,7 +167,7 @@ export default async function BulkEditPage({ params, searchParams }: BulkEditPag
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">עריכה קבוצתית</h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            ערוך מחירים, מלאי ו-SKU ישירות בטבלה • {items.length} פריטים
+            ערוך מחירים, מלאי ומק״ט ישירות בטבלה • {items.length} פריטים
           </p>
         </div>
         <Link

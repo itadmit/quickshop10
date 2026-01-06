@@ -793,6 +793,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, prod
                   value={categoryIds}
                   onChange={setCategoryIds}
                   placeholder="בחר קטגוריות"
+                  storeId={storeId}
                 />
               </div>
 
@@ -819,12 +820,12 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, prod
               </div>
               <div className="p-4 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">מק״ט (SKU)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">מק״ט</label>
                   <input
                     type="text"
                     value={sku}
                     onChange={(e) => setSku(e.target.value)}
-                    placeholder="SKU-001"
+                    placeholder="מק״ט-001"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors font-mono text-sm"
                   />
                 </div>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useTransition } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, ChevronLeft, Search, X, Folder, FolderOpen, Check } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Search, X, Folder, FolderOpen, Check, Plus, Loader2 } from 'lucide-react';
 
 // ============================================
 // CategoryPicker - Hierarchical Category Selector
@@ -24,6 +24,137 @@ interface CategoryPickerProps {
   placeholder?: string;
   disabled?: boolean;
   className?: string;
+  storeId?: string;
+  onCategoryCreated?: (newCategory: CategoryNode) => void;
+}
+
+// Quick create category form component
+function QuickCreateForm({
+  categories,
+  storeId,
+  onCreated,
+  onCancel,
+}: {
+  categories: CategoryNode[];
+  storeId: string;
+  onCreated: (newCategory: CategoryNode) => void;
+  onCancel: () => void;
+}) {
+  const [name, setName] = useState('');
+  const [parentId, setParentId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    nameInputRef.current?.focus();
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      setError('שם הקטגוריה הוא שדה חובה');
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      try {
+        const response = await fetch(`/api/shops/${storeId}/categories`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            parentId: parentId || null,
+          }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || result.error) {
+          setError(result.error || 'אירעה שגיאה ביצירת הקטגוריה');
+          return;
+        }
+
+        // Success - pass new category to parent
+        onCreated({
+          id: result.id,
+          name: name.trim(),
+          parentId: parentId || null,
+        });
+      } catch {
+        setError('אירעה שגיאה ביצירת הקטגוריה');
+      }
+    });
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="p-3 border-t border-gray-100 bg-gray-50">
+      <div className="space-y-3">
+        <div>
+          <input
+            ref={nameInputRef}
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="שם הקטגוריה"
+            disabled={isPending}
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-gray-400 disabled:opacity-50"
+          />
+        </div>
+        
+        <div>
+          <select
+            value={parentId || ''}
+            onChange={(e) => setParentId(e.target.value || null)}
+            disabled={isPending}
+            className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-gray-400 disabled:opacity-50 bg-white"
+          >
+            <option value="">קטגוריה ראשית</option>
+            {categories
+              .filter(c => !c.parentId) // Only show root categories as parents
+              .map(cat => (
+                <option key={cat.id} value={cat.id}>
+                  תת-קטגוריה של: {cat.name}
+                </option>
+              ))}
+          </select>
+        </div>
+
+        {error && (
+          <p className="text-xs text-red-600">{error}</p>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            type="submit"
+            disabled={isPending || !name.trim()}
+            className="flex-1 px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                יוצר...
+              </>
+            ) : (
+              <>
+                <Plus className="w-3 h-3" />
+                צור קטגוריה
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isPending}
+            className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-50"
+          >
+            ביטול
+          </button>
+        </div>
+      </div>
+    </form>
+  );
 }
 
 // Build tree structure from flat list
@@ -207,6 +338,8 @@ export function CategoryPicker({
   placeholder = 'בחר קטגוריה',
   disabled = false,
   className = '',
+  storeId,
+  onCategoryCreated,
 }: CategoryPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -217,6 +350,13 @@ export function CategoryPicker({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [mounted, setMounted] = useState(false);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
+
+  // Update local categories when props change
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
 
   // For SSR - only render portal after mount
   useEffect(() => {
@@ -245,7 +385,7 @@ export function CategoryPicker({
   }, [isOpen]);
 
   // Build tree structure
-  const tree = useMemo(() => buildCategoryTree(categories), [categories]);
+  const tree = useMemo(() => buildCategoryTree(localCategories), [localCategories]);
 
   // Filter tree by search
   const filteredTree = useMemo(() => filterCategories(tree, search), [tree, search]);
@@ -254,18 +394,18 @@ export function CategoryPicker({
   const selectedDisplay = useMemo(() => {
     if (!value || value.length === 0) return null;
     if (value.length === 1) {
-      return getCategoryPath(categories, value[0]);
+      return getCategoryPath(localCategories, value[0]);
     }
     // Show first category + count
-    const firstName = categories.find(c => c.id === value[0])?.name || '';
+    const firstName = localCategories.find(c => c.id === value[0])?.name || '';
     return `${firstName} +${value.length - 1}`;
-  }, [categories, value]);
+  }, [localCategories, value]);
 
   // Auto-expand parents of selected items
   useEffect(() => {
     if (value && value.length > 0) {
       const map = new Map<string, CategoryNode>();
-      categories.forEach(cat => map.set(cat.id, cat));
+      localCategories.forEach(cat => map.set(cat.id, cat));
       
       const newExpanded = new Set(expandedIds);
       value.forEach(id => {
@@ -277,15 +417,31 @@ export function CategoryPicker({
       });
       setExpandedIds(newExpanded);
     }
-  }, [value, categories]);
+  }, [value, localCategories]);
 
   // Expand all when searching
   useEffect(() => {
     if (search.trim()) {
-      const allIds = new Set(categories.map(c => c.id));
+      const allIds = new Set(localCategories.map(c => c.id));
       setExpandedIds(allIds);
     }
-  }, [search, categories]);
+  }, [search, localCategories]);
+
+  // Handle new category created
+  const handleCategoryCreated = (newCategory: CategoryNode) => {
+    // Add to local categories
+    setLocalCategories(prev => [...prev, newCategory]);
+    // Auto-select the new category
+    onChange([...value, newCategory.id]);
+    // Close quick create form
+    setShowQuickCreate(false);
+    // Notify parent if callback provided
+    onCategoryCreated?.(newCategory);
+    // Expand parent if it's a subcategory
+    if (newCategory.parentId) {
+      setExpandedIds(prev => new Set([...prev, newCategory.parentId!]));
+    }
+  };
 
   // Close on outside click
   useEffect(() => {
@@ -432,11 +588,33 @@ export function CategoryPicker({
             )}
           </div>
 
+          {/* Quick Create Form */}
+          {showQuickCreate && storeId && (
+            <QuickCreateForm
+              categories={localCategories}
+              storeId={storeId}
+              onCreated={handleCategoryCreated}
+              onCancel={() => setShowQuickCreate(false)}
+            />
+          )}
+
           {/* Footer */}
           <div className="px-3 py-2 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
-            <p className="text-xs text-gray-400">
-              {value.length > 0 ? `${value.length} נבחרו` : `${categories.length} קטגוריות`}
-            </p>
+            <div className="flex items-center gap-2">
+              {storeId && !showQuickCreate && (
+                <button
+                  type="button"
+                  onClick={() => setShowQuickCreate(true)}
+                  className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" />
+                  הוסף קטגוריה
+                </button>
+              )}
+              <span className="text-xs text-gray-400">
+                {value.length > 0 ? `${value.length} נבחרו` : `${localCategories.length} קטגוריות`}
+              </span>
+            </div>
             {value.length > 0 && (
               <button
                 type="button"
