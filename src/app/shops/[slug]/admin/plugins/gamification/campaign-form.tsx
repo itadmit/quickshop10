@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createCampaign, updateCampaign } from './actions';
 import type { GamificationCampaign } from '@/lib/db/schema';
-import { Target, Ticket } from 'lucide-react';
+import { Target, Ticket, FileText, ClipboardList, Palette, Clock } from 'lucide-react';
 
 interface CampaignFormProps {
   storeId: string;
@@ -120,10 +120,10 @@ export function CampaignForm({ storeId, storeSlug, type, mode, campaign }: Campa
   };
 
   const tabs = [
-    { id: 'basic', label: 'פרטים בסיסיים', icon: '📝' },
-    { id: 'form', label: 'טופס רישום', icon: '📋' },
-    { id: 'display', label: 'עיצוב', icon: '🎨' },
-    { id: 'timing', label: 'תזמון והצגה', icon: '⏰' },
+    { id: 'basic', label: 'פרטים בסיסיים', Icon: FileText },
+    { id: 'form', label: 'טופס רישום', Icon: ClipboardList },
+    { id: 'display', label: 'עיצוב', Icon: Palette },
+    { id: 'timing', label: 'תזמון והצגה', Icon: Clock },
   ];
 
   return (
@@ -136,13 +136,13 @@ export function CampaignForm({ storeId, storeSlug, type, mode, campaign }: Campa
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+              className={`flex-1 px-4 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                 activeTab === tab.id
                   ? 'text-gray-900 border-b-2 border-gray-900 -mb-px'
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              <span className="mr-2">{tab.icon}</span>
+              <tab.Icon className="w-4 h-4" />
               {tab.label}
             </button>
           ))}

@@ -214,7 +214,14 @@ export function GamificationPopup({ campaigns, storeSlug, storeName }: Gamificat
 
         if (spinResponse.ok) {
           const spinData = await spinResponse.json();
-          setGameResult(spinData);
+          // Extract the win data from the response
+          if (spinData.win) {
+            setGameResult({
+              prize: spinData.win.prize,
+              prizeIndex: spinData.win.prizeIndex,
+              couponCode: spinData.win.couponCode,
+            });
+          }
         }
       }
     } catch (error) {
@@ -443,7 +450,7 @@ export function GamificationPopup({ campaigns, storeSlug, storeName }: Gamificat
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-3 text-white font-bold rounded-lg transition-all disabled:opacity-50 hover:opacity-90 hover:shadow-lg active:scale-[0.98] active:shadow-sm"
+                className="w-full py-3 text-white font-bold rounded-lg transition-all disabled:opacity-50 hover:opacity-90 hover:shadow-lg active:scale-[0.98] active:shadow-sm cursor-pointer disabled:cursor-not-allowed"
                 style={{ 
                   background: `linear-gradient(135deg, ${activeCampaign.primaryColor}, ${activeCampaign.secondaryColor})` 
                 }}
