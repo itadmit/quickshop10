@@ -37,6 +37,8 @@ export default async function CustomersPage({ params, searchParams }: CustomersP
       filteredCustomers = allCustomers.filter(c => (c.totalOrders || 0) <= 1);
     } else if (filter === 'credit') {
       filteredCustomers = allCustomers.filter(c => Number(c.creditBalance || 0) > 0);
+    } else if (filter === 'marketing') {
+      filteredCustomers = allCustomers.filter(c => c.acceptsMarketing === true);
     }
   }
   
@@ -66,12 +68,14 @@ export default async function CustomersPage({ params, searchParams }: CustomersP
   const repeatCustomers = allCustomers.filter(c => (c.totalOrders || 0) > 1).length;
   const newCustomers = allCustomers.filter(c => (c.totalOrders || 0) <= 1).length;
   const withCredit = allCustomers.filter(c => Number(c.creditBalance || 0) > 0).length;
+  const acceptsMarketing = allCustomers.filter(c => c.acceptsMarketing === true).length;
 
   const tabs: Tab[] = [
     { id: 'all', label: 'הכל', count: allCustomers.length },
     { id: 'repeat', label: 'לקוחות חוזרים', count: repeatCustomers },
     { id: 'new', label: 'חדשים', count: newCustomers },
     { id: 'credit', label: 'עם קרדיט', count: withCredit },
+    { id: 'marketing', label: 'מאשרים דיוור', count: acceptsMarketing },
   ];
 
   return (

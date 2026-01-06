@@ -91,38 +91,44 @@ interface StoreContextType {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 // ============ LOCAL STORAGE ============
+// Keys are now store-specific to prevent cart sharing between stores
 
-const CART_KEY = 'quickshop_cart';
-const COUPONS_KEY = 'quickshop_coupons';
+function getCartKey(storeSlug: string) {
+  return `quickshop_cart_${storeSlug}`;
+}
 
-function loadCart(): CartItem[] {
+function getCouponsKey(storeSlug: string) {
+  return `quickshop_coupons_${storeSlug}`;
+}
+
+function loadCart(storeSlug: string): CartItem[] {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem(CART_KEY);
+    const saved = localStorage.getItem(getCartKey(storeSlug));
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
   }
 }
 
-function saveCart(cart: CartItem[]) {
+function saveCart(cart: CartItem[], storeSlug: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(CART_KEY, JSON.stringify(cart));
+  localStorage.setItem(getCartKey(storeSlug), JSON.stringify(cart));
 }
 
-function loadCoupons(): AppliedCoupon[] {
+function loadCoupons(storeSlug: string): AppliedCoupon[] {
   if (typeof window === 'undefined') return [];
   try {
-    const saved = localStorage.getItem(COUPONS_KEY);
+    const saved = localStorage.getItem(getCouponsKey(storeSlug));
     return saved ? JSON.parse(saved) : [];
   } catch {
     return [];
   }
 }
 
-function saveCoupons(coupons: AppliedCoupon[]) {
+function saveCoupons(coupons: AppliedCoupon[], storeSlug: string) {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(COUPONS_KEY, JSON.stringify(coupons));
+  localStorage.setItem(getCouponsKey(storeSlug), JSON.stringify(coupons));
 }
 
 // ============ SETTINGS STORAGE ============
@@ -151,9 +157,10 @@ function saveSettings(settings: StoreDisplaySettings) {
 interface StoreProviderProps {
   children: ReactNode;
   initialSettings?: Partial<StoreDisplaySettings>;
+  storeSlug: string; // Required - each store has its own cart
 }
 
-export function StoreProvider({ children, initialSettings }: StoreProviderProps) {
+export function StoreProvider({ children, initialSettings, storeSlug }: StoreProviderProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -165,8 +172,8 @@ export function StoreProvider({ children, initialSettings }: StoreProviderProps)
 
   // Load cart, coupons, and settings from localStorage on mount
   useEffect(() => {
-    setCart(loadCart());
-    setAppliedCoupons(loadCoupons());
+    setCart(loadCart(storeSlug));
+    setAppliedCoupons(loadCoupons(storeSlug));
     // טעינת הגדרות מ-localStorage
     const savedSettings = loadSettings();
     setStoreSettings({
@@ -177,7 +184,7 @@ export function StoreProvider({ children, initialSettings }: StoreProviderProps)
     
     // Listen for cart-updated events from other components (e.g., StoryViewer)
     const handleCartUpdate = () => {
-      setCart(loadCart());
+      setCart(loadCart(storeSlug));
       setCartOpen(true);
     };
     
@@ -193,21 +200,21 @@ export function StoreProvider({ children, initialSettings }: StoreProviderProps)
       window.removeEventListener('cart-updated', handleCartUpdate);
       window.removeEventListener('store-settings-updated', handleSettingsUpdate as EventListener);
     };
-  }, [initialSettings?.showDecimalPrices, initialSettings?.currency]);
+  }, [initialSettings?.showDecimalPrices, initialSettings?.currency, storeSlug]);
 
   // Save cart to localStorage on change
   useEffect(() => {
     if (mounted) {
-      saveCart(cart);
+      saveCart(cart, storeSlug);
     }
-  }, [cart, mounted]);
+  }, [cart, mounted, storeSlug]);
   
   // Save coupons to localStorage on change
   useEffect(() => {
     if (mounted) {
-      saveCoupons(appliedCoupons);
+      saveCoupons(appliedCoupons, storeSlug);
     }
-  }, [appliedCoupons, mounted]);
+  }, [appliedCoupons, mounted, storeSlug]);
 
   // Computed values
   const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);

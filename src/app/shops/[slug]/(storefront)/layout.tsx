@@ -10,6 +10,7 @@ import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-
 import { PopupDisplay } from '@/components/storefront/popup-display';
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
+import { StoreProvider } from '@/lib/store-context';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups } from '@/lib/db/schema';
@@ -224,64 +225,66 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   );
 
   return (
-    <TrackingProvider config={trackingConfig}>
-      <StoreSettingsProvider 
-        showDecimalPrices={showDecimalPrices} 
-        currency={store.currency}
-      >
-        {showHeader && (
-          <>
-            {HeaderContent}
-            <CartSidebar basePath={basePath} />
-            {/* Stories Bar - Renders only if plugin is active and there are stories */}
-            {storiesEnabled && storiesSettings && stories.length > 0 && (
-              <StoriesBar
-                storeSlug={slug}
-                stories={stories}
-                settings={storiesSettings}
-                pageType="home"
-                basePath={basePath}
-              />
-            )}
-          </>
-        )}
-        <main>{children}</main>
-        
-        {/* Floating Advisor Button - Renders only if plugin is active and has advisors */}
-        {advisorEnabled && activeAdvisors.length > 0 && (
-          <FloatingAdvisorButton 
-            storeSlug={slug} 
-            storeId={store.id} 
-            advisors={activeAdvisors}
-            basePath={basePath}
-            position={(advisorPlugin?.config as Record<string, unknown>)?.floatingButtonPosition as 'left' | 'right' || 'right'}
-          />
-        )}
+    <StoreProvider storeSlug={slug}>
+      <TrackingProvider config={trackingConfig}>
+        <StoreSettingsProvider 
+          showDecimalPrices={showDecimalPrices} 
+          currency={store.currency}
+        >
+          {showHeader && (
+            <>
+              {HeaderContent}
+              <CartSidebar basePath={basePath} />
+              {/* Stories Bar - Renders only if plugin is active and there are stories */}
+              {storiesEnabled && storiesSettings && stories.length > 0 && (
+                <StoriesBar
+                  storeSlug={slug}
+                  stories={stories}
+                  settings={storiesSettings}
+                  pageType="home"
+                  basePath={basePath}
+                />
+              )}
+            </>
+          )}
+          <main>{children}</main>
+          
+          {/* Floating Advisor Button - Renders only if plugin is active and has advisors */}
+          {advisorEnabled && activeAdvisors.length > 0 && (
+            <FloatingAdvisorButton 
+              storeSlug={slug} 
+              storeId={store.id} 
+              advisors={activeAdvisors}
+              basePath={basePath}
+              position={(advisorPlugin?.config as Record<string, unknown>)?.floatingButtonPosition as 'left' | 'right' || 'right'}
+            />
+          )}
 
-        {/* Popup Display - Renders active popups */}
-        {activePopups.length > 0 && (
-          <PopupDisplay 
-            popups={activePopups.map(p => ({
-              id: p.id,
-              name: p.name,
-              type: p.type,
-              trigger: p.trigger,
-              triggerValue: p.triggerValue || 3,
-              position: p.position,
-              frequency: p.frequency,
-              frequencyDays: p.frequencyDays || 7,
-              targetPages: p.targetPages,
-              customTargetUrls: (p.customTargetUrls as string[]) || [],
-              showOnDesktop: p.showOnDesktop,
-              showOnMobile: p.showOnMobile,
-              content: p.content as Record<string, unknown>,
-              style: p.style as Record<string, unknown>,
-            }))}
-            storeSlug={slug}
-          />
-        )}
-      </StoreSettingsProvider>
-    </TrackingProvider>
+          {/* Popup Display - Renders active popups */}
+          {activePopups.length > 0 && (
+            <PopupDisplay 
+              popups={activePopups.map(p => ({
+                id: p.id,
+                name: p.name,
+                type: p.type,
+                trigger: p.trigger,
+                triggerValue: p.triggerValue || 3,
+                position: p.position,
+                frequency: p.frequency,
+                frequencyDays: p.frequencyDays || 7,
+                targetPages: p.targetPages,
+                customTargetUrls: (p.customTargetUrls as string[]) || [],
+                showOnDesktop: p.showOnDesktop,
+                showOnMobile: p.showOnMobile,
+                content: p.content as Record<string, unknown>,
+                style: p.style as Record<string, unknown>,
+              }))}
+              storeSlug={slug}
+            />
+          )}
+        </StoreSettingsProvider>
+      </TrackingProvider>
+    </StoreProvider>
   );
 }
 

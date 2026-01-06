@@ -311,8 +311,8 @@ export function StoryViewer({
 
     setAddingToCart(true);
     try {
-      // Add to local storage cart
-      const cartKey = 'quickshop_cart';
+      // Add to local storage cart (store-specific key)
+      const cartKey = `quickshop_cart_${storeSlug}`;
       const existingCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
       
       const variant = currentStory.variants?.[0];

@@ -240,8 +240,8 @@ export function AdvisorWizard({
 
     setAddingProductId(result.productId);
     try {
-      // Add to localStorage cart
-      const cartKey = 'quickshop_cart';
+      // Add to localStorage cart (store-specific key)
+      const cartKey = `quickshop_cart_${storeSlug}`;
       const existingCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
 
       const cartItem = {
