@@ -46,6 +46,9 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
     returnPolicyDays: (settings.returnPolicyDays as number) || 14,
     // הגדרות תצוגת מחירים
     showDecimalPrices: (settings.showDecimalPrices as boolean) ?? true,
+    // הגדרות Coming Soon
+    comingSoonPassword: (settings.comingSoonPassword as string) || '',
+    comingSoonPasswordEnabled: (settings.comingSoonPasswordEnabled as boolean) || false,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,55 +67,90 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Store Status - Publish Toggle */}
-      <div className={`border rounded-lg p-6 ${formData.isPublished ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${formData.isPublished ? 'bg-green-100' : 'bg-amber-100'}`}>
-              {formData.isPublished ? (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M8 12l2 2 4-4" />
-                </svg>
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-              )}
-            </div>
+      {/* Store Status - Publish Toggle (Compact) */}
+      <div className={`border rounded-lg p-4 ${formData.isPublished ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            {formData.isPublished ? (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600 flex-shrink-0">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M8 12l2 2 4-4" />
+              </svg>
+            ) : (
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600 flex-shrink-0">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
+            )}
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">
+              <span className="text-sm font-medium text-gray-900">
                 {formData.isPublished ? 'האתר פתוח ללקוחות' : 'האתר במצב Coming Soon'}
-              </h2>
-              <p className="text-sm text-gray-600">
+              </span>
+              <span className="text-xs text-gray-500 mr-2">
                 {formData.isPublished 
-                  ? 'לקוחות יכולים לגלוש ולרכוש בחנות שלך' 
-                  : 'לקוחות יראו דף "בקרוב" עד שתפתח את האתר'}
-              </p>
+                  ? '• לקוחות יכולים לגלוש ולרכוש' 
+                  : '• לקוחות יראו דף "בקרוב"'}
+              </span>
             </div>
           </div>
           
-          {/* Toggle Switch */}
+          {/* Toggle Switch - Fixed */}
           <button
             type="button"
             onClick={() => setFormData(prev => ({ ...prev, isPublished: !prev.isPublished }))}
-            className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer ${
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer ${
               formData.isPublished ? 'bg-green-500' : 'bg-gray-300'
             }`}
           >
             <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm transition-transform ${
-                formData.isPublished ? 'translate-x-8' : 'translate-x-1'
+              className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
+                formData.isPublished ? 'translate-x-6' : 'translate-x-1'
               }`}
             />
           </button>
         </div>
         
         {!formData.isPublished && (
-          <div className="mt-4 pt-4 border-t border-amber-200">
+          <div className="mt-3 pt-3 border-t border-amber-200 space-y-3">
+            {/* Password Protection */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span className="text-xs text-amber-700">הגנת סיסמה</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, comingSoonPasswordEnabled: !prev.comingSoonPasswordEnabled }))}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+                  formData.comingSoonPasswordEnabled ? 'bg-amber-500' : 'bg-gray-300'
+                }`}
+              >
+                <span
+                  className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform ${
+                    formData.comingSoonPasswordEnabled ? 'translate-x-4.5' : 'translate-x-0.5'
+                  }`}
+                  style={{ transform: `translateX(${formData.comingSoonPasswordEnabled ? '18px' : '2px'})` }}
+                />
+              </button>
+            </div>
+            
+            {formData.comingSoonPasswordEnabled && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={formData.comingSoonPassword}
+                  onChange={(e) => setFormData(prev => ({ ...prev, comingSoonPassword: e.target.value }))}
+                  placeholder="הכנס סיסמה לצפייה באתר..."
+                  className="flex-1 px-2 py-1 text-xs border border-amber-300 rounded bg-white/50 focus:ring-1 focus:ring-amber-400 focus:border-amber-400"
+                />
+              </div>
+            )}
+            
             <p className="text-xs text-amber-700">
-              💡 טיפ: ניתן לערוך את דף ה-Coming Soon דרך{' '}
+              💡 ניתן לערוך את דף ה-Coming Soon דרך{' '}
               <a href={`/shops/${store.slug}/editor?page=coming_soon`} className="underline font-medium">
                 עורך העיצוב
               </a>

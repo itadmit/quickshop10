@@ -9,7 +9,7 @@ import {
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
 interface ShopPageProps {
@@ -31,8 +31,12 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   // Check if preview mode (from editor iframe)
   const isPreviewMode = headersList.get('x-preview-mode') === 'true';
   
-  // If store is not published, show Coming Soon page (unless in preview mode)
-  if (!store.isPublished && !isPreviewMode) {
+  // Check if user has password cookie for preview access
+  const cookieStore = await cookies();
+  const hasPreviewAccess = cookieStore.get(`preview_${slug}`)?.value === 'true';
+  
+  // If store is not published, show Coming Soon page (unless in preview mode or has password access)
+  if (!store.isPublished && !isPreviewMode && !hasPreviewAccess) {
     redirect(`${basePath}/coming-soon`);
   }
   

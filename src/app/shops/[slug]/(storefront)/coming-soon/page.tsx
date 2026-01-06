@@ -1,8 +1,9 @@
 import { getStoreBySlug, getPageSectionsCached, getPageSections } from '@/lib/db/queries';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
-import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { headers, cookies } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
+import { PasswordForm } from './password-form';
 
 // ============================================
 // Coming Soon Page - Server Component
@@ -28,6 +29,15 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
   // Check if preview mode (from editor iframe)
   const isPreviewMode = headersList.get('x-preview-mode') === 'true';
   
+  // Check if user has password cookie
+  const cookieStore = await cookies();
+  const hasPreviewAccess = cookieStore.get(`preview_${slug}`)?.value === 'true';
+  
+  // If user has preview access, redirect to main store
+  if (hasPreviewAccess && !isPreviewMode) {
+    redirect(`/shops/${slug}`);
+  }
+  
   // Fetch coming_soon sections - use non-cached version in preview mode for live updates
   const sections = isPreviewMode 
     ? await getPageSections(store.id, 'coming_soon')
@@ -36,6 +46,10 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
   // Get store settings
   const storeSettings = (store.settings as Record<string, unknown>) || {};
   const comingSoonSettings = (storeSettings.comingSoon as Record<string, unknown>) || {};
+  
+  // Password protection settings
+  const passwordEnabled = (storeSettings.comingSoonPasswordEnabled as boolean) || false;
+  const passwordValue = (storeSettings.comingSoonPassword as string) || '';
 
   // Default values
   const title = (comingSoonSettings.title as string) || 'Coming Soon';
@@ -125,8 +139,13 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
             {description}
           </p>
 
-          {/* Newsletter signup */}
-          {showNewsletter && (
+          {/* Password form OR Newsletter signup */}
+          {passwordEnabled && passwordValue ? (
+            <div className="mb-8">
+              <p className="text-white/40 text-xs mb-4">יש לך סיסמה? הכנס אותה כדי לצפות באתר</p>
+              <PasswordForm storeSlug={slug} correctPassword={passwordValue} />
+            </div>
+          ) : showNewsletter && (
             <div className="flex flex-col sm:flex-row max-w-md mx-auto gap-3 animate-slide-up" style={{ animationDelay: '400ms' }}>
               <input 
                 type="email" 

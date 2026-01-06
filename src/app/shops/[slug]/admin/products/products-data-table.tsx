@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
-import { duplicateProduct } from './actions';
+import { duplicateProduct, bulkActivateProducts, bulkDeactivateProducts, bulkDeleteProducts } from './actions';
 
 // ============================================
 // ProductsDataTable - Client Component
@@ -117,8 +117,10 @@ export function ProductsDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement bulk activate
-        console.log('Activate:', selectedIds);
+        const result = await bulkActivateProducts(selectedIds, storeSlug);
+        if (!result.success) {
+          alert(result.error || 'שגיאה בהפעלת המוצרים');
+        }
         router.refresh();
       },
     },
@@ -132,8 +134,10 @@ export function ProductsDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement bulk deactivate
-        console.log('Deactivate:', selectedIds);
+        const result = await bulkDeactivateProducts(selectedIds, storeSlug);
+        if (!result.success) {
+          alert(result.error || 'שגיאה בהשבתת המוצרים');
+        }
         router.refresh();
       },
     },
@@ -149,8 +153,10 @@ export function ProductsDataTable({
       ),
       onAction: async (selectedIds) => {
         if (!confirm(`האם למחוק ${selectedIds.length} מוצרים?`)) return;
-        // TODO: Implement bulk delete
-        console.log('Delete:', selectedIds);
+        const result = await bulkDeleteProducts(selectedIds, storeSlug);
+        if (!result.success) {
+          alert(result.error || 'שגיאה במחיקת המוצרים');
+        }
         router.refresh();
       },
     },

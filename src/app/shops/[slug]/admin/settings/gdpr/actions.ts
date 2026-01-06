@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { stores } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import type { GDPRSettings } from './page';
+import type { GDPRSettings } from './types';
 
 // ============================================
 // GDPR Settings Server Actions

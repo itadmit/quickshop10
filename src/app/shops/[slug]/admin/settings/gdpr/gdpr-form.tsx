@@ -3,8 +3,7 @@
 import { useState, useTransition } from 'react';
 import { Shield, Eye, Cookie, RefreshCw, Save, ExternalLink } from 'lucide-react';
 import { updateGDPRSettings } from './actions';
-import type { GDPRSettings } from './page';
-import { getDefaultGDPRSettings } from './page';
+import { type GDPRSettings, getDefaultGDPRSettings } from './types';
 
 // ============================================
 // GDPR Settings Form - Client Component

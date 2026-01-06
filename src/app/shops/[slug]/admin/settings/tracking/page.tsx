@@ -1,9 +1,12 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { TrackingSettingsForm } from './tracking-form';
-import Link from 'next/link';
+import { SettingsWrapper } from '@/components/admin/settings-wrapper';
 
-export const dynamic = 'force-dynamic';
+// ============================================
+// Tracking Settings Page - Server Component
+// Follows REQUIREMENTS.md: Server Component, no JS
+// ============================================
 
 interface TrackingSettingsPageProps {
   params: Promise<{ slug: string }>;
@@ -17,65 +20,11 @@ export default async function TrackingSettingsPage({ params }: TrackingSettingsP
     notFound();
   }
 
-  const settings = store.settings as Record<string, unknown> || {};
-
-const settingsTabs = [
-  { id: 'general', label: 'כללי', href: '' },
-  { id: 'subscription', label: 'מנוי', href: '/subscription' },
-  { id: 'domain', label: 'דומיין', href: '/domain' },
-  { id: 'payments', label: 'תשלומים', href: '/payments' },
-  { id: 'tracking', label: 'מעקב', href: '/tracking' },
-  { id: 'checkout', label: 'קופה', href: '/checkout' },
-  { id: 'shipping', label: 'משלוח', href: '/shipping' },
-  { id: 'tax', label: 'מיסים', href: '/tax' },
-  { id: 'notifications', label: 'התראות', href: '/notifications' },
-  { id: 'gdpr', label: 'עוגיות', href: '/gdpr' },
-];
+  const settings = (store.settings as Record<string, unknown>) || {};
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">הגדרות חנות</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          הגדר פיקסלי מעקב ואנליטיקס
-        </p>
-      </div>
-
-      {/* Navigation Tabs */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <nav className="flex border-b border-gray-200 px-4 overflow-x-auto">
-          {settingsTabs.map((tab) => (
-            <SettingsTab
-              key={tab.id}
-              href={`/shops/${slug}/admin/settings${tab.href}`}
-              label={tab.label}
-              active={tab.id === 'tracking'}
-            />
-          ))}
-        </nav>
-      </div>
-
-      {/* Tracking Settings Form */}
+    <SettingsWrapper storeSlug={slug} activeTab="tracking">
       <TrackingSettingsForm storeId={store.id} settings={settings} />
-    </div>
+    </SettingsWrapper>
   );
 }
-
-function SettingsTab({ href, label, active = false }: { href: string; label: string; active?: boolean }) {
-  return (
-    <Link
-      href={href}
-      className={`
-        px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors whitespace-nowrap
-        ${active
-          ? 'border-gray-900 text-gray-900'
-          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-        }
-      `}
-    >
-      {label}
-    </Link>
-  );
-}
-
