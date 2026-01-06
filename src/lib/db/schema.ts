@@ -2319,6 +2319,243 @@ export const popupSubmissionsRelations = relations(popupSubmissions, ({ one }) =
   }),
 }));
 
+// ============ GAMIFICATION (Wheel of Fortune / Scratch Card) ============
+
+export const gamificationTypeEnum = pgEnum('gamification_type', ['wheel', 'scratch']);
+export const gamificationPrizeTypeEnum = pgEnum('gamification_prize_type', [
+  'coupon_percentage',  // קופון אחוז הנחה
+  'coupon_fixed',       // קופון סכום קבוע
+  'free_shipping',      // משלוח חינם
+  'gift_product',       // מוצר במתנה
+  'extra_spin',         // סיבוב נוסף
+  'no_prize'            // ללא פרס (עדיף למזל בפעם הבאה)
+]);
+
+// קמפיין משחק (גלגל מזל / כרטיס גירוד)
+export const gamificationCampaigns = pgTable('gamification_campaigns', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Basic settings
+  name: varchar('name', { length: 255 }).notNull(),
+  type: gamificationTypeEnum('type').notNull(), // wheel or scratch
+  isActive: boolean('is_active').default(false).notNull(),
+  
+  // Display settings
+  title: varchar('title', { length: 255 }).default('נסה את מזלך!').notNull(),
+  subtitle: varchar('subtitle', { length: 500 }),
+  buttonText: varchar('button_text', { length: 100 }).default('סובב עכשיו').notNull(),
+  
+  // Style
+  primaryColor: varchar('primary_color', { length: 7 }).default('#e91e63').notNull(),
+  secondaryColor: varchar('secondary_color', { length: 7 }).default('#9c27b0').notNull(),
+  backgroundColor: varchar('background_color', { length: 7 }).default('#ffffff').notNull(),
+  textColor: varchar('text_color', { length: 7 }).default('#333333').notNull(),
+  
+  // Form fields to collect
+  collectName: boolean('collect_name').default(true).notNull(),
+  collectEmail: boolean('collect_email').default(true).notNull(),
+  collectPhone: boolean('collect_phone').default(true).notNull(),
+  collectBirthday: boolean('collect_birthday').default(false).notNull(),
+  
+  // Legal
+  requireMarketingConsent: boolean('require_marketing_consent').default(true).notNull(),
+  requirePrivacyConsent: boolean('require_privacy_consent').default(true).notNull(),
+  privacyPolicyUrl: varchar('privacy_policy_url', { length: 500 }),
+  termsUrl: varchar('terms_url', { length: 500 }),
+  
+  // Limits
+  maxPlaysPerEmail: integer('max_plays_per_email').default(1).notNull(),
+  maxPlaysPerDay: integer('max_plays_per_day'), // null = unlimited
+  
+  // Scheduling
+  startDate: timestamp('start_date'),
+  endDate: timestamp('end_date'),
+  
+  // Trigger settings (like popups)
+  trigger: popupTriggerEnum('trigger').default('on_load').notNull(),
+  triggerValue: integer('trigger_value').default(3),
+  frequency: popupFrequencyEnum('frequency').default('once').notNull(),
+  frequencyDays: integer('frequency_days').default(7),
+  
+  // Target pages
+  targetPages: popupTargetEnum('target_pages').default('all').notNull(),
+  customTargetUrls: jsonb('custom_target_urls').default([]),
+  
+  // Device
+  showOnDesktop: boolean('show_on_desktop').default(true).notNull(),
+  showOnMobile: boolean('show_on_mobile').default(true).notNull(),
+  
+  // Analytics
+  impressions: integer('impressions').default(0).notNull(),
+  plays: integer('plays').default(0).notNull(),
+  conversions: integer('conversions').default(0).notNull(), // Used coupon
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  storeIdx: index('gamification_campaign_store_idx').on(table.storeId),
+  activeIdx: index('gamification_campaign_active_idx').on(table.storeId, table.isActive),
+}));
+
+// פרסים לקמפיין
+export const gamificationPrizes = pgTable('gamification_prizes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campaignId: uuid('campaign_id').references(() => gamificationCampaigns.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Prize details
+  name: varchar('name', { length: 255 }).notNull(), // "20% הנחה", "משלוח חינם"
+  type: gamificationPrizeTypeEnum('type').notNull(),
+  value: decimal('value', { precision: 10, scale: 2 }), // For coupon: discount value
+  
+  // For gift_product type
+  giftProductId: uuid('gift_product_id').references(() => products.id, { onDelete: 'set null' }),
+  
+  // Display
+  color: varchar('color', { length: 7 }).default('#FF6B6B').notNull(), // Segment color for wheel
+  icon: varchar('icon', { length: 50 }), // Emoji or icon name
+  
+  // Probability (0-100, total should be 100)
+  probability: decimal('probability', { precision: 5, scale: 2 }).notNull(),
+  
+  // Limits
+  totalAvailable: integer('total_available'), // null = unlimited
+  totalWon: integer('total_won').default(0).notNull(),
+  
+  // Coupon settings
+  couponPrefix: varchar('coupon_prefix', { length: 20 }), // e.g., "WHEEL" → WHEEL-ABC123
+  couponValidDays: integer('coupon_valid_days').default(30),
+  couponMinPurchase: decimal('coupon_min_purchase', { precision: 10, scale: 2 }),
+  
+  // Sort order (for wheel segments)
+  sortOrder: integer('sort_order').default(0).notNull(),
+  
+  isActive: boolean('is_active').default(true).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  campaignIdx: index('gamification_prize_campaign_idx').on(table.campaignId),
+  sortIdx: index('gamification_prize_sort_idx').on(table.campaignId, table.sortOrder),
+}));
+
+// כניסות למשחק (רישום)
+export const gamificationEntries = pgTable('gamification_entries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  campaignId: uuid('campaign_id').references(() => gamificationCampaigns.id, { onDelete: 'cascade' }).notNull(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Customer info
+  email: varchar('email', { length: 255 }).notNull(),
+  name: varchar('name', { length: 255 }),
+  phone: varchar('phone', { length: 20 }),
+  birthday: date('birthday'),
+  
+  // Consent
+  marketingConsent: boolean('marketing_consent').default(false).notNull(),
+  privacyConsent: boolean('privacy_consent').default(false).notNull(),
+  
+  // Link to customer if exists
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  
+  // Tracking
+  ipAddress: varchar('ip_address', { length: 45 }),
+  userAgent: text('user_agent'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  campaignIdx: index('gamification_entry_campaign_idx').on(table.campaignId),
+  emailIdx: index('gamification_entry_email_idx').on(table.campaignId, table.email),
+  storeIdx: index('gamification_entry_store_idx').on(table.storeId),
+}));
+
+// זכיות
+export const gamificationWins = pgTable('gamification_wins', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  entryId: uuid('entry_id').references(() => gamificationEntries.id, { onDelete: 'cascade' }).notNull(),
+  prizeId: uuid('prize_id').references(() => gamificationPrizes.id, { onDelete: 'cascade' }).notNull(),
+  campaignId: uuid('campaign_id').references(() => gamificationCampaigns.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Generated coupon
+  couponCode: varchar('coupon_code', { length: 50 }),
+  discountId: uuid('discount_id').references(() => discounts.id, { onDelete: 'set null' }),
+  
+  // Status
+  isClaimed: boolean('is_claimed').default(false).notNull(), // Copied/used
+  isUsed: boolean('is_used').default(false).notNull(), // Actually used in order
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  claimedAt: timestamp('claimed_at'),
+  usedAt: timestamp('used_at'),
+}, (table) => ({
+  entryIdx: index('gamification_win_entry_idx').on(table.entryId),
+  prizeIdx: index('gamification_win_prize_idx').on(table.prizeId),
+  campaignIdx: index('gamification_win_campaign_idx').on(table.campaignId),
+  couponIdx: uniqueIndex('gamification_win_coupon_idx').on(table.couponCode),
+}));
+
+// Gamification Relations
+export const gamificationCampaignsRelations = relations(gamificationCampaigns, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [gamificationCampaigns.storeId],
+    references: [stores.id],
+  }),
+  prizes: many(gamificationPrizes),
+  entries: many(gamificationEntries),
+  wins: many(gamificationWins),
+}));
+
+export const gamificationPrizesRelations = relations(gamificationPrizes, ({ one, many }) => ({
+  campaign: one(gamificationCampaigns, {
+    fields: [gamificationPrizes.campaignId],
+    references: [gamificationCampaigns.id],
+  }),
+  giftProduct: one(products, {
+    fields: [gamificationPrizes.giftProductId],
+    references: [products.id],
+  }),
+  wins: many(gamificationWins),
+}));
+
+export const gamificationEntriesRelations = relations(gamificationEntries, ({ one, many }) => ({
+  campaign: one(gamificationCampaigns, {
+    fields: [gamificationEntries.campaignId],
+    references: [gamificationCampaigns.id],
+  }),
+  store: one(stores, {
+    fields: [gamificationEntries.storeId],
+    references: [stores.id],
+  }),
+  customer: one(customers, {
+    fields: [gamificationEntries.customerId],
+    references: [customers.id],
+  }),
+  wins: many(gamificationWins),
+}));
+
+export const gamificationWinsRelations = relations(gamificationWins, ({ one }) => ({
+  entry: one(gamificationEntries, {
+    fields: [gamificationWins.entryId],
+    references: [gamificationEntries.id],
+  }),
+  prize: one(gamificationPrizes, {
+    fields: [gamificationWins.prizeId],
+    references: [gamificationPrizes.id],
+  }),
+  campaign: one(gamificationCampaigns, {
+    fields: [gamificationWins.campaignId],
+    references: [gamificationCampaigns.id],
+  }),
+  discount: one(discounts, {
+    fields: [gamificationWins.discountId],
+    references: [discounts.id],
+  }),
+  order: one(orders, {
+    fields: [gamificationWins.orderId],
+    references: [orders.id],
+  }),
+}));
+
 // Advisor Relations
 export const advisorQuizzesRelations = relations(advisorQuizzes, ({ one, many }) => ({
   store: one(stores, {
@@ -2713,3 +2950,13 @@ export type StoreTransactionFee = typeof storeTransactionFees.$inferSelect;
 export type NewStoreTransactionFee = typeof storeTransactionFees.$inferInsert;
 export type PluginPricing = typeof pluginPricing.$inferSelect;
 export type NewPluginPricing = typeof pluginPricing.$inferInsert;
+
+// Gamification types
+export type GamificationCampaign = typeof gamificationCampaigns.$inferSelect;
+export type NewGamificationCampaign = typeof gamificationCampaigns.$inferInsert;
+export type GamificationPrize = typeof gamificationPrizes.$inferSelect;
+export type NewGamificationPrize = typeof gamificationPrizes.$inferInsert;
+export type GamificationEntry = typeof gamificationEntries.$inferSelect;
+export type NewGamificationEntry = typeof gamificationEntries.$inferInsert;
+export type GamificationWin = typeof gamificationWins.$inferSelect;
+export type NewGamificationWin = typeof gamificationWins.$inferInsert;

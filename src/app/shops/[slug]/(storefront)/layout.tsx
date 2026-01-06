@@ -8,13 +8,14 @@ import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdviso
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
 import { PopupDisplay } from '@/components/storefront/popup-display';
+import { GamificationPopup } from '@/components/storefront/gamification/gamification-popup';
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
 import { StoreProvider } from '@/lib/store-context';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
-import { popups } from '@/lib/db/schema';
-import { eq, and, lte, or, isNull, gte } from 'drizzle-orm';
+import { popups, gamificationCampaigns, gamificationPrizes } from '@/lib/db/schema';
+import { eq, and, lte, or, isNull, gte, asc } from 'drizzle-orm';
 
 // Dynamic imports for preview mode ONLY (keeps production bundle clean)
 import nextDynamic from 'next/dynamic';
@@ -51,7 +52,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   // Fetch categories, customer, plugin data, and popups in parallel (server-side)
   const now = new Date();
-  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups] = await Promise.all([
+  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns] = await Promise.all([
     getCategoriesByStore(store.id),
     getCurrentCustomer(),
     isPluginActive(store.id, 'product-stories'),
@@ -66,6 +67,18 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         eq(popups.isActive, true),
         or(isNull(popups.startDate), lte(popups.startDate, now)),
         or(isNull(popups.endDate), gte(popups.endDate, now))
+      ),
+    }),
+    // Gamification plugins
+    isPluginActive(store.id, 'wheel-of-fortune'),
+    isPluginActive(store.id, 'scratch-card'),
+    // Fetch active gamification campaigns
+    db.query.gamificationCampaigns.findMany({
+      where: and(
+        eq(gamificationCampaigns.storeId, store.id),
+        eq(gamificationCampaigns.isActive, true),
+        or(isNull(gamificationCampaigns.startDate), lte(gamificationCampaigns.startDate, now)),
+        or(isNull(gamificationCampaigns.endDate), gte(gamificationCampaigns.endDate, now))
       ),
     }),
   ]);
@@ -282,9 +295,107 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
               storeSlug={slug}
             />
           )}
+
+          {/* Gamification Popup - Wheel of Fortune / Scratch Card */}
+          <GamificationPopupLoader 
+            campaigns={activeGamificationCampaigns}
+            storeSlug={slug}
+            storeName={store.name}
+            wheelEnabled={wheelEnabled}
+            scratchEnabled={scratchEnabled}
+          />
         </StoreSettingsProvider>
       </TrackingProvider>
     </StoreProvider>
+  );
+}
+
+// Helper component to load gamification with prizes
+async function GamificationPopupLoader({
+  campaigns,
+  storeSlug,
+  storeName,
+  wheelEnabled,
+  scratchEnabled,
+}: {
+  campaigns: typeof gamificationCampaigns.$inferSelect[];
+  storeSlug: string;
+  storeName: string;
+  wheelEnabled: boolean;
+  scratchEnabled: boolean;
+}) {
+  // Filter campaigns by enabled plugins
+  const enabledCampaigns = campaigns.filter(c => 
+    (c.type === 'wheel' && wheelEnabled) || (c.type === 'scratch' && scratchEnabled)
+  );
+
+  if (enabledCampaigns.length === 0) {
+    return null;
+  }
+
+  // Fetch prizes for all campaigns
+  const campaignsWithPrizes = await Promise.all(
+    enabledCampaigns.map(async (campaign) => {
+      const prizes = await db
+        .select({
+          id: gamificationPrizes.id,
+          name: gamificationPrizes.name,
+          type: gamificationPrizes.type,
+          color: gamificationPrizes.color,
+          icon: gamificationPrizes.icon,
+        })
+        .from(gamificationPrizes)
+        .where(
+          and(
+            eq(gamificationPrizes.campaignId, campaign.id),
+            eq(gamificationPrizes.isActive, true)
+          )
+        )
+        .orderBy(asc(gamificationPrizes.sortOrder));
+
+      return {
+        id: campaign.id,
+        type: campaign.type,
+        title: campaign.title,
+        subtitle: campaign.subtitle,
+        buttonText: campaign.buttonText,
+        primaryColor: campaign.primaryColor,
+        secondaryColor: campaign.secondaryColor,
+        backgroundColor: campaign.backgroundColor,
+        textColor: campaign.textColor,
+        collectName: campaign.collectName,
+        collectEmail: campaign.collectEmail,
+        collectPhone: campaign.collectPhone,
+        collectBirthday: campaign.collectBirthday,
+        requireMarketingConsent: campaign.requireMarketingConsent,
+        requirePrivacyConsent: campaign.requirePrivacyConsent,
+        privacyPolicyUrl: campaign.privacyPolicyUrl,
+        termsUrl: campaign.termsUrl,
+        trigger: campaign.trigger,
+        triggerValue: campaign.triggerValue || 3,
+        frequency: campaign.frequency,
+        frequencyDays: campaign.frequencyDays || 7,
+        targetPages: campaign.targetPages,
+        showOnDesktop: campaign.showOnDesktop,
+        showOnMobile: campaign.showOnMobile,
+        prizes,
+      };
+    })
+  );
+
+  // Only show campaigns with prizes
+  const validCampaigns = campaignsWithPrizes.filter(c => c.prizes.length > 0);
+
+  if (validCampaigns.length === 0) {
+    return null;
+  }
+
+  return (
+    <GamificationPopup
+      campaigns={validCampaigns}
+      storeSlug={storeSlug}
+      storeName={storeName}
+    />
   );
 }
 

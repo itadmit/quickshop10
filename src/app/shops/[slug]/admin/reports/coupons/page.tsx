@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/db/queries';
-import { getCouponStats, getCouponOrders } from '@/lib/actions/reports';
+import { getCouponStats, getCouponOrders, getGamificationCouponCodes } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import { CouponsTable } from './coupons-table';
 
@@ -41,17 +42,45 @@ async function CouponsContent({
   storeId, 
   storeSlug, 
   period,
-  customRange 
+  customRange,
+  source,
 }: { 
   storeId: string; 
   storeSlug: string; 
   period: '7d' | '30d' | '90d' | 'custom';
   customRange?: { from: Date; to: Date };
+  source?: 'all' | 'dashboard' | 'plugins';
 }) {
-  const { coupons, totals } = await getCouponStats(storeId, period, customRange);
+  // Get all coupon stats and gamification coupon codes in parallel
+  const [{ coupons: allCoupons, totals: allTotals }, gamificationCodes] = await Promise.all([
+    getCouponStats(storeId, period, customRange),
+    getGamificationCouponCodes(storeId),
+  ]);
+
+  // Filter coupons based on source
+  const gamificationCodesSet = new Set(gamificationCodes);
+  let filteredCoupons = allCoupons;
+  
+  if (source === 'dashboard') {
+    filteredCoupons = allCoupons.filter(c => !gamificationCodesSet.has(c.code));
+  } else if (source === 'plugins') {
+    filteredCoupons = allCoupons.filter(c => gamificationCodesSet.has(c.code));
+  }
+
+  // Calculate totals for filtered
+  const totals = {
+    totalCouponsUsed: filteredCoupons.length,
+    totalOrders: filteredCoupons.reduce((sum, c) => sum + c.orders, 0),
+    totalRevenue: filteredCoupons.reduce((sum, c) => sum + c.revenue, 0),
+    totalDiscounts: filteredCoupons.reduce((sum, c) => sum + c.discountTotal, 0),
+  };
+
+  // Count for tabs
+  const dashboardCount = allCoupons.filter(c => !gamificationCodesSet.has(c.code)).length;
+  const pluginsCount = allCoupons.filter(c => gamificationCodesSet.has(c.code)).length;
 
   // Get orders for top 10 coupons in parallel
-  const top10Coupons = coupons.slice(0, 10);
+  const top10Coupons = filteredCoupons.slice(0, 10);
   const couponOrdersResults = await Promise.all(
     top10Coupons.map(c => 
       getCouponOrders(storeId, c.code, period, customRange).then(orders => ({ code: c.code, orders }))
@@ -65,6 +94,40 @@ async function CouponsContent({
 
   return (
     <>
+      {/* Source Tabs */}
+      <div className="flex gap-2 mb-6 border-b border-gray-200">
+        <Link
+          href={`/shops/${storeSlug}/admin/reports/coupons?source=all`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            !source || source === 'all'
+              ? 'border-gray-900 text-gray-900'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          הכל ({allCoupons.length})
+        </Link>
+        <Link
+          href={`/shops/${storeSlug}/admin/reports/coupons?source=dashboard`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            source === 'dashboard'
+              ? 'border-gray-900 text-gray-900'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          מהדשבורד ({dashboardCount})
+        </Link>
+        <Link
+          href={`/shops/${storeSlug}/admin/reports/coupons?source=plugins`}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            source === 'plugins'
+              ? 'border-gray-900 text-gray-900'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          מתוספים ({pluginsCount})
+        </Link>
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white border border-gray-200 p-4 sm:p-6">
@@ -93,7 +156,7 @@ async function CouponsContent({
         </div>
         <div className="overflow-x-auto">
           <CouponsTable 
-            coupons={coupons} 
+            coupons={filteredCoupons} 
             couponOrdersMap={couponOrdersMap}
             storeSlug={storeSlug}
           />
@@ -109,7 +172,7 @@ export default async function CouponsReportPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string; source?: 'all' | 'dashboard' | 'plugins' }>;
 }) {
   const { slug } = await params;
   const resolvedSearchParams = await searchParams;
@@ -118,6 +181,7 @@ export default async function CouponsReportPage({
   if (!store) notFound();
 
   const { period, customRange } = getReportPeriodParams(resolvedSearchParams);
+  const source = resolvedSearchParams.source || 'all';
 
   return (
     <div>
@@ -129,7 +193,13 @@ export default async function CouponsReportPage({
       />
 
       <Suspense fallback={<TableSkeleton />}>
-        <CouponsContent storeId={store.id} storeSlug={slug} period={period} customRange={customRange} />
+        <CouponsContent 
+          storeId={store.id} 
+          storeSlug={slug} 
+          period={period} 
+          customRange={customRange} 
+          source={source}
+        />
       </Suspense>
     </div>
   );

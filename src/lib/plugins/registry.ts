@@ -108,6 +108,82 @@ export const pluginRegistry: PluginDefinition[] = [
       ],
     },
   },
+
+  // ============================================
+  // 🎰 GAMIFICATION - משחקים
+  // ============================================
+  {
+    slug: 'wheel-of-fortune',
+    name: 'גלגל המזל',
+    description: 'גלגל מזל אינטראקטיבי עם 12 פרסים מותאמים אישית - אסוף לידים ותגביר מכירות עם חוויה מהנה',
+    type: 'core',
+    category: 'marketing',
+    version: '1.0.0',
+    icon: 'target',
+    author: 'QuickShop',
+    isFree: false,
+    price: 29.90,
+    trialDays: 14,
+    defaultConfig: {
+      enabled: false,
+    },
+    metadata: {
+      menuItem: {
+        icon: 'Target',
+        label: 'גלגל המזל',
+        href: '/plugins/wheel-of-fortune',
+        section: 'marketing',
+        badge: 'חדש',
+      },
+      features: [
+        '12 פרסים מותאמים אישית',
+        'אחוזי זכייה גמישים',
+        'קופונים חד-פעמיים אוטומטיים',
+        'איסוף לידים (שם, טלפון, אימייל, תאריך לידה)',
+        'מוצר במתנה עם קופון',
+        'סיבוב נוסף כפרס',
+        'אנימציות מרשימות',
+        'תזמון והפעלה חכמה',
+      ],
+      screenshots: [],
+    },
+  },
+  {
+    slug: 'scratch-card',
+    name: 'כרטיס גירוד',
+    description: 'כרטיס גירוד וירטואלי עם אפקט מטבע - חושף פרסים באופן מרגש ומגביר את המעורבות',
+    type: 'core',
+    category: 'marketing',
+    version: '1.0.0',
+    icon: 'sparkles',
+    author: 'QuickShop',
+    isFree: false,
+    price: 29.90,
+    trialDays: 14,
+    defaultConfig: {
+      enabled: false,
+    },
+    metadata: {
+      menuItem: {
+        icon: 'Sparkles',
+        label: 'כרטיס גירוד',
+        href: '/plugins/scratch-card',
+        section: 'marketing',
+        badge: 'חדש',
+      },
+      features: [
+        'אפקט גירוד ריאליסטי',
+        'מטבע עם לוגו החנות',
+        'פרסים מותאמים אישית',
+        'אחוזי זכייה גמישים',
+        'קופונים חד-פעמיים אוטומטיים',
+        'איסוף לידים',
+        'מוצר במתנה עם קופון',
+        'תזמון והפעלה חכמה',
+      ],
+      screenshots: [],
+    },
+  },
 ];
 
 // ============================================

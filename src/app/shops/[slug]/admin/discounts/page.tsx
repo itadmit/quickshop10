@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { discounts, influencers } from '@/lib/db/schema';
-import { eq, desc } from 'drizzle-orm';
+import { discounts, influencers, gamificationWins } from '@/lib/db/schema';
+import { eq, desc, inArray } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -38,6 +38,18 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
     .where(eq(influencers.storeId, store.id))
     .orderBy(influencers.name);
 
+  // Get all gamification wins with discountIds (coupons created by plugins)
+  const gamificationDiscounts = await db
+    .select({ discountId: gamificationWins.discountId })
+    .from(gamificationWins)
+    .where(eq(gamificationWins.campaignId, gamificationWins.campaignId)); // Just get all
+  
+  const gamificationDiscountIds = new Set(
+    gamificationDiscounts
+      .map(g => g.discountId)
+      .filter((id): id is string => id !== null)
+  );
+
   // Create a map of discountId -> influencer name
   const influencerByDiscountId = new Map<string, string>();
   storeInfluencers.forEach(inf => {
@@ -46,10 +58,11 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
     }
   });
 
-  // Enrich coupons with influencer name and normalize jsonb fields
+  // Enrich coupons with influencer name, source, and normalize jsonb fields
   const couponsWithInfluencer = allCoupons.map(coupon => ({
     ...coupon,
     influencerName: influencerByDiscountId.get(coupon.id) || null,
+    source: gamificationDiscountIds.has(coupon.id) ? 'gamification' as const : 'dashboard' as const,
     // Normalize jsonb fields
     quantityTiers: Array.isArray(coupon.quantityTiers) 
       ? (coupon.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>)
@@ -68,6 +81,10 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
       filteredCoupons = couponsWithInfluencer.filter(c => !c.isActive);
     } else if (filter === 'expired') {
       filteredCoupons = couponsWithInfluencer.filter(c => c.endsAt && new Date(c.endsAt) < new Date());
+    } else if (filter === 'plugins') {
+      filteredCoupons = couponsWithInfluencer.filter(c => c.source === 'gamification');
+    } else if (filter === 'dashboard') {
+      filteredCoupons = couponsWithInfluencer.filter(c => c.source === 'dashboard');
     }
   }
 
@@ -93,11 +110,15 @@ export default async function DiscountsPage({ params, searchParams }: DiscountsP
   const activeCoupons = couponsWithInfluencer.filter(c => c.isActive);
   const inactiveCoupons = couponsWithInfluencer.filter(c => !c.isActive);
   const expiredCoupons = couponsWithInfluencer.filter(c => c.endsAt && new Date(c.endsAt) < new Date());
+  const pluginCoupons = couponsWithInfluencer.filter(c => c.source === 'gamification');
+  const dashboardCoupons = couponsWithInfluencer.filter(c => c.source === 'dashboard');
   const totalUsage = couponsWithInfluencer.reduce((sum, c) => sum + (c.usageCount || 0), 0);
 
   const tabs: Tab[] = [
     { id: 'all', label: 'הכל', count: couponsWithInfluencer.length },
     { id: 'active', label: 'פעילים', count: activeCoupons.length },
+    { id: 'dashboard', label: 'מהדשבורד', count: dashboardCoupons.length },
+    { id: 'plugins', label: 'מתוספים', count: pluginCoupons.length },
     { id: 'inactive', label: 'לא פעילים', count: inactiveCoupons.length },
     { id: 'expired', label: 'פגי תוקף', count: expiredCoupons.length },
   ];
