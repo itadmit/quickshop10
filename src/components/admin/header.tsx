@@ -108,12 +108,8 @@ export function AdminHeader({ storeName, storeSlug, storeId, customDomain, user,
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
               placeholder="חיפוש..."
-              className="w-full bg-gray-50 text-gray-900 text-sm placeholder:text-gray-400 rounded-lg py-2 pr-10 pl-16 outline-none border border-gray-200 focus:border-gray-300 focus:bg-white transition-all"
+              className="w-full bg-gray-50 text-gray-900 text-sm placeholder:text-gray-400 rounded-lg py-2 pr-10 pl-4 outline-none border border-gray-200 focus:border-gray-300 focus:bg-white transition-all"
             />
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-              <kbd className="text-[10px] font-medium text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded shadow-sm">⌘</kbd>
-              <kbd className="text-[10px] font-medium text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded shadow-sm">K</kbd>
-            </div>
           </div>
         </div>
         

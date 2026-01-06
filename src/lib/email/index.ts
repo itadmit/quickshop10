@@ -1189,7 +1189,7 @@ export async function sendWelcomeEmail(email: string, name?: string, storeName?:
         </div>
         
         <p style="text-align: center;">
-          <a href="${dashboardUrl}" class="button">כנס לדאשבורד</a>
+          <a href="${dashboardUrl}" class="button">כנס לדשבורד</a>
         </p>
         
         <div class="footer">
