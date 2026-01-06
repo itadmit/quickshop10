@@ -2,11 +2,126 @@
 
 import { db } from '@/lib/db';
 import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores, productImages } from '@/lib/db/schema';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, sql, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { sendReturnRequestUpdateEmail, sendExchangePaymentEmail } from '@/lib/email';
 import { getDefaultProvider } from '@/lib/payments';
+
+// ============================================
+// Create Return Request - Manual creation
+// ============================================
+
+interface CreateReturnInput {
+  storeSlug: string;
+  orderId: string;
+  type: 'return' | 'exchange';
+  reason: 'wrong_size' | 'defective' | 'not_as_described' | 'changed_mind' | 'wrong_item' | 'damaged_shipping' | 'other';
+  requestedResolution: 'exchange' | 'store_credit' | 'refund' | 'partial_refund';
+  items: Array<{
+    orderItemId: string;
+    quantity: number;
+  }>;
+  reasonDetails?: string;
+}
+
+export async function createReturnRequest(input: CreateReturnInput) {
+  try {
+    const store = await getStoreBySlug(input.storeSlug);
+    if (!store) {
+      return { success: false, error: 'חנות לא נמצאה' };
+    }
+
+    // Get the order with its items
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, input.orderId), eq(orders.storeId, store.id)))
+      .limit(1);
+
+    if (!order) {
+      return { success: false, error: 'הזמנה לא נמצאה' };
+    }
+
+    // Get order items
+    const allOrderItems = await db
+      .select()
+      .from(orderItems)
+      .where(eq(orderItems.orderId, input.orderId));
+
+    // Build return items with full details
+    const returnItems = [];
+    let totalValue = 0;
+
+    for (const itemInput of input.items) {
+      const orderItem = allOrderItems.find(i => i.id === itemInput.orderItemId);
+      if (!orderItem) continue;
+
+      const itemPrice = Number(orderItem.price || 0);
+      const itemTotal = itemPrice * itemInput.quantity;
+      totalValue += itemTotal;
+
+      returnItems.push({
+        orderItemId: orderItem.id,
+        productId: orderItem.productId,
+        name: orderItem.name,
+        variantTitle: orderItem.variantTitle,
+        quantity: itemInput.quantity,
+        price: itemPrice,
+        total: itemTotal,
+        imageUrl: orderItem.imageUrl,
+        reason: input.reason,
+      });
+    }
+
+    if (returnItems.length === 0) {
+      return { success: false, error: 'יש לבחור לפחות פריט אחד' };
+    }
+
+    // Generate request number
+    const lastRequest = await db
+      .select({ requestNumber: returnRequests.requestNumber })
+      .from(returnRequests)
+      .where(eq(returnRequests.storeId, store.id))
+      .orderBy(desc(returnRequests.createdAt))
+      .limit(1);
+
+    let newNumber = 1001;
+    if (lastRequest[0]?.requestNumber) {
+      const lastNum = parseInt(lastRequest[0].requestNumber.replace('RET-', ''), 10);
+      if (!isNaN(lastNum)) {
+        newNumber = lastNum + 1;
+      }
+    }
+    const requestNumber = `RET-${newNumber}`;
+
+    // Create the return request
+    const [newRequest] = await db.insert(returnRequests).values({
+      storeId: store.id,
+      orderId: input.orderId,
+      customerId: order.customerId,
+      requestNumber,
+      type: input.type,
+      status: 'pending',
+      items: returnItems,
+      reason: input.reason,
+      reasonDetails: input.reasonDetails,
+      requestedResolution: input.requestedResolution,
+      totalValue: String(totalValue),
+    }).returning();
+
+    revalidatePath(`/shops/${input.storeSlug}/admin/returns`);
+
+    return { 
+      success: true, 
+      requestId: newRequest.id,
+      requestNumber,
+    };
+  } catch (error) {
+    console.error('Error creating return request:', error);
+    return { success: false, error: 'אירעה שגיאה ביצירת הבקשה' };
+  }
+}
 
 interface ProcessReturnInput {
   storeSlug: string;

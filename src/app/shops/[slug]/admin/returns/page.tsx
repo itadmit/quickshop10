@@ -69,6 +69,18 @@ export default async function AdminReturnsPage({ params, searchParams }: Returns
       <PageHeader
         title="החזרות והחלפות"
         description={`${requests.length} בקשות`}
+        actions={
+          <a
+            href={`/shops/${slug}/admin/returns/new`}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            יצירת בקשה
+          </a>
+        }
       />
 
       <ReturnsDataTable
