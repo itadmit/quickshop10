@@ -5,8 +5,8 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { getInfluencerOrders } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import { db } from '@/lib/db';
-import { influencers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { influencers, discounts } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 
 // Format helpers
 function formatCurrency(value: number) {
@@ -43,20 +43,24 @@ function TableSkeleton() {
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800',
+    confirmed: 'bg-blue-100 text-blue-800',
     processing: 'bg-blue-100 text-blue-800',
     completed: 'bg-green-100 text-green-800',
     shipped: 'bg-purple-100 text-purple-800',
     delivered: 'bg-green-100 text-green-800',
     cancelled: 'bg-red-100 text-red-800',
+    refunded: 'bg-gray-100 text-gray-800',
   };
 
   const labels: Record<string, string> = {
     pending: 'ממתין',
+    confirmed: 'אושר',
     processing: 'בטיפול',
     completed: 'הושלם',
     shipped: 'נשלח',
     delivered: 'נמסר',
     cancelled: 'בוטל',
+    refunded: 'הוחזר',
   };
 
   return (
@@ -80,13 +84,15 @@ async function InfluencerOrdersContent({
   period: '7d' | '30d' | '90d' | 'custom';
   customRange?: { from: Date; to: Date };
 }) {
-  // Get influencer details
+  // Get influencer details with linked discount codes
   const [influencer] = await db
     .select({
       id: influencers.id,
       name: influencers.name,
       email: influencers.email,
       couponCode: influencers.couponCode,
+      discountId: influencers.discountId,
+      discountIds: influencers.discountIds,
       commissionType: influencers.commissionType,
       commissionValue: influencers.commissionValue,
       totalSales: influencers.totalSales,
@@ -100,11 +106,30 @@ async function InfluencerOrdersContent({
     notFound();
   }
 
+  // Get linked discount codes if no direct coupon code
+  let displayCouponCode = influencer.couponCode;
+  if (!displayCouponCode) {
+    const discountIdsList = [
+      ...(influencer.discountId ? [influencer.discountId] : []),
+      ...((influencer.discountIds as string[]) || []),
+    ].filter(Boolean);
+    
+    if (discountIdsList.length > 0) {
+      const linkedDiscounts = await db
+        .select({ code: discounts.code })
+        .from(discounts)
+        .where(inArray(discounts.id, discountIdsList))
+        .limit(5);
+      
+      displayCouponCode = linkedDiscounts.map(d => d.code).join(', ') || null;
+    }
+  }
+
   const orders = await getInfluencerOrders(storeId, influencerId, period, customRange);
 
   const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
   const totalDiscount = orders.reduce((sum, o) => sum + o.discountAmount, 0);
-  const commissionRate = Number(influencer.commissionValue) || 10;
+  const commissionRate = Number(influencer.commissionValue) || 0;
   const estimatedCommission = totalRevenue * (commissionRate / 100);
 
   return (
@@ -122,7 +147,7 @@ async function InfluencerOrdersContent({
               <h2 className="text-xl font-medium">{influencer.name}</h2>
               <p className="text-sm text-gray-600">{influencer.email}</p>
               <code className="bg-purple-200 text-purple-800 px-2 py-0.5 text-sm mt-1 inline-block">
-                {influencer.couponCode || 'ללא קוד'}
+                {displayCouponCode || 'ללא קוד'}
               </code>
             </div>
           </div>

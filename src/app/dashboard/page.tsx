@@ -12,6 +12,11 @@ export default async function DashboardPage() {
     redirect('/login');
   }
 
+  // Platform admin goes to admin dashboard
+  if (session.user.email === 'admin@quickshop.co.il') {
+    redirect('/admin');
+  }
+
   // Get user's stores
   const userStores = await db
     .select()

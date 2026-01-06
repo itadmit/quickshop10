@@ -19,6 +19,9 @@ export interface CartItem {
   quantity: number;
   image: string;
   variantTitle?: string;
+  // מלאי - לבדיקה מקומית מהירה (ללא קריאה לשרת!)
+  maxQuantity?: number | null; // null = אין מעקב מלאי
+  trackInventory?: boolean;
   // מוצר במתנה מקופון
   isGift?: boolean;
   giftFromCouponId?: string; // ID של הקופון שהביא את המתנה
@@ -49,6 +52,8 @@ export interface AppliedCoupon {
   // Gift card specific
   isGiftCard?: boolean;
   giftCardBalance?: number;
+  // קופון מתנה מופעל - שמירת הקופון שהפעיל אותו
+  triggeredByCode?: string;
 }
 
 interface StoreContextType {
@@ -227,13 +232,30 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
       const existing = prev.find(i => 
         i.productId === item.productId && i.variantId === item.variantId
       );
+      
       if (existing) {
+        // בדיקת מלאי מקומית - מהירה! ⚡
+        const newQty = existing.quantity + quantity;
+        const maxQty = existing.maxQuantity ?? item.maxQuantity;
+        const trackInv = existing.trackInventory ?? item.trackInventory;
+        
+        // אם יש מעקב מלאי ויש מקסימום - לא לעבור אותו
+        if (trackInv && maxQty !== null && maxQty !== undefined && newQty > maxQty) {
+          return prev; // לא להוסיף - חרגנו מהמלאי
+        }
+        
         return prev.map(i => 
           (i.productId === item.productId && i.variantId === item.variantId)
-            ? { ...i, quantity: i.quantity + quantity }
+            ? { ...i, quantity: newQty }
             : i
         );
       }
+      
+      // פריט חדש - בדיקה שלא מוסיפים יותר מהמלאי
+      if (item.trackInventory && item.maxQuantity !== null && item.maxQuantity !== undefined && quantity > item.maxQuantity) {
+        return [...prev, { ...item, id: crypto.randomUUID(), quantity: item.maxQuantity }];
+      }
+      
       return [...prev, { ...item, id: crypto.randomUUID(), quantity }];
     });
     setCartOpen(true);
@@ -247,9 +269,17 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
     if (quantity <= 0) {
       setCart(prev => prev.filter(item => item.id !== id));
     } else {
-      setCart(prev => prev.map(item => 
-        item.id === id ? { ...item, quantity } : item
-      ));
+      setCart(prev => prev.map(item => {
+        if (item.id !== id) return item;
+        
+        // בדיקת מלאי מקומית - מהירה! ⚡
+        if (item.trackInventory && item.maxQuantity !== null && item.maxQuantity !== undefined) {
+          const clampedQty = Math.min(quantity, item.maxQuantity);
+          return { ...item, quantity: clampedQty };
+        }
+        
+        return { ...item, quantity };
+      }));
     }
   }, []);
 

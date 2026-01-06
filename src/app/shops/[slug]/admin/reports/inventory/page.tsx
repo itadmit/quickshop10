@@ -86,7 +86,7 @@ function LowStockTable({
         <thead>
           <tr className="border-b border-gray-200 text-right">
             <th className="py-3 px-4 font-medium text-gray-500 text-sm">מוצר</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">SKU</th>
+            <th className="py-3 px-4 font-medium text-gray-500 text-sm">מק״ט</th>
             <th className="py-3 px-4 font-medium text-gray-500 text-sm">מלאי</th>
             <th className="py-3 px-4 font-medium text-gray-500 text-sm">סטטוס</th>
             <th className="py-3 px-4 font-medium text-gray-500 text-sm">פעולות</th>

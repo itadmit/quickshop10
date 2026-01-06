@@ -130,7 +130,7 @@ export default async function InfluencerCouponsPage({ params }: CouponsPageProps
               {/* Stats */}
               <div className="border-t border-gray-200 pt-4 sm:pt-6">
                 <h3 className="text-xs sm:text-sm font-medium text-gray-500 mb-3 sm:mb-4">ביצועים</h3>
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <div className={`grid gap-2 sm:gap-4 ${influencer.showCommission ? 'grid-cols-3' : 'grid-cols-2'}`}>
                   <div className="bg-gray-50 rounded-lg p-3 sm:p-4 text-center">
                     <p className="text-lg sm:text-2xl font-bold text-gray-900">{couponStats?.totalUses || 0}</p>
                     <p className="text-xs sm:text-sm text-gray-500">שימושים</p>
@@ -139,10 +139,12 @@ export default async function InfluencerCouponsPage({ params }: CouponsPageProps
                     <p className="text-sm sm:text-2xl font-bold text-gray-900">{formatCurrency(couponStats?.totalSales || 0)}</p>
                     <p className="text-xs sm:text-sm text-gray-500">מכירות</p>
                   </div>
-                  <div className="bg-purple-50 rounded-lg p-3 sm:p-4 text-center">
-                    <p className="text-sm sm:text-2xl font-bold text-purple-600">{formatCurrency(couponStats?.totalCommission || 0)}</p>
-                    <p className="text-xs sm:text-sm text-gray-500">עמלות</p>
-                  </div>
+                  {influencer.showCommission && (
+                    <div className="bg-purple-50 rounded-lg p-3 sm:p-4 text-center">
+                      <p className="text-sm sm:text-2xl font-bold text-purple-600">{formatCurrency(couponStats?.totalCommission || 0)}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">עמלות</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

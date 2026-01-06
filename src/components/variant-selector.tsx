@@ -78,6 +78,8 @@ export function VariantSelector({
     if (!selectedVariant) return;
     
     const variantTitle = selectedVariant.title;
+    // מעבירים maxQuantity לבדיקה מקומית מהירה בסל ⚡
+    const hasInventoryTracking = selectedVariant.inventory !== null;
     addToCart({
       productId,
       variantId: selectedVariant.id,
@@ -85,6 +87,8 @@ export function VariantSelector({
       price: Number(selectedVariant.price),
       image: productImage,
       variantTitle,
+      maxQuantity: hasInventoryTracking ? selectedVariant.inventory : null,
+      trackInventory: hasInventoryTracking,
     });
     
     setAdded(true);

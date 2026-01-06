@@ -55,6 +55,11 @@ export type CouponResult = {
     minimumAmount?: number | null;
     minimumQuantity?: number | null;
     stackable: boolean;
+    appliesTo: 'all' | 'category' | 'product' | 'member';
+    productIds: string[];
+    categoryIds: string[];
+    excludeProductIds: string[];
+    triggeredByCode: string;
   }>;
 } | {
   success: false;
@@ -290,6 +295,11 @@ export async function validateCoupon(
     minimumAmount: gc.minimumAmount ? Number(gc.minimumAmount) : null,
     minimumQuantity: gc.minimumQuantity || null,
     stackable: gc.stackable ?? true,
+    appliesTo: (gc.appliesTo ?? 'all') as 'all' | 'category' | 'product' | 'member', // חשוב! ברירת מחדל 'all' כדי שהתנאים יתקיימו
+    productIds: (gc.productIds as string[]) || [],
+    categoryIds: (gc.categoryIds as string[]) || [],
+    excludeProductIds: (gc.excludeProductIds as string[]) || [],
+    triggeredByCode: normalizedCode, // שמירת הקופון שהפעיל את המתנה
   }));
 
   return {

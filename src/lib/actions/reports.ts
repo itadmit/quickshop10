@@ -5,9 +5,9 @@ import {
   orders, orderItems, customers, products, categories,
   analyticsEvents, searchQueries, abandonedCarts,
   giftCards, influencers, influencerSales, refunds,
-  customerCreditTransactions, productImages
+  customerCreditTransactions, productImages, discounts
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, desc, asc, sql, count, sum } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, asc, sql, count, sum, inArray } from 'drizzle-orm';
 import { cache } from 'react';
 
 // ============ TYPES ============
@@ -282,16 +282,16 @@ export const getSalesByCategory = cache(async (
 
   const result = await db
     .select({
-      id: categories.id,
-      name: categories.name,
+      id: sql<string>`COALESCE(${categories.id}::text, 'uncategorized')`,
+      name: sql<string>`COALESCE(${categories.name}, 'ללא קטגוריה')`,
       revenue: sql<number>`COALESCE(SUM(${orderItems.total}::numeric), 0)`,
       quantity: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)`,
       orders: sql<number>`COUNT(DISTINCT ${orders.id})`,
     })
     .from(orderItems)
     .innerJoin(orders, eq(orderItems.orderId, orders.id))
-    .innerJoin(products, eq(orderItems.productId, products.id))
-    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .leftJoin(products, eq(orderItems.productId, products.id))
+    .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(and(
       eq(orders.storeId, storeId),
       gte(orders.createdAt, from),
@@ -302,8 +302,8 @@ export const getSalesByCategory = cache(async (
     .orderBy(desc(sql`SUM(${orderItems.total}::numeric)`));
 
   return result.map(r => ({
-    id: r.id,
-    name: r.name,
+    id: String(r.id),
+    name: String(r.name),
     revenue: Number(r.revenue),
     quantity: Number(r.quantity),
     orders: Number(r.orders),
@@ -910,6 +910,7 @@ export const getRecentOrders = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
+  // Get orders with their item counts via a subquery
   const result = await db
     .select({
       id: orders.id,
@@ -924,7 +925,6 @@ export const getRecentOrders = cache(async (
       discountAmount: orders.discountAmount,
       shippingAmount: orders.shippingAmount,
       createdAt: orders.createdAt,
-      itemsCount: sql<number>`(SELECT COUNT(*) FROM order_items WHERE order_items.order_id = ${orders.id})`,
     })
     .from(orders)
     .where(and(
@@ -935,11 +935,31 @@ export const getRecentOrders = cache(async (
     .orderBy(desc(orders.createdAt))
     .limit(limit);
 
+  // Get item counts for all orders in one query
+  const orderIds = result.map(o => o.id);
+  
+  let itemCounts: Record<string, number> = {};
+  if (orderIds.length > 0) {
+    const itemCountsResult = await db
+      .select({
+        orderId: orderItems.orderId,
+        count: sql<number>`COUNT(*)::int`,
+      })
+      .from(orderItems)
+      .where(sql`${orderItems.orderId} = ANY(${orderIds})`)
+      .groupBy(orderItems.orderId);
+    
+    itemCounts = Object.fromEntries(
+      itemCountsResult.map(ic => [ic.orderId, Number(ic.count)])
+    );
+  }
+
   return result.map(o => ({
     ...o,
     total: Number(o.total),
     discountAmount: Number(o.discountAmount || 0),
     shippingAmount: Number(o.shippingAmount || 0),
+    itemsCount: itemCounts[o.id] || 0,
   }));
 });
 
@@ -1162,17 +1182,47 @@ export const getInfluencerOrders = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
-  // Get influencer's coupon code
+  // Get influencer's coupon codes (direct + from linked discounts)
   const [influencer] = await db
-    .select({ couponCode: influencers.couponCode })
+    .select({ 
+      couponCode: influencers.couponCode,
+      discountId: influencers.discountId,
+      discountIds: influencers.discountIds,
+    })
     .from(influencers)
     .where(eq(influencers.id, influencerId))
     .limit(1);
 
-  if (!influencer?.couponCode) {
-    return [];
+  // Collect all possible discount IDs to find codes
+  const discountIdsList = [
+    ...(influencer?.discountId ? [influencer.discountId] : []),
+    ...((influencer?.discountIds as string[]) || []),
+  ].filter(Boolean);
+
+  // Get all discount codes linked to this influencer
+  let allCouponCodes: string[] = [];
+  if (influencer?.couponCode) {
+    allCouponCodes.push(influencer.couponCode);
+  }
+  if (discountIdsList.length > 0) {
+    const linkedDiscounts = await db
+      .select({ code: discounts.code })
+      .from(discounts)
+      .where(inArray(discounts.id, discountIdsList));
+    allCouponCodes.push(...linkedDiscounts.map(d => d.code));
   }
 
+  // Build the OR condition for matching orders
+  let matchCondition;
+  if (allCouponCodes.length > 0) {
+    // Match by influencerId OR by any of the coupon codes
+    matchCondition = sql`(${orders.influencerId} = ${influencerId} OR ${orders.discountCode} = ANY(${allCouponCodes}))`;
+  } else {
+    // Only match by influencerId
+    matchCondition = eq(orders.influencerId, influencerId);
+  }
+
+  // Find orders linked to this influencer
   const result = await db
     .select({
       id: orders.id,
@@ -1186,9 +1236,9 @@ export const getInfluencerOrders = cache(async (
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
-      eq(orders.discountCode, influencer.couponCode),
       gte(orders.createdAt, from),
-      lte(orders.createdAt, to)
+      lte(orders.createdAt, to),
+      matchCondition
     ))
     .orderBy(desc(orders.createdAt));
 

@@ -46,6 +46,7 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
       createdAt: influencers.createdAt,
       discountValue: discounts.value,
       discountType: discounts.type,
+      discountCode: discounts.code, // Also get the discount code
     })
     .from(influencers)
     .leftJoin(discounts, eq(discounts.id, influencers.discountId))
@@ -133,9 +134,9 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
                       </div>
                     </td>
                     <td className="px-5 py-4">
-                      {influencer.couponCode ? (
+                      {(influencer.couponCode || influencer.discountCode) ? (
                         <span className="px-2.5 py-1 bg-purple-100 text-purple-700 text-sm font-mono rounded-lg">
-                          {influencer.couponCode}
+                          {influencer.couponCode || influencer.discountCode}
                         </span>
                       ) : (
                         <span className="text-gray-400 text-sm">-</span>

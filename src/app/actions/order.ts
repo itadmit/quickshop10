@@ -101,6 +101,45 @@ export async function createOrder(
       return { success: false, error: 'העגלה ריקה' };
     }
 
+    // ===== SECURITY: Server-side inventory validation ⚡ =====
+    // בדיקת מלאי לכל המוצרים לפני יצירת ההזמנה
+    for (const item of cart) {
+      let actualProductId = item.productId;
+      if (item.productId.length > 36 && item.productId.includes('-')) {
+        actualProductId = item.productId.substring(0, 36);
+      }
+      
+      if (item.variantId) {
+        // בדיקת מלאי לוריאנט
+        const [variant] = await db
+          .select({ inventory: productVariants.inventory })
+          .from(productVariants)
+          .where(eq(productVariants.id, item.variantId))
+          .limit(1);
+        
+        if (variant && variant.inventory !== null && variant.inventory < item.quantity) {
+          return { 
+            success: false, 
+            error: `הכמות המבוקשת של "${item.name}" (${item.quantity}) חורגת מהמלאי (${variant.inventory} במלאי)` 
+          };
+        }
+      } else {
+        // בדיקת מלאי למוצר רגיל
+        const [product] = await db
+          .select({ inventory: products.inventory, trackInventory: products.trackInventory })
+          .from(products)
+          .where(eq(products.id, actualProductId))
+          .limit(1);
+        
+        if (product && product.trackInventory && product.inventory !== null && product.inventory < item.quantity) {
+          return { 
+            success: false, 
+            error: `הכמות המבוקשת של "${item.name}" (${item.quantity}) חורגת מהמלאי (${product.inventory} במלאי)` 
+          };
+        }
+      }
+    }
+
     // ===== SECURITY: Server-side validation =====
     // Re-calculate subtotal from cart (never trust client values)
     const serverSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);

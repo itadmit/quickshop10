@@ -4,7 +4,7 @@
  */
 
 export type PriceFormatOptions = {
-  showDecimal?: boolean;  // האם להציג אגורות (ברירת מחדל: false)
+  showDecimal?: boolean;  // האם להציג אגורות (ברירת מחדל: true)
   currency?: string;      // מטבע (ברירת מחדל: ILS)
   locale?: string;        // שפה (ברירת מחדל: he-IL)
 };
@@ -32,7 +32,7 @@ export function formatPrice(
   price: number | string | null | undefined,
   options: PriceFormatOptions = {}
 ): string {
-  const { showDecimal = false, currency = 'ILS' } = options;
+  const { showDecimal = true, currency = 'ILS' } = options;
   
   // המרה למספר
   const numPrice = typeof price === 'string' ? parseFloat(price) : (price ?? 0);
@@ -59,7 +59,7 @@ export function formatPrice(
  */
 export function formatPriceNumber(
   price: number | string | null | undefined,
-  showDecimal: boolean = false
+  showDecimal: boolean = true
 ): string {
   const numPrice = typeof price === 'string' ? parseFloat(price) : (price ?? 0);
   

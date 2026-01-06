@@ -643,7 +643,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, prod
                                   value={variant.sku}
                                   onChange={(e) => updateVariant(index, 'sku', e.target.value)}
                                   className="w-24 px-2 py-1 border border-gray-200 rounded text-sm font-mono focus:ring-1 focus:ring-gray-900/10 outline-none"
-                                  placeholder="SKU"
+                                  placeholder="מק״ט"
                                 />
                               </td>
                               <td className="px-3 py-2">

@@ -1481,7 +1481,20 @@ export function CheckoutForm({
               appliedCoupons={appliedCoupons}
               onApply={(coupon) => addCoupon(coupon)}
               onRemove={(couponId) => { 
+                // מציאת הקופון שמוסר
+                const removedCoupon = appliedCoupons.find(c => c.id === couponId);
                 removeCoupon(couponId);
+                
+                // אם מסירים קופון טריגר, צריך להסיר גם את קופוני המתנה שהופעלו על ידו
+                if (removedCoupon) {
+                  const triggeredGiftCoupons = appliedCoupons.filter(
+                    c => c.triggeredByCode?.toUpperCase() === removedCoupon.code.toUpperCase()
+                  );
+                  for (const giftCoupon of triggeredGiftCoupons) {
+                    removeCoupon(giftCoupon.id);
+                  }
+                }
+                
                 setCouponWarning(null);
               }}
               email={formData.email}

@@ -219,7 +219,7 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
               </th>
               <th className="text-right py-3 px-4 text-xs font-medium text-gray-500 uppercase">מוצר</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-32">קטגוריה</th>
-              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">SKU</th>
+              <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מק״ט</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מחיר</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">מחיר השוואה</th>
               <th className="text-right py-3 px-2 text-xs font-medium text-gray-500 uppercase w-24">עלות</th>

@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
+import { duplicateProduct } from './actions';
 
 // ============================================
 // ProductsDataTable - Client Component
@@ -57,6 +59,24 @@ export function ProductsDataTable({
   pagination,
 }: ProductsDataTableProps) {
   const router = useRouter();
+  const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
+
+  // Handle duplicate product
+  const handleDuplicate = async (productId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    if (duplicatingId) return;
+    
+    setDuplicatingId(productId);
+    try {
+      const result = await duplicateProduct(productId, storeSlug);
+      if (result.success && result.newProductId) {
+        router.push(`/shops/${storeSlug}/admin/products/${result.newProductId}`);
+      }
+    } finally {
+      setDuplicatingId(null);
+    }
+  };
 
   // Handle category filter change
   const handleCategoryChange = (categoryId: string) => {
@@ -133,7 +153,7 @@ export function ProductsDataTable({
     {
       key: 'product',
       header: 'מוצר',
-      width: '280px',
+      width: '300px',
       render: (product) => (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-200">
@@ -163,7 +183,6 @@ export function ProductsDataTable({
             >
               {product.name}
             </Link>
-            <p className="text-xs text-gray-500 truncate">/{product.slug}</p>
           </div>
         </div>
       ),
@@ -229,10 +248,27 @@ export function ProductsDataTable({
     {
       key: 'actions',
       header: 'פעולות',
-      width: '100px',
+      width: '130px',
       align: 'left',
       render: (product) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={(e) => handleDuplicate(product.id, e)}
+            disabled={duplicatingId === product.id}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            title="שכפל מוצר"
+          >
+            {duplicatingId === product.id ? (
+              <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+              </svg>
+            ) : (
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            )}
+          </button>
           <Link
             href={`/shops/${storeSlug}/product/${product.slug}`}
             target="_blank"

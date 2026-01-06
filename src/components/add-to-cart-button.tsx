@@ -54,7 +54,15 @@ export function AddToCartButton({
   const handleClick = () => {
     if (outOfStock) return;
     
-    addToCart({ productId, name, price, image });
+    // מעבירים maxQuantity ו-trackInventory לבדיקה מקומית מהירה בסל ⚡
+    addToCart({ 
+      productId, 
+      name, 
+      price, 
+      image,
+      maxQuantity: trackInventory ? inventory : null,
+      trackInventory,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
     

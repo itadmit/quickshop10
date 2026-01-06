@@ -1,32 +1,32 @@
-import { auth } from '@/lib/auth';
-import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { stores, users, orders } from '@/lib/db/schema';
-import { sql, desc, gte } from 'drizzle-orm';
+import { stores, users, orders, storeSubscriptions } from '@/lib/db/schema';
+import { sql, desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { Store, Users, ShoppingCart, DollarSign, TrendingUp, ArrowUpRight, Clock, Calendar, Activity } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 export default async function PlatformAdminPage() {
-  const session = await auth();
-  
-  // Check if user is platform admin
-  if (!session?.user?.email || session.user.email !== 'admin@quickshop.co.il') {
-    redirect('/login');
-  }
-
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
   // Get platform stats
   const [storeStats] = await db
     .select({
       totalStores: sql<number>`COUNT(*)::int`,
       activeStores: sql<number>`COUNT(*) FILTER (WHERE ${stores.isActive} = true)::int`,
+      newStores: sql<number>`COUNT(*) FILTER (WHERE ${stores.createdAt} >= ${sevenDaysAgo})::int`,
     })
     .from(stores);
 
   const [userStats] = await db
     .select({
       totalUsers: sql<number>`COUNT(*)::int`,
+      newUsers: sql<number>`COUNT(*) FILTER (WHERE ${users.createdAt} >= ${sevenDaysAgo})::int`,
+      activeToday: sql<number>`COUNT(*) FILTER (WHERE ${users.lastLoginAt} >= ${new Date(Date.now() - 24 * 60 * 60 * 1000)})::int`,
     })
     .from(users);
 
@@ -35,10 +35,25 @@ export default async function PlatformAdminPage() {
       totalOrders: sql<number>`COUNT(*)::int`,
       totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric), 0)`,
       recentOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.createdAt} >= ${thirtyDaysAgo})::int`,
+      recentRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric) FILTER (WHERE ${orders.createdAt} >= ${thirtyDaysAgo}), 0)`,
     })
     .from(orders);
 
-  // Get recent stores
+  // Get subscription stats
+  const subscriptionStats = await db
+    .select({
+      plan: storeSubscriptions.plan,
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(storeSubscriptions)
+    .groupBy(storeSubscriptions.plan);
+
+  const planCountMap = subscriptionStats.reduce((acc, { plan, count }) => {
+    acc[plan] = count;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Get recent stores with owner info
   const recentStores = await db
     .select({
       id: stores.id,
@@ -47,10 +62,27 @@ export default async function PlatformAdminPage() {
       plan: stores.plan,
       isActive: stores.isActive,
       createdAt: stores.createdAt,
+      ownerName: users.name,
+      ownerEmail: users.email,
     })
     .from(stores)
+    .leftJoin(users, eq(stores.ownerId, users.id))
     .orderBy(desc(stores.createdAt))
-    .limit(10);
+    .limit(5);
+
+  // Get recent users
+  const recentUsers = await db
+    .select({
+      id: users.id,
+      name: users.name,
+      email: users.email,
+      avatarUrl: users.avatarUrl,
+      createdAt: users.createdAt,
+      lastLoginAt: users.lastLoginAt,
+    })
+    .from(users)
+    .orderBy(desc(users.createdAt))
+    .limit(5);
 
   const formatCurrency = (amount: string | number) => {
     return new Intl.NumberFormat('he-IL', {
@@ -60,116 +92,258 @@ export default async function PlatformAdminPage() {
     }).format(Number(amount));
   };
 
+  const formatRelativeTime = (date: Date | null) => {
+    if (!date) return 'אף פעם';
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 1) return 'עכשיו';
+    if (diffMins < 60) return `לפני ${diffMins} דק׳`;
+    if (diffHours < 24) return `לפני ${diffHours} שעות`;
+    if (diffDays < 7) return `לפני ${diffDays} ימים`;
+    return new Date(date).toLocaleDateString('he-IL');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="p-8">
       {/* Header */}
-      <header className="bg-black text-white">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="font-display text-xl tracking-[0.3em] uppercase">
-              QuickShop
-            </Link>
-            <span className="px-2 py-1 bg-white/20 text-xs rounded">Platform Admin</span>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">סקירת פלטפורמה</h1>
+        <p className="text-gray-500">ברוך הבא למערכת הניהול של QuickShop</p>
+      </div>
+
+      {/* Main Stats */}
+      <div className="grid grid-cols-4 gap-5 mb-8">
+        <StatCard
+          icon={Store}
+          label="חנויות"
+          value={storeStats.totalStores}
+          subtext={`${storeStats.activeStores} פעילות`}
+          trend={storeStats.newStores > 0 ? `+${storeStats.newStores}` : undefined}
+          color="emerald"
+        />
+        <StatCard
+          icon={Users}
+          label="משתמשים"
+          value={userStats.totalUsers}
+          subtext={`${userStats.activeToday} פעילים היום`}
+          trend={userStats.newUsers > 0 ? `+${userStats.newUsers}` : undefined}
+          color="blue"
+        />
+        <StatCard
+          icon={ShoppingCart}
+          label="הזמנות"
+          value={orderStats.totalOrders}
+          subtext={`${orderStats.recentOrders} ב-30 יום`}
+          color="purple"
+        />
+        <StatCard
+          icon={DollarSign}
+          label="הכנסות"
+          value={formatCurrency(orderStats.totalRevenue)}
+          subtext={`${formatCurrency(orderStats.recentRevenue)} ב-30 יום`}
+          color="amber"
+        />
+      </div>
+
+      {/* Subscription Stats */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8 shadow-sm">
+        <div className="flex items-center gap-2 mb-5">
+          <Activity className="w-5 h-5 text-emerald-600" />
+          <h2 className="text-lg font-bold text-gray-900">התפלגות מנויים</h2>
+        </div>
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200">
+            <p className="text-3xl font-bold text-blue-700">{planCountMap['trial'] || 0}</p>
+            <p className="text-sm text-blue-600 font-medium">נסיון</p>
+            <p className="text-xs text-blue-500 mt-1">7 ימים חינם</p>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-white/60">{session.user.email}</span>
-            <Link href="/logout" className="text-sm text-white/60 hover:text-white">
-              התנתק
-            </Link>
+          <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 border border-purple-200">
+            <p className="text-3xl font-bold text-purple-700">{planCountMap['branding'] || 0}</p>
+            <p className="text-sm text-purple-600 font-medium">תדמית</p>
+            <p className="text-xs text-purple-500 mt-1">₪299/חודש</p>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-4 border border-emerald-200">
+            <p className="text-3xl font-bold text-emerald-700">{planCountMap['quickshop'] || 0}</p>
+            <p className="text-sm text-emerald-600 font-medium">קוויק שופ</p>
+            <p className="text-xs text-emerald-500 mt-1">₪399/חודש</p>
+          </div>
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 border border-gray-200">
+            <p className="text-3xl font-bold text-gray-700">
+              {(planCountMap['trial'] || 0) + (planCountMap['branding'] || 0) + (planCountMap['quickshop'] || 0)}
+            </p>
+            <p className="text-sm text-gray-600 font-medium">סה״כ מנויים</p>
+            <p className="text-xs text-gray-500 mt-1">כל התוכניות</p>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-8">
-            <Link href="/admin" className="py-4 text-sm font-medium border-b-2 border-black">
-              סקירה
-            </Link>
-            <Link href="/admin/stores" className="py-4 text-sm text-gray-600 hover:text-black">
-              חנויות
-            </Link>
-            <Link href="/admin/users" className="py-4 text-sm text-gray-600 hover:text-black">
-              משתמשים
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">סקירת פלטפורמה</h1>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <p className="text-3xl font-bold text-gray-900">{storeStats.totalStores}</p>
-            <p className="text-sm text-gray-500 mt-1">סה״כ חנויות</p>
-            <p className="text-xs text-green-600 mt-2">{storeStats.activeStores} פעילות</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <p className="text-3xl font-bold text-gray-900">{userStats.totalUsers}</p>
-            <p className="text-sm text-gray-500 mt-1">משתמשים</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <p className="text-3xl font-bold text-gray-900">{orderStats.totalOrders}</p>
-            <p className="text-sm text-gray-500 mt-1">סה״כ הזמנות</p>
-            <p className="text-xs text-blue-600 mt-2">{orderStats.recentOrders} ב-30 יום</p>
-          </div>
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <p className="text-3xl font-bold text-gray-900">{formatCurrency(orderStats.totalRevenue)}</p>
-            <p className="text-sm text-gray-500 mt-1">סה״כ מכירות</p>
-          </div>
-        </div>
-
+      <div className="grid grid-cols-2 gap-6">
         {/* Recent Stores */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold">חנויות אחרונות</h2>
-            <Link href="/admin/stores" className="text-sm text-blue-600 hover:underline">
-              הצג הכל →
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Store className="w-5 h-5 text-emerald-600" />
+              <h2 className="font-bold text-gray-900">חנויות אחרונות</h2>
+            </div>
+            <Link href="/admin/stores" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
+              הכל
+              <ArrowUpRight className="w-4 h-4" />
             </Link>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-50">
             {recentStores.map((store) => (
-              <div key={store.id} className="p-4 flex items-center justify-between">
-                <div>
-                  <Link 
-                    href={`/shops/${store.slug}/admin`}
-                    className="font-medium text-gray-900 hover:text-black"
-                  >
-                    {store.name}
-                  </Link>
-                  <p className="text-sm text-gray-500">/{store.slug}</p>
+              <Link
+                key={store.id}
+                href={`/admin/stores/${store.id}`}
+                className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-green-100 rounded-xl flex items-center justify-center border border-emerald-200">
+                    <Store className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{store.name}</p>
+                    <p className="text-xs text-gray-500">{store.ownerEmail}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    store.plan === 'enterprise' ? 'bg-purple-100 text-purple-800' :
-                    store.plan === 'pro' ? 'bg-blue-100 text-blue-800' :
-                    store.plan === 'basic' ? 'bg-green-100 text-green-800' :
-                    'bg-gray-100 text-gray-600'
+                <div className="text-left">
+                  <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${
+                    store.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' :
+                    store.plan === 'branding' ? 'bg-purple-100 text-purple-700' :
+                    'bg-blue-100 text-blue-700'
                   }`}>
-                    {store.plan}
-                  </span>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                    store.isActive 
-                      ? 'bg-green-100 text-green-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {store.isActive ? 'פעיל' : 'לא פעיל'}
-                  </span>
-                  <span className="text-xs text-gray-400">
-                    {new Date(store.createdAt).toLocaleDateString('he-IL')}
+                    {store.plan === 'quickshop' ? 'קוויק שופ' : 
+                     store.plan === 'branding' ? 'תדמית' : 'נסיון'}
                   </span>
                 </div>
-              </div>
+              </Link>
             ))}
+            {recentStores.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                <Store className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                <p>אין חנויות עדיין</p>
+              </div>
+            )}
           </div>
         </div>
-      </main>
+
+        {/* Recent Users */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-600" />
+              <h2 className="font-bold text-gray-900">משתמשים אחרונים</h2>
+            </div>
+            <Link href="/admin/users" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1">
+              הכל
+              <ArrowUpRight className="w-4 h-4" />
+            </Link>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {recentUsers.map((user) => (
+              <Link
+                key={user.id}
+                href={`/admin/users/${user.id}`}
+                className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-md">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-white font-medium">
+                        {(user.name || user.email)?.[0]?.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900">{user.name || 'ללא שם'}</p>
+                    <p className="text-xs text-gray-500">{user.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  {formatRelativeTime(user.lastLoginAt)}
+                </div>
+              </Link>
+            ))}
+            {recentUsers.length === 0 && (
+              <div className="p-8 text-center text-gray-500">
+                <Users className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                <p>אין משתמשים עדיין</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
 
+function StatCard({ 
+  icon: Icon, 
+  label, 
+  value, 
+  subtext, 
+  trend, 
+  color 
+}: { 
+  icon: React.ElementType; 
+  label: string; 
+  value: string | number; 
+  subtext: string;
+  trend?: string;
+  color: 'emerald' | 'blue' | 'purple' | 'amber';
+}) {
+  const colors = {
+    emerald: {
+      bg: 'from-emerald-50 to-green-50',
+      border: 'border-emerald-200',
+      icon: 'text-emerald-600 bg-emerald-100',
+      trend: 'text-emerald-600 bg-emerald-100',
+    },
+    blue: {
+      bg: 'from-blue-50 to-cyan-50',
+      border: 'border-blue-200',
+      icon: 'text-blue-600 bg-blue-100',
+      trend: 'text-blue-600 bg-blue-100',
+    },
+    purple: {
+      bg: 'from-purple-50 to-fuchsia-50',
+      border: 'border-purple-200',
+      icon: 'text-purple-600 bg-purple-100',
+      trend: 'text-purple-600 bg-purple-100',
+    },
+    amber: {
+      bg: 'from-amber-50 to-orange-50',
+      border: 'border-amber-200',
+      icon: 'text-amber-600 bg-amber-100',
+      trend: 'text-amber-600 bg-amber-100',
+    },
+  };
 
+  const c = colors[color];
+
+  return (
+    <div className={`bg-gradient-to-br ${c.bg} rounded-2xl border ${c.border} p-5 shadow-sm`}>
+      <div className="flex items-center justify-between mb-4">
+        <div className={`p-2 rounded-xl ${c.icon}`}>
+          <Icon className="w-5 h-5" />
+        </div>
+        {trend && (
+          <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${c.trend}`}>
+            <TrendingUp className="w-3 h-3" />
+            {trend}
+          </span>
+        )}
+      </div>
+      <p className="text-3xl font-bold text-gray-900 mb-1">{value}</p>
+      <p className="text-sm font-medium text-gray-600">{label}</p>
+      <p className="text-xs text-gray-500 mt-1">{subtext}</p>
+    </div>
+  );
+}

@@ -297,7 +297,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                   if (!result) return;
                   
                   const commissionType = result.commissionType || 'percentage';
-                  const commissionValue = Number(result.commissionValue) || 10;
+                  const commissionValue = Number(result.commissionValue) || 0;
                   
                   let commissionAmount = 0;
                   if (commissionType === 'percentage') {
@@ -343,6 +343,52 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 })
                 .catch(err => {
                   console.error(`Thank you page (new flow): Failed to increment automatic discount usage:`, err);
+                });
+            }
+            
+            // Handle gift card balance update (non-blocking)
+            const newFlowGiftCardCode = (orderData as { giftCardCode?: string })?.giftCardCode;
+            const newFlowGiftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
+            if (newFlowGiftCardCode && newFlowGiftCardAmount > 0) {
+              db.select()
+                .from(giftCards)
+                .where(
+                  and(
+                    eq(giftCards.storeId, store.id),
+                    eq(giftCards.code, newFlowGiftCardCode),
+                    eq(giftCards.status, 'active')
+                  )
+                )
+                .limit(1)
+                .then(async ([giftCard]) => {
+                  if (!giftCard) return;
+                  
+                  const currentBalance = Number(giftCard.currentBalance) || 0;
+                  const newBalance = Math.max(0, currentBalance - newFlowGiftCardAmount);
+                  
+                  // Update gift card balance
+                  await db
+                    .update(giftCards)
+                    .set({
+                      currentBalance: newBalance.toFixed(2),
+                      lastUsedAt: new Date(),
+                      status: newBalance <= 0 ? 'used' : 'active',
+                    })
+                    .where(eq(giftCards.id, giftCard.id));
+                  
+                  // Create gift card transaction
+                  await db.insert(giftCardTransactions).values({
+                    giftCardId: giftCard.id,
+                    orderId: updatedOrder.id,
+                    amount: (-newFlowGiftCardAmount).toFixed(2),
+                    balanceAfter: newBalance.toFixed(2),
+                    note: `הזמנה #${updatedOrder.orderNumber}`,
+                  });
+                  
+                  console.log(`Thank you page (new flow): Updated gift card ${newFlowGiftCardCode} balance from ${currentBalance} to ${newBalance}`);
+                })
+                .catch(err => {
+                  console.error(`Thank you page (new flow): Failed to update gift card balance:`, err);
                 });
             }
             
@@ -598,7 +644,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               }
               
               const commissionType = result.commissionType || 'percentage';
-              const commissionValue = Number(result.commissionValue) || 10;
+              const commissionValue = Number(result.commissionValue) || 0;
               
               // Calculate commission
               let commissionAmount = 0;

@@ -45,7 +45,7 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
     // הגדרות החזרות
     returnPolicyDays: (settings.returnPolicyDays as number) || 14,
     // הגדרות תצוגת מחירים
-    showDecimalPrices: (settings.showDecimalPrices as boolean) ?? false,
+    showDecimalPrices: (settings.showDecimalPrices as boolean) ?? true,
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

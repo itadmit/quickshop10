@@ -176,7 +176,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                       <p className="text-xs text-gray-500 mt-0.5">{item.variantTitle}</p>
                     )}
                     {item.sku && (
-                      <p className="text-xs text-gray-400 mt-0.5">SKU: {item.sku}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">מק״ט: {item.sku}</p>
                     )}
                   </div>
 
@@ -215,9 +215,9 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               )}
               <div className="flex justify-between">
                 <span className="text-gray-600">משלוח</span>
-                <span className="text-gray-400">Standard</span>
+                <span className="text-gray-400 text-sm">{order.shippingMethod || 'רגיל'}</span>
                 <span className="text-gray-900">
-                  {Number(order.shippingAmount) === 0 ? '₪0.00' : `₪${Number(order.shippingAmount).toLocaleString()}`}
+                  {Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toLocaleString()}`}
                 </span>
               </div>
               <div className="flex justify-between pt-2.5 border-t border-gray-100 font-semibold">

@@ -84,6 +84,11 @@ export function CouponInput({
             minimumQuantity: gc.minimumQuantity,
             stackable: gc.stackable,
             giftProductIds: gc.giftProductIds,
+            appliesTo: gc.appliesTo, // חשוב! לבדיקת תנאים
+            productIds: gc.productIds,
+            categoryIds: gc.categoryIds,
+            excludeProductIds: gc.excludeProductIds,
+            triggeredByCode: gc.triggeredByCode, // שמירת הקופון שהפעיל
           }));
           onTriggeredGiftCoupons(giftCoupons);
         }

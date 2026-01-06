@@ -18,7 +18,31 @@ import { relations } from 'drizzle-orm';
 // ============ ENUMS ============
 
 export const userRoleEnum = pgEnum('user_role', ['admin', 'merchant']);
-export const storePlanEnum = pgEnum('store_plan', ['free', 'basic', 'pro', 'enterprise']);
+// Store plans - includes both legacy (free, basic, pro, enterprise) and new (trial, branding, quickshop) values
+export const storePlanEnum = pgEnum('store_plan', ['free', 'basic', 'pro', 'enterprise', 'trial', 'branding', 'quickshop']);
+
+// Platform billing enums
+export const subscriptionStatusEnum = pgEnum('subscription_status', [
+  'trial',        // בתקופת נסיון
+  'active',       // פעיל ומשלם
+  'past_due',     // חוב - לא הצלחנו לגבות
+  'cancelled',    // בוטל על ידי המשתמש
+  'expired'       // פג תוקף
+]);
+
+export const platformInvoiceTypeEnum = pgEnum('platform_invoice_type', [
+  'subscription',      // מנוי חודשי
+  'transaction_fee',   // עמלות עסקאות (0.5%)
+  'plugin'             // תוספים
+]);
+
+export const platformInvoiceStatusEnum = pgEnum('platform_invoice_status', [
+  'draft',      // טיוטה
+  'pending',    // ממתין לחיוב
+  'paid',       // שולם
+  'failed',     // נכשל
+  'cancelled'   // בוטל
+]);
 export const orderStatusEnum = pgEnum('order_status', [
   'pending', 'confirmed', 'processing', 'shipped', 'delivered', 'cancelled', 'refunded'
 ]);
@@ -2346,6 +2370,220 @@ export const advisorSessionsRelations = relations(advisorSessions, ({ one }) => 
   }),
 }));
 
+// ============ PLATFORM BILLING ============
+
+/**
+ * Store Subscriptions - מנויים של חנויות
+ * כולל פרטי טוקן PayPlus לחיוב אוטומטי
+ */
+export const storeSubscriptions = pgTable('store_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull().unique(),
+  
+  // Plan info
+  plan: storePlanEnum('plan').default('trial').notNull(),
+  status: subscriptionStatusEnum('status').default('trial').notNull(),
+  
+  // Trial info
+  trialEndsAt: timestamp('trial_ends_at'),
+  
+  // Current billing period
+  currentPeriodStart: timestamp('current_period_start'),
+  currentPeriodEnd: timestamp('current_period_end'),
+  
+  // PayPlus payment info
+  payplusCustomerUid: varchar('payplus_customer_uid', { length: 255 }),
+  payplusTokenUid: varchar('payplus_token_uid', { length: 255 }),
+  cardLastFour: varchar('card_last_four', { length: 4 }),
+  cardBrand: varchar('card_brand', { length: 50 }),
+  cardExpiry: varchar('card_expiry', { length: 7 }), // MM/YYYY
+  
+  // Billing details
+  billingEmail: varchar('billing_email', { length: 255 }),
+  billingName: varchar('billing_name', { length: 255 }),
+  billingPhone: varchar('billing_phone', { length: 50 }),
+  billingAddress: jsonb('billing_address'),
+  vatNumber: varchar('vat_number', { length: 50 }), // ח.פ / ע.מ
+  
+  // Metadata
+  cancelledAt: timestamp('cancelled_at'),
+  cancellationReason: text('cancellation_reason'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_store_subscriptions_store').on(table.storeId),
+  index('idx_store_subscriptions_status').on(table.status),
+]);
+
+/**
+ * Platform Invoices - חשבוניות פלטפורמה
+ * מנוי / עמלות עסקאות / תוספים
+ */
+export const platformInvoices = pgTable('platform_invoices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  subscriptionId: uuid('subscription_id').references(() => storeSubscriptions.id, { onDelete: 'set null' }),
+  
+  // Invoice details
+  invoiceNumber: varchar('invoice_number', { length: 50 }).notNull().unique(),
+  type: platformInvoiceTypeEnum('type').notNull(),
+  status: platformInvoiceStatusEnum('status').default('draft').notNull(),
+  
+  // Amounts (all in ILS agorot/cents - stored as integers for precision)
+  subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(), // Before VAT
+  vatRate: decimal('vat_rate', { precision: 5, scale: 2 }).default('18').notNull(), // 18%
+  vatAmount: decimal('vat_amount', { precision: 10, scale: 2 }).notNull(),
+  totalAmount: decimal('total_amount', { precision: 10, scale: 2 }).notNull(), // After VAT
+  
+  // Period (for transaction fees & plugins)
+  periodStart: timestamp('period_start'),
+  periodEnd: timestamp('period_end'),
+  
+  // Description
+  description: text('description'),
+  
+  // PayPlus transaction details
+  payplusTransactionUid: varchar('payplus_transaction_uid', { length: 255 }),
+  payplusInvoiceNumber: varchar('payplus_invoice_number', { length: 100 }),
+  payplusInvoiceUrl: varchar('payplus_invoice_url', { length: 500 }),
+  
+  // Payment tracking
+  chargeAttempts: integer('charge_attempts').default(0).notNull(),
+  lastChargeAttempt: timestamp('last_charge_attempt'),
+  lastChargeError: text('last_charge_error'),
+  
+  // Dates
+  issuedAt: timestamp('issued_at'),
+  dueAt: timestamp('due_at'),
+  paidAt: timestamp('paid_at'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_platform_invoices_store').on(table.storeId),
+  index('idx_platform_invoices_status').on(table.status),
+  index('idx_platform_invoices_type').on(table.type),
+  index('idx_platform_invoices_created').on(table.createdAt),
+]);
+
+/**
+ * Platform Invoice Items - פריטי חשבונית
+ */
+export const platformInvoiceItems = pgTable('platform_invoice_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  invoiceId: uuid('invoice_id').references(() => platformInvoices.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Item details
+  description: varchar('description', { length: 500 }).notNull(),
+  quantity: integer('quantity').default(1).notNull(),
+  unitPrice: decimal('unit_price', { precision: 10, scale: 2 }).notNull(),
+  totalPrice: decimal('total_price', { precision: 10, scale: 2 }).notNull(),
+  
+  // Reference (e.g., plugin slug, period description)
+  referenceType: varchar('reference_type', { length: 50 }), // 'subscription', 'transaction_fee', 'plugin'
+  referenceId: varchar('reference_id', { length: 255 }), // plugin slug or period key
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_platform_invoice_items_invoice').on(table.invoiceId),
+]);
+
+/**
+ * Store Transaction Fees - סיכום עסקאות לחיוב עמלות
+ * מחושב כל שבועיים
+ */
+export const storeTransactionFees = pgTable('store_transaction_fees', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Period
+  periodStart: timestamp('period_start').notNull(),
+  periodEnd: timestamp('period_end').notNull(),
+  
+  // Transaction summary
+  totalTransactionsAmount: decimal('total_transactions_amount', { precision: 12, scale: 2 }).notNull(),
+  totalTransactionsCount: integer('total_transactions_count').default(0).notNull(),
+  
+  // Fee calculation
+  feePercentage: decimal('fee_percentage', { precision: 5, scale: 4 }).default('0.005').notNull(), // 0.5%
+  feeAmount: decimal('fee_amount', { precision: 10, scale: 2 }).notNull(),
+  
+  // Invoice link
+  invoiceId: uuid('invoice_id').references(() => platformInvoices.id, { onDelete: 'set null' }),
+  
+  // Calculation metadata
+  calculatedAt: timestamp('calculated_at').defaultNow().notNull(),
+  orderIds: jsonb('order_ids').default([]).notNull(), // IDs of orders included
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_store_transaction_fees_store').on(table.storeId),
+  index('idx_store_transaction_fees_period').on(table.periodStart, table.periodEnd),
+  uniqueIndex('idx_store_transaction_fees_unique_period').on(table.storeId, table.periodStart, table.periodEnd),
+]);
+
+/**
+ * Plugin Pricing - מחירי תוספים
+ * מגדיר את המחיר לכל תוסף
+ */
+export const pluginPricing = pgTable('plugin_pricing', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  pluginSlug: varchar('plugin_slug', { length: 100 }).notNull().unique(),
+  
+  // Pricing
+  monthlyPrice: decimal('monthly_price', { precision: 10, scale: 2 }).notNull(),
+  
+  // Trial
+  trialDays: integer('trial_days').default(14),
+  
+  // Metadata
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_plugin_pricing_slug').on(table.pluginSlug),
+]);
+
+// Platform Billing Relations
+export const storeSubscriptionsRelations = relations(storeSubscriptions, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [storeSubscriptions.storeId],
+    references: [stores.id],
+  }),
+  invoices: many(platformInvoices),
+}));
+
+export const platformInvoicesRelations = relations(platformInvoices, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [platformInvoices.storeId],
+    references: [stores.id],
+  }),
+  subscription: one(storeSubscriptions, {
+    fields: [platformInvoices.subscriptionId],
+    references: [storeSubscriptions.id],
+  }),
+  items: many(platformInvoiceItems),
+}));
+
+export const platformInvoiceItemsRelations = relations(platformInvoiceItems, ({ one }) => ({
+  invoice: one(platformInvoices, {
+    fields: [platformInvoiceItems.invoiceId],
+    references: [platformInvoices.id],
+  }),
+}));
+
+export const storeTransactionFeesRelations = relations(storeTransactionFees, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeTransactionFees.storeId],
+    references: [stores.id],
+  }),
+  invoice: one(platformInvoices, {
+    fields: [storeTransactionFees.invoiceId],
+    references: [platformInvoices.id],
+  }),
+}));
+
 // ============ TYPES ============
 
 export type User = typeof users.$inferSelect;
@@ -2462,3 +2700,15 @@ export type AdvisorProductRule = typeof advisorProductRules.$inferSelect;
 export type NewAdvisorProductRule = typeof advisorProductRules.$inferInsert;
 export type AdvisorSession = typeof advisorSessions.$inferSelect;
 export type NewAdvisorSession = typeof advisorSessions.$inferInsert;
+
+// Platform Billing types
+export type StoreSubscription = typeof storeSubscriptions.$inferSelect;
+export type NewStoreSubscription = typeof storeSubscriptions.$inferInsert;
+export type PlatformInvoice = typeof platformInvoices.$inferSelect;
+export type NewPlatformInvoice = typeof platformInvoices.$inferInsert;
+export type PlatformInvoiceItem = typeof platformInvoiceItems.$inferSelect;
+export type NewPlatformInvoiceItem = typeof platformInvoiceItems.$inferInsert;
+export type StoreTransactionFee = typeof storeTransactionFees.$inferSelect;
+export type NewStoreTransactionFee = typeof storeTransactionFees.$inferInsert;
+export type PluginPricing = typeof pluginPricing.$inferSelect;
+export type NewPluginPricing = typeof pluginPricing.$inferInsert;

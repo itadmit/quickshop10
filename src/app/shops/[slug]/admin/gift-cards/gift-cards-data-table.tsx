@@ -119,7 +119,12 @@ export function GiftCardsDataTable({
       key: 'code',
       header: 'קוד',
       render: (card) => (
-        <span className="font-mono font-medium text-gray-900">{card.code}</span>
+        <a 
+          href={`/shops/${storeSlug}/admin/gift-cards/${card.id}`}
+          className="font-mono font-medium text-gray-900 hover:text-purple-600 transition-colors"
+        >
+          {card.code}
+        </a>
       ),
     },
     {

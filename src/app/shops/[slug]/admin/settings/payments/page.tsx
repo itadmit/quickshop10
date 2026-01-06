@@ -15,6 +15,8 @@ interface PaymentsSettingsPageProps {
 
 const settingsTabs = [
   { id: 'general', label: 'כללי', href: '' },
+  { id: 'subscription', label: 'מנוי', href: '/subscription' },
+  { id: 'domain', label: 'דומיין', href: '/domain' },
   { id: 'payments', label: 'תשלומים', href: '/payments' },
   { id: 'tracking', label: 'מעקב', href: '/tracking' },
   { id: 'checkout', label: 'קופה', href: '/checkout' },

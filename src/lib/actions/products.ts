@@ -402,19 +402,19 @@ export async function duplicateProduct(productId: string, storeId: string, store
       return { success: false, error: 'המוצר לא נמצא' };
     }
 
-    // Get original images and categories in parallel
-    const [originalImages, originalCategories] = await Promise.all([
-      db.select().from(productImages).where(eq(productImages.productId, productId)),
-      db.select().from(productCategories).where(eq(productCategories.productId, productId)),
-    ]);
+    // Get original categories (NOT images - duplicate without images)
+    const originalCategories = await db
+      .select()
+      .from(productCategories)
+      .where(eq(productCategories.productId, productId));
 
     // Create duplicate with new slug
-    const newSlug = `${original.slug}-copy-${Date.now()}`;
+    const uniqueSlug = await generateUniqueSlug(storeId, `${original.slug}-copy`);
     
     const [newProduct] = await db.insert(products).values({
       storeId,
       name: `${original.name} (העתק)`,
-      slug: newSlug,
+      slug: uniqueSlug,
       shortDescription: original.shortDescription,
       description: original.description,
       price: original.price,
@@ -433,28 +433,15 @@ export async function duplicateProduct(productId: string, storeId: string, store
       hasVariants: false, // Don't copy variants
     }).returning();
 
-    // Copy images and categories in parallel
-    await Promise.all([
-      originalImages.length > 0 
-        ? db.insert(productImages).values(
-            originalImages.map((img, index) => ({
-              productId: newProduct.id,
-              url: img.url,
-              alt: img.alt,
-              isPrimary: img.isPrimary,
-              sortOrder: index,
-            }))
-          )
-        : Promise.resolve(),
-      originalCategories.length > 0
-        ? db.insert(productCategories).values(
-            originalCategories.map(pc => ({
-              productId: newProduct.id,
-              categoryId: pc.categoryId,
-            }))
-          )
-        : Promise.resolve(),
-    ]);
+    // Copy categories only (NOT images)
+    if (originalCategories.length > 0) {
+      await db.insert(productCategories).values(
+        originalCategories.map(pc => ({
+          productId: newProduct.id,
+          categoryId: pc.categoryId,
+        }))
+      );
+    }
 
     revalidatePath(`/shops/${storeSlug}/admin/products`);
     

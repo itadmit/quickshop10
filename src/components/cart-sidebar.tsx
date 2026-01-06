@@ -130,12 +130,27 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
                           −
                         </button>
                         <span className="w-8 text-center text-sm">{item.quantity}</span>
-                        <button
-                          onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
-                        >
-                          +
-                        </button>
+                        {/* כפתור + עם בדיקת מלאי מקומית ⚡ */}
+                        {(() => {
+                          const atMax = item.trackInventory && 
+                            item.maxQuantity !== null && 
+                            item.maxQuantity !== undefined && 
+                            item.quantity >= item.maxQuantity;
+                          return (
+                            <button
+                              onClick={() => !atMax && handleUpdateQuantity(item, item.quantity + 1)}
+                              disabled={atMax}
+                              className={`w-8 h-8 flex items-center justify-center transition-colors cursor-pointer ${
+                                atMax 
+                                  ? 'text-gray-300 cursor-not-allowed' 
+                                  : 'text-gray-500 hover:text-black'
+                              }`}
+                              title={atMax ? 'הגעת למקסימום הזמין' : undefined}
+                            >
+                              +
+                            </button>
+                          );
+                        })()}
                       </div>
                       <button
                         onClick={() => handleRemove(item)}

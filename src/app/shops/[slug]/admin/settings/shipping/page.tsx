@@ -20,16 +20,17 @@ export default async function ShippingSettingsPage({ params }: ShippingSettingsP
   const settings = store.settings as Record<string, unknown> || {};
   const shippingSettings = (settings.shipping as Record<string, unknown>) || {};
 
-  const settingsTabs = [
-    { id: 'general', label: 'כללי', href: '' },
-    { id: 'domain', label: 'דומיין', href: '/domain' },
-    { id: 'payments', label: 'תשלומים', href: '/payments' },
-    { id: 'tracking', label: 'מעקב', href: '/tracking' },
-    { id: 'checkout', label: 'קופה', href: '/checkout' },
-    { id: 'shipping', label: 'משלוח', href: '/shipping' },
-    { id: 'tax', label: 'מיסים', href: '/tax' },
-    { id: 'notifications', label: 'התראות', href: '/notifications' },
-  ];
+const settingsTabs = [
+  { id: 'general', label: 'כללי', href: '' },
+  { id: 'subscription', label: 'מנוי', href: '/subscription' },
+  { id: 'domain', label: 'דומיין', href: '/domain' },
+  { id: 'payments', label: 'תשלומים', href: '/payments' },
+  { id: 'tracking', label: 'מעקב', href: '/tracking' },
+  { id: 'checkout', label: 'קופה', href: '/checkout' },
+  { id: 'shipping', label: 'משלוח', href: '/shipping' },
+  { id: 'tax', label: 'מיסים', href: '/tax' },
+  { id: 'notifications', label: 'התראות', href: '/notifications' },
+];
 
   return (
     <div className="space-y-8">

@@ -73,10 +73,10 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
     currentPage * perPage
   );
 
-  // Add category name to products for display
+  // Add category name to products for display (use already-joined category)
   const productsWithCategory = paginatedProducts.map(p => ({
     ...p,
-    categoryName: p.categoryId ? categoryMap.get(p.categoryId) || null : null,
+    categoryName: p.category?.name || null,
   }));
   
   // Count for tabs

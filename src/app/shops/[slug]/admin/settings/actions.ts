@@ -57,7 +57,7 @@ export async function updateStoreSettings(storeId: string, data: GeneralSettings
       // הגדרות החזרות
       returnPolicyDays: data.returnPolicyDays ?? 14,
       // הגדרות תצוגת מחירים
-      showDecimalPrices: data.showDecimalPrices ?? false,
+      showDecimalPrices: data.showDecimalPrices,
     };
 
     // Update store
