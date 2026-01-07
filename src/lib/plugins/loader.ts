@@ -34,6 +34,7 @@ export async function isPluginActive(storeId: string, pluginSlug: string): Promi
 
 /**
  * קבלת כל התוספים המותקנים והפעילים בחנות
+ * מסנן תוספים מבוטלים (cancelled) או לא פעילים (isActive=false)
  */
 export async function getActivePlugins(storeId: string): Promise<StorePlugin[]> {
   const plugins = await db
@@ -46,7 +47,10 @@ export async function getActivePlugins(storeId: string): Promise<StorePlugin[]> 
       )
     );
 
-  return plugins as unknown as StorePlugin[];
+  // Double-check: filter out cancelled plugins (extra safety)
+  return (plugins as unknown as StorePlugin[]).filter(
+    p => p.subscriptionStatus !== 'cancelled'
+  );
 }
 
 /**
@@ -162,6 +166,12 @@ export async function installPlugin(
 
 /**
  * הסרת/ביטול תוסף
+ * 
+ * ⚠️ התנהגות:
+ * - תוסף חינמי: נמחק לחלוטין מה-DB
+ * - תוסף בתשלום: מושבת מיידית (isActive=false) + סימון cancelled
+ *   המשתמש מאבד את יתרת התקופה (אין החזר)
+ *   הטוקן נשמר - ניתן להפעיל מחדש בעתיד
  */
 export async function uninstallPlugin(
   storeId: string,
@@ -177,15 +187,19 @@ export async function uninstallPlugin(
     const definition = getPluginDefinition(pluginSlug);
     
     if (definition?.isFree) {
-      // תוסף חינמי - מחיקה
+      // תוסף חינמי - מחיקה מלאה
       await db
         .delete(storePlugins)
         .where(eq(storePlugins.id, plugin.id));
     } else {
-      // תוסף בתשלום - ביטול (ישאר פעיל עד סוף התקופה)
+      // תוסף בתשלום - ביטול מיידי
+      // isActive: false → לא מופיע בסיידבר ולא עובד
+      // subscriptionStatus: 'cancelled' → לא יחויב שוב
+      // הטוקן נשמר לשימוש עתידי
       await db
         .update(storePlugins)
         .set({
+          isActive: false, // 🔑 כיבוי מיידי - לא מופיע בסיידבר
           subscriptionStatus: 'cancelled',
           cancelledAt: new Date(),
           updatedAt: new Date(),

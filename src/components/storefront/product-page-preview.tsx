@@ -148,7 +148,96 @@ export function useLiveProductPageSettings() {
 }
 
 /**
- * LiveGalleryWrapper - Wrapper for gallery with live aspect ratio updates
+ * LiveGallerySection - Full gallery with live updates for ALL gallery settings
+ */
+interface LiveGallerySectionProps {
+  mainImage: string;
+  productName: string;
+  images: Array<{ id: string; url: string }>;
+  initialSettings: {
+    layout: string;
+    thumbnailsPosition: string;
+    aspectRatio: string;
+    enableZoom: boolean;
+  };
+  ProductImageComponent: React.ComponentType<{ src: string | undefined; alt: string; className?: string; loading?: 'eager' | 'lazy' }>;
+}
+
+export function LiveGallerySection({ 
+  mainImage, 
+  productName, 
+  images, 
+  initialSettings,
+  ProductImageComponent 
+}: LiveGallerySectionProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  const aspectRatioClasses: Record<string, string> = {
+    '1:1': 'aspect-square',
+    '3:4': 'aspect-[3/4]',
+    '4:3': 'aspect-[4/3]',
+    '16:9': 'aspect-video',
+  };
+  
+  // Use live settings in preview mode
+  const layout = isPreview ? settings.gallery.layout : initialSettings.layout;
+  const thumbnailsPosition = isPreview ? settings.gallery.thumbnailsPosition : initialSettings.thumbnailsPosition;
+  const aspectRatio = isPreview ? settings.gallery.aspectRatio : initialSettings.aspectRatio;
+  const enableZoom = isPreview ? settings.gallery.enableZoom : initialSettings.enableZoom;
+  
+  const aspectClass = aspectRatioClasses[aspectRatio] || 'aspect-[3/4]';
+  
+  // Determine container classes based on thumbnail position
+  const getContainerClasses = () => {
+    if (thumbnailsPosition === 'left') {
+      return 'lg:flex lg:flex-row-reverse lg:gap-4';
+    }
+    return '';
+  };
+  
+  // Determine thumbnail container classes
+  const getThumbnailClasses = () => {
+    if (thumbnailsPosition === 'left') {
+      return 'flex flex-col gap-4 w-20';
+    }
+    return 'grid grid-cols-4 gap-4';
+  };
+  
+  return (
+    <div className={`space-y-4 ${getContainerClasses()}`}>
+      {/* Main Image */}
+      <div 
+        className={`${aspectClass} bg-gray-50 overflow-hidden ${thumbnailsPosition === 'left' ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
+        title={enableZoom ? 'לחץ להגדלה' : undefined}
+      >
+        <ProductImageComponent 
+          src={mainImage}
+          alt={productName}
+          className="w-full h-full object-cover"
+          loading="eager"
+        />
+      </div>
+      
+      {/* Thumbnails */}
+      {thumbnailsPosition !== 'hidden' && images.length > 1 && (
+        <div className={getThumbnailClasses()}>
+          {images.map((img, i) => (
+            <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+              <ProductImageComponent 
+                src={img.url}
+                alt={`${productName} ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * LiveGalleryWrapper - Simple wrapper for gallery with live aspect ratio (backward compat)
  */
 interface LiveGalleryWrapperProps {
   children: ReactNode;
@@ -264,5 +353,78 @@ export function LiveSectionVisibility({ sectionType, children, initialVisible }:
   if (!isVisible) return null;
   
   return <>{children}</>;
+}
+
+/**
+ * LiveRelatedProducts - Related products section with live count update
+ */
+interface LiveRelatedProductsProps {
+  products: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    price: string | null;
+    comparePrice: string | null;
+    images: Array<{ url: string; isPrimary?: boolean }>;
+    inventory: number | null;
+    trackInventory: boolean;
+    allowBackorder: boolean;
+  }>;
+  basePath: string;
+  initialCount: number;
+  renderProductCard: (product: LiveRelatedProductsProps['products'][0]) => ReactNode;
+}
+
+export function LiveRelatedProducts({ products, basePath, initialCount, renderProductCard }: LiveRelatedProductsProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  // Use live count in preview mode
+  const count = isPreview ? settings.related.count : initialCount;
+  const title = isPreview ? settings.related.title : 'אולי יעניין אותך';
+  const subtitle = isPreview ? settings.related.subtitle : 'מוצרים נוספים שאהבו לקוחות';
+  
+  // Limit products to count
+  const displayProducts = products.slice(0, count);
+  
+  if (displayProducts.length === 0) return null;
+  
+  return (
+    <section className="py-20 px-6 bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
+          {title}
+        </h2>
+        <p className="text-center text-gray-500 text-sm tracking-wide mb-12">
+          {subtitle}
+        </p>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
+          {displayProducts.map((product) => renderProductCard(product))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Hook to get all live gallery settings
+ */
+export function useLiveGallerySettings(initialSettings: ProductPageSettings['gallery']) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  if (!isPreview) return initialSettings;
+  
+  return settings.gallery;
+}
+
+/**
+ * Hook to get live related products settings
+ */
+export function useLiveRelatedSettings(initialSettings: ProductPageSettings['related']) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  if (!isPreview) return initialSettings;
+  
+  return settings.related;
 }
 

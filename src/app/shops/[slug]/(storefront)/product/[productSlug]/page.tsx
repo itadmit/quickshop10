@@ -14,10 +14,11 @@ import {
   ProductPagePreviewProvider, 
   LiveFeaturesSection, 
   LiveRelatedTitle,
-  LiveGalleryWrapper,
+  LiveGallerySection,
   LiveTitleWrapper,
   LivePriceWrapper,
   LiveSectionVisibility,
+  LiveRelatedProducts,
 } from '@/components/storefront/product-page-preview';
 import Link from 'next/link';
 import { headers } from 'next/headers';
@@ -68,15 +69,17 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
 
   // Get variants, related products and categories in parallel - maximum speed!
+  // In preview mode, fetch up to 8 products to allow dynamic count changes
+  const maxRelatedProducts = isPreviewMode ? 9 : pageSettings.related.count + 1;
   const [options, variants, allProducts, categories] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
-    getProductsByStore(store.id, pageSettings.related.count + 1),
+    getProductsByStore(store.id, maxRelatedProducts),
     getCategoriesByStore(store.id),
   ]);
 
-  // Get related products
-  const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, pageSettings.related.count);
+  // Get related products (all available for preview mode, limited for production)
+  const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, isPreviewMode ? 8 : pageSettings.related.count);
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
   const hasDiscount = product.comparePrice && Number(product.comparePrice) > Number(product.price);
@@ -181,21 +184,55 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
       case 'related':
         if (relatedProducts.length === 0 && !pageSettings.related.showIfEmpty) return null;
+        
+        // In preview mode, use LiveRelatedProducts for dynamic count updates
+        if (isPreviewMode) {
+          return (
+            <LiveRelatedProducts
+              key="related"
+              products={relatedProducts.map(p => ({
+                id: p.id,
+                name: p.name,
+                slug: p.slug,
+                price: p.price,
+                comparePrice: p.comparePrice,
+                images: [{ url: p.image || '/placeholder.svg', isPrimary: true }],
+                inventory: p.inventory,
+                trackInventory: p.trackInventory,
+                allowBackorder: p.allowBackorder,
+              }))}
+              basePath={basePath}
+              initialCount={pageSettings.related.count}
+              renderProductCard={(p) => (
+                <ProductCard
+                  key={p.id}
+                  id={p.id}
+                  slug={p.slug}
+                  name={p.name}
+                  price={Number(p.price)}
+                  comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
+                  image={p.images[0]?.url || '/placeholder.svg'}
+                  basePath={basePath}
+                  showDecimalPrices={showDecimalPrices}
+                  inventory={p.inventory}
+                  trackInventory={p.trackInventory}
+                  allowBackorder={p.allowBackorder}
+                />
+              )}
+            />
+          );
+        }
+        
+        // Production: Server-rendered for speed
         return (
           <section key="related" className="py-20 px-6 bg-gray-50">
             <div className="max-w-7xl mx-auto">
-              {isPreviewMode ? (
-                <LiveRelatedTitle />
-              ) : (
-                <>
-                  <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
-                    {pageSettings.related.title}
-                  </h2>
-                  <p className="text-center text-gray-500 text-sm tracking-wide mb-12">
-                    {pageSettings.related.subtitle}
-                  </p>
-                </>
-              )}
+              <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
+                {pageSettings.related.title}
+              </h2>
+              <p className="text-center text-gray-500 text-sm tracking-wide mb-12">
+                {pageSettings.related.subtitle}
+              </p>
               
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
                 {relatedProducts.map((p) => (
@@ -243,22 +280,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             <div className={`grid lg:grid-cols-2 gap-12 lg:gap-20 ${
               pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:flex-row-reverse' : ''
             }`}>
-              {/* Gallery */}
+              {/* Gallery - Use LiveGallerySection in preview mode for ALL gallery settings */}
               {isSectionVisible('gallery') && (
-                <div className={`space-y-4 ${
-                  pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:order-2' : ''
-                } ${pageSettings.gallery.thumbnailsPosition === 'left' ? 'lg:order-1 lg:flex lg:flex-row-reverse lg:gap-4' : ''}`}>
-                  {/* Main Image - Use LiveGalleryWrapper in preview mode for real-time aspect ratio updates */}
-                  {isPreviewMode ? (
-                    <LiveGalleryWrapper initialAspectRatio={pageSettings.gallery.aspectRatio}>
-                      <ProductImage 
-                        src={mainImage}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                      />
-                    </LiveGalleryWrapper>
-                  ) : (
+                isPreviewMode ? (
+                  <LiveGallerySection
+                    mainImage={mainImage || ''}
+                    productName={product.name}
+                    images={product.images}
+                    initialSettings={pageSettings.gallery}
+                    ProductImageComponent={ProductImage}
+                  />
+                ) : (
+                  <div className={`space-y-4 ${
+                    pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:order-2' : ''
+                  } ${pageSettings.gallery.thumbnailsPosition === 'left' ? 'lg:order-1 lg:flex lg:flex-row-reverse lg:gap-4' : ''}`}>
+                    {/* Main Image */}
                     <div className={`${getAspectRatioClass(pageSettings.gallery.aspectRatio)} bg-gray-50 overflow-hidden ${
                       pageSettings.gallery.thumbnailsPosition === 'left' ? 'flex-1' : ''
                     }`}>
@@ -269,27 +305,27 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         loading="eager"
                       />
                     </div>
-                  )}
-                  
-                  {/* Thumbnails */}
-                  {pageSettings.gallery.thumbnailsPosition !== 'hidden' && product.images.length > 1 && (
-                    <div className={`${
-                      pageSettings.gallery.thumbnailsPosition === 'left' 
-                        ? 'flex flex-col gap-4 w-20' 
-                        : 'grid grid-cols-4 gap-4'
-                    }`}>
-                      {product.images.map((img, i) => (
-                        <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-                          <ProductImage 
-                            src={img.url}
-                            alt={`${product.name} ${i + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                    
+                    {/* Thumbnails */}
+                    {pageSettings.gallery.thumbnailsPosition !== 'hidden' && product.images.length > 1 && (
+                      <div className={`${
+                        pageSettings.gallery.thumbnailsPosition === 'left' 
+                          ? 'flex flex-col gap-4 w-20' 
+                          : 'grid grid-cols-4 gap-4'
+                      }`}>
+                        {product.images.map((img, i) => (
+                          <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                            <ProductImage 
+                              src={img.url}
+                              alt={`${product.name} ${i + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
               )}
 
               {/* Product Info */}
