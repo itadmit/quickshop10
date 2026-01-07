@@ -20,9 +20,17 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     return { title: 'חנות לא נמצאה' };
   }
 
+  // Build icons config - use store favicon if available
+  const icons: { icon?: string; apple?: string } = {};
+  if (store.faviconUrl) {
+    icons.icon = store.faviconUrl;
+    icons.apple = store.faviconUrl;
+  }
+
   return {
     title: `${store.name} | אופנה בסגנון`,
     description: `חנות ${store.name} - ביגוד, נעליים ואקססוריז`,
+    ...(Object.keys(icons).length > 0 && { icons }),
   };
 }
 
