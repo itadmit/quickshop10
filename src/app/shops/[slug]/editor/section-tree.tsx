@@ -115,17 +115,16 @@ export function SectionTree({
     return icons[type] || 'section';
   };
 
-  // Special UI for Product Page - Settings only, no draggable sections
+  // Special UI for Product Page - Similar to home page structure
   if (isProductPage) {
     // Product page section types with their icons and labels
     const productPageSections = [
-      { id: 'pp-breadcrumb', icon: 'breadcrumb', label: 'ניווט (Breadcrumb)' },
-      { id: 'pp-gallery', icon: 'gallery', label: 'גלריית תמונות' },
-      { id: 'pp-info', icon: 'product-info', label: 'מידע מוצר' },
-      { id: 'pp-features', icon: 'features', label: 'חוזקות' },
-      { id: 'pp-description', icon: 'description', label: 'תיאור' },
-      { id: 'pp-reviews', icon: 'reviews', label: 'ביקורות' },
-      { id: 'pp-related', icon: 'related', label: 'מוצרים דומים' },
+      { id: 'pp-gallery', icon: 'gallery', label: 'גלריית תמונות', category: 'main' },
+      { id: 'pp-info', icon: 'product-info', label: 'מידע מוצר', category: 'main' },
+      { id: 'pp-features', icon: 'features', label: 'חוזקות', category: 'main' },
+      { id: 'pp-description', icon: 'description', label: 'תיאור', category: 'main' },
+      { id: 'pp-reviews', icon: 'reviews', label: 'ביקורות', category: 'extra' },
+      { id: 'pp-related', icon: 'related', label: 'מוצרים דומים', category: 'extra' },
     ];
 
     return (
@@ -135,40 +134,100 @@ export function SectionTree({
           <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
         </div>
 
-        {/* Product Page Sections */}
+        {/* Scrollable Content - Same structure as home page */}
         <div className="flex-1 overflow-auto">
-          {/* General Settings */}
+          {/* Header Section */}
           <div className="border-b border-gray-100">
             <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-              הגדרות כלליות
+              כותרת עליונה
             </div>
             <SectionItem
-              icon="settings"
-              label="הגדרות עמוד מוצר"
-              isSelected={selectedSectionId === 'product-page'}
-              onClick={() => onSelectSection('product-page')}
+              icon="header"
+              label="פס הודעות"
+              isSelected={selectedSectionId === 'announcement-bar'}
+              onClick={() => onSelectSection('announcement-bar')}
             />
-          </div>
-          
-          {/* Section Tree */}
-          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-            מבנה העמוד
-          </div>
-          
-          <div className="text-xs text-gray-400 px-4 pb-2">
-            לחץ על סקשן להגדרות | הסתר/הצג בהגדרות
-          </div>
-          
-          {/* Section Items */}
-          {productPageSections.map((section) => (
             <SectionItem
-              key={section.id}
-              icon={section.icon}
-              label={section.label}
-              isSelected={selectedSectionId === section.id}
-              onClick={() => onSelectSection(section.id)}
+              icon="header"
+              label="הדר"
+              isSelected={selectedSectionId === 'header'}
+              onClick={() => onSelectSection('header')}
+              hasChildren
+              isExpanded={expandedSections.has('header')}
+              onToggle={() => toggleExpand('header')}
             />
-          ))}
+            {expandedSections.has('header') && (
+              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+                <span className="text-xs text-gray-500">
+                  פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
+                           headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
+                </span>
+              </div>
+            )}
+            <SectionItem
+              icon="breadcrumb"
+              label="ניווט (Breadcrumb)"
+              isSelected={selectedSectionId === 'pp-breadcrumb'}
+              onClick={() => onSelectSection('pp-breadcrumb')}
+            />
+          </div>
+          
+          {/* Main Content Sections */}
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              תוכן מוצר
+            </div>
+            
+            {productPageSections.filter(s => s.category === 'main').map((section) => (
+              <SectionItem
+                key={section.id}
+                icon={section.icon}
+                label={section.label}
+                isSelected={selectedSectionId === section.id}
+                onClick={() => onSelectSection(section.id)}
+              />
+            ))}
+          </div>
+          
+          {/* Extra Sections */}
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              סקשנים נוספים
+            </div>
+            
+            {productPageSections.filter(s => s.category === 'extra').map((section) => (
+              <SectionItem
+                key={section.id}
+                icon={section.icon}
+                label={section.label}
+                isSelected={selectedSectionId === section.id}
+                onClick={() => onSelectSection(section.id)}
+              />
+            ))}
+          </div>
+
+          {/* Footer Section */}
+          <div>
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              פוטר
+            </div>
+            <SectionItem
+              icon="footer"
+              label="פוטר"
+              isSelected={selectedSectionId === 'footer'}
+              onClick={() => onSelectSection('footer')}
+              hasChildren
+              isExpanded={expandedSections.has('footer')}
+              onToggle={() => toggleExpand('footer')}
+            />
+            {expandedSections.has('footer') && (
+              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+                <span className="text-xs text-gray-500">
+                  לוגו • ניוזלטר • רשתות חברתיות
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );

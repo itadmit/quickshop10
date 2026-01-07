@@ -391,24 +391,20 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     );
   }
 
-  // Special handling for product page settings
+  // Special handling for product page settings (general settings)
   if (section.type === 'product-page') {
     return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab="gallery" />;
   }
   
-  // Handle individual product page sections (pp-gallery, pp-features, etc.)
+  // Handle individual product page sections - show focused settings for each
   if (section.type.startsWith('pp-')) {
-    const sectionTypeMap: Record<string, 'gallery' | 'features' | 'style'> = {
-      'pp-breadcrumb': 'style',
-      'pp-gallery': 'gallery',
-      'pp-info': 'style',
-      'pp-features': 'features',
-      'pp-description': 'style',
-      'pp-reviews': 'style',
-      'pp-related': 'style',
-    };
-    const initialTab = sectionTypeMap[section.type] || 'gallery';
-    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab={initialTab} />;
+    return (
+      <ProductPageSectionSettings 
+        sectionType={section.type}
+        settings={settings as Record<string, unknown>} 
+        updateSettings={updateSettings as (settings: Record<string, unknown>) => void} 
+      />
+    );
   }
 
   return (
@@ -2673,6 +2669,386 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
               />
             </SettingsGroup>
           </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
+// Product Page Section Settings - Focused settings for each section
+// ===========================================
+
+interface ProductPageSectionSettingsProps {
+  sectionType: string;
+  settings: Record<string, unknown>;
+  updateSettings: (settings: Record<string, unknown>) => void;
+}
+
+function ProductPageSectionSettings({ sectionType, settings, updateSettings }: ProductPageSectionSettingsProps) {
+  // Get product page settings from store settings
+  const productSettings: ProductPageSettings = {
+    ...defaultProductPageSettings,
+    ...(settings.productPageSettings as Partial<ProductPageSettings> || {}),
+  };
+  
+  // Update product page settings
+  const updateProductSettings = (updates: Partial<ProductPageSettings>) => {
+    updateSettings({
+      productPageSettings: {
+        ...productSettings,
+        ...updates,
+      },
+    });
+  };
+  
+  // Toggle section visibility
+  const getSectionId = () => sectionType.replace('pp-', '');
+  
+  const toggleVisibility = () => {
+    const sectionId = getSectionId();
+    const newSections = productSettings.sections.map(s => 
+      s.type === sectionId ? { ...s, isVisible: !s.isVisible } : s
+    );
+    updateProductSettings({ sections: newSections });
+  };
+  
+  const isVisible = productSettings.sections.find(s => s.type === getSectionId())?.isVisible ?? true;
+  
+  // Update feature
+  const updateFeature = (featureId: string, updates: Partial<ProductFeature>) => {
+    const newFeatures = productSettings.features.map(f => 
+      f.id === featureId ? { ...f, ...updates } : f
+    );
+    updateProductSettings({ features: newFeatures });
+  };
+  
+  // Add new feature
+  const addFeature = () => {
+    const newFeature: ProductFeature = {
+      id: `feature-${Date.now()}`,
+      icon: 'check',
+      text: 'חוזקה חדשה',
+      isVisible: true,
+    };
+    updateProductSettings({ features: [...productSettings.features, newFeature] });
+  };
+  
+  // Remove feature
+  const removeFeature = (featureId: string) => {
+    const newFeatures = productSettings.features.filter(f => f.id !== featureId);
+    updateProductSettings({ features: newFeatures });
+  };
+  
+  const sectionLabels: Record<string, string> = {
+    'pp-breadcrumb': 'ניווט (Breadcrumb)',
+    'pp-gallery': 'גלריית תמונות',
+    'pp-info': 'מידע מוצר',
+    'pp-features': 'חוזקות',
+    'pp-description': 'תיאור',
+    'pp-reviews': 'ביקורות',
+    'pp-related': 'מוצרים דומים',
+  };
+  
+  return (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-gray-900">{sectionLabels[sectionType] || sectionType}</h3>
+          <button
+            onClick={toggleVisibility}
+            className={`p-2 rounded-lg transition-colors ${isVisible ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+            title={isVisible ? 'מוצג' : 'מוסתר'}
+          >
+            {isVisible ? <EyeIcon /> : <EyeOffIcon />}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">
+          {isVisible ? 'הסקשן מוצג בעמוד' : 'הסקשן מוסתר מהעמוד'}
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Gallery Section */}
+        {sectionType === 'pp-gallery' && (
+          <>
+            <SettingsGroup title="פריסת גלריה">
+              <SelectField
+                label="סגנון תצוגה"
+                value={productSettings.gallery.layout}
+                options={[
+                  { value: 'single', label: 'תמונה בודדת' },
+                  { value: 'grid', label: 'רשת' },
+                  { value: 'carousel', label: 'קרוסלה' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, layout: v as ProductPageSettings['gallery']['layout'] } 
+                })}
+              />
+              
+              <SelectField
+                label="מיקום תמונות קטנות"
+                value={productSettings.gallery.thumbnailsPosition}
+                options={[
+                  { value: 'bottom', label: 'למטה' },
+                  { value: 'right', label: 'מימין' },
+                  { value: 'left', label: 'משמאל' },
+                  { value: 'hidden', label: 'מוסתר' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, thumbnailsPosition: v as ProductPageSettings['gallery']['thumbnailsPosition'] } 
+                })}
+              />
+              
+              <SelectField
+                label="יחס גובה-רוחב"
+                value={productSettings.gallery.aspectRatio}
+                options={[
+                  { value: '1:1', label: 'ריבוע (1:1)' },
+                  { value: '3:4', label: 'פורטרט (3:4)' },
+                  { value: '4:3', label: 'לנדסקייפ (4:3)' },
+                  { value: '16:9', label: 'רחב (16:9)' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, aspectRatio: v as ProductPageSettings['gallery']['aspectRatio'] } 
+                })}
+              />
+              
+              <SwitchField
+                label="הפעל זום בלחיצה"
+                value={productSettings.gallery.enableZoom}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, enableZoom: v } 
+                })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+        
+        {/* Info Section (Title & Price) */}
+        {sectionType === 'pp-info' && (
+          <>
+            <SettingsGroup title="כותרת מוצר">
+              <SelectField
+                label="גודל פונט"
+                value={productSettings.title.fontSize}
+                options={[
+                  { value: 'small', label: 'קטן' },
+                  { value: 'medium', label: 'בינוני' },
+                  { value: 'large', label: 'גדול' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  title: { ...productSettings.title, fontSize: v as ProductPageSettings['title']['fontSize'] } 
+                })}
+              />
+              
+              <SelectField
+                label="משקל פונט"
+                value={productSettings.title.fontWeight}
+                options={[
+                  { value: 'light', label: 'דק' },
+                  { value: 'normal', label: 'רגיל' },
+                  { value: 'bold', label: 'מודגש' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  title: { ...productSettings.title, fontWeight: v as ProductPageSettings['title']['fontWeight'] } 
+                })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="מחיר">
+              <SelectField
+                label="גודל פונט"
+                value={productSettings.price.fontSize}
+                options={[
+                  { value: 'small', label: 'קטן' },
+                  { value: 'medium', label: 'בינוני' },
+                  { value: 'large', label: 'גדול' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  price: { ...productSettings.price, fontSize: v as ProductPageSettings['price']['fontSize'] } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג מחיר השוואה"
+                value={productSettings.price.showComparePrice}
+                onChange={(v) => updateProductSettings({ 
+                  price: { ...productSettings.price, showComparePrice: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג הנחה"
+                value={productSettings.price.showDiscount}
+                onChange={(v) => updateProductSettings({ 
+                  price: { ...productSettings.price, showDiscount: v } 
+                })}
+              />
+              
+              {productSettings.price.showDiscount && (
+                <SelectField
+                  label="סגנון הנחה"
+                  value={productSettings.price.discountStyle}
+                  options={[
+                    { value: 'badge', label: 'תג' },
+                    { value: 'text', label: 'טקסט' },
+                    { value: 'both', label: 'שניהם' },
+                  ]}
+                  onChange={(v) => updateProductSettings({ 
+                    price: { ...productSettings.price, discountStyle: v as ProductPageSettings['price']['discountStyle'] } 
+                  })}
+                />
+              )}
+            </SettingsGroup>
+          </>
+        )}
+        
+        {/* Features Section */}
+        {sectionType === 'pp-features' && (
+          <>
+            <SettingsGroup title="רשימת חוזקות">
+              <p className="text-xs text-gray-500 mb-3">הוסף עד 5 יתרונות שיוצגו בעמוד המוצר</p>
+              
+              <div className="space-y-3">
+                {productSettings.features.map((feature, index) => (
+                  <div key={feature.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => updateFeature(feature.id, { isVisible: !feature.isVisible })}
+                          className={`p-1 rounded ${feature.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+                        >
+                          {feature.isVisible ? <EyeIcon /> : <EyeOffIcon />}
+                        </button>
+                        {productSettings.features.length > 1 && (
+                          <button
+                            onClick={() => removeFeature(feature.id)}
+                            className="p-1 text-red-500 hover:bg-red-50 rounded"
+                          >
+                            <TrashIcon />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <SelectField
+                      label="אייקון"
+                      value={feature.icon}
+                      options={availableIcons.map(i => ({ value: i.id, label: i.name }))}
+                      onChange={(v) => updateFeature(feature.id, { icon: v })}
+                    />
+                    
+                    <TextField
+                      label="טקסט"
+                      value={feature.text}
+                      onChange={(v) => updateFeature(feature.id, { text: v })}
+                    />
+                  </div>
+                ))}
+              </div>
+              
+              {productSettings.features.length < 5 && (
+                <button
+                  onClick={addFeature}
+                  className="w-full mt-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                >
+                  + הוסף חוזקה
+                </button>
+              )}
+            </SettingsGroup>
+          </>
+        )}
+        
+        {/* Description Section */}
+        {sectionType === 'pp-description' && (
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-sm">התיאור נלקח אוטומטית מפרטי המוצר</p>
+            <p className="text-xs mt-2">ניתן לערוך בעמוד ניהול המוצרים</p>
+          </div>
+        )}
+        
+        {/* Breadcrumb Section */}
+        {sectionType === 'pp-breadcrumb' && (
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-sm">הניווט נוצר אוטומטית</p>
+            <p className="text-xs mt-2">מציג: חנות &gt; קטגוריה &gt; מוצר</p>
+          </div>
+        )}
+        
+        {/* Reviews Section */}
+        {sectionType === 'pp-reviews' && (
+          <>
+            <SettingsGroup title="הגדרות ביקורות">
+              <TextField
+                label="כותרת"
+                value={productSettings.reviews.title}
+                onChange={(v) => updateProductSettings({ 
+                  reviews: { ...productSettings.reviews, title: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג דירוג"
+                value={productSettings.reviews.showRating}
+                onChange={(v) => updateProductSettings({ 
+                  reviews: { ...productSettings.reviews, showRating: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג כמות ביקורות"
+                value={productSettings.reviews.showCount}
+                onChange={(v) => updateProductSettings({ 
+                  reviews: { ...productSettings.reviews, showCount: v } 
+                })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+        
+        {/* Related Products Section */}
+        {sectionType === 'pp-related' && (
+          <>
+            <SettingsGroup title="מוצרים דומים">
+              <TextField
+                label="כותרת"
+                value={productSettings.related.title}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, title: v } 
+                })}
+              />
+              
+              <TextField
+                label="תת-כותרת"
+                value={productSettings.related.subtitle}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, subtitle: v } 
+                })}
+              />
+              
+              <SliderField
+                label="כמות מוצרים"
+                value={productSettings.related.count}
+                min={2}
+                max={8}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, count: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג גם כשאין מוצרים"
+                value={productSettings.related.showIfEmpty}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, showIfEmpty: v } 
+                })}
+              />
+            </SettingsGroup>
+          </>
         )}
       </div>
     </div>
