@@ -367,7 +367,7 @@ function AddSectionButton({ onClick, small }: { onClick: () => void; small?: boo
   );
 }
 
-// Add Section Modal
+// Add Section Floating Panel (Shopify-style)
 function AddSectionModal({
   onClose,
   onAdd,
@@ -375,38 +375,178 @@ function AddSectionModal({
   onClose: () => void;
   onAdd: (type: string) => void;
 }) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  // Get unique categories
+  const categories = ['all', ...Array.from(new Set(sectionTypes.map(s => s.category).filter(Boolean)))];
+
+  // Filter sections
+  const filteredSections = sectionTypes.filter((section) => {
+    const matchesSearch = 
+      section.label.includes(searchTerm) ||
+      section.type.includes(searchTerm);
+    const matchesCategory = 
+      selectedCategory === 'all' || 
+      section.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  // Group filtered sections by category
+  const groupedSections = filteredSections.reduce((acc, section) => {
+    const cat = section.category || 'אחר';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(section);
+    return acc;
+  }, {} as Record<string, typeof sectionTypes>);
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+    <>
+      {/* Backdrop - subtle */}
       <div 
-        className="bg-white rounded-xl w-[400px] max-h-[80vh] overflow-hidden shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 bg-black/20 z-40" 
+        onClick={onClose}
+      />
+      
+      {/* Floating Panel - positioned to the left of sidebar */}
+      <div 
+        className="fixed right-[340px] top-[80px] bottom-[80px] w-[320px] bg-white rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden border border-gray-200"
         dir="rtl"
       >
-        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-          <h3 className="font-semibold text-gray-900">הוסף סקשן</h3>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6L6 18M6 6l12 12" />
+        {/* Header */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-semibold text-gray-900">הוסף סקשן</h3>
+            <button 
+              onClick={onClose} 
+              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          {/* Search */}
+          <div className="relative">
+            <svg 
+              width="16" 
+              height="16" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="M21 21l-4.35-4.35" />
             </svg>
-          </button>
-        </div>
-        
-        <div className="p-4 overflow-auto max-h-[60vh]">
-          <div className="grid grid-cols-2 gap-3">
-            {sectionTypes.map((section) => (
-              <button
-                key={section.type}
-                onClick={() => onAdd(section.type)}
-                className="p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors text-right"
-              >
-                <div className="text-2xl mb-2">{section.icon}</div>
-                <div className="text-sm font-medium text-gray-900">{section.label}</div>
-              </button>
-            ))}
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="חיפוש סקשנים..."
+              className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
           </div>
         </div>
+
+        {/* Category Tabs */}
+        <div className="px-4 py-2 border-b border-gray-100 flex gap-1 overflow-x-auto scrollbar-hide">
+          {categories.map((category) => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+                selectedCategory === category
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {category === 'all' ? 'הכל' : category}
+            </button>
+          ))}
+        </div>
+
+        {/* Sections List */}
+        <div className="flex-1 overflow-y-auto p-3">
+          {filteredSections.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-3 text-gray-300">
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" />
+              </svg>
+              <p className="text-sm">לא נמצאו סקשנים</p>
+            </div>
+          ) : selectedCategory === 'all' ? (
+            // Grouped view when "all" is selected
+            Object.entries(groupedSections).map(([category, sections]) => (
+              <div key={category} className="mb-4">
+                <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 px-1">
+                  {category}
+                </div>
+                <div className="space-y-1.5">
+                  {sections.map((section) => (
+                    <SectionTypeButton
+                      key={section.type}
+                      section={section}
+                      onAdd={onAdd}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            // Flat list when specific category is selected
+            <div className="space-y-1.5">
+              {filteredSections.map((section) => (
+                <SectionTypeButton
+                  key={section.type}
+                  section={section}
+                  onAdd={onAdd}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
+  );
+}
+
+// Section Type Button for the Add Panel
+function SectionTypeButton({
+  section,
+  onAdd,
+}: {
+  section: { type: string; label: string; icon: string };
+  onAdd: (type: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onAdd(section.type)}
+      className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-right group"
+    >
+      <div className="w-10 h-10 rounded-lg bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center text-lg transition-colors">
+        {section.icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700 truncate">
+          {section.label}
+        </div>
+      </div>
+      <svg 
+        width="16" 
+        height="16" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke="currentColor" 
+        strokeWidth="2"
+        className="text-gray-300 group-hover:text-blue-500 transition-colors"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    </button>
   );
 }
 
