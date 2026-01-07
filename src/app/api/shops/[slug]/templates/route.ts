@@ -1,7 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { templates, getTemplateById } from '@/lib/templates';
-import { getStoreBySlug, updateStoreSettings, updatePageSections } from '@/lib/db/queries';
-import { v4 as uuidv4 } from 'uuid';
+import { getStoreBySlug, updatePageSections } from '@/lib/db/queries';
+import { db } from '@/lib/db';
+import { stores } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 // GET /api/shops/[slug]/templates - Get all templates
 export async function GET() {
@@ -65,14 +67,22 @@ export async function POST(
         announcementColor: template.themeSettings.announcementColor,
       };
 
-      await updateStoreSettings(store.id, newSettings);
+      // Update store settings directly
+      await db
+        .update(stores)
+        .set({
+          settings: newSettings,
+          updatedAt: new Date(),
+        })
+        .where(eq(stores.id, store.id));
     }
 
     // Apply template sections
     if (applySections) {
       // Convert template sections to page sections format
+      // Use crypto.randomUUID() - built into Node.js, no external package needed
       const sections = template.sections.map((section, index) => ({
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         type: section.type,
         title: section.title,
         subtitle: section.subtitle,
@@ -101,4 +111,3 @@ export async function POST(
     );
   }
 }
-
