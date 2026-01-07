@@ -8,7 +8,7 @@
  * In production, the product page uses Server Components with zero JS
  */
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode, Children } from 'react';
 import type { ProductPageSettings, ProductFeature } from '@/lib/product-page-settings';
 import { defaultProductPageSettings, featureIcons } from '@/lib/product-page-settings';
 
@@ -357,36 +357,26 @@ export function LiveSectionVisibility({ sectionType, children, initialVisible }:
 
 /**
  * LiveRelatedProducts - Related products section with live count update
+ * Uses children pattern to avoid passing functions (Server -> Client boundary)
  */
 interface LiveRelatedProductsProps {
-  products: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    price: string | null;
-    comparePrice: string | null;
-    images: Array<{ url: string; isPrimary?: boolean }>;
-    inventory: number | null;
-    trackInventory: boolean;
-    allowBackorder: boolean;
-  }>;
-  basePath: string;
+  children: ReactNode;
   initialCount: number;
-  renderProductCard: (product: LiveRelatedProductsProps['products'][0]) => ReactNode;
 }
 
-export function LiveRelatedProducts({ products, basePath, initialCount, renderProductCard }: LiveRelatedProductsProps) {
+export function LiveRelatedProducts({ children, initialCount }: LiveRelatedProductsProps) {
   const { settings, isPreview } = useProductPagePreview();
   
-  // Use live count in preview mode
-  const count = isPreview ? settings.related.count : initialCount;
+  // Use live settings in preview mode
   const title = isPreview ? settings.related.title : 'אולי יעניין אותך';
   const subtitle = isPreview ? settings.related.subtitle : 'מוצרים נוספים שאהבו לקוחות';
+  const count = isPreview ? settings.related.count : initialCount;
   
-  // Limit products to count
-  const displayProducts = products.slice(0, count);
+  // Use React.Children API to properly handle children array
+  const childArray = Children.toArray(children);
+  const displayChildren = childArray.slice(0, count);
   
-  if (displayProducts.length === 0) return null;
+  if (displayChildren.length === 0) return null;
   
   return (
     <section className="py-20 px-6 bg-gray-50">
@@ -399,7 +389,7 @@ export function LiveRelatedProducts({ products, basePath, initialCount, renderPr
         </p>
         
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
-          {displayProducts.map((product) => renderProductCard(product))}
+          {displayChildren}
         </div>
       </div>
     </section>

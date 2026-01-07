@@ -393,21 +393,21 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 
   // Special handling for product page settings
   if (section.type === 'product-page') {
-    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab="sections" />;
+    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab="gallery" />;
   }
   
   // Handle individual product page sections (pp-gallery, pp-features, etc.)
   if (section.type.startsWith('pp-')) {
-    const sectionTypeMap: Record<string, 'sections' | 'gallery' | 'features' | 'style'> = {
-      'pp-breadcrumb': 'sections',
+    const sectionTypeMap: Record<string, 'gallery' | 'features' | 'style'> = {
+      'pp-breadcrumb': 'style',
       'pp-gallery': 'gallery',
       'pp-info': 'style',
       'pp-features': 'features',
-      'pp-description': 'sections',
-      'pp-reviews': 'sections',
+      'pp-description': 'style',
+      'pp-reviews': 'style',
       'pp-related': 'style',
     };
-    const initialTab = sectionTypeMap[section.type] || 'sections';
+    const initialTab = sectionTypeMap[section.type] || 'gallery';
     return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab={initialTab} />;
   }
 
@@ -2337,11 +2337,12 @@ import {
 interface ProductPageSettingsUIProps {
   settings: Record<string, unknown>;
   updateSettings: (settings: Record<string, unknown>) => void;
-  initialTab?: 'sections' | 'gallery' | 'features' | 'style';
+  initialTab?: 'gallery' | 'features' | 'style';
 }
 
-function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'sections' }: ProductPageSettingsUIProps) {
-  const [activeTab, setActiveTab] = useState<'sections' | 'gallery' | 'features' | 'style'>(initialTab);
+function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery' }: ProductPageSettingsUIProps) {
+  // Sections are shown in the right sidebar tree, not here
+  const [activeTab, setActiveTab] = useState<'gallery' | 'features' | 'style'>(initialTab);
   
   // Get product page settings from store settings
   const productSettings: ProductPageSettings = {
@@ -2425,16 +2426,8 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'section
       <div className="p-4 border-b border-gray-200">
         <h3 className="font-semibold text-gray-900 mb-3">הגדרות עמוד מוצר</h3>
         
-        {/* Tab Switcher */}
+        {/* Tab Switcher - No "סקשנים" tab, sections are in right sidebar */}
         <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
-          <button
-            onClick={() => setActiveTab('sections')}
-            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              activeTab === 'sections' ? 'bg-white shadow-sm' : 'text-gray-600'
-            }`}
-          >
-            סקשנים
-          </button>
           <button
             onClick={() => setActiveTab('gallery')}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
@@ -2464,57 +2457,6 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'section
 
       {/* Content */}
       <div className="flex-1 overflow-auto p-4 space-y-4">
-        {/* Sections Tab */}
-        {activeTab === 'sections' && (
-          <div className="space-y-4">
-            <p className="text-xs text-gray-500">הסתר/הצג סקשנים וארגן את הסדר שלהם</p>
-            
-            <div className="space-y-2">
-              {[...productSettings.sections]
-                .sort((a, b) => a.sortOrder - b.sortOrder)
-                .map((section, index) => (
-                  <div
-                    key={section.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border ${
-                      section.isVisible ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
-                    }`}
-                  >
-                    {/* Visibility Toggle */}
-                    <button
-                      onClick={() => toggleSection(section.id)}
-                      className={`p-1 rounded ${section.isVisible ? 'text-green-600' : 'text-gray-400'}`}
-                    >
-                      {section.isVisible ? <EyeIcon /> : <EyeOffIcon />}
-                    </button>
-                    
-                    {/* Label */}
-                    <span className={`flex-1 text-sm ${section.isVisible ? 'text-gray-900' : 'text-gray-400'}`}>
-                      {sectionLabels[section.type] || section.type}
-                    </span>
-                    
-                    {/* Reorder Buttons */}
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => moveSection(section.id, 'up')}
-                        disabled={index === 0}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                      >
-                        <ChevronUpIcon />
-                      </button>
-                      <button
-                        onClick={() => moveSection(section.id, 'down')}
-                        disabled={index === productSettings.sections.length - 1}
-                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-                      >
-                        <ChevronDownIcon />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-
         {/* Gallery Tab */}
         {activeTab === 'gallery' && (
           <div className="space-y-4">

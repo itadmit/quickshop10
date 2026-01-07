@@ -190,20 +190,9 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           return (
             <LiveRelatedProducts
               key="related"
-              products={relatedProducts.map(p => ({
-                id: p.id,
-                name: p.name,
-                slug: p.slug,
-                price: p.price,
-                comparePrice: p.comparePrice,
-                images: [{ url: p.image || '/placeholder.svg', isPrimary: true }],
-                inventory: p.inventory,
-                trackInventory: p.trackInventory,
-                allowBackorder: p.allowBackorder,
-              }))}
-              basePath={basePath}
               initialCount={pageSettings.related.count}
-              renderProductCard={(p) => (
+            >
+              {relatedProducts.map((p) => (
                 <ProductCard
                   key={p.id}
                   id={p.id}
@@ -211,15 +200,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   name={p.name}
                   price={Number(p.price)}
                   comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
-                  image={p.images[0]?.url || '/placeholder.svg'}
+                  image={p.image || '/placeholder.svg'}
                   basePath={basePath}
                   showDecimalPrices={showDecimalPrices}
                   inventory={p.inventory}
                   trackInventory={p.trackInventory}
                   allowBackorder={p.allowBackorder}
                 />
-              )}
-            />
+              ))}
+            </LiveRelatedProducts>
           );
         }
         
