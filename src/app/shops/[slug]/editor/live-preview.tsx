@@ -102,10 +102,19 @@ export function LivePreview({
   }, [onSelectSection]);
 
   // Storefront URL - use special editor preview mode
-  // For coming_soon page, preview the coming_soon route; otherwise preview home
-  const previewUrl = currentPage === 'coming_soon' 
-    ? `/shops/${storeSlug}/coming-soon?preview=true&t=${refreshKey}`
-    : `/shops/${storeSlug}?preview=true&t=${refreshKey}`;
+  // Show different pages based on currentPage
+  const getPreviewUrl = () => {
+    switch (currentPage) {
+      case 'coming_soon':
+        return `/shops/${storeSlug}/coming-soon?preview=true&t=${refreshKey}`;
+      case 'product':
+        // Preview a sample product (first product in store will be fetched)
+        return `/shops/${storeSlug}/product/sample?preview=true&t=${refreshKey}`;
+      default:
+        return `/shops/${storeSlug}?preview=true&t=${refreshKey}`;
+    }
+  };
+  const previewUrl = getPreviewUrl();
 
   return (
     <div className="flex flex-col items-center justify-start w-full h-full">

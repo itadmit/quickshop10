@@ -391,6 +391,11 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     );
   }
 
+  // Special handling for product page settings
+  if (section.type === 'product-page') {
+    return <ProductPageSettingsUI settings={settings} updateSettings={updateSettings} />;
+  }
+
   return (
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header with tabs */}
@@ -2299,5 +2304,454 @@ function HeaderLayoutPreview({ layout, isSelected }: { layout: HeaderLayout; isS
         <div className={`w-4 h-1 ${dotColor} rounded`} />
       </div>
     </div>
+  );
+}
+
+// ===========================================
+// Product Page Settings UI
+// ===========================================
+
+import { 
+  defaultProductPageSettings, 
+  type ProductPageSettings, 
+  type ProductPageSection,
+  type ProductFeature,
+  availableIcons 
+} from '@/lib/product-page-settings';
+
+interface ProductPageSettingsUIProps {
+  settings: Record<string, unknown>;
+  updateSettings: (settings: Record<string, unknown>) => void;
+}
+
+function ProductPageSettingsUI({ settings, updateSettings }: ProductPageSettingsUIProps) {
+  const [activeTab, setActiveTab] = useState<'sections' | 'gallery' | 'features' | 'style'>('sections');
+  
+  // Get product page settings from store settings
+  const productSettings: ProductPageSettings = {
+    ...defaultProductPageSettings,
+    ...(settings.productPageSettings as Partial<ProductPageSettings> || {}),
+  };
+  
+  // Update product page settings
+  const updateProductSettings = (updates: Partial<ProductPageSettings>) => {
+    updateSettings({
+      productPageSettings: {
+        ...productSettings,
+        ...updates,
+      },
+    });
+  };
+  
+  // Toggle section visibility
+  const toggleSection = (sectionId: string) => {
+    const newSections = productSettings.sections.map(s => 
+      s.id === sectionId ? { ...s, isVisible: !s.isVisible } : s
+    );
+    updateProductSettings({ sections: newSections });
+  };
+  
+  // Move section up/down
+  const moveSection = (sectionId: string, direction: 'up' | 'down') => {
+    const sections = [...productSettings.sections].sort((a, b) => a.sortOrder - b.sortOrder);
+    const index = sections.findIndex(s => s.id === sectionId);
+    if (index === -1) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= sections.length) return;
+    
+    // Swap
+    [sections[index], sections[newIndex]] = [sections[newIndex], sections[index]];
+    
+    // Update sortOrder
+    const newSections = sections.map((s, i) => ({ ...s, sortOrder: i }));
+    updateProductSettings({ sections: newSections });
+  };
+  
+  // Update feature
+  const updateFeature = (featureId: string, updates: Partial<ProductFeature>) => {
+    const newFeatures = productSettings.features.map(f => 
+      f.id === featureId ? { ...f, ...updates } : f
+    );
+    updateProductSettings({ features: newFeatures });
+  };
+  
+  // Add new feature
+  const addFeature = () => {
+    const newFeature: ProductFeature = {
+      id: `feature-${Date.now()}`,
+      icon: 'check',
+      text: 'חוזקה חדשה',
+      isVisible: true,
+    };
+    updateProductSettings({ features: [...productSettings.features, newFeature] });
+  };
+  
+  // Remove feature
+  const removeFeature = (featureId: string) => {
+    const newFeatures = productSettings.features.filter(f => f.id !== featureId);
+    updateProductSettings({ features: newFeatures });
+  };
+  
+  const sectionLabels: Record<string, string> = {
+    breadcrumb: 'ניווט (Breadcrumb)',
+    gallery: 'גלריית תמונות',
+    info: 'מידע מוצר',
+    features: 'חוזקות',
+    description: 'תיאור',
+    reviews: 'ביקורות',
+    related: 'מוצרים דומים',
+  };
+
+  return (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="font-semibold text-gray-900 mb-3">הגדרות עמוד מוצר</h3>
+        
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('sections')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'sections' ? 'bg-white shadow-sm' : 'text-gray-600'
+            }`}
+          >
+            סקשנים
+          </button>
+          <button
+            onClick={() => setActiveTab('gallery')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'gallery' ? 'bg-white shadow-sm' : 'text-gray-600'
+            }`}
+          >
+            גלריה
+          </button>
+          <button
+            onClick={() => setActiveTab('features')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'features' ? 'bg-white shadow-sm' : 'text-gray-600'
+            }`}
+          >
+            חוזקות
+          </button>
+          <button
+            onClick={() => setActiveTab('style')}
+            className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              activeTab === 'style' ? 'bg-white shadow-sm' : 'text-gray-600'
+            }`}
+          >
+            עיצוב
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Sections Tab */}
+        {activeTab === 'sections' && (
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500">הסתר/הצג סקשנים וארגן את הסדר שלהם</p>
+            
+            <div className="space-y-2">
+              {[...productSettings.sections]
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((section, index) => (
+                  <div
+                    key={section.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      section.isVisible ? 'border-gray-200 bg-white' : 'border-gray-100 bg-gray-50'
+                    }`}
+                  >
+                    {/* Visibility Toggle */}
+                    <button
+                      onClick={() => toggleSection(section.id)}
+                      className={`p-1 rounded ${section.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+                    >
+                      {section.isVisible ? <EyeIcon /> : <EyeOffIcon />}
+                    </button>
+                    
+                    {/* Label */}
+                    <span className={`flex-1 text-sm ${section.isVisible ? 'text-gray-900' : 'text-gray-400'}`}>
+                      {sectionLabels[section.type] || section.type}
+                    </span>
+                    
+                    {/* Reorder Buttons */}
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => moveSection(section.id, 'up')}
+                        disabled={index === 0}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                      >
+                        <ChevronUpIcon />
+                      </button>
+                      <button
+                        onClick={() => moveSection(section.id, 'down')}
+                        disabled={index === productSettings.sections.length - 1}
+                        className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                      >
+                        <ChevronDownIcon />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* Gallery Tab */}
+        {activeTab === 'gallery' && (
+          <div className="space-y-4">
+            <SettingsGroup title="פריסת גלריה">
+              <SelectField
+                label="סגנון תצוגה"
+                value={productSettings.gallery.layout}
+                options={[
+                  { value: 'single', label: 'תמונה בודדת' },
+                  { value: 'grid', label: 'רשת' },
+                  { value: 'carousel', label: 'קרוסלה' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, layout: v as ProductPageSettings['gallery']['layout'] } 
+                })}
+              />
+              
+              <SelectField
+                label="מיקום תמונות קטנות"
+                value={productSettings.gallery.thumbnailsPosition}
+                options={[
+                  { value: 'bottom', label: 'למטה' },
+                  { value: 'right', label: 'מימין' },
+                  { value: 'left', label: 'משמאל' },
+                  { value: 'hidden', label: 'מוסתר' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, thumbnailsPosition: v as ProductPageSettings['gallery']['thumbnailsPosition'] } 
+                })}
+              />
+              
+              <SelectField
+                label="יחס גובה-רוחב"
+                value={productSettings.gallery.aspectRatio}
+                options={[
+                  { value: '1:1', label: 'ריבוע (1:1)' },
+                  { value: '3:4', label: 'פורטרט (3:4)' },
+                  { value: '4:3', label: 'לנדסקייפ (4:3)' },
+                  { value: '16:9', label: 'רחב (16:9)' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, aspectRatio: v as ProductPageSettings['gallery']['aspectRatio'] } 
+                })}
+              />
+              
+              <SwitchField
+                label="הפעל זום בלחיצה"
+                value={productSettings.gallery.enableZoom}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, enableZoom: v } 
+                })}
+              />
+            </SettingsGroup>
+          </div>
+        )}
+
+        {/* Features Tab */}
+        {activeTab === 'features' && (
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500">ערוך את החוזקות המוצגות בעמוד המוצר</p>
+            
+            <div className="space-y-3">
+              {productSettings.features.map((feature) => (
+                <div
+                  key={feature.id}
+                  className="p-3 rounded-lg border border-gray-200 bg-white space-y-3"
+                >
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => updateFeature(feature.id, { isVisible: !feature.isVisible })}
+                      className={`p-1 rounded ${feature.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+                    >
+                      {feature.isVisible ? <EyeIcon /> : <EyeOffIcon />}
+                    </button>
+                    
+                    <div className="flex-1">
+                      <TextField
+                        label=""
+                        value={feature.text}
+                        onChange={(v) => updateFeature(feature.id, { text: v })}
+                        placeholder="טקסט החוזקה"
+                      />
+                    </div>
+                    
+                    <button
+                      onClick={() => removeFeature(feature.id)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
+                  
+                  <SelectField
+                    label="אייקון"
+                    value={feature.icon}
+                    options={availableIcons.map(icon => ({ value: icon.id, label: icon.name }))}
+                    onChange={(v) => updateFeature(feature.id, { icon: v })}
+                  />
+                </div>
+              ))}
+            </div>
+            
+            <button
+              onClick={addFeature}
+              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors"
+            >
+              + הוסף חוזקה
+            </button>
+          </div>
+        )}
+
+        {/* Style Tab */}
+        {activeTab === 'style' && (
+          <div className="space-y-4">
+            <SettingsGroup title="כותרת מוצר">
+              <SelectField
+                label="גודל פונט"
+                value={productSettings.title.fontSize}
+                options={[
+                  { value: 'small', label: 'קטן' },
+                  { value: 'medium', label: 'בינוני' },
+                  { value: 'large', label: 'גדול' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  title: { ...productSettings.title, fontSize: v as ProductPageSettings['title']['fontSize'] } 
+                })}
+              />
+              
+              <SelectField
+                label="משקל פונט"
+                value={productSettings.title.fontWeight}
+                options={[
+                  { value: 'light', label: 'דק' },
+                  { value: 'normal', label: 'רגיל' },
+                  { value: 'bold', label: 'עבה' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  title: { ...productSettings.title, fontWeight: v as ProductPageSettings['title']['fontWeight'] } 
+                })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="מחיר">
+              <SelectField
+                label="גודל פונט"
+                value={productSettings.price.fontSize}
+                options={[
+                  { value: 'small', label: 'קטן' },
+                  { value: 'medium', label: 'בינוני' },
+                  { value: 'large', label: 'גדול' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  price: { ...productSettings.price, fontSize: v as ProductPageSettings['price']['fontSize'] } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג מחיר השוואה"
+                value={productSettings.price.showComparePrice}
+                onChange={(v) => updateProductSettings({ 
+                  price: { ...productSettings.price, showComparePrice: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג אחוז הנחה"
+                value={productSettings.price.showDiscount}
+                onChange={(v) => updateProductSettings({ 
+                  price: { ...productSettings.price, showDiscount: v } 
+                })}
+              />
+              
+              {productSettings.price.showDiscount && (
+                <SelectField
+                  label="סגנון הנחה"
+                  value={productSettings.price.discountStyle}
+                  options={[
+                    { value: 'badge', label: 'תג' },
+                    { value: 'text', label: 'טקסט' },
+                    { value: 'both', label: 'שניהם' },
+                  ]}
+                  onChange={(v) => updateProductSettings({ 
+                    price: { ...productSettings.price, discountStyle: v as ProductPageSettings['price']['discountStyle'] } 
+                  })}
+                />
+              )}
+            </SettingsGroup>
+            
+            <SettingsGroup title="מוצרים דומים">
+              <TextField
+                label="כותרת"
+                value={productSettings.related.title}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, title: v } 
+                })}
+              />
+              
+              <TextField
+                label="תת-כותרת"
+                value={productSettings.related.subtitle}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, subtitle: v } 
+                })}
+              />
+              
+              <SliderField
+                label="כמות מוצרים"
+                value={productSettings.related.count}
+                min={2}
+                max={8}
+                onChange={(v) => updateProductSettings({ 
+                  related: { ...productSettings.related, count: v } 
+                })}
+              />
+            </SettingsGroup>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Helper Icons for Product Page Settings
+function EyeIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function ChevronUpIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M6 9l6 6 6-6" />
+    </svg>
   );
 }

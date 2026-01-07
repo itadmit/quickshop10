@@ -81,6 +81,7 @@ interface Category {
 // Available pages for editing
 const EDITABLE_PAGES = [
   { id: 'home', label: 'דף הבית', icon: 'home' },
+  { id: 'product', label: 'עמוד מוצר', icon: 'package' },
   { id: 'coming_soon', label: 'Coming Soon', icon: 'clock' },
 ] as const;
 
@@ -106,7 +107,8 @@ export function ThemeEditor({
   const router = useRouter();
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
-    initialSections[0]?.id || null
+    // For product page, auto-select the settings pseudo-section
+    currentPage === 'product' ? 'product-page' : (initialSections[0]?.id || null)
   );
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -148,7 +150,7 @@ export function ThemeEditor({
     faviconUrl: themeSettings.faviconUrl || store.faviconUrl || null,
   };
 
-  // Get selected section - handle special sections like header, footer
+  // Get selected section - handle special sections like header, footer, product-page
   const getSelectedSection = (): Section | null => {
     if (selectedSectionId === 'header') {
       return {
@@ -183,6 +185,19 @@ export function ThemeEditor({
         content: {},
         settings: {},
         sortOrder: 999,
+        isActive: true,
+      };
+    }
+    // Product page settings pseudo-section
+    if (selectedSectionId === 'product-page') {
+      return {
+        id: 'product-page',
+        type: 'product-page',
+        title: 'הגדרות עמוד מוצר',
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: 0,
         isActive: true,
       };
     }
@@ -433,7 +448,7 @@ export function ThemeEditor({
             onClick={() => setShowPageDropdown(!showPageDropdown)}
             className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
           >
-            {currentPageInfo.icon === 'home' ? <HomeIcon /> : <ClockIcon />}
+            {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : <ClockIcon />}
             <span className="text-white text-sm">{currentPageInfo.label}</span>
             <ChevronDownIcon />
           </button>
@@ -470,6 +485,8 @@ export function ThemeEditor({
                     >
                       {page.icon === 'home' ? (
                         <HomeIcon />
+                      ) : page.icon === 'package' ? (
+                        <PackageIcon />
                       ) : (
                         <ClockIcon />
                       )}
@@ -769,6 +786,17 @@ function ExportIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+    </svg>
+  );
+}
+
+function PackageIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="m7.5 4.27 9 5.15" />
+      <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+      <path d="m3.3 7 8.7 5 8.7-5" />
+      <path d="M12 22V12" />
     </svg>
   );
 }

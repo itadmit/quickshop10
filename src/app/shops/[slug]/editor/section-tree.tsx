@@ -28,6 +28,7 @@ interface SectionTreeProps {
 // Page labels
 const PAGE_LABELS: Record<string, string> = {
   home: 'דף הבית',
+  product: 'עמוד מוצר',
   coming_soon: 'Coming Soon',
 };
 
@@ -66,6 +67,7 @@ export function SectionTree({
 }: SectionTreeProps) {
   const pageLabel = PAGE_LABELS[currentPage] || currentPage;
   const isComingSoon = currentPage === 'coming_soon';
+  const isProductPage = currentPage === 'product';
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -112,6 +114,59 @@ export function SectionTree({
     };
     return icons[type] || 'section';
   };
+
+  // Special UI for Product Page - Settings only, no draggable sections
+  if (isProductPage) {
+    return (
+      <div className="flex flex-col h-full" dir="rtl">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+        </div>
+
+        {/* Product Page Sections */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            הגדרות עמוד מוצר
+          </div>
+          
+          <SectionItem
+            icon="settings"
+            label="הגדרות כלליות"
+            isSelected={selectedSectionId === 'product-page'}
+            onClick={() => onSelectSection('product-page')}
+          />
+          
+          <div className="px-4 py-3 bg-gray-50 border-y border-gray-100">
+            <p className="text-xs text-gray-500 leading-relaxed">
+              עמוד המוצר הוא דינמי - התוכן משתנה לפי המוצר. כאן תוכלו להגדיר:
+            </p>
+            <ul className="mt-2 text-xs text-gray-600 space-y-1">
+              <li>• סדר והצגת סקשנים</li>
+              <li>• הגדרות גלריה</li>
+              <li>• עריכת החוזקות</li>
+              <li>• עיצוב כותרת ומחיר</li>
+            </ul>
+          </div>
+          
+          {/* Visual preview of product page sections */}
+          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            מבנה העמוד
+          </div>
+          
+          <div className="px-3 space-y-1">
+            <ProductPageSectionPreview label="ניווט" icon="🔗" />
+            <ProductPageSectionPreview label="גלריית תמונות" icon="🖼️" />
+            <ProductPageSectionPreview label="מידע מוצר" icon="📝" isDynamic />
+            <ProductPageSectionPreview label="חוזקות" icon="✨" />
+            <ProductPageSectionPreview label="תיאור" icon="📄" isDynamic />
+            <ProductPageSectionPreview label="ביקורות" icon="⭐" isDynamic />
+            <ProductPageSectionPreview label="מוצרים דומים" icon="🛍️" isDynamic />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full" dir="rtl">
@@ -249,6 +304,19 @@ export function SectionTree({
             setShowAddMenu(false);
           }}
         />
+      )}
+    </div>
+  );
+}
+
+// Product Page Section Preview (read-only visual)
+function ProductPageSectionPreview({ label, icon, isDynamic }: { label: string; icon: string; isDynamic?: boolean }) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
+      <span className="text-sm">{icon}</span>
+      <span className="text-xs text-gray-700 flex-1">{label}</span>
+      {isDynamic && (
+        <span className="text-[10px] text-gray-400 bg-white px-1.5 py-0.5 rounded">דינמי</span>
       )}
     </div>
   );
