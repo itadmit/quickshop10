@@ -52,6 +52,9 @@ const VALID_SETTINGS_KEYS = [
   'socialTwitter',
   'socialTiktok',
   'socialYoutube',
+  
+  // Product page settings (object with all product page customization)
+  'productPageSettings',
 ];
 
 export async function PUT(

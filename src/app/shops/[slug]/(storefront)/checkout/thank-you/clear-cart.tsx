@@ -16,23 +16,27 @@ export function ClearCartOnLoad() {
     if (hasCleared.current) return;
     if (typeof window === 'undefined') return;
     
-    // Mark as cleared immediately to prevent multiple calls
+    // IMPORTANT: Wait for store context to be ready before clearing
+    // Don't mark as cleared until we actually have the methods available
+    if (!store?.clearCart || !store?.clearCoupons) {
+      return; // Effect will re-run when store becomes available
+    }
+    
+    // Mark as cleared AFTER we confirm store is available
     hasCleared.current = true;
     
     // Clear cart state via context (uses store-specific key: quickshop_cart_{slug})
-    if (store?.clearCart) {
-      store.clearCart();
-    }
+    store.clearCart();
     
     // Clear coupons state via context (uses store-specific key: quickshop_coupons_{slug})
-    if (store?.clearCoupons) {
-      store.clearCoupons();
-    }
+    store.clearCoupons();
     
     // Also clear legacy global keys for migration
     localStorage.removeItem('quickshop_cart');
     localStorage.removeItem('quickshop_coupons');
     localStorage.removeItem('quickshop_last_order');
+    
+    console.log('[ClearCartOnLoad] Cart and coupons cleared successfully');
   }, [store?.clearCart, store?.clearCoupons]);
 
   return null;

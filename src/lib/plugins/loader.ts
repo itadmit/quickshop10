@@ -85,10 +85,16 @@ export async function getPluginsWithStatus(storeId: string): Promise<PluginWithS
   return pluginRegistry.map(definition => {
     const installed = installedMap.get(definition.slug);
     
+    // Plugin is considered installed only if:
+    // 1. Record exists AND
+    // 2. Not cancelled (subscription status is not 'cancelled' or null/active)
+    const isCancelled = installed?.subscriptionStatus === 'cancelled';
+    const isInstalled = !!installed && !isCancelled;
+    
     return {
       ...definition,
-      isInstalled: !!installed,
-      isActive: installed?.isActive ?? false,
+      isInstalled,
+      isActive: isInstalled && (installed?.isActive ?? false),
       config: (installed?.config as Record<string, unknown>) || definition.defaultConfig,
       installedAt: installed?.installedAt,
       subscription: installed ? {

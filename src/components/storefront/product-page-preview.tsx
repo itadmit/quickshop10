@@ -129,7 +129,7 @@ export function LiveRelatedTitle() {
   
   return (
     <>
-      <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
+      <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widths">
         {settings.related.title}
       </h2>
       <p className="text-center text-gray-500 text-sm tracking-wide mb-12">
@@ -137,5 +137,132 @@ export function LiveRelatedTitle() {
       </p>
     </>
   );
+}
+
+/**
+ * useLiveProductPageSettings - Hook for getting live settings in child components
+ */
+export function useLiveProductPageSettings() {
+  const { settings, isPreview } = useProductPagePreview();
+  return { settings, isPreview };
+}
+
+/**
+ * LiveGalleryWrapper - Wrapper for gallery with live aspect ratio updates
+ */
+interface LiveGalleryWrapperProps {
+  children: ReactNode;
+  initialAspectRatio: string;
+}
+
+export function LiveGalleryWrapper({ children, initialAspectRatio }: LiveGalleryWrapperProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  const aspectRatioClasses: Record<string, string> = {
+    '1:1': 'aspect-square',
+    '3:4': 'aspect-[3/4]',
+    '4:3': 'aspect-[4/3]',
+    '16:9': 'aspect-video',
+  };
+  
+  const aspectRatio = isPreview ? settings.gallery.aspectRatio : initialAspectRatio;
+  
+  return (
+    <div className={`${aspectRatioClasses[aspectRatio] || 'aspect-[3/4]'} bg-gray-50 overflow-hidden`}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * LiveTitleWrapper - Wrapper for product title with live styling
+ */
+interface LiveTitleWrapperProps {
+  children: ReactNode;
+  initialSettings: { fontSize: string; fontWeight: string };
+}
+
+export function LiveTitleWrapper({ children, initialSettings }: LiveTitleWrapperProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  const sizes: Record<string, string> = { 
+    small: 'text-2xl md:text-3xl', 
+    medium: 'text-3xl md:text-4xl', 
+    large: 'text-4xl md:text-5xl' 
+  };
+  const weights: Record<string, string> = { 
+    light: 'font-light', 
+    normal: 'font-normal', 
+    bold: 'font-bold' 
+  };
+  
+  const fontSize = isPreview ? settings.title.fontSize : initialSettings.fontSize;
+  const fontWeight = isPreview ? settings.title.fontWeight : initialSettings.fontWeight;
+  
+  return (
+    <h1 className={`font-display ${sizes[fontSize] || sizes.large} ${weights[fontWeight] || weights.light} tracking-[0.05em] mb-4`}>
+      {children}
+    </h1>
+  );
+}
+
+/**
+ * LivePriceWrapper - Wrapper for price with live styling
+ */
+interface LivePriceWrapperProps {
+  price: string;
+  comparePrice?: string | null;
+  discount?: number | null;
+  initialSettings: { fontSize: string; showComparePrice: boolean; showDiscount: boolean; discountStyle: string };
+}
+
+export function LivePriceWrapper({ price, comparePrice, discount, initialSettings }: LivePriceWrapperProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  const sizes: Record<string, string> = { 
+    small: 'text-lg', 
+    medium: 'text-2xl', 
+    large: 'text-3xl' 
+  };
+  
+  const fontSize = isPreview ? settings.price.fontSize : initialSettings.fontSize;
+  const showComparePrice = isPreview ? settings.price.showComparePrice : initialSettings.showComparePrice;
+  const showDiscount = isPreview ? settings.price.showDiscount : initialSettings.showDiscount;
+  const discountStyle = isPreview ? settings.price.discountStyle : initialSettings.discountStyle;
+  
+  const hasDiscount = comparePrice && discount;
+  
+  return (
+    <div className="flex items-center gap-4 mb-8">
+      <span className={`${sizes[fontSize] || sizes.medium} font-display`}>{price}</span>
+      {showComparePrice && hasDiscount && (
+        <span className="text-lg text-gray-400 line-through">{comparePrice}</span>
+      )}
+      {showDiscount && hasDiscount && (discountStyle === 'text' || discountStyle === 'both') && (
+        <span className="text-sm text-red-500">-{discount}%</span>
+      )}
+    </div>
+  );
+}
+
+/**
+ * LiveSectionVisibility - Conditionally render based on section visibility
+ */
+interface LiveSectionVisibilityProps {
+  sectionType: string;
+  children: ReactNode;
+  initialVisible: boolean;
+}
+
+export function LiveSectionVisibility({ sectionType, children, initialVisible }: LiveSectionVisibilityProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  const isVisible = isPreview 
+    ? settings.sections.some(s => s.type === sectionType && s.isVisible)
+    : initialVisible;
+  
+  if (!isVisible) return null;
+  
+  return <>{children}</>;
 }
 

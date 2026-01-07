@@ -10,7 +10,15 @@ import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
-import { ProductPagePreviewProvider, LiveFeaturesSection, LiveRelatedTitle } from '@/components/storefront/product-page-preview';
+import { 
+  ProductPagePreviewProvider, 
+  LiveFeaturesSection, 
+  LiveRelatedTitle,
+  LiveGalleryWrapper,
+  LiveTitleWrapper,
+  LivePriceWrapper,
+  LiveSectionVisibility,
+} from '@/components/storefront/product-page-preview';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -240,17 +248,28 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                 <div className={`space-y-4 ${
                   pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:order-2' : ''
                 } ${pageSettings.gallery.thumbnailsPosition === 'left' ? 'lg:order-1 lg:flex lg:flex-row-reverse lg:gap-4' : ''}`}>
-                  {/* Main Image */}
-                  <div className={`${getAspectRatioClass(pageSettings.gallery.aspectRatio)} bg-gray-50 overflow-hidden ${
-                    pageSettings.gallery.thumbnailsPosition === 'left' ? 'flex-1' : ''
-                  }`}>
-                    <ProductImage 
-                      src={mainImage}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      loading="eager"
-                    />
-                  </div>
+                  {/* Main Image - Use LiveGalleryWrapper in preview mode for real-time aspect ratio updates */}
+                  {isPreviewMode ? (
+                    <LiveGalleryWrapper initialAspectRatio={pageSettings.gallery.aspectRatio}>
+                      <ProductImage 
+                        src={mainImage}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
+                    </LiveGalleryWrapper>
+                  ) : (
+                    <div className={`${getAspectRatioClass(pageSettings.gallery.aspectRatio)} bg-gray-50 overflow-hidden ${
+                      pageSettings.gallery.thumbnailsPosition === 'left' ? 'flex-1' : ''
+                    }`}>
+                      <ProductImage 
+                        src={mainImage}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                      />
+                    </div>
+                  )}
                   
                   {/* Thumbnails */}
                   {pageSettings.gallery.thumbnailsPosition !== 'hidden' && product.images.length > 1 && (
@@ -292,10 +311,16 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                     )}
                   </div>
 
-                  {/* Title */}
-                  <h1 className={getTitleClasses(pageSettings.title)}>
-                    {product.name}
-                  </h1>
+                  {/* Title - Use LiveTitleWrapper in preview mode for real-time styling */}
+                  {isPreviewMode ? (
+                    <LiveTitleWrapper initialSettings={pageSettings.title}>
+                      {product.name}
+                    </LiveTitleWrapper>
+                  ) : (
+                    <h1 className={getTitleClasses(pageSettings.title)}>
+                      {product.name}
+                    </h1>
+                  )}
 
                   {/* Short Description */}
                   {product.shortDescription && (
@@ -317,17 +342,26 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                     />
                   ) : (
                     <>
-                      {/* Price */}
-                      <div className="flex items-center gap-4 mb-8">
-                        <span className={getPriceClasses(pageSettings.price)}>{format(product.price)}</span>
-                        {pageSettings.price.showComparePrice && hasDiscount && (
-                          <span className="text-lg text-gray-400 line-through">{format(product.comparePrice)}</span>
-                        )}
-                        {pageSettings.price.showDiscount && hasDiscount && 
-                         (pageSettings.price.discountStyle === 'text' || pageSettings.price.discountStyle === 'both') && (
-                          <span className="text-sm text-red-500">-{discount}%</span>
-                        )}
-                      </div>
+                      {/* Price - Use LivePriceWrapper in preview mode */}
+                      {isPreviewMode ? (
+                        <LivePriceWrapper
+                          price={format(product.price)}
+                          comparePrice={format(product.comparePrice)}
+                          discount={discount}
+                          initialSettings={pageSettings.price}
+                        />
+                      ) : (
+                        <div className="flex items-center gap-4 mb-8">
+                          <span className={getPriceClasses(pageSettings.price)}>{format(product.price)}</span>
+                          {pageSettings.price.showComparePrice && hasDiscount && (
+                            <span className="text-lg text-gray-400 line-through">{format(product.comparePrice)}</span>
+                          )}
+                          {pageSettings.price.showDiscount && hasDiscount && 
+                           (pageSettings.price.discountStyle === 'text' || pageSettings.price.discountStyle === 'both') && (
+                            <span className="text-sm text-red-500">-{discount}%</span>
+                          )}
+                        </div>
+                      )}
 
                       {/* Add to Cart */}
                       <AddToCartButton 
