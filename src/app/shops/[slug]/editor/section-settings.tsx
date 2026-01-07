@@ -393,7 +393,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 
   // Special handling for product page settings
   if (section.type === 'product-page') {
-    return <ProductPageSettingsUI settings={settings} updateSettings={updateSettings} />;
+    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} />;
   }
 
   return (
