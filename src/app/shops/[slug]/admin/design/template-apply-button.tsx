@@ -34,7 +34,7 @@ export function TemplateApplyButton({
     return (
       <a
         href={`/shops/${storeSlug}/editor`}
-        className="px-4 py-2 bg-white text-black text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors"
+        className="px-3 py-1.5 bg-black text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
       >
         ערוך עיצוב
       </a>
@@ -69,7 +69,7 @@ export function TemplateApplyButton({
     <>
       <button
         onClick={() => setShowPreview(true)}
-        className="px-4 py-2 bg-white text-black text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors"
+        className="px-3 py-1.5 border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-colors"
       >
         תצוגה מקדימה
       </button>

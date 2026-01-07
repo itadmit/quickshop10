@@ -262,18 +262,8 @@ function TemplateCard({
           </div>
         )}
 
-        {/* Hover Overlay */}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          <TemplateApplyButton
-            templateId={template.id}
-            templateName={template.name}
-            templateDescription={template.description}
-            templateColors={template.colors}
-            sectionsCount={template.sectionsCount}
-            storeSlug={slug}
-            isActive={isActive}
-          />
-        </div>
+        {/* Hover Overlay - just visual, no buttons */}
+        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       </div>
 
       {/* Template Info */}
@@ -298,8 +288,20 @@ function TemplateCard({
         <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
           {template.description}
         </p>
-        <div className="mt-2 text-[10px] text-gray-400">
-          {template.sectionsCount} סקשנים מוכנים
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[10px] text-gray-400">
+            {template.sectionsCount} סקשנים
+          </span>
+          {/* Button outside hover - always clickable */}
+          <TemplateApplyButton
+            templateId={template.id}
+            templateName={template.name}
+            templateDescription={template.description}
+            templateColors={template.colors}
+            sectionsCount={template.sectionsCount}
+            storeSlug={slug}
+            isActive={isActive}
+          />
         </div>
       </div>
     </div>
