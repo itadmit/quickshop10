@@ -20,6 +20,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerNavigationMode?: 'menu' | 'categories';
   announcementEnabled?: boolean;
   announcementText?: string;
   announcementLink?: string;
