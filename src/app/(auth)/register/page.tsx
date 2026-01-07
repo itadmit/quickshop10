@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
-import { register } from '@/lib/actions/auth';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,7 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [storeName, setStoreName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,29 +43,17 @@ export default function RegisterPage() {
       return;
     }
 
-    startTransition(async () => {
-      const result = await register({ name, email, password, storeName });
-
-      if (result.success) {
-        // Auto login after registration
-        const signInResult = await signIn('credentials', {
-          email,
-          password,
-          redirect: false,
-        });
-
-        if (signInResult?.error) {
-          // If auto-login fails, redirect to login
-          router.push('/login?registered=true');
-        } else {
-          // Redirect to the new store admin
-          router.push(`/shops/${result.storeSlug}/admin`);
-          router.refresh();
-        }
-      } else {
-        setErrorMsg(result.error || 'שגיאה בהרשמה');
-      }
+    setIsSubmitting(true);
+    
+    // Navigate to setup page with params
+    const params = new URLSearchParams({
+      name,
+      email,
+      password,
+      storeName,
     });
+    
+    router.push(`/setup?${params.toString()}`);
   };
 
   const handleGoogleLogin = () => {
@@ -210,10 +197,10 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={isPending}
+              disabled={isSubmitting}
               className="w-full py-3 px-4 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isPending ? 'יוצר חשבון...' : 'צור חשבון וחנות'}
+              {isSubmitting ? 'מעבד...' : 'צור חשבון וחנות'}
             </button>
           </form>
 

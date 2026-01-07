@@ -99,6 +99,13 @@
       "when": 1767688759395,
       "tag": "0013_add_is_published_to_stores",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1767786400251,
+      "tag": "0014_add_product_reviews",
+      "breakpoints": true
     }
   ]
 }

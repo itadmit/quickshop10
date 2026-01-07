@@ -2,6 +2,7 @@ import { getStoreBySlug, getUnreadOrdersCount } from '@/lib/db/queries';
 import { notFound, redirect } from 'next/navigation';
 import { AdminSidebar } from '@/components/admin/sidebar';
 import { AdminHeader } from '@/components/admin/header';
+import { WelcomeModal } from '@/components/admin/welcome-modal';
 import { auth } from '@/lib/auth';
 import { getNotifications, getUnreadCount } from '@/lib/actions/notifications';
 import { getPluginMenuItems } from '@/lib/plugins/loader';
@@ -56,6 +57,9 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900" dir="rtl">
+      {/* Welcome Modal for new stores */}
+      <WelcomeModal storeName={store.name} storeSlug={slug} />
+      
       {/* Header */}
       <AdminHeader 
         storeName={store.name} 

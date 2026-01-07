@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Save, User, Mail, Shield, Loader2 } from 'lucide-react';
+import { Save, User, Mail, Shield, Loader2, Trash2, AlertTriangle } from 'lucide-react';
 
 interface UserEditFormProps {
   user: {
@@ -11,11 +11,14 @@ interface UserEditFormProps {
     email: string;
     role: string;
   };
+  storesCount?: number;
 }
 
-export function UserEditForm({ user }: UserEditFormProps) {
+export function UserEditForm({ user, storesCount = 0 }: UserEditFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   
   const [formData, setFormData] = useState({
@@ -48,6 +51,32 @@ export function UserEditForm({ user }: UserEditFormProps) {
       setMessage({ type: 'error', text: 'שגיאה בחיבור לשרת' });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setMessage(null);
+
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        router.push('/admin/users');
+        router.refresh();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'שגיאה במחיקת המשתמש' });
+        setShowDeleteConfirm(false);
+      }
+    } catch {
+      setMessage({ type: 'error', text: 'שגיאה בחיבור לשרת' });
+      setShowDeleteConfirm(false);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -135,7 +164,71 @@ export function UserEditForm({ user }: UserEditFormProps) {
           )}
           {isLoading ? 'שומר...' : 'שמור שינויים'}
         </button>
+
+        {/* Delete Button */}
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 rounded-xl font-medium hover:bg-red-100 transition-colors border border-red-200"
+        >
+          <Trash2 className="w-5 h-5" />
+          מחק משתמש
+        </button>
       </form>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-xl">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">מחיקת משתמש</h3>
+                <p className="text-sm text-gray-500">פעולה זו אינה ניתנת לביטול</p>
+              </div>
+            </div>
+
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-700">
+                האם אתה בטוח שברצונך למחוק את המשתמש <span className="font-semibold">{user.name || user.email}</span>?
+              </p>
+              
+              {storesCount > 0 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-amber-800 text-sm font-medium flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    שים לב: למשתמש זה יש {storesCount} חנויות שיימחקו גם כן!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {isDeleting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-5 h-5" />
+                )}
+                {isDeleting ? 'מוחק...' : 'מחק'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

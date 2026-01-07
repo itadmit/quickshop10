@@ -280,12 +280,15 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
 
         {/* Sidebar - Edit Form */}
         <div className="space-y-6">
-          <UserEditForm user={{
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-          }} />
+          <UserEditForm 
+            user={{
+              id: user.id,
+              name: user.name,
+              email: user.email,
+              role: user.role,
+            }}
+            storesCount={ownedStores.length}
+          />
 
           {/* Quick Actions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
