@@ -112,8 +112,9 @@ export default function SetupPage() {
         updateStepStatus(3, 'completed');
 
         // Auto sign in with the ORIGINAL password (from sessionStorage, not URL)
+        // Email must be lowercased to match how it was stored in DB
         const signInResult = await signIn('credentials', {
-          email: registerData.email,
+          email: registerData.email.toLowerCase().trim(),
           password: registerData.password,
           redirect: false,
         });
@@ -123,6 +124,8 @@ export default function SetupPage() {
 
         if (signInResult?.error) {
           console.error('Sign in error after registration:', signInResult.error);
+          console.error('Email used:', registerData.email.toLowerCase().trim());
+          // If auto sign-in fails, redirect to login with success message
           router.push('/login?registered=true');
           return;
         }
