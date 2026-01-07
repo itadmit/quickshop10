@@ -68,6 +68,8 @@ interface ThemeSettings {
   socialTwitter?: string;
   socialTiktok?: string;
   socialYoutube?: string;
+  // Product page settings
+  productPageSettings?: Record<string, unknown>;
 }
 
 interface Category {
@@ -201,6 +203,30 @@ export function ThemeEditor({
         isActive: true,
       };
     }
+    
+    // Product page individual sections (pp-gallery, pp-features, etc.)
+    if (selectedSectionId?.startsWith('pp-')) {
+      const sectionLabels: Record<string, string> = {
+        'pp-breadcrumb': 'ניווט (Breadcrumb)',
+        'pp-gallery': 'גלריית תמונות',
+        'pp-info': 'מידע מוצר',
+        'pp-features': 'חוזקות',
+        'pp-description': 'תיאור',
+        'pp-reviews': 'ביקורות',
+        'pp-related': 'מוצרים דומים',
+      };
+      return {
+        id: selectedSectionId,
+        type: selectedSectionId,
+        title: sectionLabels[selectedSectionId] || selectedSectionId,
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: 0,
+        isActive: true,
+      };
+    }
+    
     return sections.find(s => s.id === selectedSectionId) || null;
   };
 

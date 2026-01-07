@@ -64,6 +64,9 @@ interface ThemeSettings {
   socialTwitter?: string;
   socialTiktok?: string;
   socialYoutube?: string;
+  
+  // Product page settings
+  productPageSettings?: Record<string, unknown>;
 }
 
 interface Category {
