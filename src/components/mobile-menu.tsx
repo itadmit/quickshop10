@@ -12,8 +12,19 @@ interface Category {
   parentId: string | null;
 }
 
+// Menu item interface for custom navigation
+interface MenuItem {
+  id: string;
+  title: string;
+  linkType: 'url' | 'page' | 'category' | 'product';
+  resolvedUrl?: string;
+  children?: MenuItem[];
+}
+
 interface MobileMenuProps {
   categories: Category[];
+  menuItems?: MenuItem[];
+  navigationMode?: 'menu' | 'categories';
   basePath: string;
   storeName: string;
   logoUrl?: string | null;
@@ -35,10 +46,21 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function MobileMenu({ categories, basePath, storeName, logoUrl }: MobileMenuProps) {
+export function MobileMenu({ 
+  categories, 
+  menuItems = [], 
+  navigationMode = 'menu', 
+  basePath, 
+  storeName, 
+  logoUrl 
+}: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
+  
+  // Determine if we should show categories or custom menu
+  // Use categories mode if: explicitly set to 'categories' OR no menu items available
+  const showCategories = navigationMode === 'categories' || menuItems.length === 0;
   
   // Mount check for portal
   useEffect(() => {
@@ -57,7 +79,7 @@ export function MobileMenu({ categories, basePath, storeName, logoUrl }: MobileM
     };
   }, [isOpen]);
 
-  // Organize categories into parent/child structure
+  // Organize categories into parent/child structure (for categories mode)
   const parentCategories = categories.filter(c => !c.parentId);
   const childrenMap = new Map<string, Category[]>();
   
@@ -68,13 +90,13 @@ export function MobileMenu({ categories, basePath, storeName, logoUrl }: MobileM
     }
   });
 
-  const toggleCategory = (categoryId: string) => {
-    setExpandedCategories(prev => {
+  const toggleItem = (itemId: string) => {
+    setExpandedItems(prev => {
       const next = new Set(prev);
-      if (next.has(categoryId)) {
-        next.delete(categoryId);
+      if (next.has(itemId)) {
+        next.delete(itemId);
       } else {
-        next.add(categoryId);
+        next.add(itemId);
       }
       return next;
     });
@@ -133,38 +155,101 @@ export function MobileMenu({ categories, basePath, storeName, logoUrl }: MobileM
         {/* Navigation - fills remaining height */}
         <nav className="flex-1 overflow-y-auto bg-white">
           <ul className="py-4">
-            {/* Home Link */}
-            <li>
-              <Link 
-                href={basePath || '/'}
-                onClick={closeMenu}
-                className="block px-6 py-4 text-sm tracking-wide text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
-              >
-                בית
-              </Link>
-            </li>
-            
-            {/* Categories */}
-            {parentCategories.map((category) => {
-              const children = childrenMap.get(category.id) || [];
-              const hasChildren = children.length > 0;
-              const isExpanded = expandedCategories.has(category.id);
+            {/* Show categories navigation */}
+            {showCategories && (
+              <>
+                {/* Home Link */}
+                <li>
+                  <Link 
+                    href={basePath || '/'}
+                    onClick={closeMenu}
+                    className="block px-6 py-4 text-sm tracking-wide text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                  >
+                    בית
+                  </Link>
+                </li>
+                
+                {/* Categories */}
+                {parentCategories.map((category) => {
+                  const children = childrenMap.get(category.id) || [];
+                  const hasChildren = children.length > 0;
+                  const isExpanded = expandedItems.has(category.id);
+                  
+                  return (
+                    <li key={category.id}>
+                      <div className="flex items-center">
+                        <Link
+                          href={`${basePath}/category/${category.slug}`}
+                          onClick={closeMenu}
+                          className="flex-1 px-6 py-4 text-sm tracking-wide text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
+                        >
+                          {category.name}
+                        </Link>
+                        {hasChildren && (
+                          <button
+                            onClick={() => toggleItem(category.id)}
+                            className="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-black transition-colors cursor-pointer"
+                            aria-label={isExpanded ? 'סגור תת-קטגוריות' : 'פתח תת-קטגוריות'}
+                          >
+                            <svg 
+                              className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
+                              fill="none" 
+                              viewBox="0 0 24 24" 
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                      
+                      {/* Subcategories */}
+                      {hasChildren && (
+                        <ul 
+                          className={`bg-gray-50 overflow-hidden transition-all duration-200 ${
+                            isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                          }`}
+                        >
+                          {children.map((child) => (
+                            <li key={child.id}>
+                              <Link
+                                href={`${basePath}/category/${child.slug}`}
+                                onClick={closeMenu}
+                                className="block pr-10 pl-6 py-3 text-sm text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
+                              >
+                                {child.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </li>
+                  );
+                })}
+              </>
+            )}
+
+            {/* Show custom menu navigation */}
+            {!showCategories && menuItems.map((item) => {
+              const hasChildren = item.children && item.children.length > 0;
+              const isExpanded = expandedItems.has(item.id);
+              const href = item.resolvedUrl?.startsWith('/') ? `${basePath}${item.resolvedUrl}` : item.resolvedUrl || '#';
               
               return (
-                <li key={category.id}>
+                <li key={item.id}>
                   <div className="flex items-center">
                     <Link
-                      href={`${basePath}/category/${category.slug}`}
+                      href={href}
                       onClick={closeMenu}
                       className="flex-1 px-6 py-4 text-sm tracking-wide text-gray-700 hover:bg-gray-50 hover:text-black transition-colors"
                     >
-                      {category.name}
+                      {item.title}
                     </Link>
                     {hasChildren && (
                       <button
-                        onClick={() => toggleCategory(category.id)}
+                        onClick={() => toggleItem(item.id)}
                         className="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-black transition-colors cursor-pointer"
-                        aria-label={isExpanded ? 'סגור תת-קטגוריות' : 'פתח תת-קטגוריות'}
+                        aria-label={isExpanded ? 'סגור תתי-קישורים' : 'פתח תתי-קישורים'}
                       >
                         <svg 
                           className={`w-4 h-4 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} 
@@ -178,24 +263,27 @@ export function MobileMenu({ categories, basePath, storeName, logoUrl }: MobileM
                     )}
                   </div>
                   
-                  {/* Subcategories */}
+                  {/* Child items */}
                   {hasChildren && (
                     <ul 
                       className={`bg-gray-50 overflow-hidden transition-all duration-200 ${
                         isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
                       }`}
                     >
-                      {children.map((child) => (
-                        <li key={child.id}>
-                          <Link
-                            href={`${basePath}/category/${child.slug}`}
-                            onClick={closeMenu}
-                            className="block pr-10 pl-6 py-3 text-sm text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
-                          >
-                            {child.name}
-                          </Link>
-                        </li>
-                      ))}
+                      {item.children!.map((child) => {
+                        const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';
+                        return (
+                          <li key={child.id}>
+                            <Link
+                              href={childHref}
+                              onClick={closeMenu}
+                              className="block pr-10 pl-6 py-3 text-sm text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
+                            >
+                              {child.title}
+                            </Link>
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </li>

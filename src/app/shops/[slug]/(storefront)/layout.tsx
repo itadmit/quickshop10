@@ -1,4 +1,4 @@
-import { getStoreBySlug, getCategoriesByStore } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoriesByStore, getMainMenuWithItems, type MenuItem } from '@/lib/db/queries';
 import { ShopHeader, type HeaderLayout } from '@/components/shop-header';
 import { CartSidebar } from '@/components/cart-sidebar';
 import { getCurrentCustomer } from '@/lib/customer-auth';
@@ -51,10 +51,11 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     return <>{children}</>;
   }
 
-  // Fetch categories, customer, plugin data, and popups in parallel (server-side)
+  // Fetch categories, customer, plugin data, menus, and popups in parallel (server-side)
   const now = new Date();
-  const [categories, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns] = await Promise.all([
+  const [categories, mainMenu, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns] = await Promise.all([
     getCategoriesByStore(store.id),
+    getMainMenuWithItems(store.id),
     getCurrentCustomer(),
     isPluginActive(store.id, 'product-stories'),
     getStorePlugin(store.id, 'product-stories'),
@@ -185,6 +186,14 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // Get header layout from store settings
   const headerLayout = (storeSettings.headerLayout as HeaderLayout) || 'logo-right';
   
+  // Get navigation mode from store settings (menu = custom menus, categories = show all categories)
+  const headerNavigationMode = (storeSettings.headerNavigationMode as 'menu' | 'categories') || 'menu';
+  
+  // Get menu items for header navigation (only if using menu mode)
+  const menuItems: MenuItem[] = headerNavigationMode === 'menu' && mainMenu?.items 
+    ? mainMenu.items 
+    : [];
+  
   // Get GDPR/Cookie banner settings
   const gdprSettings = storeSettings.gdpr as GDPRSettings | undefined;
   
@@ -216,6 +225,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         storeId={store.id}
         logoUrl={store.logoUrl}
         categories={categories}
+        menuItems={menuItems}
+        navigationMode={headerNavigationMode}
         basePath={basePath}
         customer={customerData}
         defaultLayout={headerLayout}
@@ -232,7 +243,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       storeName={store.name} 
       storeId={store.id}
       logoUrl={store.logoUrl}
-      categories={categories} 
+      categories={categories}
+      menuItems={menuItems}
+      navigationMode={headerNavigationMode}
       basePath={basePath}
       customer={customerData}
       layout={headerLayout}

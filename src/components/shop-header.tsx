@@ -21,6 +21,15 @@ interface CustomerData {
   emailVerified?: boolean;
 }
 
+// Menu item interface for custom navigation
+export interface MenuItem {
+  id: string;
+  title: string;
+  linkType: 'url' | 'page' | 'category' | 'product';
+  resolvedUrl?: string;
+  children?: MenuItem[];
+}
+
 // Header layout variants:
 // 'logo-right': Logo right, menu center, icons left (RTL default)
 // 'logo-left': Logo left, menu center, icons right
@@ -32,6 +41,8 @@ interface ShopHeaderProps {
   storeId: string;
   logoUrl?: string | null;
   categories: Category[];
+  menuItems?: MenuItem[];
+  navigationMode?: 'menu' | 'categories';
   basePath: string;
   customer?: CustomerData | null;
   layout?: HeaderLayout;
@@ -50,6 +61,8 @@ export function ShopHeader({
   storeId,
   logoUrl,
   categories, 
+  menuItems = [],
+  navigationMode = 'menu',
   basePath, 
   customer,
   layout = 'logo-right',
@@ -58,7 +71,7 @@ export function ShopHeader({
   showAccount = true,
   isSticky = true,
 }: ShopHeaderProps) {
-  // Organize categories into parent/child structure
+  // Organize categories into parent/child structure (for categories mode)
   const parentCategories = categories.filter(c => !c.parentId);
   const childrenMap = new Map<string, Category[]>();
   
@@ -69,8 +82,12 @@ export function ShopHeader({
     }
   });
 
-  // Navigation component (reused in all layouts)
-  const Navigation = ({ className = '' }: { className?: string }) => (
+  // Determine if we should show categories or custom menu
+  // Use categories mode if: explicitly set to 'categories' OR no menu items available
+  const showCategories = navigationMode === 'categories' || menuItems.length === 0;
+
+  // Categories Navigation component (original behavior)
+  const CategoriesNavigation = ({ className = '' }: { className?: string }) => (
     <nav className={`hidden lg:flex items-center gap-8 xl:gap-12 ${className}`}>
       <Link 
         href={basePath || '/'} 
@@ -118,6 +135,58 @@ export function ShopHeader({
     </nav>
   );
 
+  // Menu Navigation component (custom menus from Navigation settings)
+  const MenuNavigation = ({ className = '' }: { className?: string }) => (
+    <nav className={`hidden lg:flex items-center gap-8 xl:gap-12 ${className}`}>
+      {menuItems.map((item) => {
+        const hasChildren = item.children && item.children.length > 0;
+        const href = item.resolvedUrl?.startsWith('/') ? `${basePath}${item.resolvedUrl}` : item.resolvedUrl || '#';
+        
+        return (
+          <div key={item.id} className="relative group">
+            <Link
+              href={href}
+              className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hover:text-black transition-colors duration-300 flex items-center gap-1"
+            >
+              {item.title}
+              {hasChildren && (
+                <svg className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </Link>
+            
+            {/* Dropdown for child items - CSS only */}
+            {hasChildren && (
+              <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <div className="bg-white border border-gray-100 shadow-lg min-w-[180px]">
+                  {item.children!.map((child) => {
+                    const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';
+                    return (
+                      <Link
+                        key={child.id}
+                        href={childHref}
+                        className="block px-5 py-3 text-[11px] tracking-[0.15em] uppercase text-gray-600 hover:text-black hover:bg-gray-50 transition-colors"
+                      >
+                        {child.title}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </nav>
+  );
+
+  // Navigation component - uses either categories or custom menu based on settings
+  const Navigation = ({ className = '' }: { className?: string }) => 
+    showCategories 
+      ? <CategoriesNavigation className={className} /> 
+      : <MenuNavigation className={className} />;
+
   // Logo component - shows image if logoUrl is provided, otherwise text
   const Logo = ({ className = '' }: { className?: string }) => (
     <Link href={basePath || '/'} className={`group ${className}`}>
@@ -163,7 +232,14 @@ export function ShopHeader({
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
             {/* Right: Mobile Menu + Logo */}
             <div className="flex items-center gap-2">
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
+              <MobileMenu 
+                categories={categories} 
+                menuItems={menuItems}
+                navigationMode={navigationMode}
+                basePath={basePath} 
+                storeName={storeName} 
+                logoUrl={logoUrl} 
+              />
               <Logo />
             </div>
 
@@ -194,7 +270,14 @@ export function ShopHeader({
             {/* Left (in RTL = visual left): Mobile Menu at extreme + Logo */}
             <div className="flex items-center gap-2">
               <Logo />
-              <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
+              <MobileMenu 
+                categories={categories} 
+                menuItems={menuItems}
+                navigationMode={navigationMode}
+                basePath={basePath} 
+                storeName={storeName} 
+                logoUrl={logoUrl} 
+              />
             </div>
           </div>
         </div>
@@ -211,7 +294,14 @@ export function ShopHeader({
         <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
           {/* Right: Mobile Menu + Search (desktop) */}
           <div className="flex items-center gap-1 sm:gap-2">
-            <MobileMenu categories={categories} basePath={basePath} storeName={storeName} logoUrl={logoUrl} />
+            <MobileMenu 
+              categories={categories} 
+              menuItems={menuItems}
+              navigationMode={navigationMode}
+              basePath={basePath} 
+              storeName={storeName} 
+              logoUrl={logoUrl} 
+            />
             {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
           </div>
 

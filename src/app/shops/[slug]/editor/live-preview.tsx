@@ -14,6 +14,7 @@ interface LivePreviewProps {
   refreshKey: number; // Increment to force iframe refresh
   onIframeLoad?: (iframe: HTMLIFrameElement) => void; // Callback to pass iframe ref to parent
   currentPage?: string; // Page being edited (home, coming_soon, etc.)
+  customDomain?: string | null; // Custom domain if configured
 }
 
 export function LivePreview({
@@ -24,6 +25,7 @@ export function LivePreview({
   refreshKey,
   onIframeLoad,
   currentPage = 'home',
+  customDomain,
 }: LivePreviewProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,7 +145,7 @@ export function LivePreview({
                 <circle cx="12" cy="10" r="3" />
               </svg>
               <span className="text-xs text-gray-600 truncate flex-1">
-                {storeSlug}.quickshop.co.il
+                {customDomain || `my-quickshop.com/shops/${storeSlug}`}
               </span>
               {/* Refresh Button */}
               <button 

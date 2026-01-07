@@ -26,6 +26,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
   
   // Announcement bar settings
   announcementEnabled?: boolean;
@@ -106,6 +107,47 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
             currentLayout={settings.headerLayout || 'logo-right'} 
             onLayoutChange={(layout) => updateSettings({ headerLayout: layout })} 
           />
+          
+          {/* Navigation Mode */}
+          <SettingsGroup title="ניווט">
+            <div className="space-y-3">
+              <p className="text-xs text-gray-500">בחרו מה יוצג בתפריט הראשי</p>
+              <div className="space-y-2">
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                  borderColor: (settings.headerNavigationMode || 'menu') === 'menu' ? '#000' : '#e5e7eb',
+                  backgroundColor: (settings.headerNavigationMode || 'menu') === 'menu' ? '#f9fafb' : 'transparent'
+                }}>
+                  <input
+                    type="radio"
+                    name="navigationMode"
+                    checked={(settings.headerNavigationMode || 'menu') === 'menu'}
+                    onChange={() => updateSettings({ headerNavigationMode: 'menu' })}
+                    className="w-4 h-4"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">תפריט מותאם</p>
+                    <p className="text-xs text-gray-500">הצג את התפריט שנוצר בניהול ניווט</p>
+                  </div>
+                </label>
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                  borderColor: settings.headerNavigationMode === 'categories' ? '#000' : '#e5e7eb',
+                  backgroundColor: settings.headerNavigationMode === 'categories' ? '#f9fafb' : 'transparent'
+                }}>
+                  <input
+                    type="radio"
+                    name="navigationMode"
+                    checked={settings.headerNavigationMode === 'categories'}
+                    onChange={() => updateSettings({ headerNavigationMode: 'categories' })}
+                    className="w-4 h-4"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">כל הקטגוריות</p>
+                    <p className="text-xs text-gray-500">הצג את כל הקטגוריות אוטומטית</p>
+                  </div>
+                </label>
+              </div>
+            </div>
+          </SettingsGroup>
           
           {/* Header Options */}
           <SettingsGroup title="אפשרויות הדר">

@@ -30,6 +30,7 @@ interface Store {
   logoUrl: string | null;
   themeSettings: unknown;
   settings: unknown;
+  customDomain: string | null;
 }
 
 type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
@@ -42,6 +43,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
   announcementEnabled?: boolean;
   announcementText?: string;
   announcementLink?: string;
@@ -592,6 +594,7 @@ export function ThemeEditor({
             refreshKey={previewRefreshKey}
             onIframeLoad={handleIframeLoad}
             currentPage={currentPage}
+            customDomain={store.customDomain}
           />
         </div>
 

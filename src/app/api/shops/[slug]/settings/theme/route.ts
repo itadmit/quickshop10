@@ -23,6 +23,7 @@ const VALID_SETTINGS_KEYS = [
   'headerShowSearch',
   'headerShowCart',
   'headerShowAccount',
+  'headerNavigationMode', // 'menu' = custom menus, 'categories' = show all categories
   
   // Announcement bar
   'announcementEnabled',

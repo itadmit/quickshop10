@@ -1,5 +1,5 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users } from './schema';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages } from './schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
@@ -558,4 +558,118 @@ export const getStoreProducts = cache(async (storeId: string) => {
     ))
     .where(eq(products.storeId, storeId))
     .orderBy(desc(products.createdAt));
+});
+
+// ============ NAVIGATION MENUS ============
+
+export interface MenuItem {
+  id: string;
+  title: string;
+  linkType: 'url' | 'page' | 'category' | 'product';
+  linkUrl: string | null;
+  linkResourceId: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  parentId: string | null;
+  // Resolved URL based on link type
+  resolvedUrl?: string;
+  // Children for nested menus
+  children?: MenuItem[];
+}
+
+// Get main menu with items for header navigation
+export const getMainMenuWithItems = cache(async (storeId: string) => {
+  // Get the main menu
+  const [menu] = await db
+    .select()
+    .from(menus)
+    .where(and(eq(menus.storeId, storeId), eq(menus.handle, 'main')))
+    .limit(1);
+
+  if (!menu) {
+    return null;
+  }
+
+  // Get all menu items
+  const items = await db
+    .select()
+    .from(menuItems)
+    .where(and(eq(menuItems.menuId, menu.id), eq(menuItems.isActive, true)))
+    .orderBy(asc(menuItems.sortOrder));
+
+  if (items.length === 0) {
+    return { ...menu, items: [] };
+  }
+
+  // Get all linked pages and categories for URL resolution
+  const pageIds = items.filter(i => i.linkType === 'page' && i.linkResourceId).map(i => i.linkResourceId!);
+  const categoryIds = items.filter(i => i.linkType === 'category' && i.linkResourceId).map(i => i.linkResourceId!);
+
+  const [linkedPages, linkedCategories] = await Promise.all([
+    pageIds.length > 0
+      ? db.select({ id: pages.id, slug: pages.slug }).from(pages).where(
+          and(eq(pages.storeId, storeId))
+        )
+      : Promise.resolve([]),
+    categoryIds.length > 0
+      ? db.select({ id: categories.id, slug: categories.slug }).from(categories).where(
+          and(eq(categories.storeId, storeId))
+        )
+      : Promise.resolve([]),
+  ]);
+
+  // Create lookup maps
+  const pageMap = new Map(linkedPages.map(p => [p.id, p.slug]));
+  const categoryMap = new Map(linkedCategories.map(c => [c.id, c.slug]));
+
+  // Resolve URLs for each item
+  const resolvedItems: MenuItem[] = items.map(item => {
+    let resolvedUrl = item.linkUrl || '#';
+    
+    if (item.linkType === 'page' && item.linkResourceId) {
+      const pageSlug = pageMap.get(item.linkResourceId);
+      resolvedUrl = pageSlug ? `/${pageSlug}` : '#';
+    } else if (item.linkType === 'category' && item.linkResourceId) {
+      const categorySlug = categoryMap.get(item.linkResourceId);
+      resolvedUrl = categorySlug ? `/category/${categorySlug}` : '#';
+    } else if (item.linkType === 'url') {
+      resolvedUrl = item.linkUrl || '#';
+    }
+
+    return {
+      id: item.id,
+      title: item.title,
+      linkType: item.linkType,
+      linkUrl: item.linkUrl,
+      linkResourceId: item.linkResourceId,
+      sortOrder: item.sortOrder,
+      isActive: item.isActive,
+      parentId: item.parentId,
+      resolvedUrl,
+    };
+  });
+
+  // Build tree structure (items with children)
+  const topLevelItems: MenuItem[] = [];
+  const childrenMap = new Map<string, MenuItem[]>();
+
+  // First pass: group children by parent
+  resolvedItems.forEach(item => {
+    if (item.parentId) {
+      const existing = childrenMap.get(item.parentId) || [];
+      childrenMap.set(item.parentId, [...existing, item]);
+    }
+  });
+
+  // Second pass: build top-level items with their children
+  resolvedItems.forEach(item => {
+    if (!item.parentId) {
+      topLevelItems.push({
+        ...item,
+        children: childrenMap.get(item.id) || [],
+      });
+    }
+  });
+
+  return { ...menu, items: topLevelItems };
 });
