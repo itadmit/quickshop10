@@ -393,7 +393,22 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 
   // Special handling for product page settings
   if (section.type === 'product-page') {
-    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} />;
+    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab="sections" />;
+  }
+  
+  // Handle individual product page sections (pp-gallery, pp-features, etc.)
+  if (section.type.startsWith('pp-')) {
+    const sectionTypeMap: Record<string, 'sections' | 'gallery' | 'features' | 'style'> = {
+      'pp-breadcrumb': 'sections',
+      'pp-gallery': 'gallery',
+      'pp-info': 'style',
+      'pp-features': 'features',
+      'pp-description': 'sections',
+      'pp-reviews': 'sections',
+      'pp-related': 'style',
+    };
+    const initialTab = sectionTypeMap[section.type] || 'sections';
+    return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab={initialTab} />;
   }
 
   return (
@@ -2322,10 +2337,11 @@ import {
 interface ProductPageSettingsUIProps {
   settings: Record<string, unknown>;
   updateSettings: (settings: Record<string, unknown>) => void;
+  initialTab?: 'sections' | 'gallery' | 'features' | 'style';
 }
 
-function ProductPageSettingsUI({ settings, updateSettings }: ProductPageSettingsUIProps) {
-  const [activeTab, setActiveTab] = useState<'sections' | 'gallery' | 'features' | 'style'>('sections');
+function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'sections' }: ProductPageSettingsUIProps) {
+  const [activeTab, setActiveTab] = useState<'sections' | 'gallery' | 'features' | 'style'>(initialTab);
   
   // Get product page settings from store settings
   const productSettings: ProductPageSettings = {

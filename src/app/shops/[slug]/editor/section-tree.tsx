@@ -117,6 +117,17 @@ export function SectionTree({
 
   // Special UI for Product Page - Settings only, no draggable sections
   if (isProductPage) {
+    // Product page section types with their icons and labels
+    const productPageSections = [
+      { id: 'pp-breadcrumb', icon: 'breadcrumb', label: 'ניווט (Breadcrumb)' },
+      { id: 'pp-gallery', icon: 'gallery', label: 'גלריית תמונות' },
+      { id: 'pp-info', icon: 'product-info', label: 'מידע מוצר' },
+      { id: 'pp-features', icon: 'features', label: 'חוזקות' },
+      { id: 'pp-description', icon: 'description', label: 'תיאור' },
+      { id: 'pp-reviews', icon: 'reviews', label: 'ביקורות' },
+      { id: 'pp-related', icon: 'related', label: 'מוצרים דומים' },
+    ];
+
     return (
       <div className="flex flex-col h-full" dir="rtl">
         {/* Header */}
@@ -126,43 +137,38 @@ export function SectionTree({
 
         {/* Product Page Sections */}
         <div className="flex-1 overflow-auto">
-          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-            הגדרות עמוד מוצר
+          {/* General Settings */}
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              הגדרות כלליות
+            </div>
+            <SectionItem
+              icon="settings"
+              label="הגדרות עמוד מוצר"
+              isSelected={selectedSectionId === 'product-page'}
+              onClick={() => onSelectSection('product-page')}
+            />
           </div>
           
-          <SectionItem
-            icon="settings"
-            label="הגדרות כלליות"
-            isSelected={selectedSectionId === 'product-page'}
-            onClick={() => onSelectSection('product-page')}
-          />
-          
-          <div className="px-4 py-3 bg-gray-50 border-y border-gray-100">
-            <p className="text-xs text-gray-500 leading-relaxed">
-              עמוד המוצר הוא דינמי - התוכן משתנה לפי המוצר. כאן תוכלו להגדיר:
-            </p>
-            <ul className="mt-2 text-xs text-gray-600 space-y-1">
-              <li>• סדר והצגת סקשנים</li>
-              <li>• הגדרות גלריה</li>
-              <li>• עריכת החוזקות</li>
-              <li>• עיצוב כותרת ומחיר</li>
-            </ul>
-          </div>
-          
-          {/* Visual preview of product page sections */}
+          {/* Section Tree */}
           <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
             מבנה העמוד
           </div>
           
-          <div className="px-3 space-y-1">
-            <ProductPageSectionPreview label="ניווט" icon="🔗" />
-            <ProductPageSectionPreview label="גלריית תמונות" icon="🖼️" />
-            <ProductPageSectionPreview label="מידע מוצר" icon="📝" isDynamic />
-            <ProductPageSectionPreview label="חוזקות" icon="✨" />
-            <ProductPageSectionPreview label="תיאור" icon="📄" isDynamic />
-            <ProductPageSectionPreview label="ביקורות" icon="⭐" isDynamic />
-            <ProductPageSectionPreview label="מוצרים דומים" icon="🛍️" isDynamic />
+          <div className="text-xs text-gray-400 px-4 pb-2">
+            לחץ על סקשן להגדרות | הסתר/הצג בהגדרות
           </div>
+          
+          {/* Section Items */}
+          {productPageSections.map((section) => (
+            <SectionItem
+              key={section.id}
+              icon={section.icon}
+              label={section.label}
+              isSelected={selectedSectionId === section.id}
+              onClick={() => onSelectSection(section.id)}
+            />
+          ))}
         </div>
       </div>
     );
@@ -309,18 +315,6 @@ export function SectionTree({
   );
 }
 
-// Product Page Section Preview (read-only visual)
-function ProductPageSectionPreview({ label, icon, isDynamic }: { label: string; icon: string; isDynamic?: boolean }) {
-  return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-100">
-      <span className="text-sm">{icon}</span>
-      <span className="text-xs text-gray-700 flex-1">{label}</span>
-      {isDynamic && (
-        <span className="text-[10px] text-gray-400 bg-white px-1.5 py-0.5 rounded">דינמי</span>
-      )}
-    </div>
-  );
-}
 
 // Section Item Component
 function SectionItem({
@@ -682,6 +676,73 @@ function SectionIcon({ type }: { type: string }) {
         <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <rect x="3" y="16" width="18" height="5" rx="1" />
           <path d="M3 7h18M3 12h12" />
+        </svg>
+      );
+    // Product Page Section Icons
+    case 'breadcrumb':
+    case 'navigation':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M3 12h4l3 9l4-18l3 9h4" />
+        </svg>
+      );
+    case 'gallery':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <path d="M21 15l-5-5L5 21" />
+        </svg>
+      );
+    case 'product-info':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+        </svg>
+      );
+    case 'features':
+    case 'strengths':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      );
+    case 'description':
+    case 'text':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+        </svg>
+      );
+    case 'reviews':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      );
+    case 'related':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      );
+    case 'settings':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+        </svg>
+      );
+    case 'eye':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+          <circle cx="12" cy="12" r="3" />
         </svg>
       );
     default:
