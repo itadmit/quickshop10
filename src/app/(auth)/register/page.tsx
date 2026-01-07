@@ -45,15 +45,16 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     
-    // Navigate to setup page with params
-    const params = new URLSearchParams({
+    // Store registration data securely in sessionStorage (not in URL!)
+    sessionStorage.setItem('registerData', JSON.stringify({
       name,
       email,
       password,
       storeName,
-    });
+    }));
     
-    router.push(`/setup?${params.toString()}`);
+    // Navigate to setup page without sensitive data in URL
+    router.push('/setup');
   };
 
   const handleGoogleLogin = () => {
@@ -223,5 +224,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
-

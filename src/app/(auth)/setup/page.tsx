@@ -1,7 +1,7 @@
 'use client';
 
-import { Suspense, useEffect, useState, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { Check, Store, Package, FolderOpen, Globe, Loader2 } from 'lucide-react';
 
@@ -12,18 +12,21 @@ interface SetupStep {
   status: 'pending' | 'active' | 'completed';
 }
 
-function SetupContent() {
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  storeName: string;
+}
+
+export default function SetupPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   
-  const email = searchParams.get('email');
-  const password = searchParams.get('password');
-  const name = searchParams.get('name');
-  const storeName = searchParams.get('storeName');
-  
+  const [registerData, setRegisterData] = useState<RegisterData | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [error, setError] = useState('');
   const [storeSlug, setStoreSlug] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   const [steps, setSteps] = useState<SetupStep[]>([
     { id: 'store', label: 'יוצר חנות חדשה', icon: Store, status: 'pending' },
@@ -38,11 +41,33 @@ function SetupContent() {
     ));
   }, []);
 
+  // Load registration data from sessionStorage
   useEffect(() => {
-    if (!email || !password || !name || !storeName) {
+    const storedData = sessionStorage.getItem('registerData');
+    
+    if (!storedData) {
       router.push('/register');
       return;
     }
+
+    try {
+      const data = JSON.parse(storedData) as RegisterData;
+      
+      if (!data.email || !data.password || !data.name || !data.storeName) {
+        router.push('/register');
+        return;
+      }
+      
+      setRegisterData(data);
+      setIsLoading(false);
+    } catch {
+      router.push('/register');
+    }
+  }, [router]);
+
+  // Run setup process
+  useEffect(() => {
+    if (!registerData || isLoading) return;
 
     const runSetup = async () => {
       try {
@@ -53,17 +78,19 @@ function SetupContent() {
         const registerResponse = await fetch('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password, storeName }),
+          body: JSON.stringify(registerData),
         });
 
-        const registerData = await registerResponse.json();
+        const responseData = await registerResponse.json();
         
-        if (!registerResponse.ok || !registerData.success) {
-          setError(registerData.error || 'שגיאה ביצירת החנות');
+        if (!registerResponse.ok || !responseData.success) {
+          setError(responseData.error || 'שגיאה ביצירת החנות');
+          // Clear stored data on error
+          sessionStorage.removeItem('registerData');
           return;
         }
 
-        setStoreSlug(registerData.storeSlug);
+        setStoreSlug(responseData.storeSlug);
         updateStepStatus(0, 'completed');
 
         // Step 2: Categories animation (already created in register)
@@ -84,14 +111,18 @@ function SetupContent() {
         await new Promise(resolve => setTimeout(resolve, 600));
         updateStepStatus(3, 'completed');
 
-        // Auto sign in
+        // Auto sign in with the ORIGINAL password (from sessionStorage, not URL)
         const signInResult = await signIn('credentials', {
-          email,
-          password,
+          email: registerData.email,
+          password: registerData.password,
           redirect: false,
         });
 
+        // Clear stored data after successful registration
+        sessionStorage.removeItem('registerData');
+
         if (signInResult?.error) {
+          console.error('Sign in error after registration:', signInResult.error);
           router.push('/login?registered=true');
           return;
         }
@@ -100,141 +131,137 @@ function SetupContent() {
         await new Promise(resolve => setTimeout(resolve, 500));
 
         // Redirect to dashboard with welcome modal
-        router.push(`/shops/${registerData.storeSlug}/admin?welcome=true`);
+        router.push(`/shops/${responseData.storeSlug}/admin?welcome=true`);
         router.refresh();
         
       } catch (err) {
         console.error('Setup error:', err);
         setError('שגיאה בתהליך ההגדרה');
+        sessionStorage.removeItem('registerData');
       }
     };
 
     runSetup();
-  }, [email, password, name, storeName, router, updateStepStatus]);
+  }, [registerData, isLoading, router, updateStepStatus]);
 
   const allCompleted = steps.every(s => s.status === 'completed');
 
-  return (
-    <div className="w-full max-w-md">
-      {/* Logo */}
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-logo text-gray-900 mb-2">Quick Shop</h1>
-        {!error && (
-          <p className="text-gray-500">
-            {allCompleted ? 'הכל מוכן! 🎉' : 'מכינים את החנות שלך...'}
-          </p>
-        )}
-      </div>
-
-      {/* Card */}
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        {error ? (
-          <div className="text-center">
-            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-2xl">❌</span>
+  // Show loading while checking sessionStorage
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-10">
+            <h1 className="text-4xl font-logo text-gray-900 mb-2">Quick Shop</h1>
+            <p className="text-gray-500">טוען...</p>
+          </div>
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
             </div>
-            <p className="text-red-600 font-medium mb-4">{error}</p>
-            <button
-              onClick={() => router.push('/register')}
-              className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              חזור להרשמה
-            </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            {steps.map((step, index) => (
-              <div 
-                key={step.id}
-                className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
-                  step.status === 'active' 
-                    ? 'bg-emerald-50 border border-emerald-200' 
-                    : step.status === 'completed'
-                    ? 'bg-gray-50'
-                    : 'bg-gray-50/50'
-                }`}
-              >
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  step.status === 'completed' 
-                    ? 'bg-emerald-500 text-white' 
-                    : step.status === 'active'
-                    ? 'bg-emerald-100 text-emerald-600'
-                    : 'bg-gray-200 text-gray-400'
-                }`}>
-                  {step.status === 'completed' ? (
-                    <Check className="w-5 h-5" />
-                  ) : step.status === 'active' ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <step.icon className="w-5 h-5" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <p className={`font-medium transition-colors duration-300 ${
-                    step.status === 'completed' 
-                      ? 'text-emerald-700' 
-                      : step.status === 'active'
-                      ? 'text-emerald-600'
-                      : 'text-gray-400'
-                  }`}>
-                    {step.label}
-                  </p>
-                  {step.status === 'active' && (
-                    <p className="text-sm text-emerald-500 mt-0.5">מעבד...</p>
-                  )}
-                  {step.status === 'completed' && step.id === 'domain' && storeSlug && (
-                    <p className="text-sm text-gray-500 mt-0.5" dir="ltr">
-                      /shops/{storeSlug}
-                    </p>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* All done */}
-            {allCompleted && (
-              <div className="mt-6 pt-6 border-t border-gray-100 text-center">
-                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
-                  <span className="text-3xl">✨</span>
-                </div>
-                <p className="text-lg font-semibold text-gray-900 mb-2">
-                  זהו, הכל מוכן!
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  עוברים לדשבורד...
-                </p>
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mx-auto" />
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function SetupLoading() {
-  return (
-    <div className="w-full max-w-md">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-logo text-gray-900 mb-2">Quick Shop</h1>
-        <p className="text-gray-500">טוען...</p>
-      </div>
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-export default function SetupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center py-12 px-4 bg-gradient-to-br from-gray-50 to-gray-100">
-      <Suspense fallback={<SetupLoading />}>
-        <SetupContent />
-      </Suspense>
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl font-logo text-gray-900 mb-2">Quick Shop</h1>
+          {!error && (
+            <p className="text-gray-500">
+              {allCompleted ? 'הכל מוכן! 🎉' : 'מכינים את החנות שלך...'}
+            </p>
+          )}
+        </div>
+
+        {/* Card */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+          {error ? (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">❌</span>
+              </div>
+              <p className="text-red-600 font-medium mb-4">{error}</p>
+              <button
+                onClick={() => router.push('/register')}
+                className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                חזור להרשמה
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {steps.map((step, index) => (
+                <div 
+                  key={step.id}
+                  className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-300 ${
+                    step.status === 'active' 
+                      ? 'bg-emerald-50 border border-emerald-200' 
+                      : step.status === 'completed'
+                      ? 'bg-gray-50'
+                      : 'bg-gray-50/50'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+                    step.status === 'completed' 
+                      ? 'bg-emerald-500 text-white' 
+                      : step.status === 'active'
+                      ? 'bg-emerald-100 text-emerald-600'
+                      : 'bg-gray-200 text-gray-400'
+                  }`}>
+                    {step.status === 'completed' ? (
+                      <Check className="w-5 h-5" />
+                    ) : step.status === 'active' ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <step.icon className="w-5 h-5" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`font-medium transition-colors duration-300 ${
+                      step.status === 'completed' 
+                        ? 'text-emerald-700' 
+                        : step.status === 'active'
+                        ? 'text-emerald-600'
+                        : 'text-gray-400'
+                    }`}>
+                      {step.label}
+                    </p>
+                    {step.status === 'active' && (
+                      <p className="text-sm text-emerald-500 mt-0.5">מעבד...</p>
+                    )}
+                    {step.status === 'completed' && step.id === 'domain' && storeSlug && (
+                      <p className="text-sm text-gray-500 mt-0.5" dir="ltr">
+                        /shops/{storeSlug}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* All done */}
+              {allCompleted && (
+                <div className="mt-6 pt-6 border-t border-gray-100 text-center">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-bounce">
+                    <span className="text-3xl">✨</span>
+                  </div>
+                  <p className="text-lg font-semibold text-gray-900 mb-2">
+                    זהו, הכל מוכן!
+                  </p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    עוברים לדשבורד...
+                  </p>
+                  <Loader2 className="w-6 h-6 animate-spin text-emerald-500 mx-auto" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
