@@ -2,7 +2,7 @@ import { db } from './index';
 import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages } from './schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { cache } from 'react';
-import { unstable_cache, revalidateTag } from 'next/cache';
+import { unstable_cache } from 'next/cache';
 
 // ============ STORE ============
 
@@ -305,6 +305,9 @@ export const getPageSectionsCached = unstable_cache(
   { revalidate: 300, tags: ['sections'] } // Cache for 5 minutes
 );
 
+// Section type enum values
+type SectionType = 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq';
+
 // Update page sections (for template application)
 export async function updatePageSections(
   storeId: string,
@@ -335,7 +338,7 @@ export async function updatePageSections(
         id: section.id,
         storeId,
         page,
-        type: section.type,
+        type: section.type as SectionType, // Cast to enum type
         title: section.title,
         subtitle: section.subtitle,
         content: section.content,
@@ -346,8 +349,8 @@ export async function updatePageSections(
     );
   }
 
-  // Revalidate cache
-  revalidateTag('sections');
+  // Note: Cache revalidation should be called from Server Actions/Route Handlers
+  // The caller is responsible for revalidating if needed
 }
 
 // ============ ORDERS ============
