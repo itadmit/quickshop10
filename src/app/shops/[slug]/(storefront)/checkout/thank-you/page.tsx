@@ -424,14 +424,15 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               },
             }).catch(err => console.error('Failed to send order confirmation email:', err));
             
-            // Emit order.created event
+            // Emit order.created event (triggers dashboard notification + mobile push)
             emitOrderCreated(
               store.id,
               updatedOrder.id,
               updatedOrder.orderNumber,
               updatedOrder.customerEmail || '',
               Number(updatedOrder.total),
-              cartItems.length
+              cartItems.length,
+              updatedOrder.customerName || undefined
             );
             
             // Check for low stock
@@ -764,14 +765,15 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           },
         }).catch(err => console.error('Failed to send order confirmation email:', err));
         
-        // Emit order.created event (triggers notifications, webhooks, automations)
+        // Emit order.created event (triggers dashboard notification + mobile push)
         emitOrderCreated(
           store.id,
           newOrder.id,
           orderNumber,
           newOrder.customerEmail || '',
           totalAmount,
-          cartItems.length
+          cartItems.length,
+          newOrder.customerName || search.customer_name || undefined
         );
         
         // Check for low stock and emit events (non-blocking, fire-and-forget)

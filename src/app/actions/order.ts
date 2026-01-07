@@ -462,13 +462,15 @@ export async function createOrder(
       .where(eq(customers.id, customerId));
 
     // 7. Emit order.created event (fire-and-forget, non-blocking)
+    // This triggers dashboard notification + mobile push notification
     emitOrderCreated(
       store.id,
       order.id,
       orderNumber,
       customerInfo.email,
       finalTotal,
-      cart.length
+      cart.length,
+      customerFullName || undefined
     );
 
     // 8. Check for low stock and emit events (non-blocking)

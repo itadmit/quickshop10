@@ -3,7 +3,7 @@
  * 
  * Lightweight event emission for:
  * - Dashboard notifications
- * - Mobile app push notifications (future)
+ * - Mobile app push notifications
  * - Webhook automations
  * 
  * Uses fire-and-forget pattern to not block main flow
@@ -12,6 +12,7 @@
 import { db } from '@/lib/db';
 import { storeEvents, notifications, webhooks, webhookDeliveries } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
+import { sendNewOrderPushNotification, sendLowStockPushNotification } from './push-notifications';
 
 type EventType = 
   | 'order.created' 
@@ -234,7 +235,8 @@ export function emitOrderCreated(
   orderNumber: string,
   customerEmail: string,
   total: number,
-  itemCount: number
+  itemCount: number,
+  customerName?: string
 ): void {
   emitEvent({
     storeId,
@@ -244,11 +246,22 @@ export function emitOrderCreated(
     data: {
       orderNumber,
       customerEmail,
+      customerName,
       total,
       itemCount,
       timestamp: new Date().toISOString(),
     },
   });
+  
+  // Send push notification to store owner's mobile app
+  sendNewOrderPushNotification({
+    storeId,
+    orderId,
+    orderNumber,
+    total,
+    customerName,
+    itemCount,
+  }).catch(err => console.error('[Push] Failed to send new order notification:', err));
 }
 
 /**
@@ -261,7 +274,10 @@ export function emitLowStock(
   inventory: number,
   threshold: number = 5
 ): void {
-  if (inventory <= threshold && inventory > 0) {
+  const isOutOfStock = inventory <= 0;
+  const isLowStock = inventory <= threshold && inventory > 0;
+  
+  if (isLowStock) {
     emitEvent({
       storeId,
       type: 'product.low_stock',
@@ -269,7 +285,16 @@ export function emitLowStock(
       resourceType: 'product',
       data: { productName, inventory },
     });
-  } else if (inventory <= 0) {
+    
+    // Send push notification
+    sendLowStockPushNotification({
+      storeId,
+      productId,
+      productName,
+      inventory,
+      isOutOfStock: false,
+    }).catch(err => console.error('[Push] Failed to send low stock notification:', err));
+  } else if (isOutOfStock) {
     emitEvent({
       storeId,
       type: 'product.out_of_stock',
@@ -277,6 +302,15 @@ export function emitLowStock(
       resourceType: 'product',
       data: { productName, inventory: 0 },
     });
+    
+    // Send push notification
+    sendLowStockPushNotification({
+      storeId,
+      productId,
+      productName,
+      inventory: 0,
+      isOutOfStock: true,
+    }).catch(err => console.error('[Push] Failed to send out of stock notification:', err));
   }
 }
 
