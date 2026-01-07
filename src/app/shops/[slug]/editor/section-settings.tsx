@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 // ============================================
 // Section Settings - Right Panel (Shopify Style) - עברית
@@ -17,6 +17,14 @@ interface Section {
 
 type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
 
+// Store info for logo/favicon uploads
+interface StoreInfo {
+  id: string;
+  slug: string;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+}
+
 // Store theme settings interface
 interface ThemeSettings {
   // Header settings
@@ -27,6 +35,10 @@ interface ThemeSettings {
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
+  
+  // Logo & Favicon (direct store fields, not in settings jsonb)
+  logoUrl?: string;
+  faviconUrl?: string;
   
   // Announcement bar settings
   announcementEnabled?: boolean;
@@ -71,12 +83,18 @@ interface SectionSettingsProps {
   onThemeSettingsChange?: (settings: Partial<ThemeSettings>) => void;
   // Categories for picker
   categories?: Category[];
+  // Store info for logo/favicon uploads
+  storeInfo?: StoreInfo;
 }
 
-export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [] }: SectionSettingsProps) {
+export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [], storeInfo }: SectionSettingsProps) {
   const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
   const settings = themeSettings || {};
   const updateSettings = onThemeSettingsChange || (() => {});
+  
+  // Get current logo/favicon from settings or store
+  const currentLogoUrl = settings.logoUrl ?? storeInfo?.logoUrl ?? '';
+  const currentFaviconUrl = settings.faviconUrl ?? storeInfo?.faviconUrl ?? '';
 
   const getSectionTitle = () => {
     const titles: Record<string, string> = {
@@ -102,6 +120,27 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-6">
+          {/* Logo & Favicon */}
+          <SettingsGroup title="לוגו ואייקון">
+            <LogoUploadField
+              label="לוגו"
+              value={currentLogoUrl}
+              onChange={(url) => updateSettings({ logoUrl: url })}
+              storeId={storeInfo?.id}
+              storeSlug={storeInfo?.slug}
+              hint="PNG שקוף מומלץ, רוחב מינימלי 200px"
+            />
+            <LogoUploadField
+              label="Favicon"
+              value={currentFaviconUrl}
+              onChange={(url) => updateSettings({ faviconUrl: url })}
+              storeId={storeInfo?.id}
+              storeSlug={storeInfo?.slug}
+              aspectRatio="1:1"
+              hint="32x32 או 64x64 פיקסלים"
+            />
+          </SettingsGroup>
+
           {/* Layout Selection */}
           <HeaderLayoutSettings 
             currentLayout={settings.headerLayout || 'logo-right'} 
@@ -1214,7 +1253,7 @@ function SwitchField({
       </div>
       <button
         onClick={() => onChange(!value)}
-        className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${
+        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
           value ? 'bg-blue-500' : 'bg-gray-200'
         }`}
       >
@@ -1345,6 +1384,135 @@ function ImageField({
   );
 }
 
+// Logo/Favicon upload field with real upload functionality
+function LogoUploadField({
+  label,
+  value,
+  onChange,
+  storeId,
+  storeSlug,
+  aspectRatio = '16:9',
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  storeId?: string;
+  storeSlug?: string;
+  aspectRatio?: string;
+  hint?: string;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      alert('יש להעלות קובץ תמונה בלבד');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('גודל הקובץ המקסימלי הוא 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (storeSlug) formData.append('folder', `quickshop/stores/${storeSlug}`);
+      if (storeId) formData.append('storeId', storeId);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      onChange(result.secure_url);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('שגיאה בהעלאת הקובץ');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  return (
+    <div>
+      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
+      {value ? (
+        <div className="relative group">
+          <div 
+            className={`bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-center ${
+              aspectRatio === '1:1' ? 'h-20' : 'h-24'
+            }`}
+          >
+            <img
+              src={value}
+              alt=""
+              className={`max-h-full max-w-full object-contain ${
+                aspectRatio === '1:1' ? 'h-14 w-14' : ''
+              }`}
+            />
+          </div>
+          <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              title="החלף"
+            >
+              <EditIcon />
+            </button>
+            <button
+              onClick={() => onChange('')}
+              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              title="הסר"
+            >
+              <TrashIcon />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="w-full h-20 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors cursor-pointer disabled:opacity-50"
+        >
+          {isUploading ? (
+            <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+          ) : (
+            <>
+              <UploadIcon />
+              <span className="text-xs text-gray-500 mt-1">העלה {label.toLowerCase()}</span>
+            </>
+          )}
+        </button>
+      )}
+      {hint && (
+        <p className="text-xs text-gray-400 mt-1">{hint}</p>
+      )}
+    </div>
+  );
+}
+
 // Icons
 function MoreIcon() {
   return (
@@ -1352,6 +1520,15 @@ function MoreIcon() {
       <circle cx="12" cy="12" r="1" />
       <circle cx="19" cy="12" r="1" />
       <circle cx="5" cy="12" r="1" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   );
 }

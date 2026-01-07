@@ -14,7 +14,10 @@ import { db } from '@/lib/db';
 import { stores } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
-// Valid theme settings keys
+// Direct store fields (not in settings jsonb)
+const STORE_DIRECT_FIELDS = ['logoUrl', 'faviconUrl'];
+
+// Valid theme settings keys (stored in settings jsonb)
 const VALID_SETTINGS_KEYS = [
   // Header
   'headerLayout',
@@ -59,15 +62,22 @@ export async function PUT(
     const { slug } = await params;
     const updates = await request.json();
     
-    // Validate only known keys are being updated
-    const filteredUpdates: Record<string, unknown> = {};
+    // Separate direct store fields from settings jsonb
+    const directFieldUpdates: Record<string, unknown> = {};
+    const settingsUpdates: Record<string, unknown> = {};
+    
     for (const [key, value] of Object.entries(updates)) {
-      if (VALID_SETTINGS_KEYS.includes(key)) {
-        filteredUpdates[key] = value;
+      if (STORE_DIRECT_FIELDS.includes(key)) {
+        directFieldUpdates[key] = value;
+      } else if (VALID_SETTINGS_KEYS.includes(key)) {
+        settingsUpdates[key] = value;
       }
     }
     
-    if (Object.keys(filteredUpdates).length === 0) {
+    const hasDirectUpdates = Object.keys(directFieldUpdates).length > 0;
+    const hasSettingsUpdates = Object.keys(settingsUpdates).length > 0;
+    
+    if (!hasDirectUpdates && !hasSettingsUpdates) {
       return NextResponse.json(
         { success: false, error: 'No valid settings to update' },
         { status: 400 }
@@ -88,25 +98,39 @@ export async function PUT(
       );
     }
     
-    // Merge with existing settings
-    const currentSettings = (store.settings as Record<string, unknown>) || {};
-    const updatedSettings = {
-      ...currentSettings,
-      ...filteredUpdates,
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
     };
+    
+    // Add direct field updates (logoUrl, faviconUrl)
+    if (hasDirectUpdates) {
+      if (directFieldUpdates.logoUrl !== undefined) {
+        updateData.logoUrl = directFieldUpdates.logoUrl || null;
+      }
+      if (directFieldUpdates.faviconUrl !== undefined) {
+        updateData.faviconUrl = directFieldUpdates.faviconUrl || null;
+      }
+    }
+    
+    // Merge settings jsonb updates
+    if (hasSettingsUpdates) {
+      const currentSettings = (store.settings as Record<string, unknown>) || {};
+      updateData.settings = {
+        ...currentSettings,
+        ...settingsUpdates,
+      };
+    }
     
     // Update store
     await db
       .update(stores)
-      .set({ 
-        settings: updatedSettings,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(stores.id, store.id));
     
     return NextResponse.json({ 
       success: true, 
-      settings: filteredUpdates,
+      settings: { ...directFieldUpdates, ...settingsUpdates },
     });
     
   } catch (error) {

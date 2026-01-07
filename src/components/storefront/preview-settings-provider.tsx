@@ -21,6 +21,10 @@ interface ThemeSettings {
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
   headerNavigationMode?: 'menu' | 'categories';
+  // Logo & Favicon
+  logoUrl?: string;
+  faviconUrl?: string;
+  // Announcement bar
   announcementEnabled?: boolean;
   announcementText?: string;
   announcementLink?: string;

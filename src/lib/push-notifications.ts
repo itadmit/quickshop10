@@ -13,7 +13,7 @@ import { eq, and, isNotNull, inArray } from 'drizzle-orm';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
 
-interface ExpoPushMessage {
+export interface ExpoPushMessage {
   to: string;
   sound?: string;
   title: string;
@@ -24,7 +24,7 @@ interface ExpoPushMessage {
   channelId?: string;
 }
 
-interface ExpoPushTicket {
+export interface ExpoPushTicket {
   id?: string;
   status: 'ok' | 'error';
   message?: string;
@@ -34,7 +34,7 @@ interface ExpoPushTicket {
 /**
  * Send push notification to specific tokens
  */
-async function sendPushNotifications(messages: ExpoPushMessage[]): Promise<ExpoPushTicket[]> {
+export async function sendPushNotifications(messages: ExpoPushMessage[]): Promise<ExpoPushTicket[]> {
   if (messages.length === 0) return [];
   
   try {

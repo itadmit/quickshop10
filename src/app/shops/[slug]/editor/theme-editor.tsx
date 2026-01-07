@@ -28,6 +28,7 @@ interface Store {
   name: string;
   slug: string;
   logoUrl: string | null;
+  faviconUrl: string | null;
   themeSettings: unknown;
   settings: unknown;
   customDomain: string | null;
@@ -44,6 +45,10 @@ interface ThemeSettings {
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
+  // Logo & Favicon (direct store fields)
+  logoUrl?: string;
+  faviconUrl?: string;
+  // Announcement bar
   announcementEnabled?: boolean;
   announcementText?: string;
   announcementLink?: string;
@@ -122,6 +127,9 @@ export function ThemeEditor({
     headerShowSearch: true,
     headerShowCart: true,
     headerShowAccount: true,
+    // Logo & Favicon from store directly
+    logoUrl: store.logoUrl || '',
+    faviconUrl: store.faviconUrl || '',
     announcementEnabled: false,
     footerShowLogo: true,
     footerShowNewsletter: true,
@@ -131,6 +139,14 @@ export function ThemeEditor({
   };
   const [themeSettings, setThemeSettings] = useState<ThemeSettings>(originalThemeSettings);
   const [pendingThemeSettings, setPendingThemeSettings] = useState<Partial<ThemeSettings>>({});
+  
+  // Store info for passing to section settings
+  const storeInfo = {
+    id: store.id,
+    slug: store.slug,
+    logoUrl: themeSettings.logoUrl || store.logoUrl || null,
+    faviconUrl: themeSettings.faviconUrl || store.faviconUrl || null,
+  };
 
   // Get selected section - handle special sections like header, footer
   const getSelectedSection = (): Section | null => {
@@ -576,6 +592,7 @@ export function ThemeEditor({
               themeSettings={themeSettings}
               onThemeSettingsChange={handleThemeSettingsChange}
               categories={categories}
+              storeInfo={storeInfo}
             />
           ) : (
             <div className="p-6 text-center text-gray-400" dir="rtl">

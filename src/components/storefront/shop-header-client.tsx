@@ -171,6 +171,9 @@ export function ShopHeaderClient({
   const showCart = isPreviewMode ? (settings.headerShowCart ?? defaultShowCart) : defaultShowCart;
   const showAccount = isPreviewMode ? (settings.headerShowAccount ?? defaultShowAccount) : defaultShowAccount;
   
+  // Logo URL from preview settings (for real-time updates in editor)
+  const effectiveLogoUrl = isPreviewMode && settings.logoUrl !== undefined ? settings.logoUrl : logoUrl;
+  
   // Navigation mode from preview settings (defaults to prop value)
   const effectiveNavigationMode = isPreviewMode && settings.headerNavigationMode 
     ? settings.headerNavigationMode as 'menu' | 'categories'
@@ -298,16 +301,18 @@ export function ShopHeaderClient({
       : <MenuNavigation className={className} />;
 
   // Logo component - shows image if logoUrl is provided, otherwise text
+  // Uses effectiveLogoUrl for real-time preview updates in editor
   const Logo = ({ className = '' }: { className?: string }) => (
     <Link href={basePath || '/'} className={`group ${className}`}>
-      {logoUrl ? (
+      {effectiveLogoUrl ? (
         <Image
-          src={logoUrl}
+          src={effectiveLogoUrl}
           alt={storeName}
           width={150}
           height={50}
           className="h-8 sm:h-10 w-auto object-contain"
           priority
+          key={effectiveLogoUrl} // Force re-render when logo changes
         />
       ) : (
         <span className="font-display text-lg sm:text-2xl tracking-[0.2em] sm:tracking-[0.3em] text-black font-light uppercase">
