@@ -231,12 +231,14 @@ async function fireWebhook(
  */
 export function emitOrderCreated(
   storeId: string,
+  storeName: string,
   orderId: string,
   orderNumber: string,
   customerEmail: string,
   total: number,
   itemCount: number,
-  customerName?: string
+  customerName?: string,
+  couponCode?: string
 ): void {
   emitEvent({
     storeId,
@@ -249,6 +251,7 @@ export function emitOrderCreated(
       customerName,
       total,
       itemCount,
+      couponCode,
       timestamp: new Date().toISOString(),
     },
   });
@@ -256,11 +259,13 @@ export function emitOrderCreated(
   // Send push notification to store owner's mobile app
   sendNewOrderPushNotification({
     storeId,
+    storeName,
     orderId,
     orderNumber,
     total,
     customerName,
     itemCount,
+    couponCode,
   }).catch(err => console.error('[Push] Failed to send new order notification:', err));
 }
 

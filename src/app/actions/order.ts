@@ -465,12 +465,14 @@ export async function createOrder(
     // This triggers dashboard notification + mobile push notification
     emitOrderCreated(
       store.id,
+      store.name,
       order.id,
       orderNumber,
       customerInfo.email,
       finalTotal,
       cart.length,
-      customerFullName || undefined
+      customerFullName || undefined,
+      validatedCouponCode || undefined
     );
 
     // 8. Check for low stock and emit events (non-blocking)

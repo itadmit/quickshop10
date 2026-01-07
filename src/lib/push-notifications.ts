@@ -92,11 +92,13 @@ async function getStoreAdminTokens(storeId: string, notificationType: 'orders' |
 
 export interface NewOrderNotificationData {
   storeId: string;
+  storeName: string;
   orderId: string;
   orderNumber: string;
   total: number;
   customerName?: string;
   itemCount: number;
+  couponCode?: string;
 }
 
 /**
@@ -111,11 +113,20 @@ export async function sendNewOrderPushNotification(data: NewOrderNotificationDat
       return;
     }
 
+    // Build body with optional coupon
+    const bodyParts = [
+      `הזמנה מספר #${data.orderNumber}`,
+      `סכום: ${data.total.toFixed(0)}₪`,
+    ];
+    if (data.couponCode) {
+      bodyParts.push(`קופון: ${data.couponCode}`);
+    }
+
     const messages: ExpoPushMessage[] = tokens.map(token => ({
       to: token,
-      sound: 'default', // Use 'purchase.wav' for custom sound (must be in app bundle)
-      title: '🛒 הזמנה חדשה!',
-      body: `הזמנה #${data.orderNumber} - ₪${data.total.toFixed(0)}${data.customerName ? ` מאת ${data.customerName}` : ''}`,
+      sound: 'purchase.wav', // Custom sound for new orders (in app bundle)
+      title: `!${data.storeName} - הזמנה חדשה`,
+      body: bodyParts.join(' | '),
       data: {
         type: 'new_order',
         orderId: data.orderId,

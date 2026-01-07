@@ -427,12 +427,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             // Emit order.created event (triggers dashboard notification + mobile push)
             emitOrderCreated(
               store.id,
+              store.name,
               updatedOrder.id,
               updatedOrder.orderNumber,
               updatedOrder.customerEmail || '',
               Number(updatedOrder.total),
               cartItems.length,
-              updatedOrder.customerName || undefined
+              updatedOrder.customerName || undefined,
+              pendingPayment.discountCode || undefined
             );
             
             // Check for low stock
@@ -768,12 +770,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         // Emit order.created event (triggers dashboard notification + mobile push)
         emitOrderCreated(
           store.id,
+          store.name,
           newOrder.id,
           orderNumber,
           newOrder.customerEmail || '',
           totalAmount,
           cartItems.length,
-          newOrder.customerName || search.customer_name || undefined
+          newOrder.customerName || search.customer_name || undefined,
+          pendingPayment.discountCode || undefined
         );
         
         // Check for low stock and emit events (non-blocking, fire-and-forget)

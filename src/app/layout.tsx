@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "QuickShop | פלטפורמה לחנויות אונליין",
   description: "בנה חנות אונליין מהירה ומעוצבת בקלות",
+  icons: {
+    icon: '/icon.png',
+    apple: '/icon.png',
+  },
 };
 
 export default function RootLayout({
