@@ -67,18 +67,20 @@ async function getStoreAdminTokens(storeId: string, notificationType: 'orders' |
 
   if (!store?.ownerId) return [];
 
+  // Determine which notification preference column to filter by
+  const notificationFilter = 
+    notificationType === 'orders' ? eq(mobileDevices.notifyOrders, true) :
+    notificationType === 'lowStock' ? eq(mobileDevices.notifyLowStock, true) :
+    eq(mobileDevices.notifyReturns, true);
+
   // Get mobile devices with push tokens for the store owner
-  // Filter by notification preferences
   const devices = await db
     .select({ pushToken: mobileDevices.pushToken })
     .from(mobileDevices)
     .where(and(
       eq(mobileDevices.userId, store.ownerId),
       isNotNull(mobileDevices.pushToken),
-      // Filter by notification type preference
-      notificationType === 'orders' ? eq(mobileDevices.notifyOrders, true) :
-      notificationType === 'lowStock' ? eq(mobileDevices.notifyLowStock, true) :
-      eq(mobileDevices.notifyReturns, true)
+      notificationFilter
     ));
 
   return devices
