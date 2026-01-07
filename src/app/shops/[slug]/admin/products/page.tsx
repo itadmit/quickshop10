@@ -108,6 +108,9 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
         description={`${allProducts.length} מוצרים בקטלוג`}
         actions={
           <div className="flex items-center gap-2">
+            <Button href={`/shops/${slug}/admin/products/import`} variant="secondary" icon="upload">
+              ייבוא CSV
+            </Button>
             <Button href={`/shops/${slug}/admin/products/inventory`} variant="secondary">
               מלאי
             </Button>

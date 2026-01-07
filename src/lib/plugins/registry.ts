@@ -184,6 +184,59 @@ export const pluginRegistry: PluginDefinition[] = [
       screenshots: [],
     },
   },
+
+  // ============================================
+  // ⭐ REVIEWS - ביקורות
+  // ============================================
+  {
+    slug: 'product-reviews',
+    name: 'ביקורות מוצרים',
+    description: 'אפשר ללקוחות לדרג מוצרים, לכתוב ביקורות ולהעלות תמונות - עם מודרציה, תגיות ותגובות מנהל',
+    type: 'core',
+    category: 'marketing',
+    version: '1.0.0',
+    icon: 'star',
+    author: 'QuickShop',
+    isFree: false,
+    price: 49.90,
+    trialDays: 14,
+    defaultConfig: {
+      enabled: true,
+      requireApproval: true,
+      requireText: false,
+      minTextLength: 10,
+      allowMedia: true,
+      maxMediaPerReview: 5,
+      allowGuestReviews: false,
+      autoApproveVerified: true,
+      showVerifiedBadge: true,
+      emailRequestDays: 7,
+      customBadges: [
+        { id: 'editors-pick', name: 'בחירת העורך', color: '#8B5CF6', icon: 'crown' },
+        { id: 'top-reviewer', name: 'מבקר מוביל', color: '#FFD700', icon: 'trophy' },
+        { id: 'helpful', name: 'מועיל במיוחד', color: '#10B981', icon: 'thumbs-up' },
+      ],
+    },
+    metadata: {
+      menuItem: {
+        icon: 'Star',
+        label: 'ביקורות',
+        href: '/plugins/product-reviews',
+        section: 'marketing',
+      },
+      features: [
+        'דירוג 1-5 כוכבים',
+        'תגית "רכישה מאומתת" אוטומטית',
+        'העלאת תמונות ווידאו',
+        'מודרציה ואישור ביקורות',
+        'תגובות מנהל',
+        'כפתור "מועיל" להצבעה',
+        'תגיות מותאמות אישית',
+        'סיכום דירוגים מהיר',
+      ],
+      screenshots: [],
+    },
+  },
 ];
 
 // ============================================

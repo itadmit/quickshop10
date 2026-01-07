@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { DeleteCategoryButton } from './delete-button';
+import { bulkDeleteCategories, bulkActivateCategories, bulkDeactivateCategories } from './actions';
 
 // ============================================
 // CategoriesDataTable - Client Component
@@ -66,7 +67,7 @@ export function CategoriesDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        console.log('Activate categories:', selectedIds);
+        await bulkActivateCategories(selectedIds, storeId);
         router.refresh();
       },
     },
@@ -80,7 +81,7 @@ export function CategoriesDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        console.log('Deactivate categories:', selectedIds);
+        await bulkDeactivateCategories(selectedIds, storeId);
         router.refresh();
       },
     },
@@ -95,8 +96,8 @@ export function CategoriesDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        if (!confirm(`האם למחוק ${selectedIds.length} קטגוריות?`)) return;
-        console.log('Delete categories:', selectedIds);
+        if (!confirm(`האם למחוק ${selectedIds.length} קטגוריות? התמונות יימחקו גם מ-Cloudinary.`)) return;
+        await bulkDeleteCategories(selectedIds, storeId);
         router.refresh();
       },
     },

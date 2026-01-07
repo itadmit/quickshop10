@@ -2111,6 +2111,135 @@ export const storyCommentsRelations = relations(storyComments, ({ one }) => ({
   }),
 }));
 
+// ============ PRODUCT REVIEWS PLUGIN ============
+
+// Product Reviews (ביקורות מוצרים)
+export const productReviews = pgTable('product_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
+  
+  // Content
+  rating: integer('rating').notNull(), // 1-5
+  title: varchar('title', { length: 255 }),
+  content: text('content'),
+  pros: text('pros'),
+  cons: text('cons'),
+  
+  // Badges & Status
+  isVerifiedPurchase: boolean('is_verified_purchase').default(false).notNull(),
+  badges: text('badges').array().default([]),
+  isApproved: boolean('is_approved').default(false).notNull(),
+  isFeatured: boolean('is_featured').default(false).notNull(),
+  
+  // Admin Reply
+  adminReply: text('admin_reply'),
+  adminReplyAt: timestamp('admin_reply_at'),
+  adminReplyBy: uuid('admin_reply_by').references(() => users.id, { onDelete: 'set null' }),
+  
+  // Votes
+  helpfulCount: integer('helpful_count').default(0).notNull(),
+  notHelpfulCount: integer('not_helpful_count').default(0).notNull(),
+  
+  // Guest info (if allowed)
+  customerName: varchar('customer_name', { length: 100 }),
+  customerEmail: varchar('customer_email', { length: 255 }),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_reviews_store_product').on(table.storeId, table.productId),
+  index('idx_reviews_customer').on(table.customerId),
+  index('idx_reviews_approved').on(table.storeId, table.isApproved),
+]);
+
+// Review Media (תמונות/וידאו לביקורות)
+export const reviewMedia = pgTable('review_media', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reviewId: uuid('review_id').references(() => productReviews.id, { onDelete: 'cascade' }).notNull(),
+  type: varchar('type', { length: 10 }).notNull(), // 'image' | 'video'
+  url: varchar('url', { length: 500 }).notNull(),
+  thumbnailUrl: varchar('thumbnail_url', { length: 500 }),
+  publicId: varchar('public_id', { length: 255 }), // Cloudinary
+  width: integer('width'),
+  height: integer('height'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_review_media_review').on(table.reviewId),
+]);
+
+// Review Votes (הצבעות "מועיל")
+export const reviewVotes = pgTable('review_votes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  reviewId: uuid('review_id').references(() => productReviews.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  sessionId: varchar('session_id', { length: 100 }), // For guests
+  isHelpful: boolean('is_helpful').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_review_votes_review').on(table.reviewId),
+  uniqueIndex('idx_review_votes_unique').on(table.reviewId, table.customerId),
+]);
+
+// Product Review Summary (Denormalized for performance - O(1) lookups)
+export const productReviewSummary = pgTable('product_review_summary', {
+  productId: uuid('product_id').primaryKey().references(() => products.id, { onDelete: 'cascade' }),
+  totalReviews: integer('total_reviews').default(0).notNull(),
+  averageRating: decimal('average_rating', { precision: 2, scale: 1 }).default('0').notNull(),
+  rating1Count: integer('rating_1_count').default(0).notNull(),
+  rating2Count: integer('rating_2_count').default(0).notNull(),
+  rating3Count: integer('rating_3_count').default(0).notNull(),
+  rating4Count: integer('rating_4_count').default(0).notNull(),
+  rating5Count: integer('rating_5_count').default(0).notNull(),
+  withMediaCount: integer('with_media_count').default(0).notNull(),
+  verifiedCount: integer('verified_count').default(0).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Product Reviews Relations
+export const productReviewsRelations = relations(productReviews, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [productReviews.storeId],
+    references: [stores.id],
+  }),
+  product: one(products, {
+    fields: [productReviews.productId],
+    references: [products.id],
+  }),
+  customer: one(customers, {
+    fields: [productReviews.customerId],
+    references: [customers.id],
+  }),
+  order: one(orders, {
+    fields: [productReviews.orderId],
+    references: [orders.id],
+  }),
+  media: many(reviewMedia),
+  votes: many(reviewVotes),
+}));
+
+export const reviewMediaRelations = relations(reviewMedia, ({ one }) => ({
+  review: one(productReviews, {
+    fields: [reviewMedia.reviewId],
+    references: [productReviews.id],
+  }),
+}));
+
+export const reviewVotesRelations = relations(reviewVotes, ({ one }) => ({
+  review: one(productReviews, {
+    fields: [reviewVotes.reviewId],
+    references: [productReviews.id],
+  }),
+  customer: one(customers, {
+    fields: [reviewVotes.customerId],
+    references: [customers.id],
+  }),
+}));
+
 // ============ SMART ADVISOR ============
 
 // Advisor Quiz (שאלון יועץ)
@@ -3118,3 +3247,13 @@ export type ApiKey = typeof apiKeys.$inferSelect;
 export type NewApiKey = typeof apiKeys.$inferInsert;
 export type ApiKeyLog = typeof apiKeyLogs.$inferSelect;
 export type NewApiKeyLog = typeof apiKeyLogs.$inferInsert;
+
+// Product Reviews types
+export type ProductReview = typeof productReviews.$inferSelect;
+export type NewProductReview = typeof productReviews.$inferInsert;
+export type ReviewMedia = typeof reviewMedia.$inferSelect;
+export type NewReviewMedia = typeof reviewMedia.$inferInsert;
+export type ReviewVote = typeof reviewVotes.$inferSelect;
+export type NewReviewVote = typeof reviewVotes.$inferInsert;
+export type ProductReviewSummary = typeof productReviewSummary.$inferSelect;
+export type NewProductReviewSummary = typeof productReviewSummary.$inferInsert;

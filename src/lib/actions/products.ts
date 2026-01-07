@@ -2,9 +2,64 @@
 
 import { db } from '@/lib/db';
 import { products, productImages, productOptions, productOptionValues, productVariants, productCategories } from '@/lib/db/schema';
-import { eq, and, like, sql } from 'drizzle-orm';
+import { eq, and, like, sql, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
+import crypto from 'crypto';
+
+// Cloudinary API credentials
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME || '';
+const CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || '';
+const CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || '';
+
+// Extract public_id from Cloudinary URL
+function extractPublicId(url: string | null): string | null {
+  if (!url || !url.includes('cloudinary.com')) return null;
+  
+  // Match: /upload/v{version}/{public_id}.{format}
+  // or: /upload/{transformations}/{public_id}.{format}
+  const match = url.match(/\/upload\/(?:v\d+\/)?(?:[^/]+\/)*(.+?)(?:\.[a-z]+)?$/i);
+  
+  if (match && match[1]) {
+    return match[1];
+  }
+  
+  return null;
+}
+
+// Delete image from Cloudinary
+async function deleteFromCloudinary(publicId: string): Promise<boolean> {
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_API_KEY || !CLOUDINARY_API_SECRET) {
+    console.warn('Cloudinary credentials not configured');
+    return false;
+  }
+
+  try {
+    const timestamp = Math.round(Date.now() / 1000);
+    const stringToSign = `public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+    const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+
+    const formData = new URLSearchParams();
+    formData.append('public_id', publicId);
+    formData.append('timestamp', timestamp.toString());
+    formData.append('api_key', CLOUDINARY_API_KEY);
+    formData.append('signature', signature);
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/destroy`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+    return result.result === 'ok' || result.result === 'not found';
+  } catch (error) {
+    console.error('Error deleting from Cloudinary:', error);
+    return false;
+  }
+}
 
 // ============ HELPERS ============
 
@@ -358,6 +413,40 @@ export async function updateProduct(
 
 export async function deleteProduct(productId: string, storeId: string, storeSlug: string) {
   try {
+    // Collect Cloudinary public IDs to delete
+    const publicIdsToDelete: string[] = [];
+
+    // Get product images
+    const images = await db.select({ url: productImages.url })
+      .from(productImages)
+      .where(eq(productImages.productId, productId));
+    
+    for (const img of images) {
+      const publicId = extractPublicId(img.url);
+      if (publicId) publicIdsToDelete.push(publicId);
+    }
+
+    // Get variant images
+    const variants = await db.select({ imageUrl: productVariants.imageUrl })
+      .from(productVariants)
+      .where(eq(productVariants.productId, productId));
+    
+    for (const variant of variants) {
+      if (variant.imageUrl) {
+        const publicId = extractPublicId(variant.imageUrl);
+        if (publicId) publicIdsToDelete.push(publicId);
+      }
+    }
+
+    // Delete images from Cloudinary
+    if (publicIdsToDelete.length > 0) {
+      console.log(`[Product Delete] Deleting ${publicIdsToDelete.length} images from Cloudinary...`);
+      const deleteResults = await Promise.all(publicIdsToDelete.map(deleteFromCloudinary));
+      const deletedCount = deleteResults.filter(r => r).length;
+      console.log(`[Product Delete] Cloudinary deletion: ${deletedCount}/${publicIdsToDelete.length} successful`);
+    }
+
+    // Delete product from database (cascades to images, variants, etc.)
     await db.delete(products)
       .where(and(eq(products.id, productId), eq(products.storeId, storeId)));
 

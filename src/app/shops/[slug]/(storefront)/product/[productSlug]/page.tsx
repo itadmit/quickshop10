@@ -8,6 +8,7 @@ import { TrackViewProduct } from '@/components/tracking-events';
 import { ScrollToTop } from '@/components/scroll-to-top';
 import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
+import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -246,6 +247,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
           </div>
         </div>
       </section>
+
+      {/* Product Reviews Section */}
+      <ProductReviewsSection
+        productId={product.id}
+        storeId={store.id}
+        storeSlug={slug}
+      />
 
       {/* Related Products */}
       {relatedProducts.length > 0 && (
