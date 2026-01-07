@@ -267,6 +267,9 @@ function TemplateCard({
           <TemplateApplyButton
             templateId={template.id}
             templateName={template.name}
+            templateDescription={template.description}
+            templateColors={template.colors}
+            sectionsCount={template.sectionsCount}
             storeSlug={slug}
             isActive={isActive}
           />
