@@ -129,11 +129,11 @@ export function LivePreview({
     <div className="flex flex-col items-center justify-start w-full h-full">
       {/* Browser Chrome */}
       <div 
-        className="bg-[#dee1e6] rounded-t-xl overflow-hidden shadow-2xl"
-        style={{ width: dimensions.width, maxWidth: dimensions.maxWidth }}
+        className="bg-[#dee1e6] rounded-t-xl shadow-2xl flex flex-col"
+        style={{ width: dimensions.width, maxWidth: dimensions.maxWidth, height: dimensions.height }}
       >
         {/* Traffic Light Buttons & URL Bar */}
-        <div className="px-4 py-2.5 flex items-center gap-3 border-b border-gray-300/50">
+        <div className="px-4 py-2.5 flex items-center gap-3 border-b border-gray-300/50 shrink-0">
           {/* Traffic Light Buttons */}
           <div className="flex gap-2">
             <div className="w-3 h-3 bg-[#ff5f57] rounded-full shadow-inner" />
@@ -199,10 +199,10 @@ export function LivePreview({
         <iframe
           ref={iframeRef}
           src={previewUrl}
-          className="w-full bg-white"
+          className="w-full bg-white flex-1"
           style={{ 
-            height: dimensions.height,
             border: 'none',
+            minHeight: 0, // Important for flex child to shrink properly
           }}
           onLoad={handleIframeLoad}
           title="תצוגה מקדימה"

@@ -381,7 +381,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               {/* Product Info */}
               {isSectionVisible('info') && (
                 <div 
-                  className="lg:sticky lg:top-24 lg:self-start"
+                  className="lg:sticky lg:top-24"
                   data-section-id="pp-info"
                   data-section-name="מידע מוצר"
                 >
