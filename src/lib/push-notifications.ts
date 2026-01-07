@@ -69,7 +69,7 @@ async function getStoreAdminTokens(storeId: string, notificationType: 'orders' |
 
   // Determine which notification preference column to filter by
   const notificationFilter = 
-    notificationType === 'orders' ? eq(mobileDevices.notifyOrders, true) :
+    notificationType === 'orders' ? eq(mobileDevices.notifyNewOrders, true) :
     notificationType === 'lowStock' ? eq(mobileDevices.notifyLowStock, true) :
     eq(mobileDevices.notifyReturns, true);
 
