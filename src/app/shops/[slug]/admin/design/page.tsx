@@ -4,86 +4,37 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { PageHeader } from '@/components/admin/ui';
 import { CheckIcon } from '@/components/admin/icons';
 import { ExportThemeButton } from './export-theme-button';
+import { templates as templateDefinitions, type Template } from '@/lib/templates';
+import { TemplateApplyButton } from './template-apply-button';
 
 // ============================================
-// Design Templates Page
+// Design Templates Page - Server Component
+// CSS Variables applied server-side (Zero JS!)
 // ============================================
 
 interface DesignPageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Available templates
-const templates = [
-  {
-    id: 'noir',
-    name: 'Noir',
-    description: 'עיצוב מינימלי יוקרתי בשחור-לבן. פונטים דקים ואלגנטיים.',
-    preview: '/templates/noir-preview.jpg',
-    colors: {
-      primary: '#000000',
-      secondary: '#ffffff',
-      accent: '#1a1a1a',
-    },
-    fonts: {
-      heading: 'Cormorant Garamond',
-      body: 'Inter',
-    },
-    isDefault: true,
-    isPro: false,
+// Convert template definitions to display format
+const templates = templateDefinitions.map(t => ({
+  id: t.id,
+  name: t.name,
+  description: t.description,
+  category: t.category,
+  preview: t.previewImage,
+  colors: {
+    primary: t.cssVariables['--template-primary'],
+    secondary: t.cssVariables['--template-secondary'],
+    accent: t.cssVariables['--template-accent'],
   },
-  {
-    id: 'fresh',
-    name: 'Fresh',
-    description: 'עיצוב צעיר וחי עם צבעים רעננים. מושלם לקוסמטיקה ומזון.',
-    preview: '/templates/fresh-preview.jpg',
-    colors: {
-      primary: '#22c55e',
-      secondary: '#f0fdf4',
-      accent: '#16a34a',
-    },
-    fonts: {
-      heading: 'Poppins',
-      body: 'Inter',
-    },
-    isDefault: false,
-    isPro: false,
+  fonts: {
+    heading: t.cssVariables['--template-font-heading'],
+    body: t.cssVariables['--template-font-body'],
   },
-  {
-    id: 'bold',
-    name: 'Bold',
-    description: 'עיצוב נועז וצבעוני. מושלם לאופנה ואקססוריז.',
-    preview: '/templates/bold-preview.jpg',
-    colors: {
-      primary: '#7c3aed',
-      secondary: '#faf5ff',
-      accent: '#6d28d9',
-    },
-    fonts: {
-      heading: 'Space Grotesk',
-      body: 'Inter',
-    },
-    isDefault: false,
-    isPro: true,
-  },
-  {
-    id: 'elegant',
-    name: 'Elegant',
-    description: 'עיצוב יוקרתי וכהה. מושלם לתכשיטים ומוצרי פרימיום.',
-    preview: '/templates/elegant-preview.jpg',
-    colors: {
-      primary: '#d4af37',
-      secondary: '#1a1a1a',
-      accent: '#b8860b',
-    },
-    fonts: {
-      heading: 'Playfair Display',
-      body: 'Lato',
-    },
-    isDefault: false,
-    isPro: true,
-  },
-];
+  sectionsCount: t.sections.length,
+  isPro: t.isPro,
+}));
 
 export default async function DesignPage({ params }: DesignPageProps) {
   const { slug } = await params;
@@ -94,8 +45,9 @@ export default async function DesignPage({ params }: DesignPageProps) {
   }
 
   // Get current theme from store settings
-  const themeSettings = store.themeSettings as Record<string, unknown> || {};
-  const currentTemplateId = (themeSettings.templateId as string) || 'noir';
+  const storeSettings = (store.settings || {}) as Record<string, unknown>;
+  const currentTemplateId = (storeSettings.templateId as string) || 'noir';
+  const currentTemplate = templates.find(t => t.id === currentTemplateId);
 
   return (
     <div className="space-y-6">
@@ -108,11 +60,30 @@ export default async function DesignPage({ params }: DesignPageProps) {
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">התבנית הנוכחית</h2>
-              <p className="text-sm text-gray-600 mt-1 font-medium">
-                {templates.find(t => t.id === currentTemplateId)?.name || 'Noir'}
-              </p>
+            <div className="flex items-center gap-4">
+              {/* Color swatches */}
+              {currentTemplate && (
+                <div className="flex gap-1">
+                  <div 
+                    className="w-8 h-8 rounded-full border-2 border-white shadow"
+                    style={{ backgroundColor: currentTemplate.colors.primary }}
+                  />
+                  <div 
+                    className="w-8 h-8 rounded-full border-2 border-white shadow -mr-2"
+                    style={{ backgroundColor: currentTemplate.colors.accent }}
+                  />
+                </div>
+              )}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">התבנית הנוכחית</h2>
+                <p className="text-sm text-gray-600 mt-0.5">
+                  <span className="font-medium">{currentTemplate?.name || 'Noir'}</span>
+                  <span className="mx-2 text-gray-300">•</span>
+                  <span>{currentTemplate?.category}</span>
+                  <span className="mx-2 text-gray-300">•</span>
+                  <span>{currentTemplate?.sectionsCount} סקשנים</span>
+                </p>
+              </div>
             </div>
             <Link
               href={`/shops/${slug}/editor`}
@@ -293,19 +264,22 @@ function TemplateCard({
 
         {/* Hover Overlay */}
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-          <Link
-            href={`/shops/${slug}/editor?template=${template.id}`}
-            className="px-4 py-2 bg-white text-black text-xs font-medium rounded-lg hover:bg-gray-100 transition-colors"
-          >
-            {isActive ? 'ערוך עיצוב' : 'צפה בתצוגה מקדימה'}
-          </Link>
+          <TemplateApplyButton
+            templateId={template.id}
+            templateName={template.name}
+            storeSlug={slug}
+            isActive={isActive}
+          />
         </div>
       </div>
 
       {/* Template Info */}
       <div className="p-4 bg-white">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-gray-900">{template.name}</h3>
+          <div>
+            <h3 className="font-semibold text-gray-900">{template.name}</h3>
+            <span className="text-[10px] text-gray-400">{template.category}</span>
+          </div>
           {/* Color Palette */}
           <div className="flex gap-1">
             <div 
@@ -318,21 +292,15 @@ function TemplateCard({
             />
           </div>
         </div>
-        <p className="text-xs text-gray-500 leading-relaxed">
+        <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
           {template.description}
         </p>
+        <div className="mt-2 text-[10px] text-gray-400">
+          {template.sectionsCount} סקשנים מוכנים
+        </div>
       </div>
     </div>
   );
 }
 
-function MoreIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-      <circle cx="5" cy="12" r="1" />
-    </svg>
-  );
-}
 
