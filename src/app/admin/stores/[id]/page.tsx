@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowRight, Store, User, Calendar, Clock, CreditCard, ShoppingCart, DollarSign, ExternalLink, Mail, Globe, Settings } from 'lucide-react';
 import { StoreEditForm } from './store-edit-form';
+import { OwnerPasswordForm } from './owner-password-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -313,6 +314,13 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
             isActive: store.isActive,
             customDomain: store.customDomain,
           }} />
+
+          {/* Owner Password Change */}
+          <OwnerPasswordForm 
+            storeId={store.id}
+            ownerId={store.ownerId}
+            ownerEmail={store.ownerEmail}
+          />
 
           {/* Quick Actions */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">

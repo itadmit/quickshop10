@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { users, stores, pageSections } from '@/lib/db/schema';
+import { users, stores, pageSections, categories, products, productImages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { signIn, signOut } from '@/lib/auth';
@@ -283,6 +283,132 @@ export async function register(data: RegisterData) {
         isActive: true,
       },
     ]);
+
+    // Create 4 demo categories (Noir template style)
+    const demoCategoriesData = [
+      { 
+        name: 'נשים', 
+        slug: 'women', 
+        description: 'קולקציית נשים - שמלות, חולצות, מכנסיים ועוד',
+        image: 'https://static.zara.net/assets/public/024c/0dd8/e19e4df78c61/f20fd99a35d2/02335629250-p/02335629250-p.jpg?ts=1752493031914&w=1230'
+      },
+      { 
+        name: 'גברים', 
+        slug: 'men', 
+        description: 'קולקציית גברים - חולצות, מכנסיים, ג\'קטים',
+        image: 'https://static.zara.net/assets/public/a132/8434/0ddd438dbcef/110f9ea930b3/05939539716-p/05939539716-p.jpg?ts=1758270012870&w=2560'
+      },
+      { 
+        name: 'אקססוריז', 
+        slug: 'accessories', 
+        description: 'תיקים, צעיפים, כובעים ואקססוריז',
+        image: 'https://static.zara.net/assets/public/37ee/81ce/ffdf4034b1d2/3c9f4df6f6e3/20210283999-e1/20210283999-e1.jpg?ts=1755858923353&w=980'
+      },
+      { 
+        name: 'נעליים', 
+        slug: 'shoes', 
+        description: 'נעליים לנשים וגברים',
+        image: 'https://static.zara.net/assets/public/5347/7726/fe614fdd88bd/cd30a6e6476c/12245620800-e1/12245620800-e1.jpg?ts=1758789586285&w=980'
+      },
+    ];
+
+    const demoCategories = await db.insert(categories).values(
+      demoCategoriesData.map((cat, i) => ({
+        storeId: newStore.id,
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description,
+        imageUrl: cat.image,
+        sortOrder: i,
+        isActive: true,
+      }))
+    ).returning();
+
+    // Map category slugs to IDs
+    const categoryMap = Object.fromEntries(
+      demoCategories.map(c => [c.slug, c.id])
+    );
+
+    // Create 4 demo products (one from each category)
+    const demoProductsData = [
+      {
+        categorySlug: 'women',
+        name: 'שמלת מידי סאטן',
+        slug: 'satin-midi-dress',
+        shortDescription: 'שמלת סאטן אלגנטית באורך מידי',
+        description: 'שמלת סאטן איכותית עם מחשוף V ושרוולים קצרים. גזרה מחמיאה עם חגורה בד באותו הגוון. מושלמת לאירועים ולערבים מיוחדים.',
+        price: '389.00',
+        comparePrice: '489.00',
+        inventory: 30,
+        image: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80',
+        isFeatured: true,
+      },
+      {
+        categorySlug: 'men',
+        name: 'מעיל צמר ארוך',
+        slug: 'long-wool-coat',
+        shortDescription: 'מעיל צמר איכותי באורך ברך',
+        description: 'מעיל צמר מעורב באורך ברך. גזרה ישרה עם צווארון רחב וכפתורים כפולים. בטנה פנימית איכותית.',
+        price: '799.00',
+        comparePrice: '999.00',
+        inventory: 15,
+        image: 'https://image.hm.com/content/dam/global_campaigns/season_03/men/start-page-assets/wk01/Shirts-MCE-wk01-04-2x3.jpg?imwidth=1536',
+        isFeatured: true,
+      },
+      {
+        categorySlug: 'accessories',
+        name: 'תיק צד מעור',
+        slug: 'leather-crossbody-bag',
+        shortDescription: 'תיק צד קומפקטי מעור אמיתי',
+        description: 'תיק צד מעור בקר איכותי עם רצועה מתכווננת. תא עיקרי עם רוכסן ותא פנימי לכרטיסים. מידות: 22x15x6 ס"מ.',
+        price: '459.00',
+        comparePrice: null,
+        inventory: 35,
+        image: 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800&q=80',
+        isFeatured: true,
+      },
+      {
+        categorySlug: 'shoes',
+        name: 'מגפי עור שחורים',
+        slug: 'black-leather-boots',
+        shortDescription: 'מגפי עור קלאסיים עם עקב בלוק',
+        description: 'מגפי עור אמיתי עם עקב בלוק יציב בגובה 5 ס"מ. רוכסן צדדי ושרוכים קדמיים. סוליה גומי איכותית.',
+        price: '599.00',
+        comparePrice: '749.00',
+        inventory: 20,
+        image: 'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=800&q=80',
+        isFeatured: true,
+      },
+    ];
+
+    const demoProducts = await db.insert(products).values(
+      demoProductsData.map(p => ({
+        storeId: newStore.id,
+        categoryId: categoryMap[p.categorySlug],
+        name: p.name,
+        slug: p.slug,
+        shortDescription: p.shortDescription,
+        description: p.description,
+        price: p.price,
+        comparePrice: p.comparePrice,
+        inventory: p.inventory,
+        isFeatured: p.isFeatured,
+        isActive: true,
+        createdBy: user.id,
+        updatedBy: user.id,
+      }))
+    ).returning();
+
+    // Create product images for demo products
+    await db.insert(productImages).values(
+      demoProductsData.map((p, i) => ({
+        productId: demoProducts[i].id,
+        url: p.image,
+        alt: p.name,
+        isPrimary: true,
+        sortOrder: 0,
+      }))
+    );
 
     // Send welcome email (don't await - fire and forget)
     sendWelcomeEmail(user.email, user.name || undefined, data.storeName).catch(console.error);
