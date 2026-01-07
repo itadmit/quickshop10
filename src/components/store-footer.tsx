@@ -68,7 +68,7 @@ export function StoreFooter({
       }}
     >
       <div className="max-w-7xl mx-auto">
-        <div className="grid md:grid-cols-4 gap-10 mb-12">
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Column 1: Logo & Description */}
           {footerShowLogo && (
             <div>
@@ -107,8 +107,40 @@ export function StoreFooter({
             </ul>
           </div>
           
-          {/* Column 4: Social Links */}
-          {footerShowSocial && hasSocialLinks && (
+          {/* Column 4: Newsletter OR Social Links */}
+          {footerShowNewsletter ? (
+            <div>
+              <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80">{footerNewsletterTitle}</h4>
+              <p className="text-sm opacity-60 mb-4">{footerNewsletterSubtitle}</p>
+              <NewsletterForm storeSlug={storeSlug} />
+              
+              {/* Social Links under newsletter */}
+              {footerShowSocial && hasSocialLinks && (
+                <div className="flex gap-4 mt-6">
+                  {socialInstagram && (
+                    <a href={socialInstagram} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">
+                      <InstagramIcon />
+                    </a>
+                  )}
+                  {socialFacebook && (
+                    <a href={socialFacebook} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">
+                      <FacebookIcon />
+                    </a>
+                  )}
+                  {socialTiktok && (
+                    <a href={socialTiktok} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">
+                      <TiktokIcon />
+                    </a>
+                  )}
+                  {socialYoutube && (
+                    <a href={socialYoutube} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">
+                      <YoutubeIcon />
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : footerShowSocial && hasSocialLinks ? (
             <div>
               <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80">עקבו אחרינו</h4>
               <div className="flex gap-4">
@@ -134,19 +166,8 @@ export function StoreFooter({
                 )}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
-        
-        {/* Newsletter Section */}
-        {footerShowNewsletter && (
-          <div className="py-10 border-t border-current/10">
-            <div className="max-w-md mx-auto text-center">
-              <h4 className="font-display text-lg mb-2">{footerNewsletterTitle}</h4>
-              <p className="text-sm opacity-60 mb-4">{footerNewsletterSubtitle}</p>
-              <NewsletterForm storeSlug={storeSlug} />
-            </div>
-          </div>
-        )}
         
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-current/10 flex flex-col md:flex-row justify-between items-center gap-4">
