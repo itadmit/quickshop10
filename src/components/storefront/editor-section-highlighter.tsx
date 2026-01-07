@@ -38,6 +38,10 @@ export function EditorSectionHighlighter() {
       if (event.data?.type === 'SCROLL_TO_SECTION') {
         scrollToSection(event.data.sectionId);
       }
+      if (event.data?.type === 'HIGHLIGHT_SECTION') {
+        // Update selected section (can be null to clear)
+        setSelectedSection(event.data.sectionId);
+      }
       if (event.data?.type === 'THEME_SETTINGS_UPDATE') {
         // Already handled by PreviewSettingsProvider
       }

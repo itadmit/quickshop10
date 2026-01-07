@@ -2906,6 +2906,34 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
                 />
               )}
             </SettingsGroup>
+            
+            <SettingsGroup title="תצוגת מלאי">
+              <SelectField
+                label="סגנון תצוגה"
+                value={productSettings.inventory?.displayStyle || 'count'}
+                options={[
+                  { value: 'in_stock', label: 'במלאי / אזל מהמלאי' },
+                  { value: 'count', label: 'X יחידות במלאי' },
+                  { value: 'low_stock', label: 'נותרו יחידות אחרונות (כשפחות מ-5)' },
+                  { value: 'hidden', label: 'להסתיר' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  inventory: { ...(productSettings.inventory || { displayStyle: 'count', lowStockThreshold: 5 }), displayStyle: v as 'in_stock' | 'count' | 'low_stock' | 'hidden' } 
+                })}
+              />
+              
+              {(productSettings.inventory?.displayStyle === 'low_stock') && (
+                <SliderField
+                  label="סף מלאי נמוך"
+                  value={productSettings.inventory?.lowStockThreshold || 5}
+                  min={2}
+                  max={10}
+                  onChange={(v) => updateProductSettings({ 
+                    inventory: { ...(productSettings.inventory || { displayStyle: 'low_stock', lowStockThreshold: 5 }), lowStockThreshold: v } 
+                  })}
+                />
+              )}
+            </SettingsGroup>
           </>
         )}
         

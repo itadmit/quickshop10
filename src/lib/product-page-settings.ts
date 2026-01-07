@@ -42,6 +42,12 @@ export interface ProductPageSettings {
     discountStyle: 'badge' | 'text' | 'both';
   };
   
+  // Inventory display settings
+  inventory: {
+    displayStyle: 'in_stock' | 'count' | 'low_stock' | 'hidden';
+    lowStockThreshold: number; // Show "נותרו יחידות אחרונות" when stock is below this
+  };
+  
   // Features (editable content!)
   features: ProductFeature[];
   
@@ -92,6 +98,11 @@ export const defaultProductPageSettings: ProductPageSettings = {
     discountStyle: 'badge',
   },
   
+  inventory: {
+    displayStyle: 'count',
+    lowStockThreshold: 5,
+  },
+  
   features: [
     { id: '1', icon: 'truck', text: 'משלוח חינם מעל ₪200', isVisible: true },
     { id: '2', icon: 'refresh', text: '14 יום להחזרה', isVisible: true },
@@ -128,6 +139,7 @@ export function getProductPageSettings(storeSettings: Record<string, unknown>): 
     gallery: { ...defaultProductPageSettings.gallery, ...saved.gallery },
     title: { ...defaultProductPageSettings.title, ...saved.title },
     price: { ...defaultProductPageSettings.price, ...saved.price },
+    inventory: { ...defaultProductPageSettings.inventory, ...saved.inventory },
     features: saved.features || defaultProductPageSettings.features,
     related: { ...defaultProductPageSettings.related, ...saved.related },
     reviews: { ...defaultProductPageSettings.reviews, ...saved.reviews },

@@ -49,11 +49,13 @@ interface ThemeSettings {
 interface PreviewSettingsContextValue {
   settings: ThemeSettings;
   isPreviewMode: boolean;
+  highlightedSectionId: string | null;
 }
 
 const PreviewSettingsContext = createContext<PreviewSettingsContextValue>({
   settings: {},
   isPreviewMode: false,
+  highlightedSectionId: null,
 });
 
 export function usePreviewSettings() {
@@ -88,6 +90,7 @@ export function PreviewSettingsProvider({
 }: PreviewSettingsProviderProps) {
   const [settings, setSettings] = useState<ThemeSettings>(initialSettings);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [highlightedSectionId, setHighlightedSectionId] = useState<string | null>(null);
 
   useEffect(() => {
     // Auto-detect preview mode: check if in iframe AND has preview=true in URL
@@ -108,6 +111,9 @@ export function PreviewSettingsProvider({
         console.log('[Preview] Received settings:', event.data.settings);
         setSettings(prev => ({ ...prev, ...event.data.settings }));
       }
+      if (event.data?.type === 'HIGHLIGHT_SECTION') {
+        setHighlightedSectionId(event.data.sectionId);
+      }
     };
 
     window.addEventListener('message', handleMessage);
@@ -119,7 +125,7 @@ export function PreviewSettingsProvider({
   }, []);
 
   return (
-    <PreviewSettingsContext.Provider value={{ settings, isPreviewMode }}>
+    <PreviewSettingsContext.Provider value={{ settings, isPreviewMode, highlightedSectionId }}>
       {children}
     </PreviewSettingsContext.Provider>
   );

@@ -80,13 +80,22 @@ export function LivePreview({
     }
   }, [refreshKey]);
 
-  // Send scroll command to iframe when selectedSectionId changes
+  // Send scroll and highlight command to iframe when selectedSectionId changes
   useEffect(() => {
-    if (selectedSectionId && iframeRef.current?.contentWindow) {
+    if (iframeRef.current?.contentWindow) {
+      // Always send highlight update (even for null to clear highlight)
       iframeRef.current.contentWindow.postMessage({
-        type: 'SCROLL_TO_SECTION',
+        type: 'HIGHLIGHT_SECTION',
         sectionId: selectedSectionId,
       }, '*');
+      
+      // Only scroll if we have a selected section
+      if (selectedSectionId) {
+        iframeRef.current.contentWindow.postMessage({
+          type: 'SCROLL_TO_SECTION',
+          sectionId: selectedSectionId,
+        }, '*');
+      }
     }
   }, [selectedSectionId]);
 

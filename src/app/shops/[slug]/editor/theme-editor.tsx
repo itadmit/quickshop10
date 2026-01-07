@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { SectionTree } from './section-tree';
 import { SectionSettings } from './section-settings';
 import { LivePreview } from './live-preview';
+import { defaultProductPageSettings } from '@/lib/product-page-settings';
 
 // ============================================
 // Theme Editor - Client Component (Shopify Style)
@@ -265,9 +266,14 @@ export function ThemeEditor({
     // Send to iframe for LIVE preview (no DB save!)
     sendPreviewUpdate(newSettings);
     
-    // If product page settings changed, send specific update for product page
-    if ('productPageSettings' in updates && updates.productPageSettings) {
-      sendProductPagePreviewUpdate(updates.productPageSettings as Record<string, unknown>);
+    // If product page settings changed, send the FULL merged settings
+    if ('productPageSettings' in updates) {
+      // Merge with defaults to ensure all fields are present
+      const fullProductSettings = {
+        ...defaultProductPageSettings,
+        ...(newSettings.productPageSettings as Record<string, unknown> || {}),
+      };
+      sendProductPagePreviewUpdate(fullProductSettings);
     }
   }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate]);
   
@@ -276,7 +282,38 @@ export function ThemeEditor({
     iframeRef.current = iframe;
     // Send current settings to iframe on load
     sendPreviewUpdate(themeSettings);
-  }, [themeSettings, sendPreviewUpdate]);
+    
+    // Also send product page settings if on product page
+    // Use stored settings or defaults if not set
+    if (currentPage === 'product') {
+      const productSettings = {
+        ...defaultProductPageSettings,
+        ...(themeSettings.productPageSettings as Record<string, unknown> || {}),
+      };
+      sendProductPagePreviewUpdate(productSettings);
+    }
+  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, currentPage]);
+  
+  // Listen for PREVIEW_READY message from iframe and send settings
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PREVIEW_READY') {
+        // Send current settings
+        sendPreviewUpdate(themeSettings);
+        // Send product page settings if on product page
+        if (currentPage === 'product') {
+          const productSettings = {
+            ...defaultProductPageSettings,
+            ...(themeSettings.productPageSettings as Record<string, unknown> || {}),
+          };
+          sendProductPagePreviewUpdate(productSettings);
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, currentPage]);
 
   // Update section data
   const updateSection = useCallback((sectionId: string, updates: Partial<Section>) => {

@@ -19,10 +19,23 @@ import {
   LivePriceWrapper,
   LiveSectionVisibility,
   LiveRelatedProducts,
+  LiveInventoryDisplay,
 } from '@/components/storefront/product-page-preview';
+import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+
+// Section name labels for editor (Hebrew)
+const sectionNames: Record<string, string> = {
+  breadcrumb: 'ניווט',
+  gallery: 'גלריית תמונות',
+  info: 'מידע מוצר',
+  features: 'חוזקות',
+  description: 'תיאור',
+  reviews: 'ביקורות',
+  related: 'מוצרים דומים',
+};
 
 // ISR - Revalidate every 60 seconds  
 export const revalidate = 60;
@@ -116,12 +129,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     return ratios[ratio];
   };
 
-  // Render section based on type
+  // Render section based on type - with data-section-id for editor interaction
   const renderSection = (sectionType: string) => {
+    // Get section ID for editor (prefixed with pp- for product page)
+    const sectionId = `pp-${sectionType}`;
+    const sectionName = sectionNames[sectionType] || sectionType;
+    
     switch (sectionType) {
       case 'breadcrumb':
         return (
-          <nav key="breadcrumb" className="py-6 px-6 border-b border-gray-100">
+          <nav 
+            key="breadcrumb" 
+            className="py-6 px-6 border-b border-gray-100"
+            data-section-id={sectionId}
+            data-section-name={sectionName}
+          >
             <div className="max-w-7xl mx-auto">
               <ol className="flex items-center gap-2 text-sm text-gray-500">
                 <li><Link href={basePath || '/'} className="hover:text-black transition-colors">בית</Link></li>
@@ -142,13 +164,26 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       case 'features':
         // In preview mode, use LiveFeaturesSection for real-time updates
         if (isPreviewMode) {
-          return <LiveFeaturesSection key="features" initialFeatures={pageSettings.features} />;
+          return (
+            <div 
+              key="features" 
+              data-section-id={sectionId}
+              data-section-name={sectionName}
+            >
+              <LiveFeaturesSection initialFeatures={pageSettings.features} />
+            </div>
+          );
         }
         // Server-side render for production - zero JS!
         const visibleFeatures = pageSettings.features.filter(f => f.isVisible);
         if (visibleFeatures.length === 0) return null;
         return (
-          <div key="features" className="space-y-4 mt-8">
+          <div 
+            key="features" 
+            className="space-y-4 mt-8"
+            data-section-id={sectionId}
+            data-section-name={sectionName}
+          >
             {visibleFeatures.map((feature) => (
               <div key={feature.id} className="flex items-center gap-4 text-sm text-gray-600">
                 <span 
@@ -164,7 +199,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       case 'description':
         if (!product.description) return null;
         return (
-          <div key="description" className="mb-8">
+          <div 
+            key="description" 
+            className="mb-8"
+            data-section-id={sectionId}
+            data-section-name={sectionName}
+          >
             <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
             <p className="text-gray-600 leading-relaxed whitespace-pre-line">
               {product.description}
@@ -174,12 +214,17 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
       case 'reviews':
         return (
-          <ProductReviewsSection
+          <div
             key="reviews"
-            productId={product.id}
-            storeId={store.id}
-            storeSlug={slug}
-          />
+            data-section-id={sectionId}
+            data-section-name={sectionName}
+          >
+            <ProductReviewsSection
+              productId={product.id}
+              storeId={store.id}
+              storeSlug={slug}
+            />
+          </div>
         );
 
       case 'related':
@@ -188,33 +233,41 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         // In preview mode, use LiveRelatedProducts for dynamic count updates
         if (isPreviewMode) {
           return (
-            <LiveRelatedProducts
+            <div
               key="related"
-              initialCount={pageSettings.related.count}
+              data-section-id={sectionId}
+              data-section-name={sectionName}
             >
-              {relatedProducts.map((p) => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id}
-                  slug={p.slug}
-                  name={p.name}
-                  price={Number(p.price)}
-                  comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
-                  image={p.image || '/placeholder.svg'}
-                  basePath={basePath}
-                  showDecimalPrices={showDecimalPrices}
-                  inventory={p.inventory}
-                  trackInventory={p.trackInventory}
-                  allowBackorder={p.allowBackorder}
-                />
-              ))}
-            </LiveRelatedProducts>
+              <LiveRelatedProducts initialCount={pageSettings.related.count}>
+                {relatedProducts.map((p) => (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id}
+                    slug={p.slug}
+                    name={p.name}
+                    price={Number(p.price)}
+                    comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
+                    image={p.image || '/placeholder.svg'}
+                    basePath={basePath}
+                    showDecimalPrices={showDecimalPrices}
+                    inventory={p.inventory}
+                    trackInventory={p.trackInventory}
+                    allowBackorder={p.allowBackorder}
+                  />
+                ))}
+              </LiveRelatedProducts>
+            </div>
           );
         }
         
         // Production: Server-rendered for speed
         return (
-          <section key="related" className="py-20 px-6 bg-gray-50">
+          <section 
+            key="related" 
+            className="py-20 px-6 bg-gray-50"
+            data-section-id={sectionId}
+            data-section-name={sectionName}
+          >
             <div className="max-w-7xl mx-auto">
               <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
                 {pageSettings.related.title}
@@ -256,6 +309,9 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       {/* Scroll to top on page load */}
       <ScrollToTop />
       
+      {/* Editor Section Highlighter - ONLY in preview mode for click-to-select */}
+      {isPreviewMode && <EditorSectionHighlighter />}
+      
       {/* Track ViewContent event */}
       <TrackViewProduct product={trackingProduct} />
       
@@ -271,55 +327,64 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             }`}>
               {/* Gallery - Use LiveGallerySection in preview mode for ALL gallery settings */}
               {isSectionVisible('gallery') && (
-                isPreviewMode ? (
-                  <LiveGallerySection
-                    mainImage={mainImage || ''}
-                    productName={product.name}
-                    images={product.images}
-                    initialSettings={pageSettings.gallery}
-                    ProductImageComponent={ProductImage}
-                  />
-                ) : (
-                  <div className={`space-y-4 ${
-                    pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:order-2' : ''
-                  } ${pageSettings.gallery.thumbnailsPosition === 'left' ? 'lg:order-1 lg:flex lg:flex-row-reverse lg:gap-4' : ''}`}>
-                    {/* Main Image */}
-                    <div className={`${getAspectRatioClass(pageSettings.gallery.aspectRatio)} bg-gray-50 overflow-hidden ${
-                      pageSettings.gallery.thumbnailsPosition === 'left' ? 'flex-1' : ''
-                    }`}>
-                      <ProductImage 
-                        src={mainImage}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        loading="eager"
-                      />
-                    </div>
-                    
-                    {/* Thumbnails */}
-                    {pageSettings.gallery.thumbnailsPosition !== 'hidden' && product.images.length > 1 && (
-                      <div className={`${
-                        pageSettings.gallery.thumbnailsPosition === 'left' 
-                          ? 'flex flex-col gap-4 w-20' 
-                          : 'grid grid-cols-4 gap-4'
+                <div
+                  data-section-id="pp-gallery"
+                  data-section-name="גלריית תמונות"
+                >
+                  {isPreviewMode ? (
+                    <LiveGallerySection
+                      mainImage={mainImage || ''}
+                      productName={product.name}
+                      images={product.images}
+                      initialSettings={pageSettings.gallery}
+                      ProductImageComponent={ProductImage}
+                    />
+                  ) : (
+                    <div className={`space-y-4 ${
+                      pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:order-2' : ''
+                    } ${pageSettings.gallery.thumbnailsPosition === 'left' ? 'lg:order-1 lg:flex lg:flex-row-reverse lg:gap-4' : ''}`}>
+                      {/* Main Image */}
+                      <div className={`${getAspectRatioClass(pageSettings.gallery.aspectRatio)} bg-gray-50 overflow-hidden ${
+                        pageSettings.gallery.thumbnailsPosition === 'left' ? 'flex-1' : ''
                       }`}>
-                        {product.images.map((img, i) => (
-                          <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-                            <ProductImage 
-                              src={img.url}
-                              alt={`${product.name} ${i + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
+                        <ProductImage 
+                          src={mainImage}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          loading="eager"
+                        />
                       </div>
-                    )}
-                  </div>
-                )
+                      
+                      {/* Thumbnails */}
+                      {pageSettings.gallery.thumbnailsPosition !== 'hidden' && product.images.length > 1 && (
+                        <div className={`${
+                          pageSettings.gallery.thumbnailsPosition === 'left' 
+                            ? 'flex flex-col gap-4 w-20' 
+                            : 'grid grid-cols-4 gap-4'
+                        }`}>
+                          {product.images.map((img, i) => (
+                            <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
+                              <ProductImage 
+                                src={img.url}
+                                alt={`${product.name} ${i + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Product Info */}
               {isSectionVisible('info') && (
-                <div className="lg:sticky lg:top-24 lg:self-start">
+                <div 
+                  className="lg:sticky lg:top-24 lg:self-start"
+                  data-section-id="pp-info"
+                  data-section-name="מידע מוצר"
+                >
                   {/* Badges */}
                   <div className="flex gap-3 mb-6">
                     {pageSettings.price.showDiscount && hasDiscount && (
@@ -400,29 +465,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         className="w-full mb-4"
                       />
 
-                      {/* Stock Status */}
-                      {(() => {
-                        const outOfStock = isOutOfStock(product.trackInventory, product.inventory, product.allowBackorder);
-                        if (outOfStock) {
-                          return (
-                            <p className="text-sm text-red-500 text-center mb-8">
-                              אזל מהמלאי
-                            </p>
-                          );
-                        }
-                        if (product.trackInventory && product.inventory !== null && product.inventory > 0) {
-                          return (
-                            <p className="text-sm text-gray-500 text-center mb-8">
-                              {product.inventory} יחידות במלאי
-                            </p>
-                          );
-                        }
-                        return (
-                          <p className="text-sm text-green-600 text-center mb-8">
-                            במלאי
-                          </p>
-                        );
-                      })()}
+                      {/* Stock Status - Live Preview */}
+                      <LiveInventoryDisplay
+                        inventory={product.inventory}
+                        trackInventory={product.trackInventory}
+                        allowBackorder={product.allowBackorder}
+                        initialSettings={pageSettings.inventory || { displayStyle: 'count', lowStockThreshold: 5 }}
+                      />
                     </>
                   )}
 

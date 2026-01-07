@@ -60,6 +60,9 @@ export function ProductPagePreviewProvider({
           if (newSettings.price) {
             merged.price = { ...prev.price, ...newSettings.price };
           }
+          if (newSettings.inventory) {
+            merged.inventory = { ...prev.inventory, ...newSettings.inventory };
+          }
           if (newSettings.features) {
             merged.features = newSettings.features;
           }
@@ -79,6 +82,12 @@ export function ProductPagePreviewProvider({
     };
 
     window.addEventListener('message', handleMessage);
+    
+    // Notify parent that we're ready to receive settings
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'PREVIEW_READY' }, '*');
+    }
+    
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
@@ -192,22 +201,70 @@ export function LiveGallerySection({
     if (thumbnailsPosition === 'left') {
       return 'lg:flex lg:flex-row-reverse lg:gap-4';
     }
+    if (thumbnailsPosition === 'right') {
+      return 'lg:flex lg:gap-4';
+    }
     return '';
   };
   
   // Determine thumbnail container classes
   const getThumbnailClasses = () => {
-    if (thumbnailsPosition === 'left') {
+    if (thumbnailsPosition === 'left' || thumbnailsPosition === 'right') {
       return 'flex flex-col gap-4 w-20';
     }
     return 'grid grid-cols-4 gap-4';
   };
   
+  // Grid layout - show multiple images in a grid
+  if (layout === 'grid' && images.length > 1) {
+    return (
+      <div className="grid grid-cols-2 gap-4">
+        {images.map((img, i) => (
+          <div 
+            key={img.id} 
+            className={`${aspectClass} bg-gray-50 overflow-hidden ${enableZoom ? 'cursor-zoom-in' : ''}`}
+          >
+            <ProductImageComponent 
+              src={img.url}
+              alt={`${productName} ${i + 1}`}
+              className="w-full h-full object-cover"
+              loading={i === 0 ? 'eager' : 'lazy'}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  // Carousel layout - horizontal scroll
+  if (layout === 'carousel' && images.length > 1) {
+    return (
+      <div className="overflow-x-auto">
+        <div className="flex gap-4" style={{ width: `${images.length * 80}%` }}>
+          {images.map((img, i) => (
+            <div 
+              key={img.id} 
+              className={`flex-shrink-0 w-[85%] ${aspectClass} bg-gray-50 overflow-hidden ${enableZoom ? 'cursor-zoom-in' : ''}`}
+            >
+              <ProductImageComponent 
+                src={img.url}
+                alt={`${productName} ${i + 1}`}
+                className="w-full h-full object-cover"
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  
+  // Default: Single image with thumbnails
   return (
     <div className={`space-y-4 ${getContainerClasses()}`}>
       {/* Main Image */}
       <div 
-        className={`${aspectClass} bg-gray-50 overflow-hidden ${thumbnailsPosition === 'left' ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
+        className={`${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
         title={enableZoom ? 'לחץ להגדלה' : undefined}
       >
         <ProductImageComponent 
@@ -331,6 +388,81 @@ export function LivePriceWrapper({ price, comparePrice, discount, initialSetting
         <span className="text-sm text-red-500">-{discount}%</span>
       )}
     </div>
+  );
+}
+
+/**
+ * LiveInventoryDisplay - Live preview of inventory status
+ */
+interface LiveInventoryDisplayProps {
+  inventory: number | null;
+  trackInventory: boolean;
+  allowBackorder: boolean;
+  initialSettings: { displayStyle: string; lowStockThreshold: number };
+}
+
+export function LiveInventoryDisplay({ 
+  inventory, 
+  trackInventory, 
+  allowBackorder,
+  initialSettings 
+}: LiveInventoryDisplayProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  
+  const displayStyle = isPreview ? settings.inventory?.displayStyle : initialSettings.displayStyle;
+  const lowStockThreshold = isPreview ? settings.inventory?.lowStockThreshold : initialSettings.lowStockThreshold;
+  
+  // Don't show anything if hidden
+  if (displayStyle === 'hidden') return null;
+  
+  // Check if out of stock
+  const isOutOfStock = trackInventory && inventory !== null && inventory <= 0 && !allowBackorder;
+  
+  if (isOutOfStock) {
+    return (
+      <p className="text-sm text-red-500 text-center mb-8">
+        אזל מהמלאי
+      </p>
+    );
+  }
+  
+  // Display based on style
+  if (displayStyle === 'in_stock') {
+    return (
+      <p className="text-sm text-green-600 text-center mb-8">
+        במלאי
+      </p>
+    );
+  }
+  
+  if (displayStyle === 'count' && trackInventory && inventory !== null && inventory > 0) {
+    return (
+      <p className="text-sm text-gray-500 text-center mb-8">
+        {inventory} יחידות במלאי
+      </p>
+    );
+  }
+  
+  if (displayStyle === 'low_stock' && trackInventory && inventory !== null) {
+    if (inventory <= (lowStockThreshold || 5)) {
+      return (
+        <p className="text-sm text-orange-500 text-center mb-8">
+          נותרו יחידות אחרונות!
+        </p>
+      );
+    }
+    return (
+      <p className="text-sm text-green-600 text-center mb-8">
+        במלאי
+      </p>
+    );
+  }
+  
+  // Default - in stock
+  return (
+    <p className="text-sm text-green-600 text-center mb-8">
+      במלאי
+    </p>
   );
 }
 
