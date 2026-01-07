@@ -17,6 +17,7 @@ import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups, gamificationCampaigns, gamificationPrizes } from '@/lib/db/schema';
 import { eq, and, lte, or, isNull, gte, asc } from 'drizzle-orm';
+import { getTemplateById, getDefaultTemplate } from '@/lib/templates';
 
 // Dynamic imports for preview mode ONLY (keeps production bundle clean)
 import nextDynamic from 'next/dynamic';
@@ -201,6 +202,13 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // PERFORMANCE: Only load client components in preview mode
   const isPreviewMode = headersList.get('x-preview-mode') === 'true';
 
+  // Get template CSS variables (Server-Side - Zero JS!)
+  const templateId = (storeSettings.templateId as string) || 'noir';
+  const template = getTemplateById(templateId) || getDefaultTemplate();
+  const cssVariables = Object.entries(template.cssVariables)
+    .map(([key, value]) => `${key}: ${value};`)
+    .join('\n    ');
+
   // ============================================================
   // PERFORMANCE ARCHITECTURE (per REQUIREMENTS.md):
   // 
@@ -258,6 +266,12 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   return (
     <StoreProvider storeSlug={slug}>
+      {/* Template CSS Variables - Server-Side (Zero JS!) */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        :root {
+          ${cssVariables}
+        }
+      ` }} />
       <TrackingProvider config={trackingConfig}>
         <StoreSettingsProvider 
           showDecimalPrices={showDecimalPrices} 

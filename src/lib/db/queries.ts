@@ -2,7 +2,7 @@ import { db } from './index';
 import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages } from './schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { cache } from 'react';
-import { unstable_cache } from 'next/cache';
+import { unstable_cache, revalidateTag } from 'next/cache';
 
 // ============ STORE ============
 
@@ -304,6 +304,51 @@ export const getPageSectionsCached = unstable_cache(
   ['page-sections'],
   { revalidate: 300, tags: ['sections'] } // Cache for 5 minutes
 );
+
+// Update page sections (for template application)
+export async function updatePageSections(
+  storeId: string,
+  page: string,
+  sections: Array<{
+    id: string;
+    type: string;
+    title: string | null;
+    subtitle: string | null;
+    content: Record<string, unknown>;
+    settings: Record<string, unknown>;
+    sortOrder: number;
+    isActive: boolean;
+  }>
+) {
+  // Delete existing sections for this page
+  await db.delete(pageSections).where(
+    and(
+      eq(pageSections.storeId, storeId),
+      eq(pageSections.page, page)
+    )
+  );
+
+  // Insert new sections
+  if (sections.length > 0) {
+    await db.insert(pageSections).values(
+      sections.map(section => ({
+        id: section.id,
+        storeId,
+        page,
+        type: section.type,
+        title: section.title,
+        subtitle: section.subtitle,
+        content: section.content,
+        settings: section.settings,
+        sortOrder: section.sortOrder,
+        isActive: section.isActive,
+      }))
+    );
+  }
+
+  // Revalidate cache
+  revalidateTag('sections');
+}
 
 // ============ ORDERS ============
 
