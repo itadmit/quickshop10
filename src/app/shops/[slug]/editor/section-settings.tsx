@@ -522,6 +522,31 @@ function ContentSettings({
       {section.type === 'video_banner' && (
         <VideoBannerContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
       )}
+      {/* New section types */}
+      {section.type === 'reviews' && (
+        <ReviewsContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'image_text' && (
+        <ImageTextContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
+      {section.type === 'features' && (
+        <FeaturesContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'banner_small' && (
+        <BannerSmallContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'gallery' && (
+        <GalleryContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
+      {section.type === 'text_block' && (
+        <TextBlockContentSettings section={section} onUpdate={onUpdate} />
+      )}
+      {section.type === 'logos' && (
+        <LogosContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
+      {section.type === 'faq' && (
+        <FAQContentSettings section={section} onUpdate={onUpdate} />
+      )}
     </div>
   );
 }
@@ -1087,6 +1112,498 @@ function VideoBannerContentSettings({ section, onUpdate, storeInfo }: { section:
     </>
   );
 }
+
+// =====================================================
+// NEW SECTION CONTENT SETTINGS
+// =====================================================
+
+// Reviews Content Settings
+function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="עמודות"
+          value={String((section.settings.columns as number) || 3)}
+          options={[
+            { value: '1', label: '1' },
+            { value: '2', label: '2' },
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+          ]}
+          onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <SelectField
+          label="סגנון"
+          value={(section.settings.style as string) || 'cards'}
+          options={[
+            { value: 'cards', label: 'כרטיסים' },
+            { value: 'minimal', label: 'מינימלי' },
+            { value: 'quotes', label: 'ציטוטים' },
+          ]}
+          onChange={(v) => updateSettings('style', v)}
+        />
+        <SwitchField
+          label="הצג דירוג כוכבים"
+          value={(section.settings.showRating as boolean) !== false}
+          onChange={(v) => updateSettings('showRating', v)}
+        />
+        <SwitchField
+          label="הצג תאריך"
+          value={(section.settings.showDate as boolean) !== false}
+          onChange={(v) => updateSettings('showDate', v)}
+        />
+        <SwitchField
+          label="הצג אווטאר"
+          value={(section.settings.showAvatar as boolean) !== false}
+          onChange={(v) => updateSettings('showAvatar', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="רקע">
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Image + Text Content Settings
+function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="תמונה">
+        <ImageField
+          label="תמונה"
+          value={(section.content.imageUrl as string) || ''}
+          onChange={(v) => updateContent('imageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
+        />
+        <SelectField
+          label="מיקום תמונה"
+          value={(section.settings.imagePosition as string) || 'right'}
+          options={[
+            { value: 'right', label: 'ימין' },
+            { value: 'left', label: 'שמאל' },
+          ]}
+          onChange={(v) => updateSettings('imagePosition', v)}
+        />
+        <SelectField
+          label="רוחב תמונה"
+          value={(section.settings.imageWidth as string) || '50%'}
+          options={[
+            { value: '40%', label: '40%' },
+            { value: '50%', label: '50%' },
+            { value: '60%', label: '60%' },
+          ]}
+          onChange={(v) => updateSettings('imageWidth', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="טקסט">
+        <TextAreaField
+          label="תוכן"
+          value={(section.content.text as string) || ''}
+          onChange={(v) => updateContent('text', v)}
+          placeholder="הזן טקסט..."
+        />
+        <SelectField
+          label="יישור טקסט"
+          value={(section.settings.textAlign as string) || 'right'}
+          options={[
+            { value: 'right', label: 'ימין' },
+            { value: 'center', label: 'מרכז' },
+            { value: 'left', label: 'שמאל' },
+          ]}
+          onChange={(v) => updateSettings('textAlign', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="כפתור">
+        <TextField
+          label="טקסט כפתור"
+          value={(section.content.buttonText as string) || ''}
+          onChange={(v) => updateContent('buttonText', v)}
+          placeholder="קרא עוד"
+        />
+        <TextField
+          label="קישור"
+          value={(section.content.buttonLink as string) || ''}
+          onChange={(v) => updateContent('buttonLink', v)}
+          placeholder="/about"
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Features Content Settings
+function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="עמודות"
+          value={String((section.settings.columns as number) || 4)}
+          options={[
+            { value: '2', label: '2' },
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+            { value: '5', label: '5' },
+            { value: '6', label: '6' },
+          ]}
+          onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <SelectField
+          label="סגנון אייקונים"
+          value={(section.settings.iconStyle as string) || 'emoji'}
+          options={[
+            { value: 'emoji', label: 'אימוג\'י' },
+            { value: 'icon', label: 'אייקונים' },
+            { value: 'none', label: 'ללא' },
+          ]}
+          onChange={(v) => updateSettings('iconStyle', v)}
+        />
+        <SelectField
+          label="יישור"
+          value={(section.settings.textAlign as string) || 'center'}
+          options={[
+            { value: 'right', label: 'ימין' },
+            { value: 'center', label: 'מרכז' },
+            { value: 'left', label: 'שמאל' },
+          ]}
+          onChange={(v) => updateSettings('textAlign', v)}
+        />
+        <SwitchField
+          label="הצג קווים מפרידים"
+          value={(section.settings.showDividers as boolean) !== false}
+          onChange={(v) => updateSettings('showDividers', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="רקע">
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Banner Small Content Settings
+function BannerSmallContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="תוכן">
+        <TextField
+          label="אייקון (אימוג'י)"
+          value={(section.content.icon as string) || ''}
+          onChange={(v) => updateContent('icon', v)}
+          placeholder="🎉"
+        />
+      </SettingsGroup>
+      <SettingsGroup title="כפתור">
+        <TextField
+          label="טקסט כפתור"
+          value={(section.content.buttonText as string) || ''}
+          onChange={(v) => updateContent('buttonText', v)}
+          placeholder="לחנות"
+        />
+        <TextField
+          label="קישור"
+          value={(section.content.buttonLink as string) || ''}
+          onChange={(v) => updateContent('buttonLink', v)}
+          placeholder="/products"
+        />
+        <SelectField
+          label="סגנון כפתור"
+          value={(section.settings.buttonStyle as string) || 'outline'}
+          options={[
+            { value: 'outline', label: 'מסגרת' },
+            { value: 'filled', label: 'מלא' },
+            { value: 'none', label: 'ללא כפתור' },
+          ]}
+          onChange={(v) => updateSettings('buttonStyle', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="עיצוב">
+        <SelectField
+          label="גודל"
+          value={(section.settings.size as string) || 'medium'}
+          options={[
+            { value: 'small', label: 'קטן' },
+            { value: 'medium', label: 'בינוני' },
+            { value: 'large', label: 'גדול' },
+          ]}
+          onChange={(v) => updateSettings('size', v)}
+        />
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || '#000000'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+        <ColorField
+          label="צבע טקסט"
+          value={(section.settings.textColor as string) || '#ffffff'}
+          onChange={(v) => updateSettings('textColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Gallery Content Settings
+function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="עמודות"
+          value={String((section.settings.columns as number) || 4)}
+          options={[
+            { value: '2', label: '2' },
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+            { value: '5', label: '5' },
+            { value: '6', label: '6' },
+          ]}
+          onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <SelectField
+          label="יחס תמונה"
+          value={(section.settings.aspectRatio as string) || 'square'}
+          options={[
+            { value: 'square', label: 'ריבוע (1:1)' },
+            { value: '4:3', label: '4:3' },
+            { value: '16:9', label: '16:9' },
+            { value: 'auto', label: 'אוטומטי' },
+          ]}
+          onChange={(v) => updateSettings('aspectRatio', v)}
+        />
+        <SelectField
+          label="רווח"
+          value={String((section.settings.gap as number) || 4)}
+          options={[
+            { value: '0', label: 'ללא' },
+            { value: '2', label: 'קטן' },
+            { value: '4', label: 'בינוני' },
+            { value: '6', label: 'גדול' },
+            { value: '8', label: 'גדול מאוד' },
+          ]}
+          onChange={(v) => updateSettings('gap', parseInt(v))}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="רקע">
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Text Block Content Settings
+function TextBlockContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="תוכן">
+        <TextAreaField
+          label="טקסט"
+          value={(section.content.text as string) || ''}
+          onChange={(v) => updateContent('text', v)}
+          placeholder="הזן טקסט..."
+        />
+      </SettingsGroup>
+      <SettingsGroup title="כפתור">
+        <TextField
+          label="טקסט כפתור"
+          value={(section.content.buttonText as string) || ''}
+          onChange={(v) => updateContent('buttonText', v)}
+          placeholder="קרא עוד"
+        />
+        <TextField
+          label="קישור"
+          value={(section.content.buttonLink as string) || ''}
+          onChange={(v) => updateContent('buttonLink', v)}
+          placeholder="/about"
+        />
+      </SettingsGroup>
+      <SettingsGroup title="עיצוב">
+        <SelectField
+          label="רוחב מקסימלי"
+          value={(section.settings.maxWidth as string) || 'lg'}
+          options={[
+            { value: 'sm', label: 'קטן' },
+            { value: 'md', label: 'בינוני' },
+            { value: 'lg', label: 'גדול' },
+            { value: 'xl', label: 'גדול מאוד' },
+            { value: 'full', label: 'מלא' },
+          ]}
+          onChange={(v) => updateSettings('maxWidth', v)}
+        />
+        <SelectField
+          label="יישור טקסט"
+          value={(section.settings.textAlign as string) || 'center'}
+          options={[
+            { value: 'right', label: 'ימין' },
+            { value: 'center', label: 'מרכז' },
+            { value: 'left', label: 'שמאל' },
+          ]}
+          onChange={(v) => updateSettings('textAlign', v)}
+        />
+        <SelectField
+          label="ריווח אנכי"
+          value={(section.settings.paddingY as string) || 'medium'}
+          options={[
+            { value: 'small', label: 'קטן' },
+            { value: 'medium', label: 'בינוני' },
+            { value: 'large', label: 'גדול' },
+          ]}
+          onChange={(v) => updateSettings('paddingY', v)}
+        />
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+        <ColorField
+          label="צבע טקסט"
+          value={(section.settings.textColor as string) || ''}
+          onChange={(v) => updateSettings('textColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Logos Content Settings
+function LogosContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="עמודות"
+          value={String((section.settings.columns as number) || 6)}
+          options={[
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+            { value: '5', label: '5' },
+            { value: '6', label: '6' },
+            { value: '8', label: '8' },
+          ]}
+          onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <SliderField
+          label="גובה לוגו"
+          value={(section.settings.logoHeight as number) || 48}
+          min={24}
+          max={96}
+          suffix="px"
+          onChange={(v) => updateSettings('logoHeight', v)}
+        />
+        <SwitchField
+          label="שחור-לבן (גרייסקייל)"
+          value={(section.settings.grayscale as boolean) !== false}
+          onChange={(v) => updateSettings('grayscale', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="רקע">
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// FAQ Content Settings
+function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="רוחב מקסימלי"
+          value={(section.settings.maxWidth as string) || 'lg'}
+          options={[
+            { value: 'sm', label: 'קטן' },
+            { value: 'md', label: 'בינוני' },
+            { value: 'lg', label: 'גדול' },
+            { value: 'xl', label: 'גדול מאוד' },
+          ]}
+          onChange={(v) => updateSettings('maxWidth', v)}
+        />
+        <SelectField
+          label="סגנון"
+          value={(section.settings.style as string) || 'accordion'}
+          options={[
+            { value: 'accordion', label: 'אקורדיון' },
+            { value: 'cards', label: 'כרטיסים' },
+            { value: 'simple', label: 'פשוט' },
+          ]}
+          onChange={(v) => updateSettings('style', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="רקע">
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || 'transparent'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// =====================================================
+// UI Components
+// =====================================================
 
 // UI Components
 function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {

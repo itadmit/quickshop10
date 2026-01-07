@@ -5,7 +5,16 @@ import {
   ProductsSection, 
   VideoBannerSection, 
   SplitBannerSection, 
-  NewsletterSection 
+  NewsletterSection,
+  // New sections - all Server Components!
+  ReviewsSection,
+  ImageTextSection,
+  FeaturesSection,
+  BannerSmallSection,
+  GallerySection,
+  TextBlockSection,
+  LogosSection,
+  FAQSection,
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
@@ -193,6 +202,110 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             subtitle={section.subtitle}
             content={content as { placeholder?: string; buttonText?: string }}
             settings={settings as { maxWidth?: string }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      // =====================================================
+      // NEW SECTION TYPES - All Server Components!
+      // =====================================================
+
+      case 'reviews':
+        sectionElement = (
+          <ReviewsSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { reviews?: Array<{ id: string; author: string; rating: number; text: string; date?: string; avatar?: string; verified?: boolean }> }}
+            settings={settings as { columns?: number; showRating?: boolean; showDate?: boolean; showAvatar?: boolean; style?: 'cards' | 'minimal' | 'quotes'; backgroundColor?: string }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'image_text':
+        sectionElement = (
+          <ImageTextSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { imageUrl?: string; text?: string; buttonText?: string; buttonLink?: string }}
+            settings={settings as { imagePosition?: 'right' | 'left'; imageWidth?: '40%' | '50%' | '60%'; height?: string; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; overlay?: number }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'features':
+        sectionElement = (
+          <FeaturesSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { features?: Array<{ id: string; icon?: string; emoji?: string; title: string; description?: string }> }}
+            settings={settings as { columns?: number; iconStyle?: 'emoji' | 'icon' | 'none'; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; showDividers?: boolean }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'banner_small':
+        sectionElement = (
+          <BannerSmallSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { buttonText?: string; buttonLink?: string; icon?: string }}
+            settings={settings as { backgroundColor?: string; textColor?: string; buttonStyle?: 'outline' | 'filled' | 'none'; size?: 'small' | 'medium' | 'large' }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'gallery':
+        sectionElement = (
+          <GallerySection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { images?: Array<{ id: string; url: string; alt?: string; link?: string }> }}
+            settings={settings as { columns?: number; gap?: number; aspectRatio?: 'square' | '4:3' | '16:9' | 'auto'; layout?: 'grid' | 'masonry'; backgroundColor?: string }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'text_block':
+        sectionElement = (
+          <TextBlockSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { text?: string; buttonText?: string; buttonLink?: string }}
+            settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | 'full'; textAlign?: 'right' | 'center' | 'left'; backgroundColor?: string; textColor?: string; paddingY?: 'small' | 'medium' | 'large' }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'logos':
+        sectionElement = (
+          <LogosSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { logos?: Array<{ id: string; url: string; alt?: string; link?: string }> }}
+            settings={settings as { columns?: number; logoHeight?: number; grayscale?: boolean; backgroundColor?: string }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'faq':
+        sectionElement = (
+          <FAQSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { items?: Array<{ id: string; question: string; answer: string }> }}
+            settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl'; backgroundColor?: string; style?: 'accordion' | 'cards' | 'simple' }}
             sectionId={section.id}
           />
         );

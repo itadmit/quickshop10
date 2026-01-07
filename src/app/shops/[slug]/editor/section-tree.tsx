@@ -32,13 +32,26 @@ const PAGE_LABELS: Record<string, string> = {
 };
 
 const sectionTypes = [
-  { type: 'hero', label: 'באנר ראשי', icon: '🖼️' },
-  { type: 'categories', label: 'רשימת קטגוריות', icon: '📑' },
-  { type: 'products', label: 'מוצרים נבחרים', icon: '🛍️' },
-  { type: 'video_banner', label: 'באנר וידאו', icon: '🎬' },
-  { type: 'split_banner', label: 'תמונה עם טקסט', icon: '📷' },
-  { type: 'newsletter', label: 'ניוזלטר', icon: '✉️' },
-  { type: 'custom', label: 'תוכן מותאם', icon: '✨' },
+  // באנרים
+  { type: 'hero', label: 'באנר ראשי', icon: '🖼️', category: 'באנרים' },
+  { type: 'video_banner', label: 'באנר וידאו', icon: '🎬', category: 'באנרים' },
+  { type: 'split_banner', label: 'באנר מפוצל', icon: '📷', category: 'באנרים' },
+  { type: 'banner_small', label: 'באנר קטן', icon: '📢', category: 'באנרים' },
+  // תוכן
+  { type: 'image_text', label: 'תמונה + טקסט', icon: '🖼️', category: 'תוכן' },
+  { type: 'text_block', label: 'בלוק טקסט', icon: '📝', category: 'תוכן' },
+  { type: 'features', label: 'יתרונות', icon: '✨', category: 'תוכן' },
+  { type: 'faq', label: 'שאלות נפוצות', icon: '❓', category: 'תוכן' },
+  // קטלוג
+  { type: 'categories', label: 'קטגוריות', icon: '📑', category: 'קטלוג' },
+  { type: 'products', label: 'מוצרים', icon: '🛍️', category: 'קטלוג' },
+  // סושיאל והמלצות
+  { type: 'reviews', label: 'ביקורות', icon: '⭐', category: 'סושיאל' },
+  { type: 'gallery', label: 'גלריה', icon: '🖼️', category: 'סושיאל' },
+  { type: 'logos', label: 'לוגואים', icon: '🏢', category: 'סושיאל' },
+  // אחר
+  { type: 'newsletter', label: 'ניוזלטר', icon: '✉️', category: 'אחר' },
+  { type: 'custom', label: 'מותאם אישית', icon: '⚙️', category: 'אחר' },
 ];
 
 export function SectionTree({

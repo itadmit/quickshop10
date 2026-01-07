@@ -68,7 +68,17 @@ export const discountAppliesToEnum = pgEnum('discount_applies_to', [
 ]);
 
 export const sectionTypeEnum = pgEnum('section_type', [
-  'hero', 'banner', 'split_banner', 'video_banner', 'categories', 'products', 'newsletter', 'custom'
+  // Original types
+  'hero', 'banner', 'split_banner', 'video_banner', 'categories', 'products', 'newsletter', 'custom',
+  // New types - all Server Components, zero JS!
+  'reviews',        // ביקורות לקוחות
+  'image_text',     // תמונה + טקסט (ימין/שמאל)
+  'features',       // יתרונות/אייקונים
+  'banner_small',   // באנר קטן (הודעה)
+  'gallery',        // גלריית תמונות
+  'text_block',     // בלוק טקסט עשיר
+  'logos',          // לוגואים של מותגים/שותפים
+  'faq'             // שאלות נפוצות
 ]);
 
 export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [
