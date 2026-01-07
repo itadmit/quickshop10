@@ -213,3 +213,109 @@ function formatDiscount(discount: typeof automaticDiscounts.$inferSelect): Autom
   };
 }
 
+/**
+ * Get automatic discount applicable to a single product
+ * Used for displaying discounted price on product pages
+ * 
+ * ⚡ Performance: Single DB query with proper filtering
+ */
+export type ProductAutomaticDiscount = {
+  id: string;
+  name: string;
+  description: string | null;
+  type: 'percentage' | 'fixed_amount';
+  value: number;
+  discountedPrice: number;
+};
+
+export async function getProductAutomaticDiscount(
+  storeId: string,
+  productId: string,
+  categoryId: string | null,
+  price: number
+): Promise<ProductAutomaticDiscount | null> {
+  if (!storeId || !productId) return null;
+
+  const now = new Date();
+  
+  // Get all active automatic discounts that apply to this product
+  // Only percentage and fixed_amount are simple enough to show on product page
+  const discounts = await db
+    .select()
+    .from(automaticDiscounts)
+    .where(and(
+      eq(automaticDiscounts.storeId, storeId),
+      eq(automaticDiscounts.isActive, true),
+      or(
+        isNull(automaticDiscounts.startsAt),
+        lte(automaticDiscounts.startsAt, now)
+      ),
+      or(
+        isNull(automaticDiscounts.endsAt),
+        gte(automaticDiscounts.endsAt, now)
+      )
+    ))
+    .orderBy(automaticDiscounts.priority);
+
+  for (const discount of discounts) {
+    // Only handle percentage and fixed_amount for product page display
+    if (discount.type !== 'percentage' && discount.type !== 'fixed_amount') {
+      continue;
+    }
+
+    // Check exclusions first
+    const excludeProductIds = (discount.excludeProductIds as string[]) || [];
+    const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
+    
+    // If product is excluded, skip
+    if (excludeProductIds.includes(productId)) continue;
+    
+    // If product's category is excluded, skip
+    if (categoryId && excludeCategoryIds.includes(categoryId)) continue;
+
+    // Check if discount applies to this product
+    let applies = false;
+    
+    switch (discount.appliesTo) {
+      case 'all':
+        applies = true;
+        break;
+        
+      case 'category':
+        const categoryIds = (discount.categoryIds as string[]) || [];
+        applies = categoryId ? categoryIds.includes(categoryId) : false;
+        break;
+        
+      case 'product':
+        const productIds = (discount.productIds as string[]) || [];
+        applies = productIds.includes(productId);
+        break;
+        
+      // 'member' discounts are not shown on product page (require login check)
+      default:
+        applies = false;
+    }
+
+    if (applies) {
+      // Calculate discounted price
+      let discountedPrice = price;
+      if (discount.type === 'percentage') {
+        discountedPrice = price * (1 - Number(discount.value) / 100);
+      } else if (discount.type === 'fixed_amount') {
+        discountedPrice = Math.max(0, price - Number(discount.value));
+      }
+
+      return {
+        id: discount.id,
+        name: discount.name,
+        description: discount.description,
+        type: discount.type as 'percentage' | 'fixed_amount',
+        value: Number(discount.value),
+        discountedPrice: Math.round(discountedPrice * 100) / 100,
+      };
+    }
+  }
+
+  return null;
+}
+

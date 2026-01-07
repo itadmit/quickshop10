@@ -115,7 +115,7 @@ export function StoreFooter({
               <NewsletterForm storeSlug={storeSlug} />
               
               {/* Social Links under newsletter */}
-              {footerShowSocial && hasSocialLinks && (
+          {footerShowSocial && hasSocialLinks && (
                 <div className="flex gap-4 mt-6">
                   {socialInstagram && (
                     <a href={socialInstagram} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">

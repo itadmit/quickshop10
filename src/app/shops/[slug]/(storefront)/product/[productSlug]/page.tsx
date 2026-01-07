@@ -10,6 +10,7 @@ import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
+import { getProductAutomaticDiscount } from '@/app/actions/automatic-discount';
 import { 
   ProductPagePreviewProvider, 
   LiveFeaturesSection, 
@@ -81,22 +82,35 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const visibleSections = getVisibleSections(pageSettings);
   const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
 
-  // Get variants, related products and categories in parallel - maximum speed!
+  // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
   const maxRelatedProducts = isPreviewMode ? 9 : pageSettings.related.count + 1;
-  const [options, variants, allProducts, categories] = await Promise.all([
+  const [options, variants, allProducts, categories, automaticDiscount] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
     getProductsByStore(store.id, maxRelatedProducts),
     getCategoriesByStore(store.id),
+    // Get automatic discount for this product (server-side, no extra round trips)
+    getProductAutomaticDiscount(store.id, product.id, product.categoryId, Number(product.price)),
   ]);
 
   // Get related products (all available for preview mode, limited for production)
   const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, isPreviewMode ? 8 : pageSettings.related.count);
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
-  const hasDiscount = product.comparePrice && Number(product.comparePrice) > Number(product.price);
-  const discount = hasDiscount ? Math.round((1 - Number(product.price) / Number(product.comparePrice!)) * 100) : null;
+  
+  // Calculate discount - automatic discount takes priority over compare price
+  const hasAutomaticDiscount = !!automaticDiscount;
+  const hasCompareDiscount = product.comparePrice && Number(product.comparePrice) > Number(product.price);
+  const hasDiscount = hasAutomaticDiscount || hasCompareDiscount;
+  
+  // Calculate final price and discount percentage
+  const originalPrice = hasAutomaticDiscount ? Number(product.price) : (hasCompareDiscount ? Number(product.comparePrice) : Number(product.price));
+  const finalPrice = hasAutomaticDiscount ? automaticDiscount.discountedPrice : Number(product.price);
+  const discount = hasDiscount 
+    ? Math.round((1 - finalPrice / originalPrice) * 100) 
+    : null;
+  const discountLabel = hasAutomaticDiscount ? automaticDiscount.name : null;
 
   // Track product view
   const trackingProduct = {
@@ -386,7 +400,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   data-section-name="מידע מוצר"
                 >
                   {/* Badges */}
-                  <div className="flex gap-3 mb-6">
+                  <div className="flex flex-wrap gap-3 mb-6">
+                    {/* Automatic Discount Badge with Name */}
+                    {discountLabel && (
+                      <span className="text-[10px] tracking-[0.15em] uppercase bg-green-600 text-white px-3 py-1.5">
+                        {discountLabel}
+                      </span>
+                    )}
+                    
+                    {/* Discount Percentage Badge */}
                     {pageSettings.price.showDiscount && hasDiscount && (
                       pageSettings.price.discountStyle === 'badge' || pageSettings.price.discountStyle === 'both' ? (
                         <span className="text-[10px] tracking-[0.15em] uppercase bg-black text-white px-3 py-1.5">
@@ -394,6 +416,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         </span>
                       ) : null
                     )}
+                    
+                    {/* Featured Badge */}
                     {product.isFeatured && (
                       <span className="text-[10px] tracking-[0.15em] uppercase border border-black px-3 py-1.5">
                         מומלץ
@@ -435,29 +459,41 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       {/* Price - Use LivePriceWrapper in preview mode */}
                       {isPreviewMode ? (
                         <LivePriceWrapper
-                          price={format(product.price)}
-                          comparePrice={format(product.comparePrice)}
+                          price={format(finalPrice)}
+                          comparePrice={hasDiscount ? format(originalPrice) : null}
                           discount={discount}
                           initialSettings={pageSettings.price}
                         />
                       ) : (
-                        <div className="flex items-center gap-4 mb-8">
-                          <span className={getPriceClasses(pageSettings.price)}>{format(product.price)}</span>
+                        <div className="flex flex-wrap items-center gap-4 mb-8">
+                          {/* Final Price */}
+                          <span className={getPriceClasses(pageSettings.price)}>{format(finalPrice)}</span>
+                          
+                          {/* Original Price (crossed out) */}
                           {pageSettings.price.showComparePrice && hasDiscount && (
-                            <span className="text-lg text-gray-400 line-through">{format(product.comparePrice)}</span>
+                            <span className="text-lg text-gray-400 line-through">{format(originalPrice)}</span>
                           )}
+                          
+                          {/* Discount Percentage */}
                           {pageSettings.price.showDiscount && hasDiscount && 
                            (pageSettings.price.discountStyle === 'text' || pageSettings.price.discountStyle === 'both') && (
                             <span className="text-sm text-red-500">-{discount}%</span>
                           )}
+                          
+                          {/* Automatic Discount Badge */}
+                          {discountLabel && (
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                              {discountLabel}
+                            </span>
+                          )}
                         </div>
                       )}
 
-                      {/* Add to Cart */}
+                      {/* Add to Cart - Uses discounted price if automatic discount applies */}
                       <AddToCartButton 
                         productId={product.id}
                         name={product.name}
-                        price={Number(product.price)}
+                        price={finalPrice}
                         image={mainImage || '/placeholder.svg'}
                         inventory={product.inventory}
                         trackInventory={product.trackInventory}
