@@ -216,6 +216,16 @@ export function ThemeEditor({
     }
   }, []);
   
+  // Send product page settings update to iframe for live preview
+  const sendProductPagePreviewUpdate = useCallback((productPageSettings: Record<string, unknown>) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'PRODUCT_PAGE_SETTINGS_UPDATE',
+        settings: productPageSettings,
+      }, '*');
+    }
+  }, []);
+  
   // Handle theme settings change - LIVE PREVIEW only, no DB save
   const handleThemeSettingsChange = useCallback((updates: Partial<ThemeSettings>) => {
     // Update local state immediately (for UI)
@@ -228,7 +238,12 @@ export function ThemeEditor({
     
     // Send to iframe for LIVE preview (no DB save!)
     sendPreviewUpdate(newSettings);
-  }, [themeSettings, sendPreviewUpdate]);
+    
+    // If product page settings changed, send specific update for product page
+    if ('productPageSettings' in updates && updates.productPageSettings) {
+      sendProductPagePreviewUpdate(updates.productPageSettings as Record<string, unknown>);
+    }
+  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate]);
   
   // Set iframe ref when loaded
   const handleIframeLoad = useCallback((iframe: HTMLIFrameElement) => {

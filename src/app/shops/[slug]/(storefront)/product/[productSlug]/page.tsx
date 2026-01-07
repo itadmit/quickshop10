@@ -10,6 +10,7 @@ import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
+import { ProductPagePreviewProvider, LiveFeaturesSection, LiveRelatedTitle } from '@/components/storefront/product-page-preview';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -19,10 +20,14 @@ export const revalidate = 60;
 
 interface ProductPageProps {
   params: Promise<{ slug: string; productSlug: string }>;
+  searchParams: Promise<{ preview?: string }>;
 }
 
-export default async function ProductPage({ params }: ProductPageProps) {
+export default async function ProductPage({ params, searchParams }: ProductPageProps) {
   const { slug, productSlug } = await params;
+  const { preview } = await searchParams;
+  const isPreviewMode = preview === 'true';
+  
   const store = await getStoreBySlug(slug);
   
   if (!store) {
@@ -124,6 +129,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
         return null;
 
       case 'features':
+        // In preview mode, use LiveFeaturesSection for real-time updates
+        if (isPreviewMode) {
+          return <LiveFeaturesSection key="features" initialFeatures={pageSettings.features} />;
+        }
+        // Server-side render for production - zero JS!
         const visibleFeatures = pageSettings.features.filter(f => f.isVisible);
         if (visibleFeatures.length === 0) return null;
         return (
@@ -166,12 +176,18 @@ export default async function ProductPage({ params }: ProductPageProps) {
         return (
           <section key="related" className="py-20 px-6 bg-gray-50">
             <div className="max-w-7xl mx-auto">
-              <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
-                {pageSettings.related.title}
-              </h2>
-              <p className="text-center text-gray-500 text-sm tracking-wide mb-12">
-                {pageSettings.related.subtitle}
-              </p>
+              {isPreviewMode ? (
+                <LiveRelatedTitle />
+              ) : (
+                <>
+                  <h2 className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest">
+                    {pageSettings.related.title}
+                  </h2>
+                  <p className="text-center text-gray-500 text-sm tracking-wide mb-12">
+                    {pageSettings.related.subtitle}
+                  </p>
+                </>
+              )}
               
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
                 {relatedProducts.map((p) => (
@@ -200,7 +216,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
     }
   };
 
-  return (
+  // Page content - conditionally wrapped for preview mode
+  const pageContent = (
     <div className="min-h-screen bg-white">
       {/* Scroll to top on page load */}
       <ScrollToTop />
@@ -388,4 +405,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
       />
     </div>
   );
+
+  // In preview mode, wrap with provider for live updates
+  // In production, return server-rendered content directly (zero JS!)
+  if (isPreviewMode) {
+    return (
+      <ProductPagePreviewProvider initialSettings={pageSettings}>
+        {pageContent}
+      </ProductPagePreviewProvider>
+    );
+  }
+
+  return pageContent;
 }
