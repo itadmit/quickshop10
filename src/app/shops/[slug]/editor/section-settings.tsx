@@ -426,7 +426,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
       {/* Scrollable Content */}
       <div className="flex-1 overflow-auto">
         {activeTab === 'content' ? (
-          <ContentSettings section={section} onUpdate={onUpdate} categories={categories} />
+          <ContentSettings section={section} onUpdate={onUpdate} categories={categories} storeInfo={storeInfo} />
         ) : (
           <DesignSettings section={section} onUpdate={onUpdate} />
         )}
@@ -450,11 +450,13 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 function ContentSettings({ 
   section, 
   onUpdate,
-  categories = []
+  categories = [],
+  storeInfo,
 }: { 
   section: Section; 
   onUpdate: (updates: Partial<Section>) => void;
   categories?: Category[];
+  storeInfo?: StoreInfo;
 }) {
   const handleTitleChange = (value: string) => {
     onUpdate({ title: value || null });
@@ -503,7 +505,7 @@ function ContentSettings({
 
       {/* Type-specific content */}
       {section.type === 'hero' && (
-        <HeroContentSettings section={section} onUpdate={onUpdate} />
+        <HeroContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
       )}
       {section.type === 'categories' && (
         <CategoriesContentSettings section={section} onUpdate={onUpdate} categories={categories} />
@@ -515,10 +517,10 @@ function ContentSettings({
         <NewsletterContentSettings section={section} onUpdate={onUpdate} />
       )}
       {section.type === 'split_banner' && (
-        <SplitBannerContentSettings section={section} onUpdate={onUpdate} />
+        <SplitBannerContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
       )}
       {section.type === 'video_banner' && (
-        <VideoBannerContentSettings section={section} onUpdate={onUpdate} />
+        <VideoBannerContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
       )}
     </div>
   );
@@ -695,7 +697,7 @@ function DesignSettings({
 }
 
 // Type-specific content settings
-function HeroContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+function HeroContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
@@ -706,14 +708,29 @@ function HeroContentSettings({ section, onUpdate }: { section: Section; onUpdate
 
   return (
     <>
-      <SettingsGroup title="מדיה">
+      <SettingsGroup title="תמונה - מחשב">
         <ImageField
-          label="תמונה"
+          label="תמונת רקע (דסקטופ)"
           value={(section.content.imageUrl as string) || ''}
           onChange={(v) => updateContent('imageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
+          hint="מומלץ: 1920x1080 או גדול יותר"
         />
+      </SettingsGroup>
+      <SettingsGroup title="תמונה - מובייל">
+        <ImageField
+          label="תמונת רקע (מובייל)"
+          value={(section.content.mobileImageUrl as string) || ''}
+          onChange={(v) => updateContent('mobileImageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
+          hint="מומלץ: 750x1334 (אופציונלי - אם ריק תוצג תמונת המחשב)"
+        />
+      </SettingsGroup>
+      <SettingsGroup title="שכבה">
         <SliderField
-          label="שקיפות שכבה"
+          label="שקיפות שכבה כהה"
           value={Math.round(((section.settings.overlay as number) || 0.3) * 100)}
           min={0}
           max={100}
@@ -893,7 +910,7 @@ function NewsletterContentSettings({ section, onUpdate }: { section: Section; on
 }
 
 // Split Banner (באנר מפוצל) Settings - 2 images: right & left
-function SplitBannerContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+function SplitBannerContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
   const updateSide = (side: 'right' | 'left', key: string, value: string) => {
     onUpdate({ 
       content: { 
@@ -924,11 +941,15 @@ function SplitBannerContentSettings({ section, onUpdate }: { section: Section; o
             label="תמונה (מחשב)"
             value={right.imageUrl || ''}
             onChange={(v) => updateSide('right', 'imageUrl', v)}
+            storeId={storeInfo?.id}
+            storeSlug={storeInfo?.slug}
           />
           <ImageField
             label="תמונה (מובייל)"
             value={right.mobileImageUrl || ''}
             onChange={(v) => updateSide('right', 'mobileImageUrl', v)}
+            storeId={storeInfo?.id}
+            storeSlug={storeInfo?.slug}
           />
           <TextField
             label="קישור"
@@ -952,11 +973,15 @@ function SplitBannerContentSettings({ section, onUpdate }: { section: Section; o
             label="תמונה (מחשב)"
             value={left.imageUrl || ''}
             onChange={(v) => updateSide('left', 'imageUrl', v)}
+            storeId={storeInfo?.id}
+            storeSlug={storeInfo?.slug}
           />
           <ImageField
             label="תמונה (מובייל)"
             value={left.mobileImageUrl || ''}
             onChange={(v) => updateSide('left', 'mobileImageUrl', v)}
+            storeId={storeInfo?.id}
+            storeSlug={storeInfo?.slug}
           />
           <TextField
             label="קישור"
@@ -971,7 +996,7 @@ function SplitBannerContentSettings({ section, onUpdate }: { section: Section; o
 }
 
 // Video Banner Settings
-function VideoBannerContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+function VideoBannerContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
@@ -993,6 +1018,8 @@ function VideoBannerContentSettings({ section, onUpdate }: { section: Section; o
           label="תמונת רקע (אם אין וידאו)"
           value={(section.content.imageUrl as string) || ''}
           onChange={(v) => updateContent('imageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
         />
       </SettingsGroup>
 
@@ -1007,6 +1034,8 @@ function VideoBannerContentSettings({ section, onUpdate }: { section: Section; o
           label="תמונת מובייל"
           value={(section.content.mobileImageUrl as string) || ''}
           onChange={(v) => updateContent('mobileImageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
         />
       </SettingsGroup>
 
@@ -1343,14 +1372,70 @@ function ImageField({
   label,
   value,
   onChange,
+  storeId,
+  storeSlug,
+  hint,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  storeId?: string;
+  storeSlug?: string;
+  hint?: string;
 }) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('יש להעלות קובץ תמונה בלבד');
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert('גודל הקובץ המקסימלי הוא 10MB');
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      if (storeSlug) formData.append('folder', `quickshop/stores/${storeSlug}`);
+      if (storeId) formData.append('storeId', storeId);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error('Upload failed');
+
+      const result = await response.json();
+      onChange(result.secure_url);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('שגיאה בהעלאת הקובץ');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div>
       <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept="image/*"
+        className="hidden"
+      />
       {value ? (
         <div className="relative group">
           <img
@@ -1358,28 +1443,40 @@ function ImageField({
             alt=""
             className="w-full h-32 object-cover rounded-lg border border-gray-200"
           />
-          <button
-            onClick={() => onChange('')}
-            className="absolute top-2 left-2 p-1 bg-white/90 rounded shadow opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <TrashIcon />
-          </button>
+          <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              title="החלף"
+            >
+              <EditIcon />
+            </button>
+            <button
+              onClick={() => onChange('')}
+              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              title="הסר"
+            >
+              <TrashIcon />
+            </button>
+          </div>
         </div>
       ) : (
-        <div>
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="הזן URL של תמונה"
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 mb-2"
-          />
-          <button className="w-full h-24 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors">
-            <UploadIcon />
-            <span className="text-xs text-gray-500 mt-2">בחר תמונה</span>
-          </button>
-        </div>
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="w-full h-28 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors cursor-pointer disabled:opacity-50"
+        >
+          {isUploading ? (
+            <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+          ) : (
+            <>
+              <UploadIcon />
+              <span className="text-xs text-gray-500 mt-2">בחר תמונה</span>
+            </>
+          )}
+        </button>
       )}
+      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }
