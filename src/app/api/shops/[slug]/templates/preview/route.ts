@@ -433,7 +433,7 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
                       ${item.description ? `<p class="text-sm text-muted leading-relaxed mb-4 line-clamp-3">${item.description}</p>` : ''}
                       <a href="#" class="inline-flex items-center text-sm font-bold" style="color: var(--template-primary);">
                         ${seriesSettings.buttonText || 'לצפייה במוצרים'}
-                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                       </a>
                     </div>
                   </div>
@@ -468,7 +468,7 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
                     ${item.description ? `<p class="text-sm opacity-90 mb-4">${item.description}</p>` : ''}
                     <span class="inline-flex items-center text-sm font-medium" style="color: var(--template-primary);">
                       ${seriesSettings.buttonText || 'לסדרה'}
-                      <svg class="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                      <svg class="w-4 h-4 mr-2 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
                     </span>
                   </div>
                 </a>
