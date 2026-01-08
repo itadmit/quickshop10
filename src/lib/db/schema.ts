@@ -624,6 +624,15 @@ export const orders = pgTable('orders', {
   subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
   discountCode: varchar('discount_code', { length: 50 }),
   discountAmount: decimal('discount_amount', { precision: 10, scale: 2 }).default('0'),
+  // Detailed breakdown of all discounts applied
+  // Array of { type: 'coupon'|'auto'|'gift_card'|'credit'|'member', code?: string, name: string, description?: string, amount: number }
+  discountDetails: jsonb('discount_details').$type<Array<{
+    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+    code?: string;
+    name: string;
+    description?: string;
+    amount: number;
+  }>>(),
   creditUsed: decimal('credit_used', { precision: 10, scale: 2 }).default('0'),
   shippingAmount: decimal('shipping_amount', { precision: 10, scale: 2 }).default('0'),
   taxAmount: decimal('tax_amount', { precision: 10, scale: 2 }).default('0'),
@@ -1222,7 +1231,7 @@ export const taxRates = pgTable('tax_rates', {
   id: uuid('id').primaryKey().defaultRandom(),
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
   name: varchar('name', { length: 100 }).notNull(),
-  rate: decimal('rate', { precision: 5, scale: 3 }).notNull(), // e.g., 17.000 for 17%
+  rate: decimal('rate', { precision: 5, scale: 3 }).notNull(), // e.g., 18.000 for 18%
   country: varchar('country', { length: 2 }), // ISO country code, null = all
   region: varchar('region', { length: 100 }), // State/province
   includeInPrice: boolean('include_in_price').default(true), // Tax-inclusive pricing

@@ -53,16 +53,19 @@ export function parseDateRange(searchParams: {
   const { period, from, to } = searchParams;
   const now = new Date();
   let startDate: Date;
-  let endDate: Date = now;
-  let periodLabel = '30 יום';
+  let endDate: Date = new Date();
+  let periodLabel = 'היום';
 
   if (period === 'custom' && from && to) {
     startDate = new Date(from);
     endDate = new Date(to);
     periodLabel = 'תאריך מותאם';
-  } else if (period === 'today') {
-    startDate = new Date(now.setHours(0, 0, 0, 0));
+  } else if (period === 'today' || !period) {
+    // Default to today
+    startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
     endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
     periodLabel = 'היום';
   } else if (period === 'yesterday') {
     startDate = new Date(Date.now() - 86400000);
@@ -73,6 +76,9 @@ export function parseDateRange(searchParams: {
   } else if (period === '7d') {
     startDate = new Date(Date.now() - 7 * 86400000);
     periodLabel = 'השבוע';
+  } else if (period === '30d') {
+    startDate = new Date(Date.now() - 30 * 86400000);
+    periodLabel = 'החודש';
   } else if (period === '90d') {
     startDate = new Date(Date.now() - 90 * 86400000);
     periodLabel = '90 יום';
@@ -83,9 +89,12 @@ export function parseDateRange(searchParams: {
     startDate = new Date(Date.now() - 365 * 86400000);
     periodLabel = 'שנה';
   } else {
-    // Default to 30 days
-    startDate = new Date(Date.now() - 30 * 86400000);
-    periodLabel = 'החודש';
+    // Fallback to today
+    startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    endDate = new Date();
+    endDate.setHours(23, 59, 59, 999);
+    periodLabel = 'היום';
   }
 
   return { startDate, endDate, periodLabel };
@@ -148,7 +157,13 @@ export function getReportPeriodParams(searchParams: {
   if (period === '90d') return { period: '90d' };
   if (period === '6m' || period === '1y') return { period: '90d' }; // Fallback to 90d for longer periods
   
-  return { period: '30d' }; // Default
+  // Default to today
+  const today = new Date();
+  const fromDate = new Date(today);
+  fromDate.setHours(0, 0, 0, 0);
+  const toDate = new Date(today);
+  toDate.setHours(23, 59, 59, 999);
+  return { period: 'custom', customRange: { from: fromDate, to: toDate } };
 }
 
 

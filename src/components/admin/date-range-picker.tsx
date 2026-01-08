@@ -93,8 +93,8 @@ export function DateRangePicker({ basePath }: { basePath?: string }) {
   // Use current pathname instead of fixed basePath to stay on the same page
   const targetPath = basePath || pathname;
 
-  // Get current selection from URL
-  const currentPeriod = searchParams.get('period') || '30d';
+  // Get current selection from URL - default to 'today'
+  const currentPeriod = searchParams.get('period') || 'today';
   const customFrom = searchParams.get('from');
   const customTo = searchParams.get('to');
 
@@ -109,7 +109,7 @@ export function DateRangePicker({ basePath }: { basePath?: string }) {
   // Display label
   const displayLabel = isCustom && customFrom && customTo
     ? `${formatDateHebrew(customFrom)} - ${formatDateHebrew(customTo)}`
-    : currentOption?.label || 'החודש';
+    : currentOption?.label || 'היום';
 
   // Close on outside click
   useEffect(() => {

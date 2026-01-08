@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { automaticDiscounts, customers, productCategories } from '@/lib/db/schema';
+import { automaticDiscounts, contacts, productCategories } from '@/lib/db/schema';
 import { eq, and, or, lte, gte, isNull, inArray } from 'drizzle-orm';
 
 // Types for automatic discounts (compatible with old discount-utils)
@@ -190,19 +190,21 @@ export async function getAutomaticDiscounts(
         break;
 
       case 'member':
-        // Only for registered members
+        // Only for club members (based on contacts table)
         if (email) {
-          const [customer] = await db
-            .select()
-            .from(customers)
+          const [clubMemberContact] = await db
+            .select({ id: contacts.id })
+            .from(contacts)
             .where(and(
-              eq(customers.storeId, storeId),
-              eq(customers.email, email.toLowerCase())
+              eq(contacts.storeId, storeId),
+              eq(contacts.email, email.toLowerCase()),
+              eq(contacts.type, 'club_member'),
+              eq(contacts.status, 'active')
             ))
             .limit(1);
 
-          // Customer exists and has a password (registered member)
-          if (customer?.passwordHash) {
+          // Has active club_member contact
+          if (clubMemberContact) {
             applicableDiscounts.push(formatDiscount(discount));
           }
         }

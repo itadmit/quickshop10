@@ -19,7 +19,7 @@ import {
   ProductReviewSummary,
 } from '@/lib/db/schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { cookies } from 'next/headers';
+import { getCurrentCustomer } from '@/lib/customer-auth';
 import { Star } from 'lucide-react';
 import { ReviewSummary } from './review-summary';
 import { ReviewList } from './review-list';
@@ -180,19 +180,9 @@ export async function ProductReviewsSection({
     return null;
   }
 
-  // Get customer from session cookie
-  const cookieStore = await cookies();
-  const customerCookie = cookieStore.get('customer_session');
-  let customerId: string | undefined;
-  
-  if (customerCookie) {
-    try {
-      const session = JSON.parse(customerCookie.value);
-      customerId = session.id;
-    } catch {
-      // Invalid session
-    }
-  }
+  // Get customer from session (uses proper session lookup)
+  const customer = await getCurrentCustomer();
+  const customerId = customer?.id;
 
   // Fetch data in parallel - single query per table
   const [initialReviews, summary, customerOrders] = await Promise.all([
@@ -260,8 +250,8 @@ export async function ProductReviewsSection({
           <div className="mt-12 pt-8 border-t border-gray-100 text-center">
             <p className="text-gray-500 mb-4">רוצה לכתוב ביקורת?</p>
             <a 
-              href={`/shops/${storeSlug}/account/login?redirect=back`}
-              className="inline-block px-6 py-2 bg-black text-white text-sm hover:bg-gray-800 transition-colors"
+              href={`/shops/${storeSlug}/login`}
+              className="inline-block w-full max-w-xs px-8 py-3 bg-black text-white text-base font-medium hover:bg-gray-800 transition-colors"
             >
               התחבר לחשבון
             </a>

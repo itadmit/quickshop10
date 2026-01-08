@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCurrentCustomer } from '@/lib/customer-auth';
+import { db } from '@/lib/db';
+import { contacts } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET() {
   try {
@@ -11,6 +14,20 @@ export async function GET() {
         { status: 401 }
       );
     }
+
+    // Check if customer is a club member (based on contacts table)
+    const [clubMemberContact] = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(
+        and(
+          eq(contacts.storeId, customer.storeId),
+          eq(contacts.email, customer.email),
+          eq(contacts.type, 'club_member'),
+          eq(contacts.status, 'active')
+        )
+      )
+      .limit(1);
 
     return NextResponse.json({
       success: true,
@@ -24,6 +41,7 @@ export async function GET() {
         hasPassword: !!customer.passwordHash,
         emailVerified: !!customer.emailVerifiedAt,
         creditBalance: Number(customer.creditBalance) || 0,
+        isClubMember: !!clubMemberContact, // true if has active club_member contact
       },
     });
   } catch (error) {

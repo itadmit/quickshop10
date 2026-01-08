@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { 
-  getGiftCardStats,
+  getGiftCardSummary,
   getInfluencerStats,
   getRefundStats,
   getStoreCreditStats,
@@ -24,8 +24,8 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('he-IL', {
     style: 'currency',
     currency: 'ILS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -280,7 +280,7 @@ async function FinancialContent({
   // Parallel data fetching
   const [salesOverview, giftCardStats, influencerStats, refundStats, creditStats] = await Promise.all([
     getSalesOverview(storeId, period, customRange),
-    getGiftCardStats(storeId),
+    getGiftCardSummary(storeId),
     getInfluencerStats(storeId),
     getRefundStats(storeId, period, customRange),
     getStoreCreditStats(storeId),

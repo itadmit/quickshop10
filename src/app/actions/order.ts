@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions } from '@/lib/db/schema';
+import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions, contacts } from '@/lib/db/schema';
 import { eq, and, sql, gte, lte, gt, or, isNull, desc } from 'drizzle-orm';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 
@@ -28,6 +28,8 @@ type CustomerInfo = {
   zipCode?: string;
   notes?: string;
   acceptsMarketing: boolean;
+  createAccount?: boolean; // If true, create club member contact
+  password?: string;
 };
 
 // Build full address string from components
@@ -69,6 +71,15 @@ export type CreateOrderResult = {
   error: string;
 };
 
+// Type for discount details breakdown
+export type DiscountDetail = {
+  type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+  code?: string;
+  name: string;
+  description?: string;
+  amount: number;
+};
+
 export async function createOrder(
   storeId: string,
   cart: CartItem[],
@@ -78,7 +89,8 @@ export async function createOrder(
   discount: number,
   shipping: number,
   total: number,
-  creditUsed: number = 0
+  creditUsed: number = 0,
+  discountDetails: DiscountDetail[] = []
 ): Promise<CreateOrderResult> {
   console.log('[Order] Creating order...');
   console.log('[Order] Cart:', JSON.stringify(cart, null, 2));
@@ -294,6 +306,49 @@ export async function createOrder(
       customerId = newCustomer.id;
     }
 
+    // If user opted to create account (join club), create club_member contact
+    if (customerInfo.createAccount) {
+      // Check if contact already exists
+      const [existingContact] = await db
+        .select({ id: contacts.id })
+        .from(contacts)
+        .where(and(
+          eq(contacts.storeId, store.id),
+          eq(contacts.email, customerInfo.email.toLowerCase()),
+          eq(contacts.type, 'club_member')
+        ))
+        .limit(1);
+
+      if (!existingContact) {
+        // Create new club member contact
+        await db.insert(contacts).values({
+          storeId: store.id,
+          email: customerInfo.email.toLowerCase(),
+          firstName: customerInfo.firstName,
+          lastName: customerInfo.lastName,
+          phone: customerInfo.phone,
+          type: 'club_member',
+          status: 'active',
+          source: 'checkout',
+          customerId,
+        });
+      } else {
+        // Link existing contact to customer if not linked
+        await db.update(contacts)
+          .set({ customerId, updatedAt: new Date() })
+          .where(eq(contacts.id, existingContact.id));
+      }
+
+      // Set password if provided (for account creation)
+      if (customerInfo.password) {
+        const { hashPassword } = await import('@/lib/customer-auth');
+        const passwordHash = await hashPassword(customerInfo.password);
+        await db.update(customers)
+          .set({ passwordHash, updatedAt: new Date() })
+          .where(eq(customers.id, customerId));
+      }
+    }
+
     // 2. Generate order number and increment counter
     const currentCounter = store.orderCounter ?? 1000;
     const orderNumber = String(currentCounter);
@@ -316,6 +371,7 @@ export async function createOrder(
       subtotal: finalSubtotal.toFixed(2),
       discountCode: validatedCouponCode,
       discountAmount: finalDiscount.toFixed(2),
+      discountDetails: discountDetails.length > 0 ? discountDetails : null,
       creditUsed: creditUsed.toFixed(2),
       shippingAmount: shipping.toFixed(2),
       taxAmount: '0.00',

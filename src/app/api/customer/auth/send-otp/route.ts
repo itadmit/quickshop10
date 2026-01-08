@@ -73,24 +73,45 @@ export async function POST(request: NextRequest) {
     }
     
     if (!customer) {
-      // Create customer from club_member contact
-      const [newCustomer] = await db.insert(customers).values({
-        storeId,
-        email: normalizedEmail,
-        firstName: clubMemberContact.firstName || '',
-        lastName: clubMemberContact.lastName || '',
-        phone: clubMemberContact.phone || '',
-        acceptsMarketing: true, // Club members opted in
-        totalOrders: 0,
-        totalSpent: '0',
-      }).returning();
+      // Try to find existing customer by email (may exist but not linked to contact)
+      const [existingCustomerByEmail] = await db
+        .select()
+        .from(customers)
+        .where(
+          and(
+            eq(customers.storeId, storeId),
+            eq(customers.email, normalizedEmail)
+          )
+        )
+        .limit(1);
       
-      customer = newCustomer;
+      if (existingCustomerByEmail) {
+        customer = existingCustomerByEmail;
+        
+        // Link the contact to the existing customer
+        await db.update(contacts)
+          .set({ customerId: existingCustomerByEmail.id, updatedAt: new Date() })
+          .where(eq(contacts.id, clubMemberContact.id));
+      } else {
+        // Create new customer from club_member contact
+        const [newCustomer] = await db.insert(customers).values({
+          storeId,
+          email: normalizedEmail,
+          firstName: clubMemberContact.firstName || '',
+          lastName: clubMemberContact.lastName || '',
+          phone: clubMemberContact.phone || '',
+          acceptsMarketing: true, // Club members opted in
+          totalOrders: 0,
+          totalSpent: '0',
+        }).returning();
+        
+        customer = newCustomer;
 
-      // Link the contact to the new customer
-      await db.update(contacts)
-        .set({ customerId: newCustomer.id, updatedAt: new Date() })
-        .where(eq(contacts.id, clubMemberContact.id));
+        // Link the contact to the new customer
+        await db.update(contacts)
+          .set({ customerId: newCustomer.id, updatedAt: new Date() })
+          .where(eq(contacts.id, clubMemberContact.id));
+      }
     }
 
     // Create OTP code

@@ -47,8 +47,8 @@ function formatCurrency(value: number) {
   return new Intl.NumberFormat('he-IL', {
     style: 'currency',
     currency: 'ILS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(value);
 }
 
@@ -89,12 +89,15 @@ function QuickReportCard({
   );
 }
 
-// Sales Chart Component
+// Sales Chart Component - Improved Design
 function SalesChart({ data }: { data: Array<{ date: string; revenue: number; orders: number }> }) {
   if (!data.length) {
     return (
-      <div className="h-64 flex items-center justify-center text-gray-500">
-        אין נתונים לתקופה זו
+      <div className="h-72 flex flex-col items-center justify-center text-gray-400 bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+        <svg className="w-12 h-12 mb-3 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <p className="text-sm">אין נתונים לתקופה זו</p>
       </div>
     );
   }
@@ -103,59 +106,103 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
   const isByHour = data[0]?.date.includes(' ') && data[0]?.date.includes(':');
 
   const maxRevenue = Math.max(...data.map(d => d.revenue), 1);
+  const totalRevenue = data.reduce((sum, d) => sum + d.revenue, 0);
+  const totalOrders = data.reduce((sum, d) => sum + d.orders, 0);
+  
+  // Y-axis ticks
+  const yAxisTicks = [0, maxRevenue * 0.25, maxRevenue * 0.5, maxRevenue * 0.75, maxRevenue];
   
   return (
-    <div className="h-64">
-      <div className="flex items-end gap-0.5 h-52">
-        {data.map((day, i) => {
-          const height = (day.revenue / maxRevenue) * 100;
+    <div className="h-72">
+      {/* Summary Stats */}
+      <div className="flex items-center gap-6 mb-4 text-sm">
+        <div>
+          <span className="text-gray-500">סה״כ: </span>
+          <span className="font-semibold">{formatCurrency(totalRevenue)}</span>
+        </div>
+        <div>
+          <span className="text-gray-500">הזמנות: </span>
+          <span className="font-semibold">{formatNumber(totalOrders)}</span>
+        </div>
+      </div>
+
+      <div className="flex h-48">
+        {/* Y-axis */}
+        <div className="flex flex-col justify-between text-[10px] text-gray-400 pl-2 w-14 text-left">
+          {yAxisTicks.reverse().map((tick, i) => (
+            <span key={i} className="leading-none">
+              {tick >= 1000 ? `₪${(tick/1000).toFixed(1)}K` : `₪${Math.round(tick)}`}
+            </span>
+          ))}
+        </div>
+        
+        {/* Chart Area */}
+        <div className="flex-1 relative">
+          {/* Grid Lines */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="border-t border-gray-100 w-full" />
+            ))}
+          </div>
           
-          // Format label based on whether it's by hour or by day
-          let label = '';
-          if (isByHour) {
-            const hourMatch = day.date.match(/\s(\d{2}):/);
-            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
-            label = `${hour}:00`;
-          } else {
-          const date = new Date(day.date);
-            label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
-          }
-          
-          return (
-            <div 
-              key={i} 
-              className="flex-1 group relative"
-              style={{ height: '100%' }}
-            >
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10 pointer-events-none">
-                <div className="bg-black text-white text-xs px-3 py-2 rounded shadow-lg whitespace-nowrap">
-                  <div className="font-medium">{label}</div>
-                  <div>{formatCurrency(day.revenue)}</div>
-                  <div className="text-gray-300">{day.orders} הזמנות</div>
-                </div>
-              </div>
+          {/* Bars */}
+          <div className="relative flex items-end gap-1 h-full">
+            {data.map((day, i) => {
+              const height = (day.revenue / maxRevenue) * 100;
               
-              {/* Bar */}
-              <div className="absolute bottom-0 left-0 right-0 flex items-end h-full">
+              // Format label based on whether it's by hour or by day
+              let label = '';
+              if (isByHour) {
+                const hourMatch = day.date.match(/\s(\d{2}):/);
+                const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+                label = `${hour}:00`;
+              } else {
+                const date = new Date(day.date);
+                label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
+              }
+              
+              return (
                 <div 
-                  className="w-full bg-black hover:bg-gray-700 transition-colors rounded-t-sm"
-                  style={{ height: `${Math.max(height, 2)}%` }}
-                />
-              </div>
-            </div>
-          );
-        })}
+                  key={i} 
+                  className="flex-1 group relative h-full flex items-end"
+                >
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
+                    <div className="bg-gray-900 text-white text-xs px-3 py-2.5 rounded-lg shadow-xl whitespace-nowrap border border-gray-700">
+                      <div className="font-semibold text-gray-100 mb-1">{label}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                        <span>{formatCurrency(day.revenue)}</span>
+                      </div>
+                      <div className="text-gray-400 text-[11px] mt-0.5">{day.orders} הזמנות</div>
+                      {/* Arrow */}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                  
+                  {/* Bar */}
+                  <div 
+                    className="w-full bg-gradient-to-t from-gray-800 to-gray-600 hover:from-gray-700 hover:to-gray-500 transition-all duration-200 rounded-t cursor-pointer"
+                    style={{ 
+                      height: `${Math.max(height, 3)}%`,
+                      minHeight: day.revenue > 0 ? '4px' : '2px'
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
       
       {/* X-axis labels */}
-      <div className="h-12 flex gap-0.5 mt-1 overflow-hidden">
+      <div className="flex mt-2 mr-14">
         {data.map((day, i) => {
-          // For hours: show every 3 hours (0, 3, 6, 9, 12, 15, 18, 21)
+          // For hours: show every 3 hours
           // For days: show based on data length
           const showLabel = isByHour
-            ? i % 3 === 0 // Show every 3 hours
-            : data.length <= 14 || i % Math.ceil(data.length / 10) === 0;
+            ? i % 3 === 0
+            : data.length <= 10 || i % Math.ceil(data.length / 8) === 0;
           
           let label = '';
           if (isByHour) {
@@ -163,14 +210,14 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
             const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
             label = `${hour}:00`;
           } else {
-          const date = new Date(day.date);
+            const date = new Date(day.date);
             label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
           }
           
           return (
             <div key={i} className="flex-1 text-center">
               {showLabel && (
-                <span className="text-[9px] text-gray-400">
+                <span className="text-[10px] text-gray-500 font-medium">
                   {label}
                 </span>
               )}
@@ -289,8 +336,44 @@ function ConversionFunnel({
   );
 }
 
-// Dashboard Content
-async function DashboardContent({ 
+// Stats Cards Only - for top section
+async function StatsContent({ 
+  storeId, 
+  period,
+  customRange 
+}: { 
+  storeId: string; 
+  period: '7d' | '30d' | '90d' | 'custom';
+  customRange?: { from: Date; to: Date };
+}) {
+  const dashboard = await getReportsDashboard(storeId, period, customRange);
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <StatCard
+        label="סה״כ הכנסות"
+        value={formatCurrency(dashboard.salesOverview.totalRevenue)}
+        subLabel={`${dashboard.salesOverview.totalOrders} הזמנות`}
+      />
+      <StatCard
+        label="ממוצע הזמנה"
+        value={formatCurrency(dashboard.salesOverview.averageOrderValue)}
+      />
+      <StatCard
+        label="לקוחות חדשים"
+        value={formatNumber(dashboard.salesOverview.newCustomers)}
+        subLabel={`מתוך ${dashboard.salesOverview.totalCustomers}`}
+      />
+      <StatCard
+        label="שיעור המרה"
+        value={formatPercent(dashboard.salesOverview.conversionRate)}
+      />
+    </div>
+  );
+}
+
+// Charts and Lists Content - for bottom section
+async function ChartsContent({ 
   storeId, 
   period,
   customRange 
@@ -303,39 +386,23 @@ async function DashboardContent({
 
   return (
     <>
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard
-          label="סה״כ הכנסות"
-          value={formatCurrency(dashboard.salesOverview.totalRevenue)}
-          subLabel={`${dashboard.salesOverview.totalOrders} הזמנות`}
-        />
-        <StatCard
-          label="ממוצע הזמנה"
-          value={formatCurrency(dashboard.salesOverview.averageOrderValue)}
-        />
-        <StatCard
-          label="לקוחות חדשים"
-          value={formatNumber(dashboard.salesOverview.newCustomers)}
-          subLabel={`מתוך ${dashboard.salesOverview.totalCustomers}`}
-        />
-        <StatCard
-          label="שיעור המרה"
-          value={formatPercent(dashboard.salesOverview.conversionRate)}
-        />
-      </div>
-
       {/* Charts Row */}
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
-        {/* Sales Chart */}
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <h3 className="font-medium text-sm sm:text-base mb-3 sm:mb-4">מכירות לפי יום</h3>
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+        {/* Sales Chart - Improved Design */}
+        <div className="bg-white border border-gray-200 p-4 sm:p-6 rounded-lg shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-medium text-sm sm:text-base">מכירות לפי יום</h3>
+            <div className="flex items-center gap-2 text-xs text-gray-500">
+              <span className="inline-block w-3 h-3 bg-black rounded-sm"></span>
+              הכנסות
+            </div>
+          </div>
           <SalesChart data={dashboard.salesByDay} />
         </div>
 
         {/* Conversion Funnel */}
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <h3 className="font-medium text-sm sm:text-base mb-3 sm:mb-4">משפך המרה</h3>
+        <div className="bg-white border border-gray-200 p-4 sm:p-6 rounded-lg shadow-sm">
+          <h3 className="font-medium text-sm sm:text-base mb-4">משפך המרה</h3>
           <ConversionFunnel data={dashboard.conversionFunnel} />
         </div>
       </div>
@@ -343,7 +410,7 @@ async function DashboardContent({
       {/* Lists Row */}
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
         {/* Top Products */}
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white border border-gray-200 p-4 sm:p-6 rounded-lg shadow-sm">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h3 className="font-medium text-sm sm:text-base">מוצרים מובילים</h3>
             <Link href="reports/sales" className="text-xs sm:text-sm text-gray-500 hover:text-black">
@@ -354,7 +421,7 @@ async function DashboardContent({
         </div>
 
         {/* Traffic Sources */}
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
+        <div className="bg-white border border-gray-200 p-4 sm:p-6 rounded-lg shadow-sm">
           <div className="flex items-center justify-between mb-3 sm:mb-4">
             <h3 className="font-medium text-sm sm:text-base">מקורות תנועה</h3>
             <Link href="reports/traffic" className="text-xs sm:text-sm text-gray-500 hover:text-black">
@@ -367,7 +434,7 @@ async function DashboardContent({
 
       {/* Inventory Alert */}
       {(dashboard.inventoryStats.lowStock > 0 || dashboard.inventoryStats.outOfStock > 0) && (
-        <div className="mt-4 sm:mt-6 bg-amber-50 border border-amber-200 p-3 sm:p-4">
+        <div className="mt-4 sm:mt-6 bg-amber-50 border border-amber-200 p-3 sm:p-4 rounded-lg">
           <div className="flex items-start gap-2 sm:gap-3">
             <AlertTriangleIcon className="text-amber-600 flex-shrink-0 mt-0.5 w-4 h-4 sm:w-5 sm:h-5" size={20} />
             <div>
@@ -437,8 +504,13 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      {/* Quick Access to Reports - MOVED TO TOP */}
-      <div className="mb-6 sm:mb-8">
+      {/* Stats Cards - TOP */}
+      <Suspense fallback={<StatsSkeleton />}>
+        <StatsContent storeId={store.id} period={period} customRange={customRange} />
+      </Suspense>
+
+      {/* Quick Access to Reports - BETWEEN STATS AND CHARTS */}
+      <div className="mt-6 sm:mt-8">
         <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4">דוחות מפורטים</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
           <QuickReportCard
@@ -474,7 +546,17 @@ export default async function ReportsPage({
             title="דוח פיננסי"
             href="reports/financial"
             icon={<WalletIcon size={24} />}
-            description="גיפט קארדים, קרדיטים ומשפיענים"
+            description="קרדיטים ומשפיענים"
+          />
+          <QuickReportCard
+            title="דוח גיפט קארדים"
+            href="reports/gift-cards"
+            icon={
+              <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+              </svg>
+            }
+            description="יתרות, שימוש ומעקב"
           />
           <QuickReportCard
             title="דוח לקוחות"
@@ -503,18 +585,17 @@ export default async function ReportsPage({
         </div>
       </div>
 
-      {/* Dashboard Content with Suspense */}
-      <Suspense fallback={
-        <>
-          <StatsSkeleton />
-          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+      {/* Charts and Lists - BOTTOM */}
+      <div className="mt-6 sm:mt-8">
+        <Suspense fallback={
+          <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
             <ChartSkeleton />
             <ChartSkeleton />
           </div>
-        </>
-      }>
-        <DashboardContent storeId={store.id} period={period} customRange={customRange} />
-      </Suspense>
+        }>
+          <ChartsContent storeId={store.id} period={period} customRange={customRange} />
+        </Suspense>
+      </div>
     </div>
   );
 }

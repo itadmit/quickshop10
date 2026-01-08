@@ -414,6 +414,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               subtotal,
               shippingAmount: shippingCost,
               discountAmount,
+              discountDetails: (updatedOrder.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}>) || undefined,
               creditUsed,
               total: Number(updatedOrder.total),
               shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
@@ -424,6 +425,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 brand: search.brand_name,
                 approvalNum: search.approval_num,
               },
+              freeShippingReason: shippingCost === 0 ? 'משלוח חינם' : undefined,
             }).catch(err => console.error('Failed to send order confirmation email:', err));
             
             // Add loyalty points (non-blocking)
@@ -773,6 +775,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           subtotal,
           shippingAmount: shippingCost,
           discountAmount,
+          discountDetails: (newOrder.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}>) || undefined,
           creditUsed,
           total: totalAmount,
           shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
@@ -783,6 +786,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             brand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
             approvalNum: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
           },
+          freeShippingReason: shippingCost === 0 ? 'משלוח חינם' : undefined,
         }).catch(err => console.error('Failed to send order confirmation email:', err));
         
         // Emit order.created event (triggers dashboard notification + mobile push)

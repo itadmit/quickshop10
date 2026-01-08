@@ -13,7 +13,7 @@ export function TaxRateForm({ storeId, slug }: TaxRateFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState('');
-  const [rate, setRate] = useState('17');
+  const [rate, setRate] = useState('18');
   const [country, setCountry] = useState('IL');
   const [region, setRegion] = useState('');
   const [includeInPrice, setIncludeInPrice] = useState(true);
@@ -38,7 +38,7 @@ export function TaxRateForm({ storeId, slug }: TaxRateFormProps) {
 
       if (result.success) {
         setName('');
-        setRate('17');
+        setRate('18');
         setCountry('IL');
         setRegion('');
         setIncludeInPrice(true);
@@ -72,7 +72,7 @@ export function TaxRateForm({ storeId, slug }: TaxRateFormProps) {
             value={rate}
             onChange={(e) => setRate(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
-            placeholder="17"
+            placeholder="18"
             min="0"
             max="100"
             step="0.001"

@@ -206,18 +206,74 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                 <span className="text-gray-600">{order.items.length} פריטים</span>
                 <span className="text-gray-900">₪{Number(order.subtotal).toFixed(2)}</span>
               </div>
-              {Number(order.discountAmount) > 0 && (
+              
+              {/* Detailed discount breakdown */}
+              {(order.discountDetails as Array<{type: string; code?: string; name: string; description?: string; amount: number}> | null)?.map((discount, idx) => (
+                <div key={idx} className={`flex justify-between ${
+                  discount.type === 'gift_card' ? 'text-purple-600' : 
+                  discount.type === 'credit' ? 'text-blue-600' : 'text-emerald-600'
+                }`}>
+                  <span className="flex items-center gap-1.5">
+                    {discount.type === 'coupon' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                        <line x1="7" y1="7" x2="7.01" y2="7"/>
+                      </svg>
+                    )}
+                    {discount.type === 'gift_card' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="8" width="18" height="12" rx="2"/>
+                        <path d="M12 8V3M12 3L9 6M12 3l3 3"/>
+                      </svg>
+                    )}
+                    {discount.type === 'auto' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                      </svg>
+                    )}
+                    {discount.type === 'member' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                    )}
+                    {discount.type === 'credit' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M6 12h4"/>
+                      </svg>
+                    )}
+                    {discount.type === 'coupon' ? `קופון ${discount.code}` :
+                     discount.type === 'gift_card' ? `גיפט קארד ${discount.code}` :
+                     discount.type === 'auto' ? `הנחה אוטומטית: ${discount.name}` :
+                     discount.type === 'member' ? 'הנחת חברי מועדון' :
+                     discount.type === 'credit' ? 'קרדיט' : discount.name}
+                    {discount.description && (
+                      <span className="text-xs opacity-75">({discount.description})</span>
+                    )}
+                  </span>
+                  <span></span>
+                  <span>-₪{discount.amount.toFixed(2)}</span>
+                </div>
+              ))}
+              
+              {/* Fallback for old orders without discountDetails */}
+              {!(order.discountDetails as unknown[])?.length && Number(order.discountAmount) > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>הנחה {order.discountCode && `(${order.discountCode})`}</span>
                   <span></span>
                   <span>-₪{Number(order.discountAmount).toFixed(2)}</span>
                 </div>
               )}
+              
               <div className="flex justify-between">
                 <span className="text-gray-600">משלוח</span>
                 <span className="text-gray-400 text-sm">{order.shippingMethod || 'רגיל'}</span>
-                <span className="text-gray-900">
-                  {Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toFixed(2)}`}
+                <span className={Number(order.shippingAmount) === 0 ? 'text-emerald-600' : 'text-gray-900'}>
+                  {Number(order.shippingAmount) === 0 ? '✓ חינם' : `₪${Number(order.shippingAmount).toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between pt-2.5 border-t border-gray-100 font-semibold">

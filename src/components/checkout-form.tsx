@@ -28,6 +28,7 @@ interface LoggedInCustomer {
     zipCode?: string;
   } | null;
   hasPassword?: boolean;
+  isClubMember?: boolean; // true if has active club_member contact
   creditBalance?: number;
 }
 
@@ -609,8 +610,9 @@ export function CheckoutForm({
   const allDiscounts = [...engineAutoDiscounts, ...engineCoupons];
   
   // Calculate all discounts using the engine
+  // Club member = has active club_member contact in contacts table
   const discountCalc = calculateDiscounts(cartItemsForEngine, allDiscounts, {
-    isMember: !!loggedInCustomer?.hasPassword,
+    isMember: !!loggedInCustomer?.isClubMember,
     shippingAmount: 0, // Will be calculated separately
   });
   
@@ -817,6 +819,82 @@ export function CheckoutForm({
         } else {
           // Simulation mode - create order directly (backward compatibility)
           const primaryCoupon = appliedCoupons.length > 0 ? appliedCoupons[0] : null;
+          
+          // Build discount details breakdown
+          const discountDetailsArray: Array<{
+            type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+            code?: string;
+            name: string;
+            description?: string;
+            amount: number;
+          }> = [];
+          
+          // Add member discount
+          if (memberDiscount > 0) {
+            discountDetailsArray.push({
+              type: 'member',
+              name: 'הנחת חברי מועדון',
+              description: '5% הנחה',
+              amount: memberDiscount,
+            });
+          }
+          
+          // Add auto discounts
+          autoDiscountResults.filter(d => engineAutoDiscounts.find(ed => ed.id === d.discountId)?.appliesTo !== 'member').forEach(d => {
+            const discountInfo = autoDiscounts.find(ad => ad.id === d.discountId);
+            if (discountInfo && d.amount > 0) {
+              discountDetailsArray.push({
+                type: 'auto',
+                name: discountInfo.name || 'הנחה אוטומטית',
+                description: discountInfo.type === 'percentage' ? `${discountInfo.value}% הנחה` : `הנחה של ₪${discountInfo.value}`,
+                amount: d.amount,
+              });
+            }
+          });
+          
+          // Add regular coupons (not gift cards)
+          appliedCoupons.filter(c => c.type !== 'gift_card' && c.type !== 'free_shipping').forEach(coupon => {
+            const discountResult = couponDiscountResults.find(r => r.discountId === coupon.id);
+            if (discountResult && discountResult.amount > 0) {
+              const getDescription = () => {
+                switch (coupon.type) {
+                  case 'percentage': return `${coupon.value}% הנחה`;
+                  case 'fixed_amount': return `הנחה של ₪${coupon.value}`;
+                  case 'buy_x_pay_y': return coupon.buyQuantity && coupon.payAmount ? `קנה ${coupon.buyQuantity} שלם ${coupon.payAmount}` : 'הנחת כמות';
+                  default: return coupon.title || 'הנחה';
+                }
+              };
+              discountDetailsArray.push({
+                type: 'coupon',
+                code: coupon.code,
+                name: coupon.title || coupon.code,
+                description: getDescription(),
+                amount: discountResult.amount,
+              });
+            }
+          });
+          
+          // Add gift card
+          if (giftCardAmount > 0 && giftCardCoupon) {
+            discountDetailsArray.push({
+              type: 'gift_card',
+              code: giftCardCoupon.code,
+              name: 'גיפט קארד',
+              description: `יתרה: ₪${giftCardCoupon.value}`,
+              amount: giftCardAmount,
+            });
+          }
+          
+          // Add credit used
+          if (creditUsed > 0) {
+            discountDetailsArray.push({
+              type: 'credit',
+              name: 'קרדיט',
+              description: 'יתרת קרדיט בחשבון',
+              amount: creditUsed,
+            });
+          }
+          
           const result = await createOrder(
             storeId || '',
             cart.map(item => ({
@@ -837,7 +915,8 @@ export function CheckoutForm({
             totalDiscount,
             shippingAfterDiscount,
             total,
-            creditUsed
+            creditUsed,
+            discountDetailsArray
           );
 
           if (result.success) {
@@ -1604,11 +1683,56 @@ export function CheckoutForm({
                   );
                 })}
                 
-                {/* Coupon Discounts */}
-                {appliedCoupons.length > 0 && couponDiscount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>קופונים ({appliedCoupons.filter(c => c.type !== 'free_shipping').map(c => c.code).join(', ')})</span>
-                    <span>-{formatPrice(couponDiscount)}</span>
+                {/* Coupon Discounts - Each coupon shown separately with description */}
+                {appliedCoupons.filter(c => c.type !== 'gift_card' && c.type !== 'free_shipping').map(coupon => {
+                  const discountResult = couponDiscountResults.find(r => r.discountId === coupon.id);
+                  if (!discountResult || discountResult.amount === 0) return null;
+                  
+                  // Format coupon description based on type
+                  const getDiscountDescription = () => {
+                    switch (coupon.type) {
+                      case 'percentage':
+                        return `${coupon.value}% הנחה`;
+                      case 'fixed_amount':
+                        return `הנחה של ${formatPrice(coupon.value)}`;
+                      case 'buy_x_pay_y':
+                        return coupon.buyQuantity && coupon.payAmount 
+                          ? `קנה ${coupon.buyQuantity} שלם ${coupon.payAmount}`
+                          : 'הנחת כמות';
+                      case 'quantity_discount':
+                        return 'הנחת כמות';
+                      default:
+                        return coupon.title || 'הנחה';
+                    }
+                  };
+                  
+                  return (
+                    <div key={coupon.id} className="flex justify-between text-green-600">
+                      <span className="flex items-center gap-1">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                          <line x1="7" y1="7" x2="7.01" y2="7"/>
+                        </svg>
+                        קופון {coupon.code} ({getDiscountDescription()})
+                      </span>
+                      <span>-{formatPrice(discountResult.amount)}</span>
+                    </div>
+                  );
+                })}
+                
+                {/* Gift Card - Shown separately with balance info */}
+                {giftCardAmount > 0 && giftCardCoupon && (
+                  <div className="flex justify-between text-purple-600">
+                    <span className="flex items-center gap-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="8" width="18" height="12" rx="2"/>
+                        <path d="M12 8V3M12 3L9 6M12 3l3 3"/>
+                        <path d="M7 12h10"/>
+                      </svg>
+                      גיפט קארד {giftCardCoupon.code}
+                      <span className="text-xs text-purple-400">(יתרה: {formatPrice(giftCardCoupon.value)})</span>
+                    </span>
+                    <span>-{formatPrice(giftCardAmount)}</span>
                   </div>
                 )}
                 
@@ -1617,14 +1741,32 @@ export function CheckoutForm({
                   {step === 'details' ? (
                     <span className="text-gray-400 text-xs">יחושב בשלב הבא</span>
                   ) : hasFreeShipping ? (
-                    <span className="text-green-600">חינם (קופון)</span>
+                    <span className="text-green-600 flex items-center gap-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      חינם (קופון משלוח)
+                    </span>
+                  ) : shipping === 0 ? (
+                    <span className="text-green-600 flex items-center gap-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                      </svg>
+                      חינם
+                    </span>
                   ) : (
-                    <span>{shipping === 0 ? 'חינם' : `₪${shipping}`}</span>
+                    <span>{formatPrice(shipping)}</span>
                   )}
                 </div>
+                {/* Free shipping threshold message */}
+                {step !== 'details' && shipping === 0 && !hasFreeShipping && shippingSettings.enableFreeShipping && cartTotal >= shippingSettings.freeShippingThreshold && (
+                  <p className="text-xs text-green-600">
+                    ✓ משלוח חינם בקנייה מעל {formatPrice(shippingSettings.freeShippingThreshold)}
+                  </p>
+                )}
                 {step !== 'details' && shipping > 0 && !hasFreeShipping && shippingSettings.enableFreeShipping && (
                   <p className="text-xs text-gray-400">
-                    משלוח חינם בהזמנה מעל ₪{shippingSettings.freeShippingThreshold}
+                    משלוח חינם בקנייה מעל {formatPrice(shippingSettings.freeShippingThreshold)}
                   </p>
                 )}
               </div>

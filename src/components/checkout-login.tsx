@@ -140,6 +140,9 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
         return;
       }
 
+      // Notify header of auth change (updates UserButton immediately)
+      window.dispatchEvent(new CustomEvent('customer-auth-change', { detail: data.customer }));
+
       onLoginSuccess(data.customer);
     } catch {
       setError('שגיאה בהתחברות');
@@ -172,6 +175,9 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
         setError(data.error || 'קוד אימות שגוי');
         return;
       }
+
+      // Notify header of auth change (updates UserButton immediately)
+      window.dispatchEvent(new CustomEvent('customer-auth-change', { detail: data.customer }));
 
       onLoginSuccess(data.customer);
     } catch {
@@ -222,19 +228,6 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
     }
   };
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (step === 'email') {
-      checkEmail();
-    } else if (step === 'password') {
-      loginWithPassword();
-    } else if (step === 'otp') {
-      verifyOtp();
-    }
-  };
-
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
       <div className="flex items-center justify-between mb-4">
@@ -250,7 +243,8 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
         </button>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      {/* Using div instead of form to avoid nested form error */}
+      <div>
         {/* Email Step */}
         {step === 'email' && (
           <div className="space-y-4">
@@ -262,6 +256,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && checkEmail()}
                 className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
                 placeholder="your@email.com"
                 autoFocus
@@ -273,7 +268,8 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
             )}
 
             <button
-              type="submit"
+              type="button"
+              onClick={checkEmail}
               disabled={isLoading}
               className="w-full btn-primary"
             >
@@ -305,6 +301,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && loginWithPassword()}
                 className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
                 placeholder="הזן סיסמה"
                 autoFocus
@@ -332,7 +329,8 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
                 חזרה
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={loginWithPassword}
                 disabled={isLoading}
                 className="flex-1 btn-primary"
               >
@@ -411,7 +409,8 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
                 חזרה
               </button>
               <button
-                type="submit"
+                type="button"
+                onClick={verifyOtp}
                 disabled={isLoading || otp.join('').length !== 6}
                 className="flex-1 btn-primary"
               >
@@ -420,7 +419,7 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
             </div>
           </div>
         )}
-      </form>
+      </div>
     </div>
   );
 }

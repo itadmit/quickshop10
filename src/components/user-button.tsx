@@ -25,6 +25,16 @@ export function UserButton({ basePath, initialCustomer }: UserButtonProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Listen for auth changes (login/logout events from other components)
+  useEffect(() => {
+    const handleAuthChange = (event: CustomEvent<CustomerData | null>) => {
+      setCustomer(event.detail);
+    };
+
+    window.addEventListener('customer-auth-change', handleAuthChange as EventListener);
+    return () => window.removeEventListener('customer-auth-change', handleAuthChange as EventListener);
+  }, []);
+
   // Close menu on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -43,6 +53,8 @@ export function UserButton({ basePath, initialCustomer }: UserButtonProps) {
       await fetch('/api/customer/auth/logout', { method: 'POST' });
       setCustomer(null);
       setIsOpen(false);
+      // Notify other components of logout
+      window.dispatchEvent(new CustomEvent('customer-auth-change', { detail: null }));
       router.refresh();
     } catch {
       // Ignore errors

@@ -144,7 +144,7 @@ export default function NewDraftOrderPage() {
     return new Intl.NumberFormat('he-IL', {
       style: 'currency',
       currency: 'ILS',
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 

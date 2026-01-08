@@ -45,7 +45,7 @@ export default async function TaxSettingsPage({
             <div className="text-sm">
               <p className="text-blue-900 font-medium">מס ערך מוסף בישראל</p>
               <p className="text-blue-700 mt-1">
-                שיעור מע״מ בישראל הוא 17%. מומלץ להציג מחירים כולל מע״מ (כברירת מחדל).
+                שיעור מע״מ בישראל הוא 18%. מומלץ להציג מחירים כולל מע״מ (כברירת מחדל).
               </p>
             </div>
           </div>

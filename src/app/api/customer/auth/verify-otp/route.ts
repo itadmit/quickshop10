@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { customers } from '@/lib/db/schema';
+import { customers, contacts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 import { 
@@ -76,6 +76,20 @@ export async function POST(request: NextRequest) {
     // Set cookie
     await setSessionCookie(sessionToken);
 
+    // Check if customer is a club member (based on contacts table)
+    const [clubMemberContact] = await db
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(
+        and(
+          eq(contacts.storeId, customer.storeId),
+          eq(contacts.email, customer.email),
+          eq(contacts.type, 'club_member'),
+          eq(contacts.status, 'active')
+        )
+      )
+      .limit(1);
+
     return NextResponse.json({
       success: true,
       customer: {
@@ -86,6 +100,8 @@ export async function POST(request: NextRequest) {
         phone: customer.phone,
         defaultAddress: customer.defaultAddress,
         hasPassword: !!customer.passwordHash,
+        isClubMember: !!clubMemberContact,
+        creditBalance: Number(customer.creditBalance) || 0,
       },
     });
   } catch (error) {

@@ -135,6 +135,15 @@ interface OrderItem {
   image?: string;
 }
 
+// Type for discount details in email
+interface DiscountDetailEmail {
+  type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+  code?: string;
+  name: string;
+  description?: string;
+  amount: number;
+}
+
 interface OrderConfirmationData {
   orderNumber: string;
   customerName: string;
@@ -143,6 +152,7 @@ interface OrderConfirmationData {
   subtotal: number;
   shippingAmount: number;
   discountAmount: number;
+  discountDetails?: DiscountDetailEmail[]; // Detailed breakdown
   creditUsed?: number;
   total: number;
   shippingAddress?: {
@@ -159,6 +169,7 @@ interface OrderConfirmationData {
     brand?: string;
     approvalNum?: string;
   };
+  freeShippingReason?: string; // e.g., "משלוח חינם בקנייה מעל ₪249"
 }
 
 export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
@@ -170,12 +181,14 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     subtotal,
     shippingAmount,
     discountAmount,
+    discountDetails = [],
     creditUsed = 0,
     total,
     shippingAddress,
     storeName,
     storeSlug,
     paymentInfo,
+    freeShippingReason,
   } = data;
 
   const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${storeSlug}`;
@@ -303,19 +316,32 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
                 <tr>
                   <td style="padding: 12px 0; color: #6b7280; text-align: right;">משלוח</td>
                   <td style="padding: 12px 0; text-align: left; font-weight: 500; color: ${shippingAmount > 0 ? '#1a1a1a' : '#16a34a'};">
-                    ${shippingAmount > 0 ? `₪${shippingAmount.toFixed(2)}` : 'חינם'}
+                    ${shippingAmount > 0 ? `₪${shippingAmount.toFixed(2)}` : `✓ חינם${freeShippingReason ? ` (${freeShippingReason})` : ''}`}
                   </td>
                 </tr>
-                ${discountAmount > 0 ? `
+                ${discountDetails.length > 0 ? discountDetails.map(d => `
+                <tr>
+                  <td style="padding: 12px 0; color: ${d.type === 'gift_card' ? '#9333ea' : d.type === 'credit' ? '#2563eb' : '#16a34a'}; text-align: right;">
+                    ${d.type === 'coupon' ? `קופון ${d.code}${d.description ? ` (${d.description})` : ''}` :
+                      d.type === 'gift_card' ? `גיפט קארד ${d.code}` :
+                      d.type === 'auto' ? `הנחה אוטומטית: ${d.name}` :
+                      d.type === 'member' ? 'הנחת חברי מועדון' :
+                      d.type === 'credit' ? 'קרדיט' : d.name}
+                  </td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: ${d.type === 'gift_card' ? '#9333ea' : d.type === 'credit' ? '#2563eb' : '#16a34a'};">
+                    -₪${d.amount.toFixed(2)}
+                  </td>
+                </tr>
+                `).join('') : discountAmount > 0 ? `
                 <tr>
                   <td style="padding: 12px 0; color: #16a34a; text-align: right;">הנחה</td>
                   <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${discountAmount.toFixed(2)}</td>
                 </tr>
                 ` : ''}
-                ${creditUsed > 0 ? `
+                ${creditUsed > 0 && !discountDetails.some(d => d.type === 'credit') ? `
                 <tr>
-                  <td style="padding: 12px 0; color: #16a34a; text-align: right;">קרדיט</td>
-                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${creditUsed.toFixed(2)}</td>
+                  <td style="padding: 12px 0; color: #2563eb; text-align: right;">קרדיט</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #2563eb;">-₪${creditUsed.toFixed(2)}</td>
                 </tr>
                 ` : ''}
                 <tr>

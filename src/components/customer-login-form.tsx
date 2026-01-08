@@ -130,6 +130,9 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName, storeId }:
         return;
       }
 
+      // Notify header of auth change (updates UserButton immediately)
+      window.dispatchEvent(new CustomEvent('customer-auth-change', { detail: data.customer }));
+
       // Success - redirect with router.refresh to update server data
       router.push(redirectUrl);
       router.refresh();
@@ -164,6 +167,9 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName, storeId }:
         setError(data.error || 'קוד אימות שגוי');
         return;
       }
+
+      // Notify header of auth change (updates UserButton immediately)
+      window.dispatchEvent(new CustomEvent('customer-auth-change', { detail: data.customer }));
 
       // Success - redirect with router.refresh
       router.push(redirectUrl);

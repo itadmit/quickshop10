@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
-import { stores } from '@/lib/db/schema';
+import { stores, storeMembers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
 
@@ -17,15 +17,41 @@ export default async function DashboardPage() {
     redirect('/admin');
   }
 
-  // Get user's stores
-  const userStores = await db
+  // Get user's stores - both owned and as team member
+  // First get stores where user is owner
+  const ownedStores = await db
     .select()
     .from(stores)
     .where(eq(stores.ownerId, session.user.id));
 
+  // Then get stores where user is a team member
+  const memberStores = await db.query.storeMembers.findMany({
+    where: eq(storeMembers.userId, session.user.id),
+    with: {
+      store: true,
+    },
+  });
+
+  // Combine and deduplicate (in case user is both owner and member)
+  const ownedStoreIds = new Set(ownedStores.map(s => s.id));
+  const memberOnlyStores = memberStores
+    .filter(m => m.store && !ownedStoreIds.has(m.store.id))
+    .map(m => ({ ...m.store!, memberRole: m.role }));
+  
+  // Create unified list with role info
+  const userStores = [
+    ...ownedStores.map(s => ({ ...s, memberRole: 'owner' as const })),
+    ...memberOnlyStores,
+  ];
+
   // If user has exactly one store, redirect to it
   if (userStores.length === 1) {
-    redirect(`/shops/${userStores[0].slug}/admin`);
+    const store = userStores[0];
+    // Influencers go to influencer dashboard
+    const targetUrl = store.memberRole === 'influencer' 
+      ? `/shops/${store.slug}/influencer`
+      : `/shops/${store.slug}/admin`;
+    redirect(targetUrl);
   }
 
   // If no stores, show create store prompt
@@ -78,43 +104,64 @@ export default async function DashboardPage() {
         </div>
 
         <div className="space-y-4">
-          {userStores.map((store) => (
-            <Link
-              key={store.id}
-              href={`/shops/${store.slug}/admin`}
-              className="block bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-center gap-4">
-                {store.logoUrl ? (
-                  <img 
-                    src={store.logoUrl} 
-                    alt={store.name} 
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <span className="text-xl font-bold text-gray-400">
-                      {store.name.charAt(0)}
-                    </span>
+          {userStores.map((store) => {
+            const roleLabels: Record<string, string> = {
+              owner: 'בעלים',
+              manager: 'מנהל',
+              marketing: 'שיווק',
+              developer: 'מפתח',
+              influencer: 'משפיען',
+            };
+            const roleLabel = roleLabels[store.memberRole] || store.memberRole;
+            
+            // Influencers go to influencer dashboard
+            const targetUrl = store.memberRole === 'influencer' 
+              ? `/shops/${store.slug}/influencer`
+              : `/shops/${store.slug}/admin`;
+            
+            return (
+              <Link
+                key={store.id}
+                href={targetUrl}
+                className="block bg-white rounded-xl border border-gray-200 p-6 hover:border-gray-300 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  {store.logoUrl ? (
+                    <img 
+                      src={store.logoUrl} 
+                      alt={store.name} 
+                      className="w-12 h-12 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <span className="text-xl font-bold text-gray-400">
+                        {store.name.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900">{store.name}</h3>
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        {roleLabel}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">{store.slug}.quickshop.co.il</p>
                   </div>
-                )}
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{store.name}</h3>
-                  <p className="text-sm text-gray-500">{store.slug}.quickshop.co.il</p>
+                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    store.isActive 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {store.isActive ? 'פעילה' : 'לא פעילה'}
+                  </div>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+                    <polyline points="9 18 15 12 9 6"/>
+                  </svg>
                 </div>
-                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  store.isActive 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-gray-100 text-gray-600'
-                }`}>
-                  {store.isActive ? 'פעילה' : 'לא פעילה'}
-                </div>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
-                  <polyline points="9 18 15 12 9 6"/>
-                </svg>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
 
         <div className="mt-8 text-center">
