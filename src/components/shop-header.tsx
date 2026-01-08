@@ -21,12 +21,13 @@ interface CustomerData {
   emailVerified?: boolean;
 }
 
-// Menu item interface for custom navigation
+// Menu item interface for custom navigation (including mega menu support)
 export interface MenuItem {
   id: string;
   title: string;
   linkType: 'url' | 'page' | 'category' | 'product';
   resolvedUrl?: string;
+  imageUrl?: string | null;
   children?: MenuItem[];
 }
 
@@ -136,29 +137,102 @@ export function ShopHeader({
   );
 
   // Menu Navigation component (custom menus from Navigation settings)
+  // Supports Mega Menu: full-width dropdown with columns and images
   const MenuNavigation = ({ className = '' }: { className?: string }) => (
     <nav className={`hidden lg:flex items-center gap-8 xl:gap-12 ${className}`}>
       {menuItems.map((item) => {
         const hasChildren = item.children && item.children.length > 0;
         const href = item.resolvedUrl?.startsWith('/') ? `${basePath}${item.resolvedUrl}` : item.resolvedUrl || '#';
         
+        // Check if any child has an image for mega menu style
+        const hasMegaMenu = hasChildren && item.children!.some(c => c.imageUrl);
+        // Check if any child has grandchildren (sub-sub items)
+        const hasGrandchildren = hasChildren && item.children!.some(c => c.children && c.children.length > 0);
+        
         return (
-          <div key={item.id} className="relative group">
+          <div key={item.id} className="relative group/nav">
             <Link
               href={href}
               className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hover:text-black transition-colors duration-300 flex items-center gap-1"
             >
               {item.title}
               {hasChildren && (
-                <svg className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3 h-3 opacity-50 group-hover/nav:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               )}
             </Link>
             
-            {/* Dropdown for child items - CSS only */}
-            {hasChildren && (
-              <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            {/* Mega Menu - full width dropdown with columns and images */}
+            {hasChildren && (hasMegaMenu || hasGrandchildren) && (
+              <div className="fixed left-0 right-0 top-[64px] sm:top-[80px] pt-0 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
+                <div className="bg-white border-t border-b border-gray-200 shadow-lg">
+                  <div className="max-w-[1800px] mx-auto px-6 lg:px-12 py-8">
+                    <div className="flex gap-12" dir="rtl">
+                      {/* Menu columns */}
+                      <div className="flex-1 flex flex-wrap gap-8">
+                        {item.children!.map((child) => {
+                          const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';
+                          const grandchildren = child.children || [];
+                          
+                          return (
+                            <div key={child.id} className="min-w-[160px] group/col">
+                              <Link
+                                href={childHref}
+                                className="block text-sm font-semibold text-gray-900 mb-3 hover:text-black transition-colors pb-2 border-b border-gray-100"
+                              >
+                                {child.title}
+                              </Link>
+                              {grandchildren.length > 0 && (
+                                <div className="space-y-2">
+                                  {grandchildren.map((grandchild) => {
+                                    const grandchildHref = grandchild.resolvedUrl?.startsWith('/') ? `${basePath}${grandchild.resolvedUrl}` : grandchild.resolvedUrl || '#';
+                                    return (
+                                      <Link
+                                        key={grandchild.id}
+                                        href={grandchildHref}
+                                        className="block text-xs text-gray-500 hover:text-black transition-colors"
+                                      >
+                                        {grandchild.title}
+                                      </Link>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      
+                      {/* Image section - shows first child's image or parent's image */}
+                      {(item.imageUrl || item.children!.find(c => c.imageUrl)?.imageUrl) && (
+                        <div className="w-[280px] flex-shrink-0">
+                          <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden rounded">
+                            {/* Priority: parent image, then first child with image */}
+                            {(() => {
+                              const imgUrl = item.imageUrl || item.children!.find(c => c.imageUrl)?.imageUrl;
+                              return imgUrl ? (
+                                <Image
+                                  src={imgUrl}
+                                  alt={item.title}
+                                  fill
+                                  className="object-cover"
+                                  sizes="280px"
+                                />
+                              ) : null;
+                            })()}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Simple dropdown for items without images/grandchildren */}
+            {hasChildren && !hasMegaMenu && !hasGrandchildren && (
+              <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
                 <div className="bg-white border border-gray-100 shadow-lg min-w-[180px]">
                   {item.children!.map((child) => {
                     const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';

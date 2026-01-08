@@ -11,6 +11,8 @@ interface MenuItemData {
   linkUrl: string | null;
   linkResourceId: string | null;
   sortOrder: number;
+  parentId?: string | null;
+  imageUrl?: string | null;
 }
 
 export async function addMenuItem(
@@ -26,10 +28,14 @@ export async function addMenuItem(
       linkUrl: data.linkUrl,
       linkResourceId: data.linkResourceId,
       sortOrder: data.sortOrder,
+      parentId: data.parentId || null,
+      imageUrl: data.imageUrl || null,
       isActive: true,
     });
 
     revalidatePath(`/shops/${slug}/admin/navigation`);
+    // Also revalidate the store pages for mega menu
+    revalidatePath(`/shops/${slug}`);
     return { success: true };
   } catch (error) {
     console.error('Error adding menu item:', error);
@@ -50,10 +56,13 @@ export async function updateMenuItem(
     if (data.linkUrl !== undefined) updateData.linkUrl = data.linkUrl;
     if (data.linkResourceId !== undefined) updateData.linkResourceId = data.linkResourceId;
     if (data.sortOrder !== undefined) updateData.sortOrder = data.sortOrder;
+    if (data.parentId !== undefined) updateData.parentId = data.parentId;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
 
     await db.update(menuItems).set(updateData).where(eq(menuItems.id, itemId));
 
     revalidatePath(`/shops/${slug}/admin/navigation`);
+    revalidatePath(`/shops/${slug}`);
     return { success: true };
   } catch (error) {
     console.error('Error updating menu item:', error);

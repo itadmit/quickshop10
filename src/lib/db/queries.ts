@@ -630,6 +630,8 @@ export interface MenuItem {
   sortOrder: number;
   isActive: boolean;
   parentId: string | null;
+  // Image URL for mega menu display
+  imageUrl?: string | null;
   // Resolved URL based on link type
   resolvedUrl?: string;
   // Children for nested menus
@@ -704,11 +706,12 @@ export const getMainMenuWithItems = cache(async (storeId: string) => {
       sortOrder: item.sortOrder,
       isActive: item.isActive,
       parentId: item.parentId,
+      imageUrl: item.imageUrl,
       resolvedUrl,
     };
   });
 
-  // Build tree structure (items with children)
+  // Build tree structure (items with children and grandchildren for mega menu)
   const topLevelItems: MenuItem[] = [];
   const childrenMap = new Map<string, MenuItem[]>();
 
@@ -720,13 +723,19 @@ export const getMainMenuWithItems = cache(async (storeId: string) => {
     }
   });
 
-  // Second pass: build top-level items with their children
+  // Build nested structure supporting 3 levels: parent -> child -> grandchild
+  const buildWithChildren = (item: MenuItem): MenuItem => {
+    const directChildren = childrenMap.get(item.id) || [];
+    return {
+      ...item,
+      children: directChildren.map(child => buildWithChildren(child)),
+    };
+  };
+
+  // Build top-level items with nested children
   resolvedItems.forEach(item => {
     if (!item.parentId) {
-      topLevelItems.push({
-        ...item,
-        children: childrenMap.get(item.id) || [],
-      });
+      topLevelItems.push(buildWithChildren(item));
     }
   });
 

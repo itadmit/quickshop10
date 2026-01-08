@@ -5,6 +5,20 @@ import { eq, asc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { MenuEditor } from './menu-editor';
 
+// Menu item with image support
+interface MenuItemWithImage {
+  id: string;
+  menuId: string;
+  parentId: string | null;
+  title: string;
+  linkType: 'url' | 'page' | 'category' | 'product';
+  linkUrl: string | null;
+  linkResourceId: string | null;
+  imageUrl: string | null;
+  sortOrder: number;
+  isActive: boolean;
+}
+
 export default async function NavigationPage({
   params
 }: {
@@ -40,15 +54,26 @@ export default async function NavigationPage({
     }
   }
 
-  // Get menu items for each menu
+  // Get menu items for each menu (including imageUrl)
   const menusWithItems = await Promise.all(
     storeMenus.map(async (menu) => {
       const items = await db
-        .select()
+        .select({
+          id: menuItems.id,
+          menuId: menuItems.menuId,
+          parentId: menuItems.parentId,
+          title: menuItems.title,
+          linkType: menuItems.linkType,
+          linkUrl: menuItems.linkUrl,
+          linkResourceId: menuItems.linkResourceId,
+          imageUrl: menuItems.imageUrl,
+          sortOrder: menuItems.sortOrder,
+          isActive: menuItems.isActive,
+        })
         .from(menuItems)
         .where(eq(menuItems.menuId, menu.id))
         .orderBy(asc(menuItems.sortOrder));
-      return { ...menu, items };
+      return { ...menu, items: items as MenuItemWithImage[] };
     })
   );
 

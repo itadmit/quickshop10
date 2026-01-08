@@ -296,6 +296,7 @@ export const menuItems = pgTable('menu_items', {
   linkResourceId: uuid('link_resource_id'),
   sortOrder: integer('sort_order').default(0).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
+  imageUrl: text('image_url'), // For mega menu hover images
 }, (table) => [
   index('idx_menu_items_menu').on(table.menuId),
   index('idx_menu_items_parent').on(table.parentId),
