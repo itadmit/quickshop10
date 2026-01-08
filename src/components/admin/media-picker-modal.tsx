@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Search, X, Upload, Check, Image as ImageIcon, Loader2 } from 'lucide-react';
 
 // Types
@@ -73,11 +73,14 @@ export function MediaPickerModal({
   const [media, setMedia] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<Set<string>>(new Set(selectedIds));
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(selectedIds));
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ name: string; progress: number }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  
+  // Stable key for selectedIds to avoid infinite loops
+  const selectedIdsKey = useMemo(() => selectedIds.join(','), [selectedIds]);
 
   // Fetch media from API
   const fetchMedia = useCallback(async () => {
@@ -99,9 +102,16 @@ export function MediaPickerModal({
   useEffect(() => {
     if (isOpen) {
       fetchMedia();
+    }
+  }, [isOpen, fetchMedia]);
+  
+  // Sync selected state when selectedIds prop changes (only when modal opens)
+  useEffect(() => {
+    if (isOpen) {
       setSelected(new Set(selectedIds));
     }
-  }, [isOpen, fetchMedia, selectedIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedIdsKey]);
 
   // Close on Escape
   useEffect(() => {
