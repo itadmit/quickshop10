@@ -305,8 +305,8 @@ export const getPageSectionsCached = unstable_cache(
   { revalidate: 300, tags: ['sections'] } // Cache for 5 minutes
 );
 
-// Section type enum values
-type SectionType = 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq';
+// Section type enum values (must match schema.ts sectionTypeEnum)
+type SectionType = 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq' | 'hero_slider' | 'hero_premium' | 'series_grid' | 'quote_banner' | 'featured_items';
 
 // Update page sections (for template application)
 export async function updatePageSections(

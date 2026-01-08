@@ -377,6 +377,142 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
         </section>
       `;
 
+    case 'hero_premium':
+      const heroPremiumContent = section.content as { imageUrl?: string; eyebrow?: string; headline?: string; headlineAccent?: string; description?: string; primaryButtonText?: string; secondaryButtonText?: string };
+      return `
+        <section class="relative min-h-[600px] flex items-center" style="background: url('${heroPremiumContent.imageUrl || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920'}') center/cover;">
+          <div class="absolute inset-0" style="background: linear-gradient(90deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.85) 50%, rgba(255,255,255,0) 100%);"></div>
+          <div class="relative z-10 max-w-7xl mx-auto px-8 md:px-16 w-full">
+            <div class="max-w-xl">
+              ${heroPremiumContent.eyebrow ? `<p class="text-sm tracking-wider mb-4" style="color: var(--template-primary);">${heroPremiumContent.eyebrow}</p>` : ''}
+              <h1 class="text-4xl md:text-5xl font-bold leading-tight mb-4" style="color: var(--template-text);">
+                ${heroPremiumContent.headline || 'Argania Premium'}
+                ${heroPremiumContent.headlineAccent ? `<br><span style="color: var(--template-primary);">${heroPremiumContent.headlineAccent}</span>` : ''}
+              </h1>
+              ${heroPremiumContent.description ? `<p class="text-lg mb-8 text-muted">${heroPremiumContent.description}</p>` : ''}
+              <div class="flex gap-4">
+                ${heroPremiumContent.primaryButtonText ? `<a href="#" class="btn-primary px-8 py-4 font-semibold">${heroPremiumContent.primaryButtonText}</a>` : ''}
+                ${heroPremiumContent.secondaryButtonText ? `<a href="#" class="btn-outline px-8 py-4 font-semibold">${heroPremiumContent.secondaryButtonText}</a>` : ''}
+              </div>
+            </div>
+          </div>
+        </section>
+      `;
+
+    case 'series_grid':
+      const seriesItems = (section.content.items as Array<{ id: string; title: string; subtitle?: string; description?: string; imageUrl?: string; gradientFrom?: string; gradientTo?: string }>) || [];
+      const seriesSettings = section.settings as { style?: string; columns?: number; buttonText?: string; cardBackground?: string };
+      const cols = seriesSettings.columns || 3;
+      const seriesStyle = seriesSettings.style || 'overlay';
+      const cardBg = seriesSettings.cardBackground || '#f9f7f4';
+      
+      // Cards style - image on top, text below
+      if (seriesStyle === 'cards') {
+        return `
+          <section class="py-16 bg-alt">
+            <div class="max-w-7xl mx-auto px-6">
+              ${section.title ? `
+                <div class="text-center mb-12">
+                  <span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary);">${section.subtitle || ''}</span>
+                  <h2 class="text-3xl font-bold mt-2">${section.title}</h2>
+                  <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary);"></div>
+                </div>
+              ` : ''}
+              <div class="grid grid-cols-2 md:grid-cols-${cols} gap-6">
+                ${seriesItems.map((item, i) => `
+                  <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: ${cardBg};">
+                    <div class="h-48 overflow-hidden">
+                      ${item.imageUrl 
+                        ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}');"></div>`
+                        : `<div class="w-full h-full flex items-center justify-center" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'});"></div>`
+                      }
+                    </div>
+                    <div class="p-5">
+                      ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary);">${item.subtitle}</span>` : ''}
+                      <h3 class="text-lg font-bold mt-1 mb-2">${item.title}</h3>
+                      ${item.description ? `<p class="text-sm text-muted leading-relaxed mb-4 line-clamp-3">${item.description}</p>` : ''}
+                      <a href="#" class="inline-flex items-center text-sm font-bold" style="color: var(--template-primary);">
+                        ${seriesSettings.buttonText || 'לצפייה במוצרים'}
+                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                      </a>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </section>
+        `;
+      }
+      
+      // Overlay style (default) - full background with hover reveal
+      return `
+        <section class="py-16">
+          <div class="max-w-7xl mx-auto px-6">
+            ${section.title ? `
+              <div class="text-center mb-12">
+                <span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary);">${section.subtitle || ''}</span>
+                <h2 class="text-3xl font-bold mt-2">${section.title}</h2>
+                <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary);"></div>
+              </div>
+            ` : ''}
+            <div class="grid grid-cols-2 md:grid-cols-${cols} gap-6">
+              ${seriesItems.map(item => `
+                <a href="#" class="group relative h-80 rounded-2xl overflow-hidden">
+                  ${item.imageUrl 
+                    ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');"></div>`
+                    : `<div class="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'});"></div>`
+                  }
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                  <div class="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                    <h3 class="text-xl font-bold mb-2">${item.title}</h3>
+                    ${item.description ? `<p class="text-sm opacity-90 mb-4">${item.description}</p>` : ''}
+                    <span class="inline-flex items-center text-sm font-medium" style="color: var(--template-primary);">
+                      ${seriesSettings.buttonText || 'לסדרה'}
+                      <svg class="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    </span>
+                  </div>
+                </a>
+              `).join('')}
+            </div>
+          </div>
+        </section>
+      `;
+
+    case 'quote_banner':
+      const quoteContent = section.content as { quote: string; attribution?: string; imageUrl?: string };
+      return `
+        <section class="relative py-24 min-h-[400px] flex items-center justify-center" style="background: url('${quoteContent.imageUrl || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920'}') center/cover fixed;">
+          <div class="absolute inset-0 bg-black/50"></div>
+          <div class="relative z-10 text-center text-white max-w-4xl mx-auto px-6">
+            <blockquote class="text-2xl md:text-3xl italic leading-relaxed mb-6">
+              "${quoteContent.quote || 'היופי האמיתי מתחיל מבפנים'}"
+            </blockquote>
+            ${quoteContent.attribution ? `<cite class="text-sm opacity-80 not-italic">— ${quoteContent.attribution}</cite>` : ''}
+          </div>
+        </section>
+      `;
+
+    case 'hero_slider':
+      const slides = (section.content.slides as Array<{ imageUrl: string; title?: string; subtitle?: string; buttonText?: string }>) || [];
+      return `
+        <section class="relative h-[500px] overflow-hidden">
+          <div class="flex h-full overflow-x-auto snap-x snap-mandatory" style="scroll-behavior: smooth; scrollbar-width: none;">
+            ${slides.map(slide => `
+              <div class="flex-none w-full h-full snap-center relative" style="background: url('${slide.imageUrl || 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920'}') center/cover;">
+                <div class="absolute inset-0 bg-black/40"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-center text-white">
+                  <div>
+                    ${slide.title ? `<h2 class="text-4xl md:text-5xl font-bold mb-4">${slide.title}</h2>` : ''}
+                    ${slide.subtitle ? `<p class="text-xl mb-6 opacity-90">${slide.subtitle}</p>` : ''}
+                    ${slide.buttonText ? `<a href="#" class="btn-primary px-8 py-3">${slide.buttonText}</a>` : ''}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </section>
+      `;
+
     default:
       return `
         <section class="py-12 bg-gray-100">

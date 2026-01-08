@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback } from 'react';
  * - Scroll to section on command from editor
  * - Hover outline on sections
  * - Click to select section
+ * - LIVE content updates from editor
  * 
  * PERFORMANCE: Zero overhead in production (never loaded)
  */
@@ -39,54 +40,329 @@ export function EditorSectionHighlighter() {
         scrollToSection(event.data.sectionId);
       }
       if (event.data?.type === 'HIGHLIGHT_SECTION') {
-        // Update selected section (can be null to clear)
         setSelectedSection(event.data.sectionId);
       }
       if (event.data?.type === 'THEME_SETTINGS_UPDATE') {
         // Already handled by PreviewSettingsProvider
       }
       if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
-        // Live update section content in DOM
         const { sectionId, updates } = event.data;
         const element = document.querySelector(`[data-section-id="${sectionId}"]`);
-        if (element) {
-          // Update title (show/hide based on content)
+        if (!element) return;
+
+        // =====================================================
+        // BASIC TITLE/SUBTITLE UPDATES
+        // =====================================================
           if (updates.title !== undefined) {
             const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
             if (titleEl) {
               titleEl.textContent = updates.title;
-              // Show if has content, hide if empty
-              if (updates.title) {
-                titleEl.classList.remove('hidden');
-                titleEl.classList.add('mb-4');
-              } else {
-                titleEl.classList.add('hidden');
-                titleEl.classList.remove('mb-4');
-              }
-            }
+            // Support both hidden class and style.display approaches
+            titleEl.style.display = updates.title ? '' : 'none';
+            titleEl.classList.toggle('hidden', !updates.title);
           }
-          // Update subtitle (show/hide based on content)
+        }
           if (updates.subtitle !== undefined) {
             const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
             if (subtitleEl) {
               subtitleEl.textContent = updates.subtitle;
-              // Show if has content, hide if empty
-              if (updates.subtitle) {
-                subtitleEl.classList.remove('hidden');
-                subtitleEl.classList.add('mb-20');
-              } else {
-                subtitleEl.classList.add('hidden');
-                subtitleEl.classList.remove('mb-20');
-              }
-            }
+            // Support both hidden class and style.display approaches
+            subtitleEl.style.display = updates.subtitle ? '' : 'none';
+            subtitleEl.classList.toggle('hidden', !updates.subtitle);
           }
-          // Update content.buttonText
+        }
           if (updates.content?.buttonText !== undefined) {
             const btnEl = element.querySelector('[data-section-button]');
             if (btnEl) btnEl.textContent = updates.content.buttonText;
           }
           
-          // Update category visibility based on selection
+        // =====================================================
+        // HERO PREMIUM LIVE UPDATES
+        // =====================================================
+        if (updates.content?.eyebrow !== undefined) {
+          const el = element.querySelector('[data-content-eyebrow]') as HTMLElement;
+          if (el) {
+            el.textContent = updates.content.eyebrow;
+            el.style.display = updates.content.eyebrow ? '' : 'none';
+          }
+        }
+        if (updates.content?.headline !== undefined) {
+          const el = element.querySelector('[data-content-headline]') as HTMLElement;
+          if (el) el.textContent = updates.content.headline;
+        }
+        if (updates.content?.headlineAccent !== undefined) {
+          const el = element.querySelector('[data-content-headline-accent]') as HTMLElement;
+          if (el) el.textContent = updates.content.headlineAccent;
+        }
+        if (updates.content?.description !== undefined) {
+          const el = element.querySelector('[data-content-description]') as HTMLElement;
+          if (el) {
+            el.textContent = updates.content.description;
+            el.style.display = updates.content.description ? '' : 'none';
+          }
+        }
+        if (updates.content?.primaryButtonText !== undefined) {
+          const el = element.querySelector('[data-content-primary-btn]') as HTMLElement;
+          if (el) el.textContent = updates.content.primaryButtonText;
+        }
+        if (updates.content?.secondaryButtonText !== undefined) {
+          const el = element.querySelector('[data-content-secondary-btn]') as HTMLElement;
+          if (el) el.textContent = updates.content.secondaryButtonText;
+        }
+        
+        // =====================================================
+        // QUOTE BANNER LIVE UPDATES
+        // =====================================================
+        if (updates.content?.quote !== undefined) {
+          const el = element.querySelector('[data-section-quote]') as HTMLElement;
+          if (el) el.textContent = `"${updates.content.quote}"`;
+        }
+        if (updates.content?.attribution !== undefined) {
+          const el = element.querySelector('[data-section-attribution]') as HTMLElement;
+          if (el) {
+            el.textContent = updates.content.attribution;
+            el.style.display = updates.content.attribution ? '' : 'none';
+          }
+        }
+        
+        // =====================================================
+        // NEWSLETTER LIVE UPDATES
+        // =====================================================
+        if (updates.content?.placeholder !== undefined) {
+          const el = element.querySelector('[data-content-placeholder]') as HTMLInputElement;
+          if (el) el.placeholder = updates.content.placeholder;
+        }
+        
+        // =====================================================
+        // BACKGROUND IMAGE UPDATES
+        // =====================================================
+        if (updates.content?.imageUrl !== undefined) {
+          // Desktop background image
+          const bgDesktop = element.querySelector('[data-bg-desktop]') as HTMLElement;
+          if (bgDesktop) {
+            bgDesktop.style.backgroundImage = updates.content.imageUrl 
+              ? `url("${updates.content.imageUrl}")` 
+              : 'none';
+          }
+          // Hide fallback if we have media
+          const fallback = element.querySelector('[data-bg-fallback]') as HTMLElement;
+          if (fallback) {
+            fallback.style.display = updates.content.imageUrl ? 'none' : 'block';
+          }
+        }
+        if (updates.content?.mobileImageUrl !== undefined) {
+          const bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
+          if (bgMobile) {
+            const desktopUrl = (element.querySelector('[data-bg-desktop]') as HTMLElement)?.style.backgroundImage;
+            bgMobile.style.backgroundImage = updates.content.mobileImageUrl 
+              ? `url("${updates.content.mobileImageUrl}")` 
+              : desktopUrl || 'none';
+          }
+        }
+        
+        // =====================================================
+        // VIDEO URL UPDATES
+        // =====================================================
+        if (updates.content?.videoUrl !== undefined) {
+          const videoDesktop = element.querySelector('[data-video-desktop]') as HTMLVideoElement;
+          if (videoDesktop) {
+            videoDesktop.src = updates.content.videoUrl || '';
+            if (updates.content.videoUrl) {
+              videoDesktop.load();
+              videoDesktop.play().catch(() => {});
+            }
+          }
+          // Also update mobile video if no specific mobile video
+          const videoMobile = element.querySelector('[data-video-mobile]') as HTMLVideoElement;
+          if (videoMobile && !updates.content.mobileVideoUrl) {
+            videoMobile.src = updates.content.videoUrl || '';
+            if (updates.content.videoUrl) {
+              videoMobile.load();
+              videoMobile.play().catch(() => {});
+            }
+          }
+          // Hide fallback if we have media
+          const fallback = element.querySelector('[data-bg-fallback]') as HTMLElement;
+          if (fallback) {
+            fallback.style.display = updates.content.videoUrl ? 'none' : 'block';
+          }
+        }
+        if (updates.content?.mobileVideoUrl !== undefined) {
+          const videoMobile = element.querySelector('[data-video-mobile]') as HTMLVideoElement;
+          if (videoMobile) {
+            const desktopSrc = (element.querySelector('[data-video-desktop]') as HTMLVideoElement)?.src || '';
+            videoMobile.src = updates.content.mobileVideoUrl || desktopSrc;
+            if (updates.content.mobileVideoUrl || desktopSrc) {
+              videoMobile.load();
+              videoMobile.play().catch(() => {});
+            }
+          }
+        }
+        
+        // =====================================================
+        // MEDIA TYPE SWITCHING (image <-> video)
+        // =====================================================
+        if (updates.content?.mediaType !== undefined) {
+          const isVideo = updates.content.mediaType === 'video';
+          // Update data attribute
+          (element as HTMLElement).dataset.mediaType = updates.content.mediaType;
+          
+          // Show/hide image backgrounds
+          const bgDesktop = element.querySelector('[data-bg-desktop]') as HTMLElement;
+          const bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
+          if (bgDesktop) bgDesktop.classList.toggle('hidden', isVideo);
+          if (bgMobile) bgMobile.classList.toggle('hidden', isVideo);
+          
+          // Show/hide video backgrounds
+          const videoDesktop = element.querySelector('[data-video-desktop]') as HTMLElement;
+          const videoMobile = element.querySelector('[data-video-mobile]') as HTMLElement;
+          if (videoDesktop) videoDesktop.classList.toggle('hidden', !isVideo);
+          if (videoMobile) videoMobile.classList.toggle('hidden', !isVideo);
+          
+          // Play/pause videos based on type
+          if (isVideo) {
+            (videoDesktop as HTMLVideoElement)?.play().catch(() => {});
+            (videoMobile as HTMLVideoElement)?.play().catch(() => {});
+          } else {
+            (videoDesktop as HTMLVideoElement)?.pause();
+            (videoMobile as HTMLVideoElement)?.pause();
+          }
+        }
+        
+        // =====================================================
+        // SETTINGS UPDATES - Colors, heights, etc.
+        // =====================================================
+        // Background color (multiple property names)
+        if (updates.settings?.backgroundColor !== undefined) {
+          (element as HTMLElement).style.backgroundColor = updates.settings.backgroundColor as string;
+        }
+        if (updates.settings?.sectionBackground !== undefined) {
+          (element as HTMLElement).style.backgroundColor = updates.settings.sectionBackground as string;
+        }
+        
+        // Text color
+        if (updates.settings?.textColor !== undefined) {
+          const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
+          const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
+          if (titleEl) titleEl.style.color = updates.settings.textColor as string;
+          if (subtitleEl) subtitleEl.style.color = updates.settings.textColor as string;
+        }
+        
+        // Button colors
+        if (updates.settings?.buttonColor !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) btnEl.style.backgroundColor = updates.settings.buttonColor as string;
+        }
+        if (updates.settings?.buttonTextColor !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) btnEl.style.color = updates.settings.buttonTextColor as string;
+        }
+        
+        // Accent color (for series grid, hero premium, etc.)
+        if (updates.settings?.accentColor !== undefined) {
+          const accentEls = element.querySelectorAll('[data-accent-color]');
+          accentEls.forEach((el) => {
+            (el as HTMLElement).style.color = updates.settings.accentColor as string;
+          });
+          // Also update accent-colored backgrounds (underlines, etc.)
+          const accentBgEls = element.querySelectorAll('[data-accent-color-bg]');
+          accentBgEls.forEach((el) => {
+            (el as HTMLElement).style.backgroundColor = updates.settings.accentColor as string;
+          });
+        }
+        
+        // Card background (for series grid, featured items)
+        if (updates.settings?.cardBackground !== undefined) {
+          const cards = element.querySelectorAll('[data-item-id]');
+          cards.forEach((card) => {
+            (card as HTMLElement).style.backgroundColor = updates.settings.cardBackground as string;
+          });
+        }
+        
+        // Overlay opacity
+        if (updates.settings?.overlay !== undefined) {
+          const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
+          if (overlayEl) overlayEl.style.opacity = String(updates.settings.overlay);
+        }
+        
+        // Height
+        if (updates.settings?.height !== undefined) {
+          const container = element.querySelector('[data-content-container]') as HTMLElement;
+          if (container) container.style.height = updates.settings.height as string;
+        }
+        
+        // Min image height (series grid, etc.)
+        if (updates.settings?.minImageHeight !== undefined) {
+          const imgContainers = element.querySelectorAll('[data-item-id] > div:first-child');
+          imgContainers.forEach((container) => {
+            (container as HTMLElement).style.minHeight = updates.settings.minImageHeight as string;
+          });
+        }
+        
+        // Card height (series grid overlay style)
+        if (updates.settings?.cardHeight !== undefined) {
+          const contentDivs = element.querySelectorAll('[data-item-id] .relative.p-8');
+          contentDivs.forEach((div) => {
+            (div as HTMLElement).style.height = updates.settings.cardHeight as string;
+          });
+        }
+        
+        // =====================================================
+        // SERIES GRID ITEMS UPDATES
+        // =====================================================
+        if (updates.content?.items !== undefined) {
+          const items = updates.content.items as Array<{
+            id: string;
+            title?: string;
+            name?: string;
+            subtitle?: string;
+            description?: string;
+            imageUrl?: string;
+            link?: string;
+          }>;
+          items.forEach((item, index) => {
+            // Try to find item by id first, then by index
+            let itemEl = element.querySelector(`[data-item-id="${item.id}"]`) as HTMLElement;
+            if (!itemEl) {
+              const allItems = element.querySelectorAll('[data-item-id]');
+              itemEl = allItems[index] as HTMLElement;
+            }
+            if (itemEl) {
+              if (item.title !== undefined) {
+                const titleEl = itemEl.querySelector('h3') as HTMLElement;
+                if (titleEl) titleEl.textContent = item.title;
+              }
+              if (item.name !== undefined) {
+                const nameEl = itemEl.querySelector('[data-item-name]') as HTMLElement;
+                if (nameEl) nameEl.textContent = item.name;
+              }
+              if (item.subtitle !== undefined) {
+                const subEl = itemEl.querySelector('span') as HTMLElement;
+                if (subEl) subEl.textContent = item.subtitle;
+              }
+              if (item.description !== undefined) {
+                const descEl = itemEl.querySelector('p') as HTMLElement;
+                if (descEl) descEl.textContent = item.description;
+              }
+              if (item.imageUrl !== undefined) {
+                const imgContainer = itemEl.querySelector('[style*="background-image"], .bg-cover') as HTMLElement;
+                if (imgContainer) {
+                  imgContainer.style.backgroundImage = item.imageUrl ? `url("${item.imageUrl}")` : 'none';
+                }
+                const imgEl = itemEl.querySelector('img') as HTMLImageElement;
+                if (imgEl) imgEl.src = item.imageUrl || '';
+              }
+              if (item.link !== undefined) {
+                const linkEl = itemEl.closest('a') || itemEl.querySelector('a');
+                if (linkEl) (linkEl as HTMLAnchorElement).href = item.link;
+              }
+            }
+          });
+        }
+        
+        // =====================================================
+        // CATEGORY VISIBILITY UPDATES
+        // =====================================================
           if (updates.content?.categoryIds !== undefined) {
             const categoryIds = updates.content.categoryIds as string[] || [];
             const categoryElements = element.querySelectorAll('[data-category-id]');
@@ -98,11 +374,12 @@ export function EditorSectionHighlighter() {
                 catEl.classList.add('hidden');
               }
             });
-            // Update data attribute
             (element as HTMLElement).dataset.selectedCategories = categoryIds.join(',');
           }
           
-          // Update product limit visibility
+        // =====================================================
+        // PRODUCT LIMIT UPDATES
+        // =====================================================
           if (updates.content?.limit !== undefined) {
             const limit = updates.content.limit as number;
             const productElements = element.querySelectorAll('[data-product-index]');
@@ -114,8 +391,29 @@ export function EditorSectionHighlighter() {
                 prodEl.classList.add('hidden');
               }
             });
-            // Update data attribute
             (element as HTMLElement).dataset.displayLimit = String(limit);
+          }
+        
+        // =====================================================
+        // SECTION-SPECIFIC SETTINGS
+        // =====================================================
+        if (updates.settings?.showDescriptionAlways !== undefined) {
+          (element as HTMLElement).dataset.showDescriptionAlways = String(updates.settings.showDescriptionAlways);
+        }
+        if (updates.settings?.buttonText !== undefined) {
+          const btns = element.querySelectorAll('[data-card-button]');
+          btns.forEach(btn => {
+            btn.textContent = updates.settings.buttonText as string;
+          });
+        }
+        if (updates.settings?.showGradient !== undefined) {
+          const gradientOverlay = element.querySelector('[data-gradient-overlay]') as HTMLElement;
+          const bottomGradient = element.querySelector('[data-gradient-bottom]') as HTMLElement;
+          if (gradientOverlay) {
+            gradientOverlay.style.display = updates.settings.showGradient ? '' : 'none';
+          }
+          if (bottomGradient) {
+            bottomGradient.style.display = updates.settings.showGradient ? '' : 'none';
           }
         }
       }
@@ -143,7 +441,6 @@ export function EditorSectionHighlighter() {
       const target = e.currentTarget as HTMLElement;
       const sectionId = target.dataset.sectionId;
       if (sectionId) {
-        // Send message to parent (editor)
         window.parent.postMessage({
           type: 'SECTION_CLICKED',
           sectionId,
@@ -233,7 +530,5 @@ export function EditorSectionHighlighter() {
     });
   }, [selectedSection, getSectionElements]);
 
-  // This component doesn't render anything visible
   return null;
 }
-

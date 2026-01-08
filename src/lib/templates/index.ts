@@ -707,6 +707,255 @@ export const templates: Template[] = [
       },
     ],
   },
+
+  // ============================================
+  // 7. ARGANIA PREMIUM - Hair & Face Care Template
+  // ============================================
+  {
+    id: 'argania-premium',
+    name: 'Argania Premium',
+    description: 'תבנית יוקרתית לטיפוח שיער ופנים. עיצוב אלגנטי עם גוונים חמים של שמן ארגן.',
+    category: 'טיפוח',
+    previewImage: '/templates/argania-premium-preview.jpg',
+    isPro: true,
+    
+    cssVariables: {
+      '--template-primary': '#d4af37',      // Gold
+      '--template-secondary': '#f4e4d4',    // Cream
+      '--template-accent': '#b5952f',       // Gold hover
+      '--template-text': '#333333',         // Dark text
+      '--template-text-muted': '#666666',   // Muted text
+      '--template-border': '#e6d5c3',       // Nude border
+      '--template-bg': '#ffffff',           // White background
+      '--template-bg-alt': '#fdfbf7',       // Soft cream background
+      '--template-font-heading': "'Noto Sans Hebrew', sans-serif",
+      '--template-font-body': "'Noto Sans Hebrew', sans-serif",
+      '--template-radius': '8px',           // Rounded corners
+      '--template-button-style': 'filled',
+    },
+    
+    themeSettings: {
+      headerLayout: 'logo-center',
+      headerSticky: true,
+      headerTransparent: false,
+      announcementText: '✨ משלוח חינם בהזמנה מעל ₪200 | לא נבדק על בעלי חיים',
+      announcementBg: '#333333',
+      announcementColor: '#ffffff',
+    },
+    
+    sections: [
+      // Premium Hero with side gradient
+      {
+        type: 'hero_premium',
+        title: null,
+        subtitle: null,
+        content: {
+          imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920',
+          eyebrow: 'הטבע בשיא יופיו',
+          headline: 'חווית טיפוח',
+          headlineAccent: 'יוקרתית וטבעית',
+          description: 'גלי את סדרות הטיפוח המתקדמות שלנו. שילוב מדויק של שמנים אקזוטיים, טכנולוגיה חדשנית ומרקמים עשירים לתוצאות שנראות ומרגישות נפלא.',
+          primaryButtonText: 'לקטלוג המלא',
+          primaryButtonLink: '/products',
+          secondaryButtonText: 'אבחון שיער',
+          secondaryButtonLink: '/quiz',
+        },
+        settings: { 
+          height: '800px',
+          gradientDirection: 'left',
+          accentColor: '#d4af37',
+        },
+      },
+
+      // Hair Series Grid
+      {
+        type: 'series_grid',
+        title: 'סדרות טיפוח לשיער',
+        subtitle: 'המומחיות שלנו',
+        content: {
+          items: [
+            {
+              id: 'castor',
+              title: 'סדרת קיק',
+              description: 'חיזוק שורשים ועידוד צמיחה לשיער חזק ומלא חיים.',
+              imageUrl: 'https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=800',
+              link: '/category/hair-castor',
+            },
+            {
+              id: 'argan',
+              title: 'סדרת ארגן מרוקאי',
+              description: 'הזהב הנוזלי לשיקום והזנה עמוקה של שיער יבש ופגום.',
+              imageUrl: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800',
+              link: '/category/hair-argan',
+            },
+            {
+              id: 'hyaluronic-keratin',
+              title: 'חומצה היאלורונית וקרטין',
+              description: 'שיקום מולקולרי והחלקת סיב השערה לשיער מוחלק או פגום.',
+              imageUrl: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?w=800',
+              link: '/category/hair-hyaluronic-keratin',
+            },
+            {
+              id: 'hyaluronic-shea',
+              title: 'חומצה היאלורונית וחמאת שיאה',
+              description: 'לחות אינטנסיבית ורכות לשיער מתולתל ויבש.',
+              imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=800',
+              link: '/category/hair-hyaluronic-shea',
+            },
+            {
+              id: 'silver-acai',
+              title: 'סילבר אסאי',
+              description: 'נטרול גוונים צהובים ושמירה על בלונד זוהר ונקי.',
+              gradientFrom: '#5e5e8b',
+              gradientTo: '#2a2a4a',
+              icon: '💎',
+              link: '/category/hair-silver-acai',
+            },
+            {
+              id: 'buckthorn-carrot',
+              title: 'אובליפיחה וגזר',
+              description: 'הזנה עשירה בוויטמינים לשיקום וברק טבעי.',
+              gradientFrom: '#ff8c00',
+              gradientTo: '#ff4500',
+              icon: '☀️',
+              link: '/category/hair-buckthorn-carrot',
+            },
+          ],
+        },
+        settings: { 
+          columns: 3, 
+          cardHeight: '400px',
+          sectionBackground: '#ffffff',
+          accentColor: '#d4af37',
+          buttonText: 'גלי את הסדרה',
+        },
+      },
+
+      // Quote Banner
+      {
+        type: 'quote_banner',
+        title: null,
+        subtitle: null,
+        content: {
+          quote: 'היופי שלך מתחיל בבחירה טבעית',
+          attribution: 'ללא מלחים • ללא פראבנים • לא נוסה על בעלי חיים',
+          imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=1920',
+        },
+        settings: { 
+          height: '400px',
+          overlay: 0.4,
+          textStyle: 'italic',
+          parallax: true,
+        },
+      },
+
+      // Face Series Grid - Cards Style
+      {
+        type: 'series_grid',
+        title: 'סדרות טיפוח לפנים',
+        subtitle: 'חדשנות בטיפוח',
+        content: {
+          items: [
+            {
+              id: 'hydro-peptide',
+              title: 'הידרו-פפטיד',
+              subtitle: 'אנטי אייג\'ינג',
+              description: 'טכנולוגיית פפטידים מתקדמת למיצוק העור והפחתת קמטים והגנה מתמשכת.',
+              imageUrl: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=800',
+              link: '/category/face-hydro-peptide',
+            },
+            {
+              id: 'lips',
+              title: 'סדרת השפתיים',
+              subtitle: 'טיפוח שפתיים',
+              description: 'באלמים, שמנים ומסיכות לשפתיים רכות, מלאות וחושניות. מועשר בחמאת שיאה וויטמין E.',
+              imageUrl: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=800',
+              link: '/category/face-lips',
+            },
+            {
+              id: 'lifting',
+              title: 'סדרת ליפטינג',
+              subtitle: 'מיצוק ומתיחה',
+              description: 'פורמולות עשירות למיצוק ומתיחה מיידית של עור הפנים והצוואר לצמצא צעיר ורענן.',
+              imageUrl: 'https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=800',
+              link: '/category/face-lifting',
+            },
+            {
+              id: 'balance',
+              title: 'סדרת בלאנס',
+              subtitle: 'איזון וטוהר',
+              description: 'איזון רמת החומציות (pH) וטיפול בעור מעורב ושומני. ומסייע למראה נט, נקי ונטול ברק שומני.',
+              imageUrl: 'https://images.unsplash.com/photo-1617897903246-719242758050?w=800',
+              link: '/category/face-balance',
+            },
+            {
+              id: 'total',
+              title: 'סדרת טוטאל',
+              subtitle: 'הזנה מושלמת',
+              description: 'פתרון מקיף לכל צרכי העור: הזנה, הגנה ושיקום במוצר אחד לשגרת טיפוח יומיומית.',
+              imageUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=800',
+              link: '/category/face-total',
+            },
+          ],
+        },
+        settings: { 
+          style: 'cards',
+          columns: 3, 
+          layout: 'featured',
+          sectionBackground: '#fdfbf7',
+          cardBackground: '#ffffff',
+          accentColor: '#d4af37',
+          buttonText: 'לצפייה במוצרים',
+        },
+      },
+
+      // Featured Items - Our Best Sellers
+      {
+        type: 'featured_items',
+        title: 'המובילות שלנו',
+        subtitle: 'המוצרים הנמכרים ביותר',
+        content: {
+          items: [
+            {
+              id: 'best1',
+              name: 'שמן ארגן טהור',
+              imageUrl: 'https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=600',
+              link: '/products/argan-oil',
+            },
+            {
+              id: 'best2',
+              name: 'מסכת קרטין',
+              imageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=600',
+              link: '/products/keratin-mask',
+            },
+            {
+              id: 'best3',
+              name: 'סרום חומצה היאלורונית',
+              imageUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=600',
+              link: '/products/hyaluronic-serum',
+            },
+          ],
+        },
+        settings: {
+          columns: 3,
+          imageAspectRatio: 'square',
+          textAlign: 'center',
+          sectionBackground: '#ffffff',
+          hoverEffect: 'zoom',
+          imageStyle: 'rounded',
+        },
+      },
+
+      // Newsletter VIP
+      {
+        type: 'newsletter',
+        title: 'הצטרפי למועדון Argania VIP',
+        subtitle: 'קבלי 10% הנחה על הקנייה הראשונה, טיפים לטיפוח ועדכונים לפני כולם.',
+        content: { buttonText: 'אני רוצה להצטרף', placeholder: 'כתובת המייל שלך' },
+        settings: { maxWidth: 'md', backgroundColor: '#f4e4d4' },
+      },
+    ],
+  },
 ];
 
 // ============================================

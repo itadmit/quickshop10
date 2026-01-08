@@ -15,3 +15,8 @@ export { GallerySection } from './gallery-section';
 export { TextBlockSection } from './text-block-section';
 export { LogosSection } from './logos-section';
 export { FAQSection } from './faq-section';
+export { HeroSliderSection } from './hero-slider-section';
+export { SeriesGridSection } from './series-grid-section';
+export { QuoteBannerSection } from './quote-banner-section';
+export { HeroPremiumSection } from './hero-premium-section';
+export { FeaturedItemsSection } from './featured-items-section';

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { MediaPickerModal, type MediaItem } from '@/components/admin/media-picker-modal';
 
 // ============================================
 // Section Settings - Right Panel (Shopify Style) - עברית
@@ -566,6 +567,19 @@ function ContentSettings({
       {section.type === 'faq' && (
         <FAQContentSettings section={section} onUpdate={onUpdate} />
       )}
+      {/* Argania Premium section types */}
+      {section.type === 'hero_premium' && (
+        <HeroPremiumContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
+      {section.type === 'series_grid' && (
+        <SeriesGridContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
+      {section.type === 'quote_banner' && (
+        <QuoteBannerContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
+      {section.type === 'featured_items' && (
+        <FeaturedItemsContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
+      )}
     </div>
   );
 }
@@ -934,22 +948,49 @@ function NewsletterContentSettings({ section, onUpdate }: { section: Section; on
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
 
   return (
-    <SettingsGroup title="טופס">
-      <TextField
-        label="טקסט placeholder"
-        value={(section.content.placeholder as string) || ''}
-        onChange={(v) => updateContent('placeholder', v)}
-        placeholder="כתובת אימייל"
-      />
-      <TextField
-        label="טקסט כפתור"
-        value={(section.content.buttonText as string) || ''}
-        onChange={(v) => updateContent('buttonText', v)}
-        placeholder="הרשמה"
-      />
-    </SettingsGroup>
+    <>
+      <SettingsGroup title="טופס">
+        <TextField
+          label="טקסט placeholder"
+          value={(section.content.placeholder as string) || ''}
+          onChange={(v) => updateContent('placeholder', v)}
+          placeholder="כתובת אימייל"
+        />
+        <TextField
+          label="טקסט כפתור"
+          value={(section.content.buttonText as string) || ''}
+          onChange={(v) => updateContent('buttonText', v)}
+          placeholder="הרשמה"
+        />
+      </SettingsGroup>
+      <SettingsGroup title="עיצוב">
+        <ColorField
+          label="צבע רקע"
+          value={(section.settings.backgroundColor as string) || '#f9fafb'}
+          onChange={(v) => updateSettings('backgroundColor', v)}
+        />
+        <ColorField
+          label="צבע טקסט"
+          value={(section.settings.textColor as string) || '#000000'}
+          onChange={(v) => updateSettings('textColor', v)}
+        />
+        <ColorField
+          label="צבע כפתור"
+          value={(section.settings.buttonColor as string) || '#000000'}
+          onChange={(v) => updateSettings('buttonColor', v)}
+        />
+        <ColorField
+          label="צבע טקסט כפתור"
+          value={(section.settings.buttonTextColor as string) || '#ffffff'}
+          onChange={(v) => updateSettings('buttonTextColor', v)}
+        />
+      </SettingsGroup>
+    </>
   );
 }
 
@@ -1621,6 +1662,661 @@ function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate:
 }
 
 // =====================================================
+// ARGANIA PREMIUM SECTION SETTINGS
+// =====================================================
+
+// Hero Premium Content Settings
+function HeroPremiumContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  const hasVideo = !!(section.content.videoUrl as string);
+
+  return (
+    <>
+      <SettingsGroup title="וידאו רקע (דורס תמונה)">
+        <TextField
+          label="כתובת וידאו (דסקטופ)"
+          value={(section.content.videoUrl as string) || ''}
+          onChange={(v) => updateContent('videoUrl', v)}
+          placeholder="https://example.com/video.mp4"
+        />
+        <TextField
+          label="כתובת וידאו (מובייל)"
+          value={(section.content.mobileVideoUrl as string) || ''}
+          onChange={(v) => updateContent('mobileVideoUrl', v)}
+          placeholder="אופציונלי - יוצג במקום הדסקטופ במובייל"
+        />
+        {hasVideo && (
+          <>
+            <SwitchField
+              label="הפעלה אוטומטית"
+              value={(section.settings.videoAutoplay as boolean) !== false}
+              onChange={(v) => updateSettings('videoAutoplay', v)}
+            />
+            <SwitchField
+              label="השתק"
+              value={(section.settings.videoMuted as boolean) !== false}
+              onChange={(v) => updateSettings('videoMuted', v)}
+            />
+            <SwitchField
+              label="לופ (חזרה)"
+              value={(section.settings.videoLoop as boolean) !== false}
+              onChange={(v) => updateSettings('videoLoop', v)}
+            />
+            <SwitchField
+              label="הצג פקדים"
+              value={(section.settings.videoControls as boolean) || false}
+              onChange={(v) => updateSettings('videoControls', v)}
+            />
+          </>
+        )}
+      </SettingsGroup>
+      <SettingsGroup title="תמונת רקע - מחשב">
+        <ImageField
+          label="תמונה (דסקטופ)"
+          value={(section.content.imageUrl as string) || ''}
+          onChange={(v) => updateContent('imageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
+          hint={hasVideo ? "לא בשימוש - וידאו מוגדר" : "מומלץ: 1920x1080 או גדול יותר"}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="תמונת רקע - מובייל">
+        <ImageField
+          label="תמונה (מובייל)"
+          value={(section.content.mobileImageUrl as string) || ''}
+          onChange={(v) => updateContent('mobileImageUrl', v)}
+          storeId={storeInfo?.id}
+          storeSlug={storeInfo?.slug}
+          hint={hasVideo ? "לא בשימוש - וידאו מוגדר" : "מומלץ: 750x1334 (אופציונלי)"}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="טקסט">
+        <TextField
+          label="אייברו (טקסט קטן)"
+          value={(section.content.eyebrow as string) || ''}
+          onChange={(v) => updateContent('eyebrow', v)}
+          placeholder="הטבע בשיא יופיו"
+        />
+        <TextField
+          label="כותרת ראשית"
+          value={(section.content.headline as string) || ''}
+          onChange={(v) => updateContent('headline', v)}
+          placeholder="חווית טיפוח"
+        />
+        <TextField
+          label="כותרת מודגשת"
+          value={(section.content.headlineAccent as string) || ''}
+          onChange={(v) => updateContent('headlineAccent', v)}
+          placeholder="יוקרתית וטבעית"
+        />
+        <TextAreaField
+          label="תיאור"
+          value={(section.content.description as string) || ''}
+          onChange={(v) => updateContent('description', v)}
+          placeholder="גלי את סדרות הטיפוח המתקדמות שלנו..."
+        />
+      </SettingsGroup>
+      <SettingsGroup title="כפתור ראשי">
+        <TextField
+          label="טקסט"
+          value={(section.content.primaryButtonText as string) || ''}
+          onChange={(v) => updateContent('primaryButtonText', v)}
+          placeholder="לקטלוג המלא"
+        />
+        <TextField
+          label="קישור"
+          value={(section.content.primaryButtonLink as string) || ''}
+          onChange={(v) => updateContent('primaryButtonLink', v)}
+          placeholder="/products"
+        />
+        <SelectField
+          label="סגנון"
+          value={(section.content.primaryButtonStyle as string) || 'filled'}
+          options={[
+            { value: 'filled', label: 'מלא' },
+            { value: 'outline', label: 'מסגרת' },
+          ]}
+          onChange={(v) => updateContent('primaryButtonStyle', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="כפתור משני">
+        <TextField
+          label="טקסט"
+          value={(section.content.secondaryButtonText as string) || ''}
+          onChange={(v) => updateContent('secondaryButtonText', v)}
+          placeholder="אבחון שיער"
+        />
+        <TextField
+          label="קישור"
+          value={(section.content.secondaryButtonLink as string) || ''}
+          onChange={(v) => updateContent('secondaryButtonLink', v)}
+          placeholder="/quiz"
+        />
+        <SelectField
+          label="סגנון"
+          value={(section.content.secondaryButtonStyle as string) || 'outline'}
+          options={[
+            { value: 'filled', label: 'מלא' },
+            { value: 'outline', label: 'מסגרת' },
+          ]}
+          onChange={(v) => updateContent('secondaryButtonStyle', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="הגדרות תצוגה">
+        <TextField
+          label="גובה (מחשב)"
+          value={(section.settings.height as string) || '800px'}
+          onChange={(v) => updateSettings('height', v)}
+          placeholder="800px"
+        />
+        <TextField
+          label="גובה (מובייל)"
+          value={(section.settings.mobileHeight as string) || '600px'}
+          onChange={(v) => updateSettings('mobileHeight', v)}
+          placeholder="600px"
+        />
+        <SwitchField
+          label="הצג גרדיאנט"
+          description="שכבה לבנבנה שעוזרת לקריאות הטקסט"
+          value={(section.settings.showGradient as boolean) !== false}
+          onChange={(v) => updateSettings('showGradient', v)}
+        />
+        {(section.settings.showGradient as boolean) !== false && (
+          <SelectField
+            label="כיוון גרדיאנט"
+            value={(section.settings.gradientDirection as string) || 'left'}
+            options={[
+              { value: 'left', label: 'משמאל (תוכן מימין)' },
+              { value: 'right', label: 'מימין (תוכן משמאל)' },
+              { value: 'center', label: 'מרכז' },
+            ]}
+            onChange={(v) => updateSettings('gradientDirection', v)}
+          />
+        )}
+        <SliderField
+          label="שקיפות שכבה כהה"
+          value={Math.round(((section.settings.overlayOpacity as number) || 0.3) * 100)}
+          min={0}
+          max={80}
+          suffix="%"
+          onChange={(v) => updateSettings('overlayOpacity', v / 100)}
+        />
+        <ColorField
+          label="צבע הדגשה"
+          value={(section.settings.accentColor as string) || '#d4af37'}
+          onChange={(v) => updateSettings('accentColor', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Series Grid Content Settings (Action Cards)
+function SeriesGridContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  const items = (section.content.items as Array<{
+    id: string;
+    title: string;
+    subtitle?: string;
+    description?: string;
+    imageUrl?: string;
+    link: string;
+  }>) || [];
+
+  const updateItem = (index: number, key: string, value: string) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [key]: value };
+    updateContent('items', newItems);
+  };
+
+  const addItem = () => {
+    const newItems = [...items, {
+      id: `item-${Date.now()}`,
+      title: 'סדרה חדשה',
+      subtitle: '',
+      description: '',
+      imageUrl: '',
+      link: '/collections/new',
+    }];
+    updateContent('items', newItems);
+  };
+
+  const removeItem = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index);
+    updateContent('items', newItems);
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="סגנון"
+          value={(section.settings.style as string) || 'cards'}
+          options={[
+            { value: 'cards', label: 'כרטיסים (תמונה למעלה)' },
+            { value: 'overlay', label: 'שכבה על תמונה' },
+          ]}
+          onChange={(v) => updateSettings('style', v)}
+        />
+        <SelectField
+          label="עמודות"
+          value={String((section.settings.columns as number) || 3)}
+          options={[
+            { value: '2', label: '2' },
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+          ]}
+          onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <TextField
+          label="גובה מינימום לתמונות"
+          value={(section.settings.minImageHeight as string) || '200px'}
+          onChange={(v) => updateSettings('minImageHeight', v)}
+          placeholder="200px"
+        />
+        <SelectField
+          label="יחס תמונה"
+          value={(section.settings.imageAspectRatio as string) || 'auto'}
+          options={[
+            { value: 'auto', label: 'אוטומטי (לפי גובה מינימום)' },
+            { value: 'square', label: 'ריבוע (1:1)' },
+            { value: 'portrait', label: 'פורטרט (3:4)' },
+            { value: 'landscape', label: 'לנדסקייפ (16:9)' },
+          ]}
+          onChange={(v) => updateSettings('imageAspectRatio', v)}
+        />
+        <TextField
+          label="טקסט כפתור"
+          value={(section.settings.buttonText as string) || 'לצפייה במוצרים'}
+          onChange={(v) => updateSettings('buttonText', v)}
+          placeholder="לצפייה במוצרים"
+        />
+        <SwitchField
+          label="הצג תיאור תמיד"
+          description="בסגנון 'שכבה על תמונה' - התיאור יוצג תמיד ולא רק בהעברת עכבר"
+          value={(section.settings.showDescriptionAlways as boolean) || false}
+          onChange={(v) => updateSettings('showDescriptionAlways', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="צבעים">
+        <ColorField
+          label="רקע סקשן"
+          value={(section.settings.sectionBackground as string) || '#f9f7f4'}
+          onChange={(v) => updateSettings('sectionBackground', v)}
+        />
+        <ColorField
+          label="רקע כרטיס"
+          value={(section.settings.cardBackground as string) || '#ffffff'}
+          onChange={(v) => updateSettings('cardBackground', v)}
+        />
+        <ColorField
+          label="צבע הדגשה"
+          value={(section.settings.accentColor as string) || '#d4af37'}
+          onChange={(v) => updateSettings('accentColor', v)}
+        />
+      </SettingsGroup>
+      
+      {/* Items Editor */}
+      <div className="border-t border-gray-100 pt-4 mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">כרטיסים ({items.length})</h4>
+          <button
+            onClick={addItem}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            + הוסף כרטיס
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <CollapsibleGroup 
+              key={item.id} 
+              title={item.title || `כרטיס ${index + 1}`}
+              defaultOpen={index === 0}
+            >
+              <div className="space-y-3 pt-2">
+                <ImageField
+                  label="תמונה"
+                  value={item.imageUrl || ''}
+                  onChange={(v) => updateItem(index, 'imageUrl', v)}
+                  storeId={storeInfo?.id}
+                  storeSlug={storeInfo?.slug}
+                />
+                <TextField
+                  label="כותרת"
+                  value={item.title || ''}
+                  onChange={(v) => updateItem(index, 'title', v)}
+                  placeholder="שם הסדרה"
+                />
+                <TextField
+                  label="תת-כותרת (אייברו)"
+                  value={item.subtitle || ''}
+                  onChange={(v) => updateItem(index, 'subtitle', v)}
+                  placeholder="קטגוריה"
+                />
+                <TextAreaField
+                  label="תיאור"
+                  value={item.description || ''}
+                  onChange={(v) => updateItem(index, 'description', v)}
+                  placeholder="תיאור קצר..."
+                />
+                <TextField
+                  label="קישור"
+                  value={item.link || ''}
+                  onChange={(v) => updateItem(index, 'link', v)}
+                  placeholder="/collections/series-name"
+                />
+                <button
+                  onClick={() => removeItem(index)}
+                  className="text-xs text-red-600 hover:text-red-800"
+                >
+                  הסר כרטיס
+                </button>
+              </div>
+            </CollapsibleGroup>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Quote Banner Content Settings
+function QuoteBannerContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  const mediaType = (section.content.mediaType as string) || 'image';
+
+  return (
+    <>
+      <SettingsGroup title="ציטוט">
+        <TextAreaField
+          label="טקסט הציטוט"
+          value={(section.content.quote as string) || ''}
+          onChange={(v) => updateContent('quote', v)}
+          placeholder="היופי מתחיל בטבע..."
+        />
+        <TextField
+          label="מקור/חתימה"
+          value={(section.content.attribution as string) || ''}
+          onChange={(v) => updateContent('attribution', v)}
+          placeholder="צוות Argania"
+        />
+      </SettingsGroup>
+      <SettingsGroup title="סוג מדיה">
+        <SelectField
+          label="סוג רקע"
+          value={mediaType}
+          options={[
+            { value: 'image', label: 'תמונה' },
+            { value: 'video', label: 'וידאו' },
+          ]}
+          onChange={(v) => updateContent('mediaType', v)}
+        />
+      </SettingsGroup>
+      
+      {mediaType === 'image' ? (
+        <>
+          <SettingsGroup title="תמונת רקע - מחשב">
+            <ImageField
+              label="תמונה (דסקטופ)"
+              value={(section.content.imageUrl as string) || ''}
+              onChange={(v) => updateContent('imageUrl', v)}
+              storeId={storeInfo?.id}
+              storeSlug={storeInfo?.slug}
+              hint="מומלץ: 1920x800"
+            />
+          </SettingsGroup>
+          <SettingsGroup title="תמונת רקע - מובייל">
+            <ImageField
+              label="תמונה (מובייל)"
+              value={(section.content.mobileImageUrl as string) || ''}
+              onChange={(v) => updateContent('mobileImageUrl', v)}
+              storeId={storeInfo?.id}
+              storeSlug={storeInfo?.slug}
+              hint="אופציונלי - אם ריק תוצג תמונת המחשב"
+            />
+          </SettingsGroup>
+        </>
+      ) : (
+        <>
+          <SettingsGroup title="וידאו רקע - מחשב">
+            <TextField
+              label="קישור וידאו (דסקטופ)"
+              value={(section.content.videoUrl as string) || ''}
+              onChange={(v) => updateContent('videoUrl', v)}
+              placeholder="https://..."
+            />
+          </SettingsGroup>
+          <SettingsGroup title="וידאו רקע - מובייל">
+            <TextField
+              label="קישור וידאו (מובייל)"
+              value={(section.content.mobileVideoUrl as string) || ''}
+              onChange={(v) => updateContent('mobileVideoUrl', v)}
+              placeholder="אופציונלי"
+            />
+          </SettingsGroup>
+        </>
+      )}
+      
+      <SettingsGroup title="הגדרות תצוגה">
+        <TextField
+          label="גובה (מחשב)"
+          value={(section.settings.height as string) || '400px'}
+          onChange={(v) => updateSettings('height', v)}
+          placeholder="400px"
+        />
+        <TextField
+          label="גובה (מובייל)"
+          value={(section.settings.mobileHeight as string) || '350px'}
+          onChange={(v) => updateSettings('mobileHeight', v)}
+          placeholder="350px"
+        />
+        <SliderField
+          label="שקיפות שכבה כהה"
+          value={Math.round(((section.settings.overlay as number) || 0.4) * 100)}
+          min={0}
+          max={90}
+          suffix="%"
+          onChange={(v) => updateSettings('overlay', v / 100)}
+        />
+        <SelectField
+          label="סגנון טקסט"
+          value={(section.settings.textStyle as string) || 'italic'}
+          options={[
+            { value: 'italic', label: 'איטליק (סריף)' },
+            { value: 'serif', label: 'סריף רגיל' },
+            { value: 'sans', label: 'סאנס' },
+          ]}
+          onChange={(v) => updateSettings('textStyle', v)}
+        />
+        <SwitchField
+          label="אפקט פרלקס"
+          value={(section.settings.parallax as boolean) !== false}
+          onChange={(v) => updateSettings('parallax', v)}
+        />
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Featured Items Content Settings (Simple Image + Name Cards)
+function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  const updateSettings = (key: string, value: unknown) => {
+    onUpdate({ settings: { ...section.settings, [key]: value } });
+  };
+
+  const items = (section.content.items as Array<{
+    id: string;
+    name: string;
+    imageUrl?: string;
+    link: string;
+  }>) || [];
+
+  const updateItem = (index: number, key: string, value: string) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [key]: value };
+    updateContent('items', newItems);
+  };
+
+  const addItem = () => {
+    const newItems = [...items, {
+      id: `item-${Date.now()}`,
+      name: 'פריט חדש',
+      imageUrl: '',
+      link: '/products/new',
+    }];
+    updateContent('items', newItems);
+  };
+
+  const removeItem = (index: number) => {
+    const newItems = items.filter((_, i) => i !== index);
+    updateContent('items', newItems);
+  };
+
+  return (
+    <>
+      <SettingsGroup title="הגדרות תצוגה">
+        <SelectField
+          label="עמודות"
+          value={String((section.settings.columns as number) || 3)}
+          options={[
+            { value: '2', label: '2' },
+            { value: '3', label: '3' },
+            { value: '4', label: '4' },
+          ]}
+          onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <SelectField
+          label="יחס תמונה"
+          value={(section.settings.imageAspectRatio as string) || 'square'}
+          options={[
+            { value: 'square', label: 'ריבוע (1:1)' },
+            { value: 'portrait', label: 'פורטרט (3:4)' },
+            { value: 'landscape', label: 'לנדסקייפ (16:9)' },
+          ]}
+          onChange={(v) => updateSettings('imageAspectRatio', v)}
+        />
+        <SelectField
+          label="יישור טקסט"
+          value={(section.settings.textAlign as string) || 'center'}
+          options={[
+            { value: 'right', label: 'ימין' },
+            { value: 'center', label: 'מרכז' },
+            { value: 'left', label: 'שמאל' },
+          ]}
+          onChange={(v) => updateSettings('textAlign', v)}
+        />
+        <SelectField
+          label="אפקט ריחוף"
+          value={(section.settings.hoverEffect as string) || 'zoom'}
+          options={[
+            { value: 'zoom', label: 'זום' },
+            { value: 'lift', label: 'הרמה' },
+            { value: 'none', label: 'ללא' },
+          ]}
+          onChange={(v) => updateSettings('hoverEffect', v)}
+        />
+        <SelectField
+          label="סגנון תמונה"
+          value={(section.settings.imageStyle as string) || 'rounded'}
+          options={[
+            { value: 'rounded', label: 'מעוגל' },
+            { value: 'square', label: 'ריבוע' },
+            { value: 'circle', label: 'עיגול' },
+          ]}
+          onChange={(v) => updateSettings('imageStyle', v)}
+        />
+      </SettingsGroup>
+      <SettingsGroup title="צבעים">
+        <ColorField
+          label="רקע סקשן"
+          value={(section.settings.sectionBackground as string) || '#ffffff'}
+          onChange={(v) => updateSettings('sectionBackground', v)}
+        />
+        <ColorField
+          label="צבע טקסט"
+          value={(section.settings.textColor as string) || '#1f2937'}
+          onChange={(v) => updateSettings('textColor', v)}
+        />
+      </SettingsGroup>
+      
+      {/* Items Editor */}
+      <div className="border-t border-gray-100 pt-4 mt-4">
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">פריטים ({items.length})</h4>
+          <button
+            onClick={addItem}
+            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+          >
+            + הוסף פריט
+          </button>
+        </div>
+        
+        <div className="space-y-4">
+          {items.map((item, index) => (
+            <CollapsibleGroup 
+              key={item.id} 
+              title={item.name || `פריט ${index + 1}`}
+              defaultOpen={index === 0}
+            >
+              <div className="space-y-3 pt-2">
+                <ImageField
+                  label="תמונה"
+                  value={item.imageUrl || ''}
+                  onChange={(v) => updateItem(index, 'imageUrl', v)}
+                  storeId={storeInfo?.id}
+                  storeSlug={storeInfo?.slug}
+                />
+                <TextField
+                  label="שם"
+                  value={item.name || ''}
+                  onChange={(v) => updateItem(index, 'name', v)}
+                  placeholder="שם הפריט"
+                />
+                <TextField
+                  label="קישור"
+                  value={item.link || ''}
+                  onChange={(v) => updateItem(index, 'link', v)}
+                  placeholder="/products/item-name"
+                />
+                <button
+                  onClick={() => removeItem(index)}
+                  className="text-xs text-red-600 hover:text-red-800"
+                >
+                  הסר פריט
+                </button>
+              </div>
+            </CollapsibleGroup>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// =====================================================
 // UI Components
 // =====================================================
 
@@ -1919,59 +2615,18 @@ function ImageField({
   storeSlug?: string;
   hint?: string;
 }) {
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('יש להעלות קובץ תמונה בלבד');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      alert('גודל הקובץ המקסימלי הוא 10MB');
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      if (storeSlug) formData.append('folder', `quickshop/stores/${storeSlug}`);
-      if (storeId) formData.append('storeId', storeId);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Upload failed');
-
-      const result = await response.json();
-      onChange(result.secure_url);
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('שגיאה בהעלאת הקובץ');
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+  const handleSelect = (items: MediaItem[]) => {
+    if (items.length > 0) {
+      onChange(items[0].url);
     }
   };
 
   return (
     <div>
       <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept="image/*"
-        className="hidden"
-      />
+      
       {value ? (
         <div className="relative group">
           <img
@@ -1981,7 +2636,7 @@ function ImageField({
           />
           <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setIsMediaPickerOpen(true)}
               className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
               title="החלף"
             >
@@ -1998,21 +2653,28 @@ function ImageField({
         </div>
       ) : (
         <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="w-full h-28 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors cursor-pointer disabled:opacity-50"
+          onClick={() => setIsMediaPickerOpen(true)}
+          className="w-full h-28 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors cursor-pointer"
         >
-          {isUploading ? (
-            <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
-          ) : (
-            <>
-              <UploadIcon />
-              <span className="text-xs text-gray-500 mt-2">בחר תמונה</span>
-            </>
-          )}
+          <UploadIcon />
+          <span className="text-xs text-gray-500 mt-2">בחר תמונה</span>
         </button>
       )}
+      
       {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+
+      {/* Media Picker Modal */}
+      {storeId && storeSlug && (
+        <MediaPickerModal
+          isOpen={isMediaPickerOpen}
+          onClose={() => setIsMediaPickerOpen(false)}
+          onSelect={handleSelect}
+          storeId={storeId}
+          storeSlug={storeSlug}
+          multiple={false}
+          maxSelect={1}
+        />
+      )}
     </div>
   );
 }

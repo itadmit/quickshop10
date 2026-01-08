@@ -5,6 +5,7 @@ interface HeroSectionProps {
   subtitle: string | null;
   content: {
     imageUrl?: string;
+    mobileImageUrl?: string;
     buttonText?: string;
     buttonLink?: string;
   };
@@ -27,43 +28,54 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
       data-section-name="באנר ראשי"
     >
       <div className="absolute inset-0">
-        {content.imageUrl && (
-          <img 
-            src={content.imageUrl}
-            alt={title || 'Hero'}
-            className="w-full h-full object-cover object-center"
-          />
-        )}
-        <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${overlay})` }} />
+        {/* Desktop Image - always rendered for live editor */}
+        <div 
+          className={`absolute inset-0 bg-cover bg-center ${content.mobileImageUrl ? 'hidden md:block' : ''}`}
+          style={{ backgroundImage: content.imageUrl ? `url("${content.imageUrl}")` : 'none' }}
+          data-bg-desktop
+        />
+        {/* Mobile Image - always rendered */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center md:hidden"
+          style={{ backgroundImage: content.mobileImageUrl ? `url("${content.mobileImageUrl}")` : (content.imageUrl ? `url("${content.imageUrl}")` : 'none') }}
+          data-bg-mobile
+        />
+        {/* Overlay */}
+        <div 
+          className="absolute inset-0" 
+          style={{ backgroundColor: `rgba(0,0,0,${overlay})` }}
+          data-overlay
+        />
       </div>
       
       <div className="relative z-10 h-full flex flex-col items-center justify-end text-center px-6 pb-24">
-        {title && (
-          <h1 
-            className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"
-            data-section-title
-          >
-            {title}
-          </h1>
-        )}
-        {subtitle && (
-          <p 
-            className="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12 animate-slide-up"
-            data-section-subtitle
-          >
-            {subtitle}
-          </p>
-        )}
-        {content.buttonText && content.buttonLink && (
-          <Link 
-            href={content.buttonLink.startsWith('/') ? `${basePath}${content.buttonLink}` : content.buttonLink}
-            className="btn-secondary !bg-transparent !text-white !border-white hover:!bg-white hover:!text-black animate-slide-up"
-            style={{ animationDelay: '200ms' }}
-            data-section-button
-          >
-            {content.buttonText}
-          </Link>
-        )}
+        {/* Title - always rendered, hidden when empty */}
+        <h1 
+          className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"
+          style={{ display: title ? '' : 'none' }}
+          data-section-title
+        >
+          {title || ''}
+        </h1>
+        
+        {/* Subtitle - always rendered, hidden when empty */}
+        <p 
+          className="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12 animate-slide-up"
+          style={{ display: subtitle ? '' : 'none' }}
+          data-section-subtitle
+        >
+          {subtitle || ''}
+        </p>
+        
+        {/* Button - always rendered, hidden when no text/link */}
+        <Link 
+          href={content.buttonLink?.startsWith('/') ? `${basePath}${content.buttonLink}` : content.buttonLink || '#'}
+          className="btn-secondary !bg-transparent !text-white !border-white hover:!bg-white hover:!text-black animate-slide-up"
+          style={{ animationDelay: '200ms', display: (content.buttonText && content.buttonLink) ? '' : 'none' }}
+          data-section-button
+        >
+          {content.buttonText || ''}
+        </Link>
       </div>
       
       {/* Scroll indicator */}
@@ -75,5 +87,3 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
     </section>
   );
 }
-
-

@@ -15,6 +15,11 @@ import {
   TextBlockSection,
   LogosSection,
   FAQSection,
+  HeroSliderSection,
+  SeriesGridSection,
+  QuoteBannerSection,
+  HeroPremiumSection,
+  FeaturedItemsSection,
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
@@ -201,7 +206,13 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { placeholder?: string; buttonText?: string }}
-            settings={settings as { maxWidth?: string }}
+            settings={settings as { 
+              maxWidth?: string;
+              backgroundColor?: string;
+              textColor?: string;
+              buttonColor?: string;
+              buttonTextColor?: string;
+            }}
             sectionId={section.id}
           />
         );
@@ -306,6 +317,166 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             subtitle={section.subtitle}
             content={content as { items?: Array<{ id: string; question: string; answer: string }> }}
             settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl'; backgroundColor?: string; style?: 'accordion' | 'cards' | 'simple' }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'hero_slider':
+        sectionElement = (
+          <HeroSliderSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { 
+              slides?: Array<{ 
+                id: string; 
+                imageUrl: string; 
+                title?: string; 
+                subtitle?: string; 
+                buttonText?: string; 
+                buttonLink?: string;
+                textPosition?: 'center' | 'bottom-center' | 'bottom-right' | 'bottom-left';
+              }>;
+              autoPlay?: boolean;
+              interval?: number;
+            }}
+            settings={settings as { 
+              height?: string; 
+              overlay?: number; 
+              showDots?: boolean; 
+              showArrows?: boolean;
+              textStyle?: 'elegant' | 'bold' | 'minimal';
+            }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'series_grid':
+        sectionElement = (
+          <SeriesGridSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { 
+              items: Array<{ 
+                id: string; 
+                title: string; 
+                subtitle?: string;
+                description?: string; 
+                imageUrl?: string;
+                gradientFrom?: string;
+                gradientTo?: string;
+                icon?: string;
+                link: string;
+              }>;
+            }}
+            settings={settings as { 
+              style?: 'overlay' | 'cards';
+              columns?: 2 | 3 | 4; 
+              layout?: 'uniform' | 'featured';
+              cardHeight?: string;
+              minImageHeight?: string;
+              imageAspectRatio?: 'square' | 'portrait' | 'landscape' | 'auto';
+              sectionBackground?: string;
+              cardBackground?: string;
+              accentColor?: string;
+              buttonText?: string;
+            }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'quote_banner':
+        sectionElement = (
+          <QuoteBannerSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { 
+              quote: string;
+              attribution?: string;
+              imageUrl?: string;
+              mobileImageUrl?: string;
+              videoUrl?: string;
+              mobileVideoUrl?: string;
+              mediaType?: 'image' | 'video';
+            }}
+            settings={settings as { 
+              height?: string;
+              mobileHeight?: string;
+              overlay?: number;
+              textStyle?: 'serif' | 'sans' | 'italic';
+              parallax?: boolean;
+            }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'hero_premium':
+        sectionElement = (
+          <HeroPremiumSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { 
+              imageUrl?: string;
+              mobileImageUrl?: string;
+              videoUrl?: string;
+              mobileVideoUrl?: string;
+              eyebrow?: string;
+              headline?: string;
+              headlineAccent?: string;
+              description?: string;
+              primaryButtonText?: string;
+              primaryButtonLink?: string;
+              primaryButtonStyle?: 'filled' | 'outline';
+              secondaryButtonText?: string;
+              secondaryButtonLink?: string;
+              secondaryButtonStyle?: 'filled' | 'outline';
+            }}
+            settings={settings as { 
+              height?: string;
+              mobileHeight?: string;
+              gradientDirection?: 'left' | 'right' | 'center';
+              accentColor?: string;
+              overlayOpacity?: number;
+              videoAutoplay?: boolean;
+              videoMuted?: boolean;
+              videoLoop?: boolean;
+              videoControls?: boolean;
+            }}
+            basePath={basePath}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'featured_items':
+        sectionElement = (
+          <FeaturedItemsSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { 
+              items: Array<{ 
+                id: string; 
+                name: string; 
+                imageUrl?: string;
+                link: string;
+              }>;
+            }}
+            settings={settings as { 
+              columns?: 2 | 3 | 4;
+              imageAspectRatio?: 'square' | 'portrait' | 'landscape';
+              textAlign?: 'right' | 'center' | 'left';
+              sectionBackground?: string;
+              cardBackground?: string;
+              textColor?: string;
+              hoverEffect?: 'zoom' | 'lift' | 'none';
+              imageStyle?: 'rounded' | 'square' | 'circle';
+            }}
+            basePath={basePath}
             sectionId={section.id}
           />
         );

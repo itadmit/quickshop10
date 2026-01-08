@@ -78,7 +78,13 @@ export const sectionTypeEnum = pgEnum('section_type', [
   'gallery',        // גלריית תמונות
   'text_block',     // בלוק טקסט עשיר
   'logos',          // לוגואים של מותגים/שותפים
-  'faq'             // שאלות נפוצות
+  'faq',            // שאלות נפוצות
+  // Argania Premium sections
+  'hero_slider',    // סליידר הירו עם scroll-snap
+  'hero_premium',   // הירו פרימיום עם גרדיאנט
+  'series_grid',    // גריד סדרות מוצרים
+  'quote_banner',   // באנר ציטוט עם פרלקס
+  'featured_items'  // פריטים מובילים - תמונה + שם + לינק
 ]);
 
 export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [

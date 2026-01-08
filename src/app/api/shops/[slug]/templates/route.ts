@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { templates, getTemplateById } from '@/lib/templates';
 import { getStoreBySlug, updatePageSections } from '@/lib/db/queries';
 import { db } from '@/lib/db';
@@ -95,6 +96,11 @@ export async function POST(
       // Delete existing sections and insert new ones
       await updatePageSections(store.id, 'home', sections);
     }
+
+    // CRITICAL: Revalidate cache so changes are visible immediately
+    // Without this, old template sections would still show from cache
+    revalidatePath(`/shops/${slug}`);
+    revalidatePath(`/shops/${slug}/editor`);
 
     return NextResponse.json({
       success: true,

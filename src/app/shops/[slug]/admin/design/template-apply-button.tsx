@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 
 interface TemplateApplyButtonProps {
   templateId: string;
@@ -26,9 +25,9 @@ export function TemplateApplyButton({
   storeSlug, 
   isActive 
 }: TemplateApplyButtonProps) {
-  const router = useRouter();
   const [isApplying, setIsApplying] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [applyStatus, setApplyStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   if (isActive) {
     return (
@@ -43,6 +42,7 @@ export function TemplateApplyButton({
 
   const handleApply = async () => {
     setIsApplying(true);
+    setApplyStatus('idle');
     try {
       const response = await fetch(`/api/shops/${storeSlug}/templates`, {
         method: 'POST',
@@ -55,11 +55,18 @@ export function TemplateApplyButton({
       });
 
       if (response.ok) {
-        router.refresh();
-        setShowPreview(false);
+        setApplyStatus('success');
+        // Show success state briefly before doing full page reload
+        // Using window.location.reload() to ensure all caches are cleared
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setApplyStatus('error');
       }
     } catch (error) {
       console.error('Error applying template:', error);
+      setApplyStatus('error');
     } finally {
       setIsApplying(false);
     }
@@ -152,19 +159,44 @@ export function TemplateApplyButton({
               </div>
               
               <div className="flex items-center gap-3">
-                <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700">
-                  ⚠️ החלה תחליף את העיצוב הנוכחי
-                </div>
+                {/* Status Messages */}
+                {applyStatus === 'success' && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700 flex items-center gap-2 animate-pulse">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    התבנית הוחלה בהצלחה! מעדכן...
+                  </div>
+                )}
+                {applyStatus === 'error' && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2 text-sm text-red-700 flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M15 9l-6 6M9 9l6 6" />
+                    </svg>
+                    שגיאה בהחלת התבנית
+                  </div>
+                )}
+                {applyStatus === 'idle' && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 text-xs text-amber-700">
+                    ⚠️ החלה תחליף את העיצוב הנוכחי
+                  </div>
+                )}
                 <button
                   onClick={() => setShowPreview(false)}
                   className="px-4 py-2 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors text-sm font-medium"
+                  disabled={applyStatus === 'success'}
                 >
                   ביטול
                 </button>
                 <button
                   onClick={handleApply}
-                  disabled={isApplying}
-                  className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-2"
+                  disabled={isApplying || applyStatus === 'success'}
+                  className={`px-6 py-2 rounded-lg transition-colors text-sm font-medium disabled:opacity-50 flex items-center gap-2 ${
+                    applyStatus === 'success' 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-black text-white hover:bg-gray-800'
+                  }`}
                 >
                   {isApplying ? (
                     <>
@@ -173,6 +205,13 @@ export function TemplateApplyButton({
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                       </svg>
                       מחיל...
+                    </>
+                  ) : applyStatus === 'success' ? (
+                    <>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                      הוחל!
                     </>
                   ) : (
                     'החל תבנית'
