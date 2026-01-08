@@ -229,7 +229,7 @@ export function CheckoutForm({
           couponCode,
           cartTotal,
           undefined, // email
-          cart.map(item => ({ productId: item.productId, categoryId: undefined, quantity: item.quantity }))
+          cart.map(item => ({ productId: item.productId, quantity: item.quantity }))
         );
         
         if (result.success && result.coupon) {
@@ -1513,7 +1513,6 @@ export function CheckoutForm({
               email={formData.email}
               cartItems={cart.map(item => ({
                 productId: item.productId,
-                categoryId: undefined, // TODO: צריך להוסיף categoryId ל-cart items
                 quantity: item.quantity,
               }))}
               onTriggeredGiftCoupons={(giftCoupons) => {
@@ -1565,7 +1564,14 @@ export function CheckoutForm({
                         <p className="text-xs text-gray-500">{item.variantTitle}</p>
                       )}
                       <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
-                      <p className="text-sm">{formatPrice(item.price * item.quantity)}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm">{formatPrice(item.price * item.quantity)}</p>
+                        {item.automaticDiscountName && (
+                          <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                            {item.automaticDiscountName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}

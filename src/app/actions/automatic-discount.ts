@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { automaticDiscounts, customers } from '@/lib/db/schema';
-import { eq, and, or, lte, gte, isNull } from 'drizzle-orm';
+import { automaticDiscounts, customers, productCategories } from '@/lib/db/schema';
+import { eq, and, or, lte, gte, isNull, inArray } from 'drizzle-orm';
 
 // Types for automatic discounts (compatible with old discount-utils)
 export type AutomaticDiscountResult = {
@@ -62,6 +62,25 @@ export async function getAutomaticDiscounts(
     ))
     .orderBy(automaticDiscounts.priority);
 
+  // 🚀 אם יש הנחות לפי קטגוריה, נביא את הקטגוריות של המוצרים מראש (batch)
+  const hasCategoryDiscount = discounts.some(d => d.appliesTo === 'category');
+  let productCategoriesMap = new Map<string, string[]>();
+  
+  if (hasCategoryDiscount) {
+    const productIds = cartItems.map(item => item.productId);
+    const categoriesData = await db
+      .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
+      .from(productCategories)
+      .where(inArray(productCategories.productId, productIds));
+    
+    for (const pc of categoriesData) {
+      if (!productCategoriesMap.has(pc.productId)) {
+        productCategoriesMap.set(pc.productId, []);
+      }
+      productCategoriesMap.get(pc.productId)!.push(pc.categoryId);
+    }
+  }
+
   const applicableDiscounts: AutomaticDiscountResult[] = [];
 
   for (const discount of discounts) {
@@ -80,12 +99,17 @@ export async function getAutomaticDiscounts(
 
     // פונקציה עזר לבדיקת התאמת פריט להנחה
     const doesItemMatch = (item: CartItemForDiscount) => {
+      // קבלת קטגוריות המוצר - מהפרמטר או מה-DB
+      const itemCategoryIds = item.categoryId 
+        ? [item.categoryId] 
+        : (productCategoriesMap.get(item.productId) || []);
+      
       // בדיקת החרגות
       const excludeProductIds = (discount.excludeProductIds as string[]) || [];
       const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
       
       if (excludeProductIds.includes(item.productId)) return false;
-      if (item.categoryId && excludeCategoryIds.includes(item.categoryId)) return false;
+      if (itemCategoryIds.some(catId => excludeCategoryIds.includes(catId))) return false;
       
       // בדיקת התאמה
       const appliesTo = discount.appliesTo || 'all';
@@ -95,8 +119,8 @@ export async function getAutomaticDiscounts(
         return productIds.includes(item.productId);
       }
       if (appliesTo === 'category') {
-        const categoryIds = (discount.categoryIds as string[]) || [];
-        return item.categoryId ? categoryIds.includes(item.categoryId) : false;
+        const discountCategoryIds = (discount.categoryIds as string[]) || [];
+        return itemCategoryIds.some(catId => discountCategoryIds.includes(catId));
       }
       return true;
     };
@@ -231,7 +255,7 @@ export type ProductAutomaticDiscount = {
 export async function getProductAutomaticDiscount(
   storeId: string,
   productId: string,
-  categoryId: string | null,
+  categoryIds: string[], // תמיכה במספר קטגוריות למוצר
   price: number
 ): Promise<ProductAutomaticDiscount | null> {
   if (!storeId || !productId) return null;
@@ -270,8 +294,8 @@ export async function getProductAutomaticDiscount(
     // If product is excluded, skip
     if (excludeProductIds.includes(productId)) continue;
     
-    // If product's category is excluded, skip
-    if (categoryId && excludeCategoryIds.includes(categoryId)) continue;
+    // If ANY of product's categories is excluded, skip
+    if (categoryIds.length > 0 && excludeCategoryIds.some(excCat => categoryIds.includes(excCat))) continue;
 
     // Check if discount applies to this product
     let applies = false;
@@ -282,8 +306,9 @@ export async function getProductAutomaticDiscount(
         break;
         
       case 'category':
-        const categoryIds = (discount.categoryIds as string[]) || [];
-        applies = categoryId ? categoryIds.includes(categoryId) : false;
+        const discountCategoryIds = (discount.categoryIds as string[]) || [];
+        // בדיקה אם אחת מקטגוריות המוצר נמצאת בקטגוריות ההנחה
+        applies = categoryIds.length > 0 && discountCategoryIds.some(cat => categoryIds.includes(cat));
         break;
         
       case 'product':
@@ -317,5 +342,125 @@ export async function getProductAutomaticDiscount(
   }
 
   return null;
+}
+
+/**
+ * 🚀 חישוב הנחות אוטומטיות לרשימת מוצרים (Batch) - מהיר!
+ * שליפה אחת מה-DB, חישוב בזיכרון
+ */
+export type ProductDiscountMap = Map<string, {
+  name: string;
+  discountedPrice: number;
+  discountPercent: number;
+}>;
+
+export async function getProductsAutomaticDiscounts(
+  storeId: string,
+  products: Array<{ id: string; price: number | string | null; categoryIds?: string[] }>
+): Promise<ProductDiscountMap> {
+  const result: ProductDiscountMap = new Map();
+  
+  if (!storeId || products.length === 0) return result;
+
+  const now = new Date();
+  
+  // 1. שליפת כל ההנחות האוטומטיות הפעילות (שליפה אחת!)
+  const discounts = await db
+    .select()
+    .from(automaticDiscounts)
+    .where(and(
+      eq(automaticDiscounts.storeId, storeId),
+      eq(automaticDiscounts.isActive, true),
+      or(
+        isNull(automaticDiscounts.startsAt),
+        lte(automaticDiscounts.startsAt, now)
+      ),
+      or(
+        isNull(automaticDiscounts.endsAt),
+        gte(automaticDiscounts.endsAt, now)
+      )
+    ))
+    .orderBy(automaticDiscounts.priority);
+
+  if (discounts.length === 0) return result;
+
+  // 2. אם חלק מהמוצרים חסרים categoryIds, נביא אותם מה-DB
+  const productsNeedingCategories = products.filter(p => !p.categoryIds);
+  let productCategoryMap = new Map<string, string[]>();
+  
+  if (productsNeedingCategories.length > 0) {
+    const productIds = productsNeedingCategories.map(p => p.id);
+    const categoriesData = await db
+      .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
+      .from(productCategories)
+      .where(inArray(productCategories.productId, productIds));
+    
+    for (const pc of categoriesData) {
+      if (!productCategoryMap.has(pc.productId)) {
+        productCategoryMap.set(pc.productId, []);
+      }
+      productCategoryMap.get(pc.productId)!.push(pc.categoryId);
+    }
+  }
+
+  // 3. חישוב הנחה לכל מוצר
+  for (const product of products) {
+    const price = Number(product.price) || 0;
+    if (price <= 0) continue;
+    
+    const categoryIds = product.categoryIds || productCategoryMap.get(product.id) || [];
+    
+    for (const discount of discounts) {
+      // רק percentage ו-fixed_amount מתאימים לתצוגה בכרטיסי מוצר
+      if (discount.type !== 'percentage' && discount.type !== 'fixed_amount') continue;
+      
+      const excludeProductIds = (discount.excludeProductIds as string[]) || [];
+      const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
+      
+      // בדיקת החרגות
+      if (excludeProductIds.includes(product.id)) continue;
+      if (categoryIds.some(catId => excludeCategoryIds.includes(catId))) continue;
+      
+      // בדיקת התאמה
+      let applies = false;
+      const discountCategoryIds = (discount.categoryIds as string[]) || [];
+      const discountProductIds = (discount.productIds as string[]) || [];
+      
+      switch (discount.appliesTo) {
+        case 'all':
+          applies = true;
+          break;
+        case 'category':
+          applies = categoryIds.some(catId => discountCategoryIds.includes(catId));
+          break;
+        case 'product':
+          applies = discountProductIds.includes(product.id);
+          break;
+      }
+      
+      if (applies) {
+        let discountedPrice = price;
+        let discountPercent = 0;
+        
+        if (discount.type === 'percentage') {
+          discountPercent = Number(discount.value);
+          discountedPrice = price * (1 - discountPercent / 100);
+        } else if (discount.type === 'fixed_amount') {
+          discountedPrice = Math.max(0, price - Number(discount.value));
+          discountPercent = Math.round((1 - discountedPrice / price) * 100);
+        }
+        
+        result.set(product.id, {
+          name: discount.name,
+          discountedPrice: Math.round(discountedPrice * 100) / 100,
+          discountPercent,
+        });
+        
+        break; // מצאנו הנחה - עוברים למוצר הבא
+      }
+    }
+  }
+  
+  return result;
 }
 

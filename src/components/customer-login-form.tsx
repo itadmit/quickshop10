@@ -20,7 +20,6 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName, storeId }:
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -91,10 +90,6 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName, storeId }:
       if (!data.success) {
         setError(data.error || 'שגיאה בשליחת קוד אימות');
         return;
-      }
-
-      if (data.devCode) {
-        setDevOtpCode(data.devCode);
       }
 
       setStep('otp');
@@ -340,13 +335,6 @@ export function CustomerLoginForm({ basePath, callbackUrl, storeName, storeId }:
               </p>
               <span className="font-medium">{email}</span>
             </div>
-
-            {devOtpCode && (
-              <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-lg text-sm text-center">
-                <span className="text-amber-700">קוד לפיתוח: </span>
-                <span className="font-mono font-bold text-amber-900 text-lg">{devOtpCode}</span>
-              </div>
-            )}
 
             <div>
               <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-3 text-center">

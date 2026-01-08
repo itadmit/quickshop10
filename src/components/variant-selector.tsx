@@ -29,6 +29,8 @@ interface VariantSelectorProps {
   variants: Variant[];
   basePrice: number;
   baseComparePrice: number | null;
+  // הנחה אוטומטית (מחושב בשרת)
+  automaticDiscountName?: string;
 }
 
 export function VariantSelector({
@@ -39,6 +41,7 @@ export function VariantSelector({
   variants,
   basePrice,
   baseComparePrice,
+  automaticDiscountName,
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -91,6 +94,7 @@ export function VariantSelector({
       sku: selectedVariant.sku || undefined, // מק"ט וריאנט
       maxQuantity: hasInventoryTracking ? selectedVariant.inventory : null,
       trackInventory: hasInventoryTracking,
+      automaticDiscountName,
     });
     
     setAdded(true);

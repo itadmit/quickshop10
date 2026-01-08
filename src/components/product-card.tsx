@@ -19,6 +19,12 @@ interface ProductCardProps {
   inventory?: number | null;
   trackInventory?: boolean;
   allowBackorder?: boolean;
+  // הנחה אוטומטית (מחושב בשרת)
+  automaticDiscount?: {
+    name: string;
+    discountedPrice: number;
+    discountPercent: number;
+  } | null;
 }
 
 export function ProductCard({ 
@@ -34,8 +40,17 @@ export function ProductCard({
   inventory,
   trackInventory = true,
   allowBackorder = false,
+  automaticDiscount,
 }: ProductCardProps) {
-  const hasDiscount = comparePrice && comparePrice > price;
+  // הנחה אוטומטית גוברת על comparePrice
+  const hasAutoDiscount = !!automaticDiscount;
+  const hasCompareDiscount = !hasAutoDiscount && comparePrice && comparePrice > price;
+  const hasDiscount = hasAutoDiscount || hasCompareDiscount;
+  
+  // מחיר סופי
+  const finalPrice = hasAutoDiscount ? automaticDiscount.discountedPrice : price;
+  const originalPrice = hasAutoDiscount ? price : (hasCompareDiscount ? comparePrice : null);
+  
   const productUrl = basePath ? `${basePath}/product/${slug}` : `/product/${slug}`;
   const format = (p: number) => formatPrice(p, { showDecimal: showDecimalPrices });
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
@@ -59,7 +74,12 @@ export function ProductCard({
                 אזל
               </span>
             )}
-            {hasDiscount && !outOfStock && (
+            {hasAutoDiscount && !outOfStock && (
+              <span className="text-[10px] tracking-[0.15em] bg-green-600 px-3 py-1.5 text-white">
+                {automaticDiscount.discountPercent}%-
+              </span>
+            )}
+            {hasCompareDiscount && !outOfStock && (
               <span className="text-[10px] tracking-[0.15em] uppercase bg-white/90 px-3 py-1.5 text-black">
                 מבצע
               </span>
@@ -72,12 +92,13 @@ export function ProductCard({
               <AddToCartButton 
                 productId={id}
                 name={name}
-                price={price}
+                price={finalPrice}
                 image={image}
                 inventory={inventory}
                 trackInventory={trackInventory}
                 allowBackorder={allowBackorder}
                 className="w-full"
+                automaticDiscountName={automaticDiscount?.name}
               />
             </div>
           )}
@@ -94,9 +115,11 @@ export function ProductCard({
 
         {/* Price */}
         <div className="flex items-center justify-center gap-3">
-          <span className={`text-sm ${outOfStock ? 'text-gray-400' : 'text-black'}`}>{format(price)}</span>
-          {hasDiscount && (
-            <span className="text-sm text-gray-400 line-through">{format(comparePrice)}</span>
+          <span className={`text-sm ${outOfStock ? 'text-gray-400' : hasAutoDiscount ? 'text-green-600 font-medium' : 'text-black'}`}>
+            {format(finalPrice)}
+          </span>
+          {originalPrice && (
+            <span className="text-sm text-gray-400 line-through">{format(originalPrice)}</span>
           )}
         </div>
       </div>

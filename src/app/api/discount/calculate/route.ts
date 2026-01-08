@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { discounts, automaticDiscounts, stores, customers } from '@/lib/db/schema';
-import { eq, and, isNull, or, lte, gte } from 'drizzle-orm';
+import { discounts, automaticDiscounts, stores, customers, productCategories } from '@/lib/db/schema';
+import { eq, and, isNull, or, lte, gte, inArray } from 'drizzle-orm';
 import { 
   calculateDiscounts, 
   dbDiscountToEngine, 
@@ -73,6 +73,30 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const allDiscounts: Discount[] = [];
 
+    // 0. Enrich items with categoryIds from DB (לפי productId)
+    const productIds = [...new Set(items.map(i => i.productId))];
+    const productCategoriesData = productIds.length > 0 
+      ? await db
+          .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
+          .from(productCategories)
+          .where(inArray(productCategories.productId, productIds))
+      : [];
+    
+    // Build map: productId -> categoryIds[]
+    const productCategoryMap = new Map<string, string[]>();
+    for (const pc of productCategoriesData) {
+      if (!productCategoryMap.has(pc.productId)) {
+        productCategoryMap.set(pc.productId, []);
+      }
+      productCategoryMap.get(pc.productId)!.push(pc.categoryId);
+    }
+    
+    // Enrich items with categoryIds
+    const enrichedItems: CartItem[] = items.map(item => ({
+      ...item,
+      categoryIds: productCategoryMap.get(item.productId) || [],
+    }));
+
     // 1. Get automatic discounts
     const autoDiscounts = await db
       .select()
@@ -126,8 +150,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate discounts
-    const result = calculateDiscounts(items, allDiscounts, {
+    // Calculate discounts (with enriched items that have categoryIds)
+    const result = calculateDiscounts(enrichedItems, allDiscounts, {
       isMember,
       shippingAmount,
     });

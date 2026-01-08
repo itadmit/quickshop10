@@ -2,6 +2,7 @@ import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategor
 import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
+import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -29,13 +30,23 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  // Fetch products, subcategories, parent category and all categories in parallel
+  // Fetch products, subcategories, parent category and all categories in parallel ⚡
   const [products, subcategories, parentCategory, allCategories] = await Promise.all([
     getProductsByCategory(store.id, category.id),
     getSubcategories(store.id, category.id),
     category.parentId ? getCategoryById(category.parentId) : null,
     getCategoriesByStore(store.id),
   ]);
+
+  // חישוב הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת!) ⚡
+  const discountsMap = await getProductsAutomaticDiscounts(
+    store.id,
+    products.map(p => ({ 
+      id: p.id, 
+      price: p.price, 
+      categoryIds: [category.id] // המוצרים בקטגוריה הזו
+    }))
+  );
 
   // Check for custom domain
   const headersList = await headers();
@@ -176,6 +187,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     inventory={product.inventory}
                     trackInventory={product.trackInventory}
                     allowBackorder={product.allowBackorder}
+                    automaticDiscount={discountsMap.get(product.id) || null}
                   />
                 </div>
               ))}

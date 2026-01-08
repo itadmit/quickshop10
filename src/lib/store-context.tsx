@@ -26,6 +26,8 @@ export interface CartItem {
   // מוצר במתנה מקופון
   isGift?: boolean;
   giftFromCouponId?: string; // ID של הקופון שהביא את המתנה
+  // הנחה אוטומטית - שם ההנחה לתצוגה בעגלה
+  automaticDiscountName?: string;
 }
 
 // קופון מוחל

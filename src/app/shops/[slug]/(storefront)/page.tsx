@@ -23,6 +23,7 @@ import {
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
+import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { headers, cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
@@ -58,13 +59,21 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   const storeSettings = (store.settings as Record<string, unknown>) || {};
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
 
-  // Parallel data fetching - maximum speed!
+  // Parallel data fetching - maximum speed! ⚡
   const [sections, categories, featuredProducts, allProducts] = await Promise.all([
     getPageSectionsCached(store.id, 'home'),
     getCategoriesByStore(store.id),
     getFeaturedProducts(store.id, 4),
     getProductsByStore(store.id, 12),
   ]);
+
+  // שליפת הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת מהירה!) ⚡
+  const allProductsList = [...featuredProducts, ...allProducts];
+  const uniqueProducts = Array.from(new Map(allProductsList.map(p => [p.id, p])).values());
+  const discountsMap = await getProductsAutomaticDiscounts(
+    store.id,
+    uniqueProducts.map(p => ({ id: p.id, price: p.price }))
+  );
 
   // If no sections exist, show empty state with message to add sections
   if (sections.length === 0) {
@@ -152,6 +161,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             showDecimalPrices={showDecimalPrices}
             sectionId={section.id}
             displayLimit={isPreviewMode ? productLimit : undefined}
+            discountsMap={discountsMap}
           />
         );
         break;

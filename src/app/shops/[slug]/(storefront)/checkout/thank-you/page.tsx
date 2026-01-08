@@ -14,6 +14,7 @@ import { headers } from 'next/headers';
  *   6. Email notifications
  *   7. Event emissions (webhooks, notifications)
  *   8. Cart clearing
+ *   9. Loyalty points earning
  * 
  * This ensures consistent behavior regardless of payment provider.
  */
@@ -31,6 +32,7 @@ import { sendOrderConfirmationEmail } from '@/lib/email';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 import { ProductImage } from '@/components/product-image';
 import { formatPrice } from '@/lib/format-price';
+import { addPointsFromOrder } from '@/lib/actions/loyalty';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
@@ -423,6 +425,22 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 approvalNum: search.approval_num,
               },
             }).catch(err => console.error('Failed to send order confirmation email:', err));
+            
+            // Add loyalty points (non-blocking)
+            if (existingOrder.customerId) {
+              addPointsFromOrder(
+                store.id,
+                existingOrder.customerId,
+                updatedOrder.id,
+                Number(updatedOrder.total)
+              )
+                .then(result => {
+                  if (result.success && result.points && result.points > 0) {
+                    console.log(`Thank you page: Added ${result.points} loyalty points for order ${updatedOrder.orderNumber}`);
+                  }
+                })
+                .catch(err => console.error('Thank you page: Failed to add loyalty points:', err));
+            }
             
             // Emit order.created event (triggers dashboard notification + mobile push)
             emitOrderCreated(

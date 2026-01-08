@@ -1,4 +1,4 @@
-import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore } from '@/lib/db/queries';
+import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds } from '@/lib/db/queries';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductCard } from '@/components/product-card';
@@ -85,14 +85,18 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
   const maxRelatedProducts = isPreviewMode ? 9 : pageSettings.related.count + 1;
-  const [options, variants, allProducts, categories, automaticDiscount] = await Promise.all([
+  const [options, variants, allProducts, categories, productCategoryIds] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
     getProductsByStore(store.id, maxRelatedProducts),
     getCategoriesByStore(store.id),
-    // Get automatic discount for this product (server-side, no extra round trips)
-    getProductAutomaticDiscount(store.id, product.id, product.categoryId, Number(product.price)),
+    // Get all product categories (for automatic discount check)
+    getProductCategoryIds(product.id),
   ]);
+  
+  // Get automatic discount for this product (server-side, no extra round trips)
+  // Use all product categories to check against category-based discounts
+  const automaticDiscount = await getProductAutomaticDiscount(store.id, product.id, productCategoryIds, Number(product.price));
 
   // Get related products (all available for preview mode, limited for production)
   const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, isPreviewMode ? 8 : pageSettings.related.count);
@@ -500,6 +504,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         trackInventory={product.trackInventory}
                         allowBackorder={product.allowBackorder}
                         className="w-full mb-4"
+                        automaticDiscountName={discountLabel || undefined}
                       />
 
                       {/* Stock Status - Live Preview */}

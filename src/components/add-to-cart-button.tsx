@@ -15,12 +15,14 @@ interface AddToCartButtonProps {
   image: string;
   variant?: 'primary' | 'secondary';
   className?: string;
-  category?: string;
+  category?: string; // לטראקינג
   sku?: string; // מק"ט מוצר
   // Stock props
   inventory?: number | null;
   trackInventory?: boolean;
   allowBackorder?: boolean;
+  // הנחה אוטומטית
+  automaticDiscountName?: string;
 }
 
 export function AddToCartButton({ 
@@ -35,6 +37,7 @@ export function AddToCartButton({
   inventory,
   trackInventory = true,
   allowBackorder = false,
+  automaticDiscountName,
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
@@ -65,6 +68,7 @@ export function AddToCartButton({
       sku,
       maxQuantity: trackInventory ? inventory : null,
       trackInventory,
+      automaticDiscountName,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);

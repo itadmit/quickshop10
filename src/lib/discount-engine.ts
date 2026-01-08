@@ -37,7 +37,8 @@ export interface CartItem {
   id: string;           // unique identifier for this cart line
   productId: string;
   variantId?: string;
-  categoryId?: string;
+  categoryId?: string;   // deprecated - use categoryIds
+  categoryIds?: string[]; // קטגוריות המוצר (מוצר יכול להיות בכמה קטגוריות)
   name: string;
   price: number;        // מחיר ליחידה
   quantity: number;
@@ -108,13 +109,20 @@ export interface CalculationResult {
 
 /**
  * בדיקה האם פריט מתאים להנחה (לפי קטגוריה/מוצר)
+ * תומך במוצרים עם קטגוריות מרובות (categoryIds)
  */
 function doesItemMatchDiscount(item: CartItem, discount: Discount): boolean {
+  // קטגוריות הפריט - תמיכה גם ב-categoryId (legacy) וגם ב-categoryIds (חדש)
+  const itemCategories: string[] = item.categoryIds?.length 
+    ? item.categoryIds 
+    : (item.categoryId ? [item.categoryId] : []);
+  
   // בדיקת החרגות קודם
   if (discount.excludeProductIds?.includes(item.productId)) {
     return false;
   }
-  if (item.categoryId && discount.excludeCategoryIds?.includes(item.categoryId)) {
+  // בדיקה אם אחת מקטגוריות הפריט נמצאת בהחרגות
+  if (itemCategories.length > 0 && discount.excludeCategoryIds?.some(excCat => itemCategories.includes(excCat))) {
     return false;
   }
   
@@ -123,7 +131,8 @@ function doesItemMatchDiscount(item: CartItem, discount: Discount): boolean {
     case 'all':
       return true;
     case 'category':
-      return item.categoryId ? discount.categoryIds.includes(item.categoryId) : false;
+      // בדיקה אם אחת מקטגוריות הפריט נמצאת בקטגוריות ההנחה
+      return itemCategories.length > 0 && discount.categoryIds.some(cat => itemCategories.includes(cat));
     case 'product':
       return discount.productIds.includes(item.productId);
     case 'member':

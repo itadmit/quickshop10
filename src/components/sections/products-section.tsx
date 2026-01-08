@@ -15,6 +15,13 @@ interface Product {
   allowBackorder?: boolean;
 }
 
+// הנחה אוטומטית
+interface AutomaticDiscount {
+  name: string;
+  discountedPrice: number;
+  discountPercent: number;
+}
+
 interface ProductsSectionProps {
   title: string | null;
   subtitle: string | null;
@@ -28,9 +35,11 @@ interface ProductsSectionProps {
   basePath: string;
   showDecimalPrices?: boolean;
   displayLimit?: number; // For preview mode - hide products beyond limit
+  // הנחות אוטומטיות - Map של productId -> discount
+  discountsMap?: Map<string, AutomaticDiscount>;
 }
 
-export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit }: ProductsSectionProps & { sectionId?: string }) {
+export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap }: ProductsSectionProps & { sectionId?: string }) {
   // Text alignment classes
   const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
   
@@ -81,6 +90,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 inventory={product.inventory}
                 trackInventory={product.trackInventory}
                 allowBackorder={product.allowBackorder}
+                automaticDiscount={discountsMap?.get(product.id) || null}
               />
             </div>
           ))}

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
 import { ContactsDataTable } from './contacts-data-table';
+import { ContactForm } from './contact-form';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,10 +57,19 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
     conditions.push(eq(contacts.type, type as 'newsletter' | 'club_member' | 'contact_form' | 'popup_form'));
   }
 
-  // Get contacts
+  // Get contacts with customer data (for "לקוח" column)
   let allContacts = await db.query.contacts.findMany({
     where: and(...conditions),
     orderBy: desc(contacts.createdAt),
+    with: {
+      customer: {
+        columns: {
+          id: true,
+          totalOrders: true,
+          totalSpent: true,
+        },
+      },
+    },
   });
 
   // Filter by search
@@ -93,10 +103,13 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="אנשי קשר"
-        description={`${totalCount[0].count} אנשי קשר${unreadCount[0].count > 0 ? ` (${unreadCount[0].count} חדשים)` : ''}`}
-      />
+      <div className="flex items-center justify-between">
+        <PageHeader
+          title="אנשי קשר"
+          description={`${totalCount[0].count} אנשי קשר${unreadCount[0].count > 0 ? ` (${unreadCount[0].count} חדשים)` : ''}`}
+        />
+        <ContactForm storeId={store.id} storeSlug={slug} defaultType={type === 'club_member' ? 'club_member' : type === 'newsletter' ? 'newsletter' : type === 'contact_form' ? 'contact_form' : type === 'popup_form' ? 'popup_form' : 'club_member'} />
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

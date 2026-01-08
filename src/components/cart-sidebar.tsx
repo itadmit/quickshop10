@@ -117,7 +117,14 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
                       {item.variantTitle && (
                         <p className="text-xs text-gray-500 mb-1">{item.variantTitle}</p>
                       )}
-                      <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
+                        {item.automaticDiscountName && (
+                          <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                            {item.automaticDiscountName}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
                     {/* Quantity Controls */}

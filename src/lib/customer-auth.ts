@@ -248,48 +248,80 @@ export async function findOrCreateCustomer(
 }
 
 // Send OTP email via SendGrid
-export async function sendOtpEmail(email: string, code: string): Promise<void> {
+export async function sendOtpEmail(
+  email: string, 
+  code: string, 
+  storeName?: string
+): Promise<void> {
   const { sendEmail } = await import('@/lib/email');
   
+  const displayName = storeName || 'החנות';
+  
+  // Using inline styles for better email client compatibility
   const html = `
     <!DOCTYPE html>
     <html dir="rtl" lang="he">
     <head>
       <meta charset="UTF-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; text-align: center; }
-        h1 { font-size: 24px; color: #1a1a1a; margin: 0 0 16px; }
-        p { color: #666; line-height: 1.6; margin: 0 0 20px; }
-        .code { font-size: 36px; font-weight: bold; letter-spacing: 8px; color: #1a1a1a; background: #f7f7f7; padding: 20px 30px; border-radius: 12px; display: inline-block; margin: 20px 0; }
-        .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 14px; }
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <!--[if mso]>
+      <style type="text/css">
+        body, table, td {font-family: Arial, Helvetica, sans-serif !important;}
       </style>
+      <![endif]-->
     </head>
-    <body>
-      <div class="container">
-        <h1>קוד האימות שלך</h1>
-        <p>הזן את הקוד הבא כדי להתחבר לחשבון שלך:</p>
-        <div class="code">${code}</div>
-        <p style="font-size: 14px; color: #999;">
-          הקוד תקף ל-10 דקות. אם לא ביקשת קוד זה, התעלם מהמייל.
-        </p>
-        <div class="footer">
-          <p>© QuickShop</p>
-        </div>
-      </div>
+    <body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; direction: rtl;" dir="rtl">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f5f5f5;">
+        <tr>
+          <td align="center" style="padding: 40px 20px;">
+            <table role="presentation" width="480" cellspacing="0" cellpadding="0" border="0" style="max-width: 480px; width: 100%;">
+              <tr>
+                <td style="background: #ffffff; border-radius: 12px; padding: 40px 32px; text-align: right;" dir="rtl" align="right">
+                  
+                  <!-- Store Name -->
+                  <div style="font-size: 20px; font-weight: 700; color: #1a1a1a; margin: 0 0 24px 0; text-align: right;" dir="rtl" align="right">${displayName}</div>
+                  
+                  <!-- Title -->
+                  <h1 style="font-size: 20px; font-weight: 600; color: #1a1a1a; margin: 0 0 8px 0; text-align: right; line-height: 1.4;" dir="rtl" align="right">קוד האימות שלך</h1>
+                  
+                  <!-- Subtitle -->
+                  <p style="color: #666666; font-size: 14px; line-height: 1.6; margin: 0 0 28px 0; text-align: right;" dir="rtl" align="right">הזן את הקוד הבא כדי להתחבר לחשבון שלך:</p>
+                  
+                  <!-- Code Box -->
+                  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                    <tr>
+                      <td style="background-color: #f8f8f8; border-radius: 8px; padding: 20px; text-align: center;" align="center">
+                        <span style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1a1a1a; font-family: 'SF Mono', 'Consolas', 'Monaco', monospace; direction: ltr; display: inline-block;" dir="ltr">${code}</span>
+                      </td>
+                    </tr>
+                  </table>
+                  
+                  <!-- Info Text -->
+                  <p style="color: #888888; font-size: 13px; line-height: 1.6; margin: 24px 0 8px 0; text-align: right;" dir="rtl" align="right">הקוד תקף ל-10 דקות.</p>
+                  <p style="color: #888888; font-size: 13px; line-height: 1.6; margin: 0 0 0 0; text-align: right;" dir="rtl" align="right">אם לא ביקשת קוד זה, התעלם מהמייל הזה.</p>
+                  
+                  <!-- Divider -->
+                  <div style="height: 1px; background-color: #eeeeee; margin: 24px 0;"></div>
+                  
+                  <!-- Footer -->
+                  <p style="color: #999999; font-size: 11px; margin: 0; text-align: center;" align="center">${displayName}</p>
+                  
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
     </body>
     </html>
   `;
   
   await sendEmail({
     to: email,
-    subject: `${code} - קוד אימות`,
+    subject: `${displayName} - קוד אימות: ${code}`,
     html,
+    senderName: displayName,
   });
-  
-  // Also log in development for debugging
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`[DEV] OTP code for ${email}: ${code}`);
-  }
 }
 

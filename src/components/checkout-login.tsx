@@ -32,7 +32,6 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
   const [hasPassword, setHasPassword] = useState<boolean | null>(null);
   
   const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -100,11 +99,6 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
       if (!data.success) {
         setError(data.error || 'שגיאה בשליחת קוד אימות');
         return;
-      }
-
-      // In development, show the code
-      if (data.devCode) {
-        setDevOtpCode(data.devCode);
       }
 
       setStep('otp');
@@ -364,14 +358,6 @@ export function CheckoutLogin({ onLoginSuccess, onClose, initialEmail = '', stor
                 שנה
               </button>
             </div>
-
-            {/* Dev mode OTP display */}
-            {devOtpCode && (
-              <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded text-sm">
-                <span className="text-amber-700">קוד לפיתוח: </span>
-                <span className="font-mono font-bold text-amber-900">{devOtpCode}</span>
-              </div>
-            )}
 
             <div>
               <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2 text-center">

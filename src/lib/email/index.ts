@@ -13,15 +13,16 @@ interface SendEmailOptions {
   subject: string;
   html: string;
   text?: string;
+  senderName?: string; // Custom sender name (e.g., store name)
 }
 
-export async function sendEmail({ to, subject, html, text }: SendEmailOptions) {
+export async function sendEmail({ to, subject, html, text, senderName }: SendEmailOptions) {
   try {
     await sgMail.send({
       to,
       from: {
         email: fromEmail,
-        name: fromName,
+        name: senderName || fromName,
       },
       subject,
       html,

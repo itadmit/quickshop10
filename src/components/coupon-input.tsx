@@ -11,7 +11,7 @@ interface CouponInputProps {
   onApply: (coupon: AppliedCoupon) => void;
   onRemove: (couponId: string) => void;
   email?: string;
-  cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>;
+  cartItems?: Array<{ productId: string; quantity: number }>;
   onTriggeredGiftCoupons?: (coupons: AppliedCoupon[]) => void; // קופוני מתנה שמופעלים אוטומטית
   hasNonStackableAutoDiscount?: boolean; // האם יש הנחה אוטומטית שלא ניתנת לשילוב
   nonStackableAutoDiscountName?: string; // שם ההנחה האוטומטית (לחיווי טוב יותר)

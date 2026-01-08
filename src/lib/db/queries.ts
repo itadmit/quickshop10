@@ -239,6 +239,16 @@ export async function getProductBySlug(storeId: string, slug: string) {
   return { ...product, images };
 }
 
+// קבלת כל קטגוריות המוצר (מרובות)
+export async function getProductCategoryIds(productId: string): Promise<string[]> {
+  const results = await db
+    .select({ categoryId: productCategories.categoryId })
+    .from(productCategories)
+    .where(eq(productCategories.productId, productId));
+  
+  return results.map(r => r.categoryId);
+}
+
 // ============ VARIANTS ============
 
 export async function getProductOptions(productId: string) {

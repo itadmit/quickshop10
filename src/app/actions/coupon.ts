@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { discounts, customers, orders, giftCards } from '@/lib/db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { discounts, customers, orders, giftCards, productCategories } from '@/lib/db/schema';
+import { eq, and, gt, inArray } from 'drizzle-orm';
 
 type DiscountType = 
   | 'percentage' 
@@ -71,7 +71,7 @@ export async function validateCoupon(
   code: string, 
   cartTotal: number, 
   email?: string,
-  cartItems?: Array<{ productId: string; categoryId?: string; quantity: number }>
+  cartItems?: Array<{ productId: string; quantity: number }>
 ): Promise<CouponResult> {
   if (!storeId) {
     return { success: false, error: 'שגיאה בטעינת החנות' };
@@ -195,25 +195,45 @@ export async function validateCoupon(
 
   // בדיקת תנאים ספציפיים לפי סוג ההנחה
   if (cartItems && cartItems.length > 0) {
+    // שליפת קטגוריות המוצרים מה-DB (לפי productIds)
+    const productIds = [...new Set(cartItems.map(i => i.productId))];
+    const productCategoriesData = productIds.length > 0 
+      ? await db
+          .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
+          .from(productCategories)
+          .where(inArray(productCategories.productId, productIds))
+      : [];
+    
+    // בניית מפה: productId -> categoryIds[]
+    const productCategoryMap = new Map<string, string[]>();
+    for (const pc of productCategoriesData) {
+      if (!productCategoryMap.has(pc.productId)) {
+        productCategoryMap.set(pc.productId, []);
+      }
+      productCategoryMap.get(pc.productId)!.push(pc.categoryId);
+    }
+
     // פונקציה עזר לבדיקת התאמת פריט להנחה
-    const doesItemMatch = (item: { productId: string; categoryId?: string }) => {
+    const doesItemMatch = (item: { productId: string }) => {
+      const itemCategoryIds = productCategoryMap.get(item.productId) || [];
+      
       // בדיקת החרגות
       const excludeProductIds = (discount.excludeProductIds as string[]) || [];
       const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
       
       if (excludeProductIds.includes(item.productId)) return false;
-      if (item.categoryId && excludeCategoryIds.includes(item.categoryId)) return false;
+      if (itemCategoryIds.some(catId => excludeCategoryIds.includes(catId))) return false;
       
       // בדיקת התאמה
       const appliesTo = discount.appliesTo || 'all';
       if (appliesTo === 'all') return true;
       if (appliesTo === 'product') {
-        const productIds = (discount.productIds as string[]) || [];
-        return productIds.includes(item.productId);
+        const discountProductIds = (discount.productIds as string[]) || [];
+        return discountProductIds.includes(item.productId);
       }
       if (appliesTo === 'category') {
-        const categoryIds = (discount.categoryIds as string[]) || [];
-        return item.categoryId ? categoryIds.includes(item.categoryId) : false;
+        const discountCategoryIds = (discount.categoryIds as string[]) || [];
+        return itemCategoryIds.some(catId => discountCategoryIds.includes(catId));
       }
       return true;
     };

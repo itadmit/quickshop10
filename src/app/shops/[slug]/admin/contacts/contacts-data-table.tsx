@@ -7,8 +7,17 @@ import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { markContactAsRead, updateContactStatus, deleteContact, markAllAsRead } from './actions';
 import type { Contact } from '@/lib/db/schema';
 
+// Contact with customer relation
+interface ContactWithCustomer extends Contact {
+  customer?: {
+    id: string;
+    totalOrders: number | null;
+    totalSpent: string | null;
+  } | null;
+}
+
 interface ContactsDataTableProps {
-  contacts: Contact[];
+  contacts: ContactWithCustomer[];
   storeId: string;
   tabs: Tab[];
   currentTab: string;
@@ -111,7 +120,7 @@ export function ContactsDataTable({
     },
   ];
 
-  const columns: Column<Contact>[] = [
+  const columns: Column<ContactWithCustomer>[] = [
     {
       key: 'contact',
       header: 'איש קשר',
@@ -176,6 +185,26 @@ export function ContactsDataTable({
       },
     },
     {
+      key: 'customer',
+      header: 'לקוח',
+      width: '100px',
+      align: 'center',
+      render: (contact) => {
+        if (!contact.customer) {
+          return <span className="text-gray-400 text-sm">-</span>;
+        }
+        const orders = contact.customer.totalOrders || 0;
+        return (
+          <div className="text-center">
+            <Badge variant="success">לקוח</Badge>
+            {orders > 0 && (
+              <p className="text-xs text-gray-500 mt-0.5">{orders} הזמנות</p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
       key: 'status',
       header: 'סטטוס',
       width: '90px',
@@ -227,7 +256,7 @@ export function ContactsDataTable({
   ];
 
   // Custom row rendering to show expanded details
-  const renderExpandedRow = (contact: Contact) => {
+  const renderExpandedRow = (contact: ContactWithCustomer) => {
     if (expandedId !== contact.id) return null;
     
     const metadata = (contact.metadata || {}) as { subject?: string; message?: string; [key: string]: unknown };
@@ -237,7 +266,7 @@ export function ContactsDataTable({
     
     return (
       <tr className="bg-gray-50">
-        <td colSpan={7} className="px-6 py-4">
+        <td colSpan={8} className="px-6 py-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             {/* Contact Details */}
             <div>

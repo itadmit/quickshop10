@@ -136,6 +136,7 @@ const mainMenuItems: MenuItem[] = [
   },
 ];
 
+
 // Sales & Marketing
 const salesMenuItems: MenuItem[] = [
   {
@@ -229,6 +230,7 @@ const analyticsMenuItems: MenuItem[] = [
   },
 ];
 
+
 // Content
 const contentMenuItems: MenuItem[] = [
   {
@@ -277,6 +279,7 @@ const contentMenuItems: MenuItem[] = [
   },
 ];
 
+
 // Plugins
 const pluginsMenuItems: MenuItem[] = [
   {
@@ -291,6 +294,7 @@ const pluginsMenuItems: MenuItem[] = [
     ),
   },
 ];
+
 
 // Settings
 const settingsMenuItems: MenuItem[] = [
@@ -317,6 +321,7 @@ const settingsMenuItems: MenuItem[] = [
     ],
   },
 ];
+
 
 // Map of lucide icon names to inline SVGs for dynamic plugins
 const getPluginIcon = (iconName: string): React.ReactNode => {

@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { products } from '@/lib/db/schema';
 import { eq, and, ilike, or } from 'drizzle-orm';
 import { ProductCard } from '@/components/product-card';
+import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -69,6 +70,14 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
       images: p.images,
     }));
   }
+
+  // שליפת הנחות אוטומטיות לתוצאות (batch - מהיר!) ⚡
+  const discountsMap = searchResults.length > 0 
+    ? await getProductsAutomaticDiscounts(
+        store.id,
+        searchResults.map(p => ({ id: p.id, price: p.price }))
+      )
+    : new Map();
   
   return (
     <div className="min-h-screen bg-white" dir="rtl">
@@ -124,6 +133,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                       comparePrice={product.comparePrice ? Number(product.comparePrice) : undefined}
                       image={primaryImage}
                       basePath={basePath}
+                      automaticDiscount={discountsMap.get(product.id) || null}
                     />
                   );
                 })}

@@ -7,6 +7,7 @@ import { db } from '@/lib/db';
 import { orders } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { CustomerAccountActions } from '@/components/customer-account-actions';
+import { isPluginActive } from '@/lib/plugins/loader';
 
 export const metadata = {
   title: 'האיזור האישי',
@@ -34,6 +35,9 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
     redirect(`${basePath}/login?callbackUrl=${encodeURIComponent(`${basePath}/account`)}`);
   }
 
+  // Check if loyalty plugin is active
+  const loyaltyActive = await isPluginActive(store.id, 'loyalty-program');
+  
   // Fetch recent orders (server-side)
   const recentOrders = await db
     .select({
@@ -130,6 +134,17 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
                   </svg>
                   החזרות והחלפות
                 </Link>
+                {loyaltyActive && (
+                  <Link
+                    href={`${basePath}/account/loyalty`}
+                    className="flex items-center gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    מועדון לקוחות
+                  </Link>
+                )}
                 <Link
                   href={`${basePath}/account/credit`}
                   className="flex items-center justify-between gap-3 px-4 py-2.5 text-gray-600 hover:bg-gray-50 rounded-lg text-sm transition-colors"

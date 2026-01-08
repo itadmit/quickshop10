@@ -8,11 +8,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products } from '@/lib/db/schema';
+import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, contacts } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { getConfiguredProvider, getDefaultProvider } from '@/lib/payments';
 import type { InitiatePaymentRequest, PaymentProviderType } from '@/lib/payments/types';
 import { nanoid } from 'nanoid';
+import { hashPassword } from '@/lib/customer-auth';
 
 interface InitiatePaymentBody {
   storeSlug: string;
@@ -256,6 +257,16 @@ export async function POST(request: NextRequest) {
     
     // Get or create customer
     let customerId: string | null = null;
+    const orderData = body.orderData as { 
+      acceptsMarketing?: boolean; 
+      createAccount?: boolean; 
+      password?: string;
+      shippingAddress?: Record<string, unknown>;
+    } | undefined;
+    const acceptsMarketing = Boolean(orderData?.acceptsMarketing);
+    const createAccount = Boolean(orderData?.createAccount);
+    const password = orderData?.password;
+    
     if (body.customer.email) {
       const [existingCustomer] = await db
         .select()
@@ -268,27 +279,89 @@ export async function POST(request: NextRequest) {
         )
         .limit(1);
       
+      const nameParts = body.customer.name.split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.slice(1).join(' ') || '';
+      
       if (existingCustomer) {
         customerId = existingCustomer.id;
+        
+        // Build update object
+        const updateData: Record<string, unknown> = { updatedAt: new Date() };
+        
+        // Update acceptsMarketing if customer opted in
+        if (acceptsMarketing && !existingCustomer.acceptsMarketing) {
+          updateData.acceptsMarketing = true;
+        }
+        
+        // Set password if createAccount is checked and customer doesn't have one
+        if (createAccount && password && !existingCustomer.passwordHash) {
+          updateData.passwordHash = await hashPassword(password);
+          console.log(`[Payment Initiate] Set password for existing customer: ${customerId}`);
+        }
+        
+        if (Object.keys(updateData).length > 1) {
+          await db.update(customers)
+            .set(updateData)
+            .where(eq(customers.id, customerId));
+        }
       } else {
-        // Create new customer
-        const nameParts = body.customer.name.split(' ');
+        // Create new customer - hash password if createAccount is true
+        let passwordHash: string | null = null;
+        if (createAccount && password) {
+          passwordHash = await hashPassword(password);
+        }
+        
         const [newCustomer] = await db.insert(customers).values({
           storeId: store.id,
           email: body.customer.email,
-          firstName: nameParts[0] || '',
-          lastName: nameParts.slice(1).join(' ') || '',
+          firstName,
+          lastName,
           phone: body.customer.phone || '',
+          passwordHash,
           defaultAddress: {
             address: body.customer.address || '',
             city: body.customer.city || '',
             zipCode: body.customer.postalCode || '',
           },
+          acceptsMarketing,
           totalOrders: 0,
           totalSpent: '0',
         }).returning();
         customerId = newCustomer.id;
-        console.log(`[Payment Initiate] Created new customer: ${customerId}`);
+        console.log(`[Payment Initiate] Created new customer: ${customerId}${passwordHash ? ' with account' : ''}`);
+      }
+      
+      // Create club_member contact if createAccount is true
+      if (createAccount && customerId) {
+        // Check if club_member contact already exists
+        const [existingContact] = await db
+          .select({ id: contacts.id })
+          .from(contacts)
+          .where(
+            and(
+              eq(contacts.storeId, store.id),
+              eq(contacts.email, body.customer.email),
+              eq(contacts.type, 'club_member')
+            )
+          )
+          .limit(1);
+        
+        if (!existingContact) {
+          await db.insert(contacts).values({
+            storeId: store.id,
+            email: body.customer.email,
+            firstName,
+            lastName,
+            phone: body.customer.phone || null,
+            type: 'club_member',
+            status: 'active',
+            source: 'checkout',
+            customerId,
+            metadata: {},
+          });
+          console.log(`[Payment Initiate] Created club_member contact for: ${body.customer.email}`);
+        }
       }
     }
 
