@@ -91,9 +91,9 @@ export function ExchangeProductPicker({
         let message = `הזמנת החלפה #${result.orderNumber} נוצרה בהצלחה!`;
         
         if (result.priceDifference && result.priceDifference > 0) {
-          message += ` נשלח ללקוח לינק לתשלום הפרש של ₪${result.priceDifference.toFixed(0)}`;
+          message += ` נשלח ללקוח לינק לתשלום הפרש של ₪${result.priceDifference.toFixed(2)}`;
         } else if (result.creditIssued) {
-          message += ` הוזן ללקוח קרדיט של ₪${result.creditIssued.toFixed(0)}`;
+          message += ` הוזן ללקוח קרדיט של ₪${result.creditIssued.toFixed(2)}`;
         }
         
         setSuccess(message);
@@ -163,7 +163,7 @@ export function ExchangeProductPicker({
               )}
               <div className="flex-1 text-right">
                 <p className="text-sm font-medium">{product.name}</p>
-                <p className="text-xs text-gray-500">₪{Number(product.price).toFixed(0)}</p>
+                <p className="text-xs text-gray-500">₪{Number(product.price).toFixed(2)}</p>
               </div>
               {selectedProduct?.id === product.id && (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
@@ -197,7 +197,7 @@ export function ExchangeProductPicker({
                   }`}
                 >
                   {variant.title || 'ברירת מחדל'}
-                  {variant.price && ` - ₪${Number(variant.price).toFixed(0)}`}
+                  {variant.price && ` - ₪${Number(variant.price).toFixed(2)}`}
                 </button>
               ))}
             </div>
@@ -210,17 +210,17 @@ export function ExchangeProductPicker({
         <div className="bg-gray-50 rounded-lg p-4 mb-4">
           <div className="flex justify-between text-sm mb-2">
             <span className="text-gray-500">ערך מקורי:</span>
-            <span>₪{originalValue.toFixed(0)}</span>
+            <span>₪{originalValue.toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-sm mb-2">
             <span className="text-gray-500">מחיר מוצר חדש:</span>
-            <span>₪{getNewPrice().toFixed(0)}</span>
+            <span>₪{getNewPrice().toFixed(2)}</span>
           </div>
           <div className="border-t border-gray-200 pt-2 mt-2">
             <div className="flex justify-between font-medium">
               <span>{priceDifference >= 0 ? 'הפרש לתשלום:' : 'זיכוי ללקוח:'}</span>
               <span className={priceDifference > 0 ? 'text-orange-600' : priceDifference < 0 ? 'text-green-600' : ''}>
-                ₪{Math.abs(priceDifference).toFixed(0)}
+                ₪{Math.abs(priceDifference).toFixed(2)}
               </span>
             </div>
           </div>

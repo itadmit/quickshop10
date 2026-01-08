@@ -188,8 +188,8 @@ function generatePrintHTML(orders: any[], store: any): string {
                 </td>
                 <td class="col-sku">${item.sku || '-'}</td>
                 <td class="col-qty">${item.quantity}</td>
-                <td class="col-price">₪${Number(item.price).toLocaleString()}</td>
-                <td class="col-total">₪${Number(item.total).toLocaleString()}</td>
+                <td class="col-price">₪${Number(item.price).toFixed(2)}</td>
+                <td class="col-total">₪${Number(item.total).toFixed(2)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -199,21 +199,21 @@ function generatePrintHTML(orders: any[], store: any): string {
         <div class="order-summary">
           <div class="summary-row">
             <span>סכום ביניים (${order.items.length} פריטים)</span>
-            <span>₪${Number(order.subtotal).toLocaleString()}</span>
+            <span>₪${Number(order.subtotal).toFixed(2)}</span>
           </div>
           ${Number(order.discountAmount) > 0 ? `
             <div class="summary-row discount">
               <span>הנחה ${order.discountCode ? `(${order.discountCode})` : ''}</span>
-              <span>-₪${Number(order.discountAmount).toLocaleString()}</span>
+              <span>-₪${Number(order.discountAmount).toFixed(2)}</span>
             </div>
           ` : ''}
           <div class="summary-row">
             <span>משלוח</span>
-            <span>${Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toLocaleString()}`}</span>
+            <span>${Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toFixed(2)}`}</span>
           </div>
           <div class="summary-row total">
             <span>סה"כ לתשלום</span>
-            <span>₪${Number(order.total).toLocaleString()}</span>
+            <span>₪${Number(order.total).toFixed(2)}</span>
           </div>
         </div>
 

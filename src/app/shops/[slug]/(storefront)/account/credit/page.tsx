@@ -90,7 +90,7 @@ export default async function CustomerCreditPage({ params }: CreditPageProps) {
             </div>
             <div className="text-left" dir="ltr">
               <div className="text-4xl font-bold text-gray-900 tracking-tight">
-                {creditBalance.toLocaleString()} ₪
+                ₪{creditBalance.toFixed(2)}
               </div>
             </div>
           </div>
@@ -160,10 +160,10 @@ export default async function CustomerCreditPage({ params }: CreditPageProps) {
                     </div>
                     <div className="text-left" dir="ltr">
                       <div className={`font-medium text-lg ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                        {isPositive ? '+' : '-'}{Math.abs(amount).toLocaleString()} ₪
+                        {isPositive ? '+' : '-'}₪{Math.abs(amount).toFixed(2)}
                       </div>
                       <div className="text-xs text-gray-400">
-                        יתרה: {Number(txn.balanceAfter).toLocaleString()} ₪
+                        יתרה: ₪{Number(txn.balanceAfter).toFixed(2)}
                       </div>
                     </div>
                   </div>

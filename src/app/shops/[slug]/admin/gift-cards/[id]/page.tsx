@@ -39,7 +39,7 @@ export default async function GiftCardDetailPage({ params }: GiftCardDetailPageP
   }
 
   const formatCurrency = (amount: string | number | null) => {
-    return `₪${Number(amount || 0).toLocaleString()}`;
+    return `₪${Number(amount || 0).toFixed(2)}`;
   };
 
   const formatDate = (date: Date | null) => {

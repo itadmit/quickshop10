@@ -276,7 +276,7 @@ export function OrdersDataTable({
       width: '100px',
       align: 'left',
       render: (order) => (
-        <span className="font-medium">₪{Number(order.total).toLocaleString()}</span>
+        <span className="font-medium">₪{Number(order.total).toFixed(2)}</span>
       ),
     },
     {

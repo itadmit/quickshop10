@@ -119,7 +119,7 @@ export function DraftsDataTable({
       header: 'סכום',
       width: '100px',
       render: (draft) => (
-        <span className="font-medium">₪{Number(draft.total || 0).toLocaleString()}</span>
+        <span className="font-medium">₪{Number(draft.total || 0).toFixed(2)}</span>
       ),
     },
     {

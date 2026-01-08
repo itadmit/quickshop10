@@ -148,7 +148,7 @@ export default function ThankYouPage() {
                       )}
                       <p className="text-sm text-gray-400">כמות: {item.quantity}</p>
                     </div>
-                    <p className="font-medium">₪{(item.price * item.quantity).toFixed(0)}</p>
+                    <p className="font-medium">₪{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </li>
               ))}
@@ -158,12 +158,12 @@ export default function ThankYouPage() {
             <div className="space-y-3 text-sm pt-4 border-t border-gray-100">
               <div className="flex justify-between">
                 <span className="text-gray-500">סכום ביניים</span>
-                <span>₪{orderSummary.subtotal.toFixed(0)}</span>
+                <span>₪{orderSummary.subtotal.toFixed(2)}</span>
               </div>
               {orderSummary.discount > 0 && (
                 <div className="flex justify-between text-green-600">
                   <span>הנחה {orderSummary.couponCode ? `(קופון: ${orderSummary.couponCode})` : '(הנחה אוטומטית)'}</span>
-                  <span>-₪{orderSummary.discount.toFixed(0)}</span>
+                  <span>-₪{orderSummary.discount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between">
@@ -172,7 +172,7 @@ export default function ThankYouPage() {
               </div>
               <div className="flex justify-between text-lg font-display pt-4 border-t border-gray-100">
                 <span>סה״כ</span>
-                <span>₪{orderSummary.total.toFixed(0)}</span>
+                <span>₪{orderSummary.total.toFixed(2)}</span>
               </div>
             </div>
           </div>

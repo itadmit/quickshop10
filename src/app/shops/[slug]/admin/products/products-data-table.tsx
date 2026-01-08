@@ -273,10 +273,10 @@ export function ProductsDataTable({
       align: 'center',
       render: (product) => (
         <div className="flex items-center justify-center gap-1.5">
-          <span className="font-medium">₪{Number(product.price).toLocaleString()}</span>
+          <span className="font-medium">₪{Number(product.price).toFixed(2)}</span>
           {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
             <span className="text-xs text-gray-400 line-through">
-              ₪{Number(product.comparePrice).toLocaleString()}
+              ₪{Number(product.comparePrice).toFixed(2)}
             </span>
           )}
         </div>

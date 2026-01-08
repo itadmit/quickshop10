@@ -111,11 +111,11 @@ export default async function GiftCardsPage({ params, searchParams }: GiftCardsP
         />
         <StatCard
           label="ערך כולל הונפק"
-          value={`₪${Number(stats.totalValue).toLocaleString()}`}
+          value={`₪${Number(stats.totalValue).toFixed(2)}`}
         />
         <StatCard
           label="יתרה פעילה"
-          value={`₪${Number(stats.activeBalance).toLocaleString()}`}
+          value={`₪${Number(stats.activeBalance).toFixed(2)}`}
         />
       </StatCardGrid>
 

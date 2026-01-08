@@ -129,7 +129,7 @@ export function ReturnsDataTable({
       header: 'סכום',
       width: '90px',
       render: (request) => (
-        <span className="font-medium">₪{Number(request.totalValue).toFixed(0)}</span>
+        <span className="font-medium">₪{Number(request.totalValue).toFixed(2)}</span>
       ),
     },
     {

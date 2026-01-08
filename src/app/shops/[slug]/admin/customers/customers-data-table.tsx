@@ -141,7 +141,7 @@ export function CustomersDataTable({
       width: '120px',
       align: 'center',
       render: (customer) => (
-        <span className="font-medium">₪{Number(customer.totalSpent || 0).toLocaleString()}</span>
+        <span className="font-medium">₪{Number(customer.totalSpent || 0).toFixed(2)}</span>
       ),
     },
     {
@@ -155,7 +155,7 @@ export function CustomersDataTable({
             ? 'text-blue-600' 
             : 'text-gray-400'
         }`}>
-          ₪{Number(customer.creditBalance || 0).toLocaleString()}
+          ₪{Number(customer.creditBalance || 0).toFixed(2)}
         </span>
       ),
     },

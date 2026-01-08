@@ -16,6 +16,7 @@ interface AddToCartButtonProps {
   variant?: 'primary' | 'secondary';
   className?: string;
   category?: string;
+  sku?: string; // מק"ט מוצר
   // Stock props
   inventory?: number | null;
   trackInventory?: boolean;
@@ -30,6 +31,7 @@ export function AddToCartButton({
   variant = 'primary',
   className = '',
   category,
+  sku,
   inventory,
   trackInventory = true,
   allowBackorder = false,
@@ -60,6 +62,7 @@ export function AddToCartButton({
       name, 
       price, 
       image,
+      sku,
       maxQuantity: trackInventory ? inventory : null,
       trackInventory,
     });

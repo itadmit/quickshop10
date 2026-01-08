@@ -127,7 +127,7 @@ export default async function CustomerReturnsPage({ params }: ReturnsPageProps) 
                       </div>
                       <div className="text-left">
                         <span className="text-xs text-gray-500 block mb-1">{typeLabels[request.type]}</span>
-                        <span className="font-medium">₪{Number(request.totalValue).toFixed(0)}</span>
+                        <span className="font-medium">₪{Number(request.totalValue).toFixed(2)}</span>
                       </div>
                     </div>
 
@@ -163,8 +163,8 @@ export default async function CustomerReturnsPage({ params }: ReturnsPageProps) 
                       {/* Show final resolution if completed */}
                       {request.status === 'completed' && request.finalResolution && (
                         <span className="text-sm text-green-600">
-                          {request.creditIssued && Number(request.creditIssued) > 0 && `קרדיט: ₪${Number(request.creditIssued).toFixed(0)}`}
-                          {request.refundAmount && Number(request.refundAmount) > 0 && `זיכוי: ₪${Number(request.refundAmount).toFixed(0)}`}
+                          {request.creditIssued && Number(request.creditIssued) > 0 && `קרדיט: ₪${Number(request.creditIssued).toFixed(2)}`}
+                          {request.refundAmount && Number(request.refundAmount) > 0 && `זיכוי: ₪${Number(request.refundAmount).toFixed(2)}`}
                         </span>
                       )}
 

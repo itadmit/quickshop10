@@ -72,7 +72,7 @@ async function createNotification(event: EventData): Promise<void> {
     'order.created': {
       type: 'new_order',
       title: 'הזמנה חדשה',
-      getMessage: (data) => `הזמנה #${data.orderNumber} התקבלה - ₪${data.total}`,
+      getMessage: (data) => `הזמנה #${data.orderNumber} התקבלה - ₪${Number(data.total).toFixed(2)}`,
     },
     'order.paid': {
       type: 'new_order',

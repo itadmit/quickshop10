@@ -120,7 +120,7 @@ export async function validateCoupon(
         coupon: {
           id: giftCard.id,
           code: giftCard.code,
-          title: `גיפט קארד (יתרה: ₪${balance.toFixed(0)})`,
+          title: `גיפט קארד (יתרה: ₪${balance.toFixed(2)})`,
           type: 'gift_card',
           value: Math.min(balance, cartTotal), // Can't use more than cart total
           minimumAmount: null,
@@ -153,7 +153,7 @@ export async function validateCoupon(
   if (discount.minimumAmount && cartTotal < Number(discount.minimumAmount)) {
     return { 
       success: false, 
-      error: `קופון זה תקף להזמנות מעל ₪${Number(discount.minimumAmount).toFixed(0)}` 
+      error: `קופון זה תקף להזמנות מעל ₪${Number(discount.minimumAmount).toFixed(2)}` 
     };
   }
 
@@ -264,7 +264,7 @@ export async function validateCoupon(
         if (discount.spendAmount && cartTotal < Number(discount.spendAmount)) {
           return { 
             success: false, 
-            error: `קופון זה תקף להזמנות מעל ₪${Number(discount.spendAmount).toFixed(0)}` 
+            error: `קופון זה תקף להזמנות מעל ₪${Number(discount.spendAmount).toFixed(2)}` 
           };
         }
         break;

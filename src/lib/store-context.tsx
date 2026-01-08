@@ -19,6 +19,7 @@ export interface CartItem {
   quantity: number;
   image: string;
   variantTitle?: string;
+  sku?: string; // מק"ט מוצר/וריאנט
   // מלאי - לבדיקה מקומית מהירה (ללא קריאה לשרת!)
   maxQuantity?: number | null; // null = אין מעקב מלאי
   trackInventory?: boolean;

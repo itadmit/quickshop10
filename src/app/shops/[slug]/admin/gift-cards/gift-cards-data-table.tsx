@@ -38,7 +38,7 @@ interface GiftCardsDataTableProps {
 }
 
 function formatCurrency(amount: string | number | null) {
-  return `₪${Number(amount || 0).toLocaleString()}`;
+  return `₪${Number(amount || 0).toFixed(2)}`;
 }
 
 function formatDate(date: Date | null) {

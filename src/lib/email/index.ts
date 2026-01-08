@@ -203,11 +203,11 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
               <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
               ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
               <p style="margin: 0; font-size: 14px; color: #666;">כמות: ${item.quantity}</p>
-              <p style="margin: 4px 0 0 0; font-size: 14px; color: #1a1a1a;">₪${item.price.toFixed(0)}</p>
+              <p style="margin: 4px 0 0 0; font-size: 14px; color: #1a1a1a;">₪${item.price.toFixed(2)}</p>
             </td>
             <!-- Price on LEFT -->
             <td style="width: 100px; vertical-align: top; text-align: left;">
-              <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+              <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(2)}</span>
             </td>
           </tr>
         </table>
@@ -272,7 +272,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
               <p style="margin: 0; color: #4b5563; line-height: 1.6;">
                 כרטיס: •••• ${paymentInfo.lastFour}${paymentInfo.brand ? ` (${paymentInfo.brand})` : ''}<br>
                 ${paymentInfo.approvalNum ? `אישור: ${paymentInfo.approvalNum}<br>` : ''}
-                סה״כ שולם: <strong>₪${total.toFixed(0)}</strong>
+                סה״כ שולם: <strong>₪${total.toFixed(2)}</strong>
               </p>
             </div>
             ` : ''}
@@ -297,24 +297,24 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
               <table width="100%" cellpadding="0" cellspacing="0" style="direction: rtl;">
                 <tr>
                   <td style="padding: 12px 0; color: #6b7280; text-align: right; width: 50%;">סכום ביניים</td>
-                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #1a1a1a; width: 50%;">₪${subtotal.toFixed(0)}</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #1a1a1a; width: 50%;">₪${subtotal.toFixed(2)}</td>
                 </tr>
                 <tr>
                   <td style="padding: 12px 0; color: #6b7280; text-align: right;">משלוח</td>
                   <td style="padding: 12px 0; text-align: left; font-weight: 500; color: ${shippingAmount > 0 ? '#1a1a1a' : '#16a34a'};">
-                    ${shippingAmount > 0 ? `₪${shippingAmount.toFixed(0)}` : 'חינם'}
+                    ${shippingAmount > 0 ? `₪${shippingAmount.toFixed(2)}` : 'חינם'}
                   </td>
                 </tr>
                 ${discountAmount > 0 ? `
                 <tr>
                   <td style="padding: 12px 0; color: #16a34a; text-align: right;">הנחה</td>
-                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${discountAmount.toFixed(0)}</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${discountAmount.toFixed(2)}</td>
                 </tr>
                 ` : ''}
                 ${creditUsed > 0 ? `
                 <tr>
                   <td style="padding: 12px 0; color: #16a34a; text-align: right;">קרדיט</td>
-                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${creditUsed.toFixed(0)}</td>
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #16a34a;">-₪${creditUsed.toFixed(2)}</td>
                 </tr>
                 ` : ''}
                 <tr>
@@ -323,7 +323,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
                       <table width="100%">
                         <tr>
                           <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: right;">סה״כ</td>
-                          <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${total.toFixed(0)}</td>
+                          <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${total.toFixed(2)}</td>
                         </tr>
                       </table>
                     </div>
@@ -426,7 +426,7 @@ export async function sendAbandonedCartEmail(data: AbandonedCartEmailData) {
               <p style="margin: 0; font-size: 12px; color: #666;">כמות: ${item.quantity}</p>
             </td>
             <td style="width: 80px; vertical-align: top; text-align: left;">
-              <span style="font-weight: 600; font-size: 14px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+              <span style="font-weight: 600; font-size: 14px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(2)}</span>
             </td>
           </tr>
         </table>
@@ -488,7 +488,7 @@ export async function sendAbandonedCartEmail(data: AbandonedCartEmailData) {
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="font-size: 16px; font-weight: 500; color: #1a1a1a; text-align: right;">סה״כ בעגלה</td>
-                  <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${subtotal.toFixed(0)}</td>
+                  <td style="font-size: 20px; font-weight: 600; color: #1a1a1a; text-align: left;">₪${subtotal.toFixed(2)}</td>
                 </tr>
               </table>
             </div>
@@ -588,7 +588,7 @@ export async function sendReturnRequestReceivedEmail(data: ReturnRequestEmailDat
               <p style="margin: 0; font-size: 12px; color: #666;">כמות: ${item.quantity}</p>
             </td>
             <td style="width: 80px; vertical-align: top; text-align: left;">
-              <span style="font-weight: 600; font-size: 14px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(0)}</span>
+              <span style="font-weight: 600; font-size: 14px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(2)}</span>
             </td>
           </tr>
         </table>
@@ -646,7 +646,7 @@ export async function sendReturnRequestReceivedEmail(data: ReturnRequestEmailDat
                   </tr>
                   <tr>
                     <td style="color: #6b7280; font-size: 14px; padding-top: 8px;">ערך הפריטים:</td>
-                    <td style="text-align: left; font-weight: 500; color: #1a1a1a; font-size: 14px;">₪${data.totalValue.toFixed(0)}</td>
+                    <td style="text-align: left; font-weight: 500; color: #1a1a1a; font-size: 14px;">₪${data.totalValue.toFixed(2)}</td>
                   </tr>
                 </table>
               </div>
@@ -781,12 +781,12 @@ export async function sendReturnRequestUpdateEmail(data: ReturnRequestUpdateEmai
               </p>
               ${data.creditAmount && data.creditAmount > 0 ? `
               <p style="margin: 8px 0 0; color: ${config.color};">
-                קרדיט שהוזן לחשבון: ₪${data.creditAmount.toFixed(0)}
+                קרדיט שהוזן לחשבון: ₪${data.creditAmount.toFixed(2)}
               </p>
               ` : ''}
               ${data.refundAmount && data.refundAmount > 0 ? `
               <p style="margin: 8px 0 0; color: ${config.color};">
-                סכום הזיכוי: ₪${data.refundAmount.toFixed(0)}
+                סכום הזיכוי: ₪${data.refundAmount.toFixed(2)}
               </p>
               ` : ''}
             </div>
@@ -815,7 +815,7 @@ export async function sendReturnRequestUpdateEmail(data: ReturnRequestUpdateEmai
             ${data.creditAmount && data.creditAmount > 0 ? `
             <div style="background: ${config.bgColor}; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
               <p style="margin: 0; font-weight: 500; color: ${config.color};">
-                ✓ קרדיט של ₪${data.creditAmount.toFixed(0)} הוזן לחשבונך
+                ✓ קרדיט של ₪${data.creditAmount.toFixed(2)} הוזן לחשבונך
               </p>
             </div>
             ` : ''}
@@ -939,7 +939,7 @@ export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
                   </td>
                   <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left;">
                     <span style="color: #1a1a1a;">${data.originalProductName}</span>
-                    <span style="color: #6b7280; margin-right: 8px;">₪${data.originalValue.toFixed(0)}</span>
+                    <span style="color: #6b7280; margin-right: 8px;">₪${data.originalValue.toFixed(2)}</span>
                   </td>
                 </tr>
                 <tr>
@@ -948,7 +948,7 @@ export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
                   </td>
                   <td style="padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left;">
                     <span style="color: #1a1a1a;">${data.newProductName}</span>
-                    <span style="color: #6b7280; margin-right: 8px;">₪${data.newProductPrice.toFixed(0)}</span>
+                    <span style="color: #6b7280; margin-right: 8px;">₪${data.newProductPrice.toFixed(2)}</span>
                   </td>
                 </tr>
                 <tr>
@@ -956,7 +956,7 @@ export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
                     <span style="font-weight: 600; color: #1a1a1a;">הפרש לתשלום:</span>
                   </td>
                   <td style="padding: 12px 0; text-align: left;">
-                    <span style="font-size: 20px; font-weight: 600; color: #2563eb;">₪${data.priceDifference.toFixed(0)}</span>
+                    <span style="font-size: 20px; font-weight: 600; color: #2563eb;">₪${data.priceDifference.toFixed(2)}</span>
                   </td>
                 </tr>
               </table>
@@ -975,7 +975,7 @@ export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
         <tr>
           <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
             <a href="${data.paymentUrl}" style="display: inline-block; background: #2563eb; color: white !important; text-decoration: none; padding: 16px 48px; border-radius: 10px; font-weight: 600; font-size: 16px;">
-              לתשלום הפרש ₪${data.priceDifference.toFixed(0)}
+              לתשלום הפרש ₪${data.priceDifference.toFixed(2)}
             </a>
             <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">
               הזמנה #${data.orderNumber}

@@ -140,7 +140,7 @@ export default async function CustomerOrdersPage({ params }: OrdersPageProps) {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className="font-medium text-lg">
-                        ₪{Number(order.total).toFixed(0)}
+                        ₪{Number(order.total).toFixed(2)}
                       </span>
                       <span className="text-sm text-gray-400">
                         צפה בפרטים ←

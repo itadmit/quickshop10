@@ -184,7 +184,7 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, base
                   {item.variantTitle && (
                     <p className="text-sm text-gray-500 mt-1">{item.variantTitle}</p>
                   )}
-                  <p className="text-sm text-gray-500 mt-1">₪{item.price.toFixed(0)}</p>
+                  <p className="text-sm text-gray-500 mt-1">₪{item.price.toFixed(2)}</p>
                 </div>
 
                 {/* Quantity Selector */}
@@ -288,7 +288,7 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, base
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex justify-between items-center mb-4">
           <span className="text-gray-500">סה״כ ערך הפריטים:</span>
-          <span className="text-xl font-medium">₪{totalValue.toFixed(0)}</span>
+          <span className="text-xl font-medium">₪{totalValue.toFixed(2)}</span>
         </div>
 
         {error && (

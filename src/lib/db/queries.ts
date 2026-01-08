@@ -211,6 +211,7 @@ export async function getProductBySlug(storeId: string, slug: string) {
       id: products.id,
       name: products.name,
       slug: products.slug,
+      sku: products.sku,
       shortDescription: products.shortDescription,
       description: products.description,
       price: products.price,

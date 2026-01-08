@@ -143,7 +143,7 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
                   </div>
                   {Number(customer.creditBalance) > 0 && (
                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
-                      ₪{Number(customer.creditBalance).toLocaleString()}
+                      ₪{Number(customer.creditBalance).toFixed(2)}
                     </span>
                   )}
                 </Link>
@@ -253,7 +253,7 @@ export default async function CustomerAccountPage({ params }: AccountPageProps) 
                             {status.label}
                           </span>
                           <span className="font-medium text-sm">
-                            ₪{Number(order.total).toFixed(0)}
+                            ₪{Number(order.total).toFixed(2)}
                           </span>
                         </div>
                       </Link>

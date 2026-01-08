@@ -110,7 +110,7 @@ export default async function AbandonedCartsPage({ params, searchParams }: Aband
         />
         <StatCard
           label="ערך פוטנציאלי"
-          value={`₪${Number(totalValue).toLocaleString()}`}
+          value={`₪${Number(totalValue).toFixed(2)}`}
         />
         <StatCard
           label="שוחזרו"

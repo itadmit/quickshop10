@@ -180,8 +180,8 @@ export function OrderPrintView({ order, store }: OrderPrintViewProps) {
               </td>
               <td className="col-sku">{item.sku || '-'}</td>
               <td className="col-qty">{item.quantity}</td>
-              <td className="col-price">₪{Number(item.price).toLocaleString()}</td>
-              <td className="col-total">₪{Number(item.total).toLocaleString()}</td>
+              <td className="col-price">₪{Number(item.price).toFixed(2)}</td>
+              <td className="col-total">₪{Number(item.total).toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
@@ -191,23 +191,23 @@ export function OrderPrintView({ order, store }: OrderPrintViewProps) {
       <div className="order-summary">
         <div className="summary-row">
           <span>סכום ביניים ({order.items.length} פריטים)</span>
-          <span>₪{Number(order.subtotal).toLocaleString()}</span>
+          <span>₪{Number(order.subtotal).toFixed(2)}</span>
         </div>
         {Number(order.discountAmount) > 0 && (
           <div className="summary-row discount">
             <span>הנחה {order.discountCode && `(${order.discountCode})`}</span>
-            <span>-₪{Number(order.discountAmount).toLocaleString()}</span>
+            <span>-₪{Number(order.discountAmount).toFixed(2)}</span>
           </div>
         )}
         <div className="summary-row">
           <span>משלוח {order.shippingMethod && `(${order.shippingMethod})`}</span>
           <span>
-            {Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toLocaleString()}`}
+            {Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toFixed(2)}`}
           </span>
         </div>
         <div className="summary-row total">
           <span>סה"כ לתשלום</span>
-          <span>₪{Number(order.total).toLocaleString()}</span>
+          <span>₪{Number(order.total).toFixed(2)}</span>
         </div>
       </div>
 

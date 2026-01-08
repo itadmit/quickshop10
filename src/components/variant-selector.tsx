@@ -15,6 +15,7 @@ interface Variant {
   price: string;
   comparePrice: string | null;
   inventory: number | null;
+  sku: string | null; // מק"ט וריאנט
   option1: string | null;
   option2: string | null;
   option3: string | null;
@@ -87,6 +88,7 @@ export function VariantSelector({
       price: Number(selectedVariant.price),
       image: productImage,
       variantTitle,
+      sku: selectedVariant.sku || undefined, // מק"ט וריאנט
       maxQuantity: hasInventoryTracking ? selectedVariant.inventory : null,
       trackInventory: hasInventoryTracking,
     });

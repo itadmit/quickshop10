@@ -495,6 +495,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         name={product.name}
                         price={finalPrice}
                         image={mainImage || '/placeholder.svg'}
+                        sku={product.sku || undefined}
                         inventory={product.inventory}
                         trackInventory={product.trackInventory}
                         allowBackorder={product.allowBackorder}

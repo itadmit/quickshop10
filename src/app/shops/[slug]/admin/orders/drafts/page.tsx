@@ -107,7 +107,7 @@ export default async function DraftOrdersPage({ params, searchParams }: DraftOrd
         />
         <StatCard
           label="ערך פתוח"
-          value={`₪${Number(stats.totalValue).toLocaleString()}`}
+          value={`₪${Number(stats.totalValue).toFixed(2)}`}
         />
       </StatCardGrid>
 

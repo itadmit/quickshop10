@@ -199,7 +199,7 @@ export default async function RealtimeAnalyticsPage({ params }: PageProps) {
             <div className="flex justify-between items-start mb-6">
               <div>
                 <p className="text-gray-400 text-xs mb-1">סה״כ מכירות היום</p>
-                <h3 className="text-2xl font-bold">₪{data.sales.todayRevenue.toLocaleString('he-IL')}</h3>
+                <h3 className="text-2xl font-bold">₪{data.sales.todayRevenue.toFixed(2)}</h3>
               </div>
               <div className="text-left">
                 <p className="text-gray-400 text-xs mb-1">הזמנות</p>
@@ -280,7 +280,7 @@ export default async function RealtimeAnalyticsPage({ params }: PageProps) {
                       <div className="text-xs text-gray-500">{order.customerName || 'לקוח אורח'}</div>
                     </div>
                     <div className="text-left">
-                      <div className="font-bold text-gray-900">₪{order.total.toLocaleString('he-IL')}</div>
+                      <div className="font-bold text-gray-900">₪{order.total.toFixed(2)}</div>
                       <div className="text-xs text-gray-400">
                         {order.createdAt && new Date(order.createdAt).toLocaleTimeString('he-IL', {
                           hour: '2-digit',

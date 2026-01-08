@@ -182,9 +182,9 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
                   {/* Price & Quantity */}
                   <div className="text-left flex items-center gap-6">
-                    <span className="text-sm text-gray-500">₪{Number(item.price).toLocaleString()}</span>
+                    <span className="text-sm text-gray-500">₪{Number(item.price).toFixed(2)}</span>
                     <span className="text-sm text-gray-500">×{item.quantity}</span>
-                    <span className="text-sm font-medium text-gray-900 w-20 text-left">₪{Number(item.total).toLocaleString()}</span>
+                    <span className="text-sm font-medium text-gray-900 w-20 text-left">₪{Number(item.total).toFixed(2)}</span>
                   </div>
                 </div>
               ))}
@@ -204,32 +204,32 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               <div className="flex justify-between">
                 <span className="text-gray-600">סכום ביניים</span>
                 <span className="text-gray-600">{order.items.length} פריטים</span>
-                <span className="text-gray-900">₪{Number(order.subtotal).toLocaleString()}</span>
+                <span className="text-gray-900">₪{Number(order.subtotal).toFixed(2)}</span>
               </div>
               {Number(order.discountAmount) > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>הנחה {order.discountCode && `(${order.discountCode})`}</span>
                   <span></span>
-                  <span>-₪{Number(order.discountAmount).toLocaleString()}</span>
+                  <span>-₪{Number(order.discountAmount).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-gray-600">משלוח</span>
                 <span className="text-gray-400 text-sm">{order.shippingMethod || 'רגיל'}</span>
                 <span className="text-gray-900">
-                  {Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toLocaleString()}`}
+                  {Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toFixed(2)}`}
                 </span>
               </div>
               <div className="flex justify-between pt-2.5 border-t border-gray-100 font-semibold">
                 <span className="text-gray-900">סה״כ</span>
                 <span></span>
-                <span className="text-gray-900">₪{Number(order.total).toLocaleString()}</span>
+                <span className="text-gray-900">₪{Number(order.total).toFixed(2)}</span>
               </div>
               {order.financialStatus === 'paid' && (
                 <div className="flex justify-between pt-2.5 border-t border-gray-100 text-gray-500">
                   <span>שולם על ידי הלקוח</span>
                   <span></span>
-                  <span>₪{Number(order.total).toLocaleString()}</span>
+                  <span>₪{Number(order.total).toFixed(2)}</span>
                 </div>
               )}
             </div>
@@ -289,7 +289,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                       </svg>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-900">תשלום ₪{Number(order.total).toLocaleString()} התקבל</p>
+                      <p className="text-sm text-gray-900">תשלום ₪{Number(order.total).toFixed(2)} התקבל</p>
                       <p className="text-xs text-gray-400">{formatDate(new Date(order.createdAt!))}</p>
                     </div>
                   </div>

@@ -138,12 +138,12 @@ export function CreditForm({ customerId, storeId, currentBalance, storeSlug }: C
           <div className="bg-gray-50 rounded-lg p-3 text-sm">
             <div className="flex justify-between text-gray-600">
               <span>יתרה נוכחית:</span>
-              <span>₪{currentBalance.toLocaleString()}</span>
+              <span>₪{currentBalance.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-gray-600">
               <span>{type === 'credit' ? 'זיכוי:' : 'חיוב:'}</span>
               <span className={type === 'credit' ? 'text-green-600' : 'text-red-600'}>
-                {type === 'credit' ? '+' : '-'}₪{parseFloat(amount).toLocaleString()}
+                {type === 'credit' ? '+' : '-'}₪{parseFloat(amount).toFixed(2)}
               </span>
             </div>
             <hr className="my-2 border-gray-200" />

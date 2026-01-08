@@ -121,7 +121,7 @@ export function SearchButton({ basePath, storeId }: SearchButtonProps) {
 
   const formatPrice = (price: string | null) => {
     if (!price) return '';
-    return `₪${Number(price).toLocaleString()}`;
+    return `₪${Number(price).toFixed(2)}`;
   };
 
   // Search Modal - rendered via portal to body

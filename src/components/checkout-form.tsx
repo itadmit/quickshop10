@@ -714,7 +714,7 @@ export function CheckoutForm({
               },
               items: cart.map(item => ({
                 name: item.name,
-                sku: item.productId,
+                sku: item.sku || '',
                 quantity: item.quantity,
                 price: item.price,
                 imageUrl: item.image,
@@ -737,7 +737,7 @@ export function CheckoutForm({
                   name: item.name,
                   quantity: item.quantity,
                   price: item.price,
-                  sku: item.productId,
+                  sku: item.sku || '',
                   image: item.image,
                 })),
                 shipping: {

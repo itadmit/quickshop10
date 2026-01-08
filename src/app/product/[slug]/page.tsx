@@ -131,9 +131,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <>
                   {/* Price */}
                   <div className="flex items-center gap-4 mb-8">
-                    <span className="text-2xl font-display">₪{Number(product.price).toFixed(0)}</span>
+                    <span className="text-2xl font-display">₪{Number(product.price).toFixed(2)}</span>
                     {hasDiscount && (
-                      <span className="text-lg text-gray-400 line-through">₪{Number(product.comparePrice).toFixed(0)}</span>
+                      <span className="text-lg text-gray-400 line-through">₪{Number(product.comparePrice).toFixed(2)}</span>
                     )}
                   </div>
 

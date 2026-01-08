@@ -116,7 +116,7 @@ export async function sendNewOrderPushNotification(data: NewOrderNotificationDat
     // Build body with optional coupon
     const bodyParts = [
       `הזמנה מספר #${data.orderNumber}`,
-      `סכום: ${data.total.toFixed(0)}₪`,
+      `סכום: ₪${data.total.toFixed(2)}`,
     ];
     if (data.couponCode) {
       bodyParts.push(`קופון: ${data.couponCode}`);

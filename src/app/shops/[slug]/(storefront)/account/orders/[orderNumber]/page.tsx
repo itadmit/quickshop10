@@ -140,10 +140,10 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                       <p className="text-sm text-gray-500 mt-1">כמות: {item.quantity}</p>
                     </div>
                     <div className="text-left">
-                      <p className="font-medium">₪{Number(item.price).toFixed(0)}</p>
+                      <p className="font-medium">₪{Number(item.price).toFixed(2)}</p>
                       {item.quantity > 1 && (
                         <p className="text-sm text-gray-500">
-                          סה״כ: ₪{(Number(item.price) * item.quantity).toFixed(0)}
+                          סה״כ: ₪{(Number(item.price) * item.quantity).toFixed(2)}
                         </p>
                       )}
                     </div>
@@ -176,20 +176,20 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">סכום ביניים</span>
-                  <span>₪{Number(order.subtotal).toFixed(0)}</span>
+                  <span>₪{Number(order.subtotal).toFixed(2)}</span>
                 </div>
                 
                 {Number(order.discountAmount) > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>הנחה</span>
-                    <span>-₪{Number(order.discountAmount).toFixed(0)}</span>
+                    <span>-₪{Number(order.discountAmount).toFixed(2)}</span>
                   </div>
                 )}
                 
                 {Number(order.creditUsed) > 0 && (
                   <div className="flex justify-between text-blue-600">
                     <span>קרדיט</span>
-                    <span>-₪{Number(order.creditUsed).toFixed(0)}</span>
+                    <span>-₪{Number(order.creditUsed).toFixed(2)}</span>
                   </div>
                 )}
                 
@@ -197,7 +197,7 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                   <span className="text-gray-500">משלוח</span>
                   <span>
                     {Number(order.shippingAmount) > 0 
-                      ? `₪${Number(order.shippingAmount).toFixed(0)}`
+                      ? `₪${Number(order.shippingAmount).toFixed(2)}`
                       : 'חינם'
                     }
                   </span>
@@ -205,7 +205,7 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                 
                 <div className="flex justify-between pt-3 border-t border-gray-100 font-medium text-lg">
                   <span>סה״כ</span>
-                  <span>₪{Number(order.total).toFixed(0)}</span>
+                  <span>₪{Number(order.total).toFixed(2)}</span>
                 </div>
               </div>
 

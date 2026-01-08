@@ -289,7 +289,7 @@ export function ProductsReorderList({
                 </Link>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="text-xs text-gray-500">
-                    ₪{Number(product.price || 0).toLocaleString()}
+                    ₪{Number(product.price || 0).toFixed(2)}
                   </span>
                   {product.trackInventory && (
                     <span className={`text-xs ${

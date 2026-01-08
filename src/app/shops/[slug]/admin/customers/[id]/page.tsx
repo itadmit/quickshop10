@@ -113,7 +113,7 @@ export default async function CustomerDetailPage({ params }: CustomerPageProps) 
               </div>
               <div>
                 <span className="text-gray-500">סה״כ קניות:</span>
-                <span className="mr-2 text-gray-900">₪{Number(customer.totalSpent || 0).toLocaleString()}</span>
+                <span className="mr-2 text-gray-900">₪{Number(customer.totalSpent || 0).toFixed(2)}</span>
               </div>
               <div>
                 <span className="text-gray-500">הצטרפות:</span>
@@ -177,7 +177,7 @@ export default async function CustomerDetailPage({ params }: CustomerPageProps) 
                             {status.label}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm">₪{Number(order.total).toLocaleString()}</td>
+                        <td className="px-4 py-3 text-sm">₪{Number(order.total).toFixed(2)}</td>
                         <td className="px-4 py-3 text-sm text-gray-500">
                           {new Date(order.createdAt).toLocaleDateString('he-IL')}
                         </td>
@@ -235,11 +235,11 @@ export default async function CustomerDetailPage({ params }: CustomerPageProps) 
                         </td>
                         <td className="px-4 py-3">
                           <span className={`text-sm font-medium ${amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {amount >= 0 ? '+' : ''}₪{Math.abs(amount).toLocaleString()}
+                            {amount >= 0 ? '+' : ''}₪{Math.abs(amount).toFixed(2)}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-sm">
-                          ₪{Number(txn.balanceAfter).toLocaleString()}
+                          ₪{Number(txn.balanceAfter).toFixed(2)}
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
                           {txn.reason || '—'}
@@ -267,7 +267,7 @@ export default async function CustomerDetailPage({ params }: CustomerPageProps) 
               <span className="text-white/80 text-sm">יתרת קרדיט</span>
             </div>
             <div className="text-4xl font-bold mb-1">
-              ₪{Number(customer.creditBalance || 0).toLocaleString()}
+              ₪{Number(customer.creditBalance || 0).toFixed(2)}
             </div>
             <p className="text-white/60 text-sm">זמין לשימוש</p>
           </div>

@@ -389,7 +389,7 @@ function ProductsPreview({
             </div>
             <h3 className="text-sm font-medium text-gray-900 mb-1">{product.name}</h3>
             <p className="text-sm text-gray-500">
-              ₪{Number(product.price || 0).toFixed(0)}
+              ₪{Number(product.price || 0).toFixed(2)}
             </p>
           </div>
         ))}

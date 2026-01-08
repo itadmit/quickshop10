@@ -143,7 +143,7 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
                 </div>
                 <div>
                   <label className="text-sm text-gray-500">ערך הפריטים</label>
-                  <p className="font-medium">₪{Number(request.totalValue).toFixed(0)}</p>
+                  <p className="font-medium">₪{Number(request.totalValue).toFixed(2)}</p>
                 </div>
               </div>
 
@@ -178,7 +178,7 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
                     <p className="text-sm text-gray-500 mt-1">כמות: {item.quantity}</p>
                   </div>
                   <div className="text-left">
-                    <p className="font-medium">₪{(item.price * item.quantity).toFixed(0)}</p>
+                    <p className="font-medium">₪{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
                 </div>
               ))}
@@ -218,13 +218,13 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
                 {request.creditIssued && Number(request.creditIssued) > 0 && (
                   <div>
                     <label className="text-sm text-green-600">קרדיט שניתן</label>
-                    <p className="font-medium text-green-800">₪{Number(request.creditIssued).toFixed(0)}</p>
+                    <p className="font-medium text-green-800">₪{Number(request.creditIssued).toFixed(2)}</p>
                   </div>
                 )}
                 {request.refundAmount && Number(request.refundAmount) > 0 && (
                   <div>
                     <label className="text-sm text-green-600">סכום זיכוי</label>
-                    <p className="font-medium text-green-800">₪{Number(request.refundAmount).toFixed(0)}</p>
+                    <p className="font-medium text-green-800">₪{Number(request.refundAmount).toFixed(2)}</p>
                   </div>
                 )}
               </div>
