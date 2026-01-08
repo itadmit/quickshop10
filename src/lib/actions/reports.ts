@@ -947,7 +947,7 @@ export const getRecentOrders = cache(async (
         count: sql<number>`COUNT(*)::int`,
       })
       .from(orderItems)
-      .where(sql`${orderItems.orderId} = ANY(${orderIds})`)
+      .where(inArray(orderItems.orderId, orderIds))
       .groupBy(orderItems.orderId);
     
     itemCounts = Object.fromEntries(
