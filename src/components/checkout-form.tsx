@@ -408,26 +408,39 @@ export function CheckoutForm({
         // אם בוטל - לא להמשיך
         if (isCancelled) return;
 
-        // סינון מוצרים רגילים (לא מתנה) שעונים על התנאים
-        const regularItems = cart.filter(item => !item.isGift);
+        let meetsCondition = false;
         
-        const matchingItems = regularItems.filter(item => {
-          // בדיקת החרגות
-          if (coupon.excludeProductIds?.includes(item.productId)) return false;
+        // בדיקה אם זה קופון שמופעל על ידי קופון אחר (triggered)
+        if (coupon.triggeredByCode) {
+          // קופון מתנה שמופעל על ידי קופון אחר - בדיקה שהקופון המפעיל עדיין קיים
+          const triggerCouponExists = appliedCoupons.some(
+            c => c.code?.toUpperCase() === coupon.triggeredByCode?.toUpperCase()
+          );
+          meetsCondition = triggerCouponExists;
+        } else {
+          // קופון מתנה רגיל - בדיקת תנאי מינימום סכום/כמות
+          const regularItems = cart.filter(item => !item.isGift);
           
-          // בדיקת התאמה לפי appliesTo
-          if (coupon.appliesTo === 'all') return true;
-          if (coupon.appliesTo === 'product' && coupon.productIds?.includes(item.productId)) return true;
-          return false;
-        });
+          const matchingItems = regularItems.filter(item => {
+            // בדיקת החרגות
+            if (coupon.excludeProductIds?.includes(item.productId)) return false;
+            
+            // בדיקת התאמה לפי appliesTo
+            if (!coupon.appliesTo || coupon.appliesTo === 'all') return true;
+            if (coupon.appliesTo === 'product' && coupon.productIds?.includes(item.productId)) return true;
+            return false;
+          });
 
-        const matchingTotal = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-        const matchingQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
-        
-        // בדיקת תנאים: minimumAmount או minimumQuantity
-        const meetsAmountCondition = !coupon.minimumAmount || matchingTotal >= coupon.minimumAmount;
-        const meetsQuantityCondition = !coupon.minimumQuantity || matchingQty >= coupon.minimumQuantity;
-        const meetsCondition = meetsAmountCondition && meetsQuantityCondition && matchingItems.length > 0;
+          const matchingTotal = matchingItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+          const matchingQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+          
+          // בדיקת תנאים: minimumAmount או minimumQuantity
+          const meetsAmountCondition = !coupon.minimumAmount || matchingTotal >= coupon.minimumAmount;
+          const meetsQuantityCondition = !coupon.minimumQuantity || matchingQty >= coupon.minimumQuantity;
+          // אם אין תנאים מוגדרים, מספיק שיש פריטים בעגלה
+          const hasItemsInCart = regularItems.length > 0;
+          meetsCondition = meetsAmountCondition && meetsQuantityCondition && hasItemsInCart;
+        }
 
         if (meetsCondition) {
           // תנאים מתקיימים - הוספת/עדכון מוצרי מתנה
