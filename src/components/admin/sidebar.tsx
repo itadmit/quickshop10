@@ -408,12 +408,48 @@ export function AdminSidebar({ storeSlug, unreadOrdersCount = 0, pluginMenuItems
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
+  // Collect all menu hrefs to check for more specific matches
+  const allMenuHrefs = [
+    ...mainMenuItems,
+    ...salesMenuItems,
+    ...analyticsMenuItems,
+    ...contentMenuItems,
+    ...pluginsMenuItems,
+    ...settingsMenuItems,
+    ...pluginMenuItems,
+  ].map(item => item.href);
+
   const isActive = (href: string) => {
     const fullPath = `${basePath}${href}`;
+    
+    // Root path - exact match only
     if (href === '') {
       return pathname === basePath || pathname === `${basePath}/`;
     }
-    return pathname.startsWith(fullPath);
+    
+    // Exact match
+    if (pathname === fullPath || pathname === `${fullPath}/`) {
+      return true;
+    }
+    
+    // Check if pathname starts with this path
+    if (pathname.startsWith(`${fullPath}/`)) {
+      // Only mark as active if there's no MORE SPECIFIC menu item that matches
+      const hasMoreSpecificMatch = allMenuHrefs.some(otherHref => {
+        if (otherHref === href) return false;
+        // Check if other href is more specific (longer and starts with current)
+        if (otherHref.startsWith(`${href}/`)) {
+          const otherFullPath = `${basePath}${otherHref}`;
+          // If that more specific item matches the current path
+          return pathname === otherFullPath || pathname.startsWith(`${otherFullPath}/`);
+        }
+        return false;
+      });
+      
+      return !hasMoreSpecificMatch;
+    }
+    
+    return false;
   };
 
   // Get badge for orders
