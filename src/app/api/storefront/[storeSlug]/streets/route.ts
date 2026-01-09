@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from "next/server";
+import { searchStreets } from "@/lib/israel-cities-cache";
+
+// GET - חיפוש רחובות לפי עיר
+// 🚀 מהיר מאוד - חיפוש בזיכרון, ללא DB
+export async function GET(
+  req: NextRequest,
+  { params }: { params: Promise<{ storeSlug: string }> }
+) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const query = searchParams.get("q") || "";
+    const city = searchParams.get("city") || "";
+
+    if (!query || query.length < 2 || !city) {
+      return NextResponse.json({ streets: [] });
+    }
+
+    const streets = searchStreets(city, query);
+
+    return NextResponse.json({ 
+      streets,
+    });
+  } catch (error) {
+    console.error("Error searching streets:", error);
+    
+    return NextResponse.json({ 
+      streets: [],
+      error: "Search temporarily unavailable" 
+    });
+  }
+}
+

@@ -12,6 +12,8 @@ import { getAutomaticDiscounts, type AutomaticDiscountResult, type CartItemForDi
 import { calculateDiscounts, dbDiscountToEngine, type CartItem as EngineCartItem, type Discount } from '@/lib/discount-engine';
 import { tracker } from '@/lib/tracking';
 import { getProductsByIds } from '@/app/actions/products';
+import { useCitySearch, useStreetSearch } from '@/hooks/useIsraelAddress';
+import { Autocomplete } from '@/components/ui/autocomplete';
 
 interface LoggedInCustomer {
   id: string;
@@ -141,6 +143,11 @@ export function CheckoutForm({
   const [useCredit, setUseCredit] = useState(false);
   const [couponWarning, setCouponWarning] = useState<string | null>(null);
   const [urlCouponApplied, setUrlCouponApplied] = useState(false);
+  
+  // 🏙️ City/Street autocomplete hooks
+  const citySearch = useCitySearch(storeSlug || '');
+  const [selectedCity, setSelectedCity] = useState('');
+  const streetSearch = useStreetSearch(storeSlug || '', selectedCity);
   
   // Recover abandoned cart from URL (e.g., ?recover=TOKEN)
   useEffect(() => {
@@ -365,6 +372,13 @@ export function CheckoutForm({
     }
     return address;
   };
+
+  // 🏙️ Sync selectedCity when formData.city changes (e.g., from saved address)
+  useEffect(() => {
+    if (formData.city && formData.city !== selectedCity) {
+      setSelectedCity(formData.city);
+    }
+  }, [formData.city, selectedCity]);
 
   // Fetch auto discounts on mount and when email changes
   useEffect(() => {
@@ -1325,18 +1339,29 @@ export function CheckoutForm({
                       </div>
                     )}
                     
-                    {/* City - required */}
+                    {/* City - required with autocomplete */}
                     <div>
                       <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
                         עיר *
                       </label>
-                      <input
-                        type="text"
-                        required
+                      <Autocomplete
                         value={formData.city}
-                        onChange={e => setFormData({...formData, city: e.target.value})}
-                        className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                        placeholder="תל אביב"
+                        onChange={(value) => {
+                          setFormData({...formData, city: value});
+                          citySearch.setQuery(value);
+                        }}
+                        onSelect={(option) => {
+                          setFormData({...formData, city: option.value, street: ''});
+                          setSelectedCity(option.value);
+                        }}
+                        options={citySearch.cities.map((city) => ({
+                          value: city.cityName,
+                          label: city.cityName,
+                        }))}
+                        loading={citySearch.loading}
+                        placeholder="התחל להקליד עיר..."
+                        inputClassName="border-gray-200 focus:border-black"
+                        required
                       />
                     </div>
                     
@@ -1346,13 +1371,24 @@ export function CheckoutForm({
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
                           רחוב *
                         </label>
-                        <input
-                          type="text"
-                          required
+                        <Autocomplete
                           value={formData.street}
-                          onChange={e => setFormData({...formData, street: e.target.value})}
-                          className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                          placeholder="שם הרחוב"
+                          onChange={(value) => {
+                            setFormData({...formData, street: value});
+                            streetSearch.setQuery(value);
+                          }}
+                          onSelect={(option) => {
+                            setFormData({...formData, street: option.value});
+                          }}
+                          options={streetSearch.streets.map((street) => ({
+                            value: street.streetName,
+                            label: street.streetName,
+                          }))}
+                          loading={streetSearch.loading}
+                          placeholder={selectedCity ? "התחל להקליד רחוב..." : "בחר עיר קודם"}
+                          inputClassName="border-gray-200 focus:border-black"
+                          disabled={!selectedCity}
+                          required
                         />
                       </div>
                       <div>
