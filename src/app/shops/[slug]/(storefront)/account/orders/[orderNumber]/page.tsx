@@ -179,14 +179,53 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                   <span>₪{Number(order.subtotal).toFixed(2)}</span>
                 </div>
                 
-                {Number(order.discountAmount) > 0 && (
+                {/* Detailed discount breakdown - each type in its own row */}
+                {((order.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}>) || []).map((discount, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`flex justify-between ${
+                      discount.type === 'gift_card' ? 'text-purple-600' :
+                      discount.type === 'credit' ? 'text-blue-600' :
+                      'text-green-600'
+                    }`}
+                  >
+                    <span className="flex items-center gap-1">
+                      {discount.type === 'gift_card' && (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+                        </svg>
+                      )}
+                      {discount.type === 'coupon' && (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/>
+                          <path d="M6 6h.008v.008H6V6z"/>
+                        </svg>
+                      )}
+                      {discount.type === 'auto' && (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
+                        </svg>
+                      )}
+                      {discount.type === 'coupon' ? `קופון ${discount.code}${discount.description ? ` (${discount.description})` : ''}` :
+                       discount.type === 'gift_card' ? `גיפט קארד ${discount.code}` :
+                       discount.type === 'auto' ? `הנחה אוטומטית: ${discount.name}` :
+                       discount.type === 'member' ? 'הנחת חברי מועדון' :
+                       discount.type === 'credit' ? 'קרדיט' : discount.name}
+                    </span>
+                    <span>-₪{discount.amount.toFixed(2)}</span>
+                  </div>
+                ))}
+                
+                {/* Fallback for old orders without discountDetails */}
+                {!((order.discountDetails as unknown[])?.length) && Number(order.discountAmount) > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>הנחה</span>
+                    <span>הנחה {order.discountCode && `(${order.discountCode})`}</span>
                     <span>-₪{Number(order.discountAmount).toFixed(2)}</span>
                   </div>
                 )}
                 
-                {Number(order.creditUsed) > 0 && (
+                {/* Credit used - only if not already in discountDetails */}
+                {Number(order.creditUsed) > 0 && !((order.discountDetails as Array<{type: string}>)?.some(d => d.type === 'credit')) && (
                   <div className="flex justify-between text-blue-600">
                     <span>קרדיט</span>
                     <span>-₪{Number(order.creditUsed).toFixed(2)}</span>
@@ -195,10 +234,17 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                 
                 <div className="flex justify-between">
                   <span className="text-gray-500">משלוח</span>
-                  <span>
+                  <span className={Number(order.shippingAmount) === 0 ? 'text-green-600 flex items-center gap-1' : ''}>
                     {Number(order.shippingAmount) > 0 
                       ? `₪${Number(order.shippingAmount).toFixed(2)}`
-                      : 'חינם'
+                      : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                          </svg>
+                          חינם
+                        </>
+                      )
                     }
                   </span>
                 </div>
