@@ -945,7 +945,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
           </div>
 
           {/* Upsell Products */}
-          {allProducts.length > 0 && (
+          {mode === 'edit' && allProducts.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100">
                 <h2 className="text-sm font-semibold text-gray-900">מוצרים משלימים (אפסייל)</h2>

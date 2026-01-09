@@ -82,61 +82,74 @@ export const templates: Template[] = [
     },
     
     sections: [
+      // Hero - ZARA style full-width
       {
         type: 'hero',
-        title: 'NEW COLLECTION',
-        subtitle: 'קולקציית סתיו-חורף 2025',
+        title: 'NOIR',
+        subtitle: 'קולקציית סתיו-חורף 2025!',
         content: {
-          imageUrl: 'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=1920',
-          buttonText: 'לחנות',
-          buttonLink: '/products',
+          imageUrl: 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420',
+          buttonText: 'גלה את הקולקציה',
+          buttonLink: '#products',
         },
-        settings: { height: '90vh', overlay: 0.15 },
+        settings: { height: '90vh', overlay: 0.1 },
       },
-      {
-        type: 'features',
-        title: null,
-        subtitle: null,
-        content: {
-          features: [
-            { id: '1', icon: 'truck', title: 'משלוח חינם', description: 'בהזמנה מעל ₪299' },
-            { id: '2', icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
-            { id: '3', icon: 'check', title: 'איכות מובטחת', description: '100% שביעות רצון' },
-            { id: '4', icon: 'message', title: 'תמיכה', description: 'זמינים בכל שאלה' },
-          ],
-        },
-        settings: { columns: 4, iconStyle: 'emoji', backgroundColor: '#fafafa' },
-      },
+      // Categories grid
       {
         type: 'categories',
         title: null,
         subtitle: null,
-        content: { showAll: true, limit: 4 },
-        settings: { columns: 4, gap: 8 },
+        content: { showAll: true, categoryIds: [] },
+        settings: { gap: 8, columns: 4 },
       },
+      // Featured products
       {
         type: 'products',
-        title: 'הנבחרים שלנו',
-        subtitle: 'פריטים שאהבנו במיוחד',
-        content: { type: 'featured', limit: 4 },
-        settings: { columns: 4, gap: 8 },
+        title: 'פריטים נבחרים',
+        subtitle: 'הבחירות שלנו לעונה',
+        content: { type: 'all', limit: 4 },
+        settings: { gap: 8, columns: 4 },
       },
+      // Video banner - H&M style
+      {
+        type: 'video_banner',
+        title: 'קולקציה חדשה',
+        subtitle: 'חדש בחנות',
+        content: {
+          videoUrl: 'https://image.hm.com/content/dam/global_campaigns/season_02/women/9000d/9000D-W-6C-16x9-women-spoil.mp4',
+          buttonText: 'לצפייה בקולקציה',
+          buttonLink: '/products',
+        },
+        settings: { height: '80vh', overlay: 0.2 },
+      },
+      // Split banner - Men/Women
       {
         type: 'split_banner',
         title: null,
         subtitle: null,
         content: {
-          right: { title: 'נשים', imageUrl: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=800', link: '/category/women' },
-          left: { title: 'גברים', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800', link: '/category/men' },
+          items: [
+            { link: '/category/women', title: 'נשים', imageUrl: 'https://static.zara.net/assets/public/024c/0dd8/e19e4df78c61/f20fd99a35d2/02335629250-p/02335629250-p.jpg?ts=1752493031914&w=1230' },
+            { link: '/category/men', title: 'גברים', imageUrl: 'https://static.zara.net/assets/public/a132/8434/0ddd438dbcef/110f9ea930b3/05939539716-p/05939539716-p.jpg?ts=1758270012870&w=2560' },
+          ],
         },
         settings: { height: '70vh' },
       },
+      // All products
+      {
+        type: 'products',
+        title: 'כל המוצרים',
+        subtitle: null,
+        content: { type: 'all', limit: 8 },
+        settings: { gap: 8, columns: 4, showCount: true },
+      },
+      // Newsletter
       {
         type: 'newsletter',
         title: 'הצטרפו למועדון',
-        subtitle: 'קבלו 15% הנחה על ההזמנה הראשונה',
+        subtitle: 'הרשמו לניוזלטר וקבלו 15% הנחה על ההזמנה הראשונה',
         content: { buttonText: 'הרשמה', placeholder: 'כתובת אימייל' },
-        settings: { maxWidth: 'lg' },
+        settings: { maxWidth: 'xl' },
       },
     ],
   },

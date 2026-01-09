@@ -232,8 +232,14 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                 {remainingForFreeShipping > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-gray-500">
-                        🚚 עוד <span className="font-medium text-black">{formatPrice(remainingForFreeShipping)}</span> למשלוח חינם
+                      <span className="text-gray-500 flex items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                          <rect x="1" y="6" width="15" height="12" rx="2"/>
+                          <path d="M16 16h4l3-3v-3h-7"/>
+                          <circle cx="5.5" cy="18.5" r="2.5"/>
+                          <circle cx="18.5" cy="18.5" r="2.5"/>
+                        </svg>
+                        עוד <span className="font-medium text-black">{formatPrice(remainingForFreeShipping)}</span> למשלוח חינם
                       </span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
