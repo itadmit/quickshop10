@@ -23,6 +23,8 @@ interface AddToCartButtonProps {
   allowBackorder?: boolean;
   // הנחה אוטומטית
   automaticDiscountName?: string;
+  // מחיר מוזל לתצוגה בעגלה (החישוב האמיתי בצ'קאאוט)
+  discountedPrice?: number;
   // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
   categoryIds?: string[];
 }
@@ -40,6 +42,7 @@ export function AddToCartButton({
   trackInventory = true,
   allowBackorder = false,
   automaticDiscountName,
+  discountedPrice,
   categoryIds,
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
@@ -63,7 +66,7 @@ export function AddToCartButton({
     if (outOfStock) return;
     
     // מעבירים maxQuantity ו-trackInventory לבדיקה מקומית מהירה בסל ⚡
-    // 🔑 categoryIds לחישוב הנחות בצ'קאאוט
+    // 🔑 categoryIds לחישוב הנחות בצ'קאאוט, discountedPrice לתצוגה בעגלה
     addToCart({ 
       productId, 
       name, 
@@ -73,6 +76,7 @@ export function AddToCartButton({
       maxQuantity: trackInventory ? inventory : null,
       trackInventory,
       automaticDiscountName,
+      discountedPrice,
       categoryIds,
     });
     setAdded(true);

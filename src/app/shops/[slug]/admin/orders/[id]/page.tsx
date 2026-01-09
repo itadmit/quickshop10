@@ -178,6 +178,26 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                     {item.sku && (
                       <p className="text-xs text-gray-400 mt-0.5">מק״ט: {item.sku}</p>
                     )}
+                    {/* Display addons if present */}
+                    {(() => {
+                      const props = item.properties as { addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number } | null;
+                      if (props?.addons && props.addons.length > 0) {
+                        return (
+                          <div className="mt-1.5 space-y-0.5 text-xs bg-gray-50 p-1.5 rounded">
+                            {props.addons.map((addon, i) => (
+                              <div key={i} className="flex items-center gap-2 text-gray-600">
+                                <span>{addon.name}:</span>
+                                <span className="text-gray-800">{addon.displayValue}</span>
+                                {addon.priceAdjustment > 0 && (
+                                  <span className="text-green-600">(+₪{addon.priceAdjustment.toFixed(2)})</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   {/* Price & Quantity */}
@@ -202,7 +222,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
             
             <div className="px-4 py-3 space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">סכום ביניים</span>
+                <span className="text-gray-600">סכום לפני הנחות</span>
                 <span className="text-gray-600">{order.items.length} פריטים</span>
                 <span className="text-gray-900">₪{Number(order.subtotal).toFixed(2)}</span>
               </div>

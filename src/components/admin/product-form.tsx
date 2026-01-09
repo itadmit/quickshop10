@@ -39,16 +39,36 @@ interface ProductVariant {
   option3: string | null;
 }
 
+interface UpsellProduct {
+  id: string;
+  name: string;
+  imageUrl?: string | null;
+  price: string | null;
+}
+
+interface StoreAddon {
+  id: string;
+  name: string;
+  fieldType: 'text' | 'select' | 'checkbox' | 'radio' | 'date';
+  priceAdjustment: number;
+  options?: Array<{ label: string; value: string; priceAdjustment: number }>;
+  isRequired: boolean;
+}
+
 interface ProductFormProps {
   storeId: string;
   storeSlug: string;
   customDomain?: string | null;
   categories: Category[];
+  allProducts?: UpsellProduct[]; // For upsell product selection
+  storeAddons?: StoreAddon[]; // For addon assignment
   product?: Product & { 
     images?: { id: string; url: string; alt: string | null; isPrimary: boolean }[];
     options?: ProductOption[];
     variants?: ProductVariant[];
     categoryIds?: string[];
+    upsellProductIds?: string[];
+    addonIds?: string[];
   };
   mode: 'create' | 'edit';
 }
@@ -74,7 +94,7 @@ function sanitizeSlug(text: string): string {
     .replace(/-+/g, '-'); // Clean multiple dashes
 }
 
-export function ProductForm({ storeId, storeSlug, customDomain, categories, product, mode }: ProductFormProps) {
+export function ProductForm({ storeId, storeSlug, customDomain, categories, allProducts = [], storeAddons = [], product, mode }: ProductFormProps) {
   // Build the store URL for SEO preview
   const storeUrl = customDomain || `my-quickshop.com/shops/${storeSlug}`;
   const router = useRouter();
@@ -106,6 +126,16 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, prod
   );
   const [isActive, setIsActive] = useState(product?.isActive ?? true);
   const [isFeatured, setIsFeatured] = useState(product?.isFeatured ?? false);
+  
+  // Upsell Products
+  const [upsellProductIds, setUpsellProductIds] = useState<string[]>(
+    (product?.upsellProductIds as string[] | undefined) || []
+  );
+  
+  // Product Addons
+  const [addonIds, setAddonIds] = useState<string[]>(
+    product?.addonIds || []
+  );
   
   // SEO
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle || '');
@@ -293,6 +323,8 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, prod
       categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
       isActive,
       isFeatured,
+      upsellProductIds: upsellProductIds.length > 0 ? upsellProductIds : undefined,
+      addonIds: addonIds.length > 0 ? addonIds : undefined,
       seoTitle: seoTitle.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       images: images.map(img => ({
@@ -811,6 +843,160 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, prod
               </label>
             </div>
           </div>
+
+          {/* Upsell Products */}
+          {mode === 'edit' && allProducts.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-900">מוצרים משלימים (אפסייל)</h2>
+              </div>
+              <div className="p-4 space-y-3">
+                <p className="text-xs text-gray-500">
+                  בחר מוצרים שיוצגו כהמלצה בעגלת הקניות כשמוצר זה מתווסף.
+                </p>
+                
+                {/* Search & Add Products */}
+                <div className="relative">
+                  <select
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors text-sm"
+                    value=""
+                    onChange={(e) => {
+                      if (e.target.value && !upsellProductIds.includes(e.target.value) && upsellProductIds.length < 5) {
+                        setUpsellProductIds([...upsellProductIds, e.target.value]);
+                      }
+                    }}
+                  >
+                    <option value="">+ הוסף מוצר משלים...</option>
+                    {allProducts
+                      .filter(p => p.id !== product?.id && !upsellProductIds.includes(p.id))
+                      .map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                
+                {/* Selected Products */}
+                {upsellProductIds.length > 0 && (
+                  <div className="space-y-2">
+                    {upsellProductIds.map(id => {
+                      const upsellProduct = allProducts.find(p => p.id === id);
+                      if (!upsellProduct) return null;
+                      return (
+                        <div key={id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                          {upsellProduct.imageUrl ? (
+                            <img
+                              src={upsellProduct.imageUrl}
+                              alt={upsellProduct.name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-200 rounded flex items-center justify-center">
+                              <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                          )}
+                          <span className="flex-1 text-sm truncate">{upsellProduct.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setUpsellProductIds(upsellProductIds.filter(pid => pid !== id))}
+                            className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
+                {upsellProductIds.length >= 5 && (
+                  <p className="text-xs text-amber-600">ניתן לבחור עד 5 מוצרים</p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Product Addons */}
+          {storeAddons.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-900">תוספות מותאמות</h2>
+                <a
+                  href={`/shops/${storeSlug}/admin/addons`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  ניהול תוספות →
+                </a>
+              </div>
+              <div className="p-4 space-y-2">
+                <p className="text-xs text-gray-500 mb-3">
+                  בחר תוספות שיופיעו בעמוד המוצר (למשל: רקמה אישית, אריזת מתנה)
+                </p>
+                
+                {storeAddons.map(addon => {
+                  const isSelected = addonIds.includes(addon.id);
+                  const priceDisplay = addon.fieldType === 'select' || addon.fieldType === 'radio' 
+                    ? addon.options?.filter(o => o.priceAdjustment > 0).length 
+                      ? `משתנה`
+                      : null
+                    : addon.priceAdjustment > 0 
+                      ? `+₪${addon.priceAdjustment}`
+                      : null;
+                  
+                  return (
+                    <label
+                      key={addon.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        isSelected 
+                          ? 'border-black bg-gray-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setAddonIds([...addonIds, addon.id]);
+                          } else {
+                            setAddonIds(addonIds.filter(id => id !== addon.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900">{addon.name}</span>
+                          {addon.isRequired && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded">חובה</span>
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          {addon.fieldType === 'text' && 'טקסט חופשי'}
+                          {addon.fieldType === 'select' && 'בחירה מרשימה'}
+                          {addon.fieldType === 'checkbox' && 'תיבת סימון'}
+                          {addon.fieldType === 'radio' && 'בחירה בודדת'}
+                          {addon.fieldType === 'date' && 'תאריך'}
+                        </span>
+                      </div>
+                      {priceDisplay && (
+                        <span className="text-xs font-medium text-green-600 shrink-0">
+                          {priceDisplay}
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Inventory & Shipping */}
           {!hasVariants && (

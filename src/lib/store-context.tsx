@@ -28,8 +28,20 @@ export interface CartItem {
   giftFromCouponId?: string; // ID של הקופון שהביא את המתנה
   // הנחה אוטומטית - שם ההנחה לתצוגה בעגלה
   automaticDiscountName?: string;
+  automaticDiscountNames?: string[]; // 🆕 Multiple discounts support
+  // מחיר מוזל לתצוגה בעגלה (החישוב האמיתי בצ'קאאוט)
+  discountedPrice?: number;
   // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
   categoryIds?: string[];
+  // תוספות מותאמות (addons)
+  addons?: Array<{
+    addonId: string;
+    name: string;
+    value: string;
+    displayValue: string;
+    priceAdjustment: number;
+  }>;
+  addonTotal?: number;
 }
 
 // קופון מוחל
@@ -68,7 +80,8 @@ interface StoreContextType {
   // Cart state
   cart: CartItem[];
   cartOpen: boolean;
-  cartTotal: number;
+  cartTotal: number;          // Uses discountedPrice for UI (cart sidebar)
+  cartOriginalTotal: number;  // ALWAYS original price (for checkout calculations)
   cartCount: number;
   isHydrated: boolean;
   
@@ -227,7 +240,20 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
   }, [appliedCoupons, mounted, storeSlug]);
 
   // Computed values
-  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // cartOriginalTotal - ALWAYS uses original price (for checkout calculations)
+  // 🆕 Now includes addon totals!
+  const cartOriginalTotal = cart.reduce((sum, item) => {
+    const basePrice = item.price * item.quantity;
+    const addonPrice = (item.addonTotal || 0) * item.quantity;
+    return sum + basePrice + addonPrice;
+  }, 0);
+  // cartTotal - uses discountedPrice if available (for cart sidebar UI display only)
+  // 🆕 Now includes addon totals!
+  const cartTotal = cart.reduce((sum, item) => {
+    const effectivePrice = item.discountedPrice ?? item.price;
+    const addonPrice = item.addonTotal || 0;
+    return sum + (effectivePrice + addonPrice) * item.quantity;
+  }, 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Actions
@@ -381,6 +407,7 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
       cart,
       cartOpen,
       cartTotal,
+      cartOriginalTotal,
       cartCount,
       isHydrated: mounted,
       appliedCoupons,

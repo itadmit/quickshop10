@@ -101,7 +101,7 @@ export function CheckoutForm({
   checkoutSettings = defaultCheckoutSettings,
   shippingSettings = defaultShippingSettings,
 }: CheckoutFormProps) {
-  const { cart, cartTotal, clearCart, isHydrated, addGiftItem, removeGiftItemsByCoupon, appliedCoupons, addCoupon, removeCoupon, clearCoupons, formatPrice, addToCart } = useStore();
+  const { cart, cartTotal, cartOriginalTotal, clearCart, isHydrated, addGiftItem, removeGiftItemsByCoupon, appliedCoupons, addCoupon, removeCoupon, clearCoupons, formatPrice, addToCart } = useStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const homeUrl = basePath || '/';
@@ -228,7 +228,7 @@ export function CheckoutForm({
         const result = await validateCoupon(
           storeId,
           couponCode,
-          cartTotal,
+          cartOriginalTotal, // Use original total for coupon validation
           undefined, // email
           cart.map(item => ({ productId: item.productId, quantity: item.quantity }))
         );
@@ -249,23 +249,23 @@ export function CheckoutForm({
     };
     
     applyCouponFromUrl();
-  }, [isHydrated, urlCouponApplied, cart, storeId, searchParams, cartTotal, appliedCoupons, addCoupon, router]);
+  }, [isHydrated, urlCouponApplied, cart, storeId, searchParams, cartOriginalTotal, appliedCoupons, addCoupon, router]);
   
-  // Re-validate coupons when cart total DECREASES
-  const prevCartTotalRef = useRef(cartTotal);
+  // Re-validate coupons when cart total DECREASES (use original price)
+  const prevCartTotalRef = useRef(cartOriginalTotal);
   const couponsCheckedRef = useRef<string[]>([]); // מניעת בדיקה כפולה
   useEffect(() => {
     // Only check when cart total decreased
-    if (cartTotal >= prevCartTotalRef.current) {
-      prevCartTotalRef.current = cartTotal;
+    if (cartOriginalTotal >= prevCartTotalRef.current) {
+      prevCartTotalRef.current = cartOriginalTotal;
       return;
     }
-    prevCartTotalRef.current = cartTotal;
+    prevCartTotalRef.current = cartOriginalTotal;
     
     if (appliedCoupons.length === 0) return;
     
     const invalidCoupons = appliedCoupons.filter(coupon => 
-      coupon.minimumAmount && cartTotal < coupon.minimumAmount
+      coupon.minimumAmount && cartOriginalTotal < coupon.minimumAmount
     );
     
     if (invalidCoupons.length === 0) return;
@@ -286,7 +286,7 @@ export function CheckoutForm({
     
     // Remove invalid coupons
     invalidCoupons.forEach(coupon => removeCoupon(coupon.id));
-  }, [cartTotal, appliedCoupons, removeCoupon]);
+  }, [cartOriginalTotal, appliedCoupons, removeCoupon]);
   
   // Fetch automatic discounts when cart or email changes
   const fetchAutoDiscounts = useCallback(async (email?: string) => {
@@ -303,14 +303,14 @@ export function CheckoutForm({
         quantity: item.quantity,
       }));
       if (!storeId) return;
-      const discounts = await getAutomaticDiscounts(storeId, cartItems, cartTotal, email);
+      const discounts = await getAutomaticDiscounts(storeId, cartItems, cartOriginalTotal, email);
       setAutoDiscounts(discounts);
     } catch (error) {
       console.error('Failed to fetch auto discounts:', error);
     } finally {
       setLoadingAutoDiscounts(false);
     }
-  }, [cart, cartTotal]);
+  }, [cart, cartOriginalTotal]);
   
   // Check email when createAccount is checked
   const checkEmailExists = useCallback(async (email: string) => {
@@ -638,20 +638,22 @@ export function CheckoutForm({
   const giftCardCoupon = appliedCoupons.find(c => c.type === 'gift_card');
   let giftCardAmount = 0;
   if (giftCardCoupon) {
-    const afterAllDiscounts = cartTotal - memberDiscount - autoProductDiscount - couponDiscount;
+    // Use cartOriginalTotal for correct calculation (discounts are applied to original price)
+    const afterAllDiscounts = cartOriginalTotal - memberDiscount - autoProductDiscount - couponDiscount;
     giftCardAmount = Math.min(giftCardCoupon.value, afterAllDiscounts);
   }
   
   // Check for free shipping
   const hasFreeShipping = discountCalc.freeShipping || appliedCoupons.some(c => c.type === 'free_shipping');
 
-  // Calculate shipping based on store settings
+  // Calculate shipping based on store settings (use original total for threshold)
   const baseShippingRate = shippingSettings.rates[0]?.price || 29;
   const freeShippingThreshold = shippingSettings.enableFreeShipping ? shippingSettings.freeShippingThreshold : Infinity;
-  const shipping = cartTotal >= freeShippingThreshold ? 0 : baseShippingRate;
+  const shipping = cartOriginalTotal >= freeShippingThreshold ? 0 : baseShippingRate;
   const shippingAfterDiscount = hasFreeShipping ? 0 : shipping;
   const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount + giftCardAmount;
-  const subtotalAfterDiscount = cartTotal - totalDiscount + shippingAfterDiscount;
+  // ⚠️ CRITICAL: Use cartOriginalTotal - discounts are calculated from original price!
+  const subtotalAfterDiscount = cartOriginalTotal - totalDiscount + shippingAfterDiscount;
   // Calculate credit to use (max available or max needed)
   const creditBalance = loggedInCustomer?.creditBalance || 0;
   const creditUsed = useCredit ? Math.min(creditBalance, subtotalAfterDiscount) : 0;
@@ -670,7 +672,7 @@ export function CheckoutForm({
         quantity: item.quantity,
         image: item.image,
       })),
-      totalValue: cartTotal,
+      totalValue: cartOriginalTotal,
       itemCount: cart.reduce((sum, item) => sum + item.quantity, 0),
       currency: 'ILS',
     };
@@ -679,6 +681,8 @@ export function CheckoutForm({
       // Track InitiateCheckout when moving from details to shipping
       tracker.initiateCheckout(cartData);
       setStep('shipping');
+      // Scroll to top so shipping section is visible
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (step === 'shipping') {
       // Track AddShippingInfo when moving from shipping to payment
       tracker.addShippingInfo({
@@ -686,6 +690,8 @@ export function CheckoutForm({
         shippingMethod: shippingSettings.rates[0]?.name || 'משלוח',
       });
       setStep('payment');
+      // Scroll to top so payment section is visible
+      window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (step === 'payment') {
       // Track AddPaymentInfo when submitting payment
       tracker.addPaymentInfo({
@@ -740,6 +746,9 @@ export function CheckoutForm({
                   price: item.price,
                   sku: item.sku || '',
                   image: item.image,
+                  // 🆕 Include addons in order data
+                  addons: item.addons,
+                  addonTotal: item.addonTotal,
                 })),
                 shipping: {
                   method: shippingSettings.rates[0]?.name || 'משלוח',
@@ -795,8 +804,11 @@ export function CheckoutForm({
                 price: item.price,
                 variantTitle: item.variantTitle,
                 image: item.image,
+                // 🆕 Include addons for thank you page
+                addons: item.addons,
+                addonTotal: item.addonTotal,
               })),
-              subtotal: cartTotal,
+              subtotal: cartOriginalTotal,
               discount: totalDiscount,
               shipping: shippingAfterDiscount,
               total,
@@ -910,7 +922,7 @@ export function CheckoutForm({
               type: primaryCoupon.type,
               value: primaryCoupon.value,
             } : null,
-            cartTotal,
+            cartOriginalTotal,
             totalDiscount,
             shippingAfterDiscount,
             total,
@@ -932,7 +944,7 @@ export function CheckoutForm({
                 variantTitle: item.variantTitle,
                 image: item.image,
               })),
-              subtotal: cartTotal,
+              subtotal: cartOriginalTotal,
               discount: totalDiscount,
               shipping: shippingAfterDiscount,
               total,
@@ -1545,7 +1557,10 @@ export function CheckoutForm({
                 {step !== 'details' && (
                   <button
                     type="button"
-                    onClick={() => setStep(step === 'payment' ? 'shipping' : 'details')}
+                    onClick={() => {
+                      setStep(step === 'payment' ? 'shipping' : 'details');
+                      window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
                     className="btn-secondary flex-1"
                   >
                     חזרה
@@ -1568,7 +1583,7 @@ export function CheckoutForm({
             {/* Coupon - Separate Component */}
             <CouponInput
               storeId={storeId || ''}
-              cartTotal={cartTotal}
+              cartTotal={cartOriginalTotal}
               appliedCoupons={appliedCoupons}
               onApply={(coupon) => addCoupon(coupon)}
               onRemove={(couponId) => { 
@@ -1642,12 +1657,47 @@ export function CheckoutForm({
                         <p className="text-xs text-gray-500">{item.variantTitle}</p>
                       )}
                       <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm">{formatPrice(item.price * item.quantity)}</p>
+                      <div className="flex flex-col gap-1">
+                        {/* Show original and discounted price like cart sidebar */}
+                        <div className="flex items-center gap-2">
+                          {item.discountedPrice ? (
+                            <>
+                              <p className="text-sm text-green-600 font-medium">{formatPrice(item.discountedPrice * item.quantity)}</p>
+                              <p className="text-xs text-gray-400 line-through">{formatPrice(item.price * item.quantity)}</p>
+                            </>
+                          ) : (
+                            <p className="text-sm">{formatPrice(item.price * item.quantity)}</p>
+                          )}
+                        </div>
+                        {/* Discount Badges - separate badge for each discount */}
                         {item.automaticDiscountName && (
-                          <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
-                            {item.automaticDiscountName}
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {item.automaticDiscountName.split(' + ').map((name, i) => (
+                              <span key={i} className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Addons Display */}
+                        {item.addons && item.addons.length > 0 && (
+                          <div className="mt-1.5 space-y-0.5 bg-gray-50 p-2 rounded text-xs">
+                            {item.addons.map((addon, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <span className="text-gray-600">{addon.name}: <span className="text-gray-800">{addon.displayValue}</span></span>
+                                {addon.priceAdjustment > 0 && (
+                                  <span className="text-green-600">+{formatPrice(addon.priceAdjustment)}</span>
+                                )}
+                              </div>
+                            ))}
+                            {item.addonTotal && item.addonTotal > 0 && (
+                              <div className="text-gray-500 pt-1 border-t border-gray-200 flex justify-between">
+                                <span>סה"כ תוספות:</span>
+                                <span className="text-green-600">+{formatPrice(item.addonTotal * item.quantity)}</span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1659,8 +1709,8 @@ export function CheckoutForm({
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">סכום ביניים</span>
-                  <span>{formatPrice(cartTotal)}</span>
+                  <span className="text-gray-500">סכום לפני הנחות</span>
+                  <span>{formatPrice(cartOriginalTotal)}</span>
                 </div>
                 
                 {/* Member Discount */}
@@ -1758,7 +1808,7 @@ export function CheckoutForm({
                   )}
                 </div>
                 {/* Free shipping threshold message */}
-                {step !== 'details' && shipping === 0 && !hasFreeShipping && shippingSettings.enableFreeShipping && cartTotal >= shippingSettings.freeShippingThreshold && (
+                {step !== 'details' && shipping === 0 && !hasFreeShipping && shippingSettings.enableFreeShipping && cartOriginalTotal >= shippingSettings.freeShippingThreshold && (
                   <p className="text-xs text-green-600">
                     ✓ משלוח חינם בקנייה מעל {formatPrice(shippingSettings.freeShippingThreshold)}
                   </p>
@@ -1809,7 +1859,7 @@ export function CheckoutForm({
 
               <div className="flex justify-between text-lg font-display">
                 <span>סה״כ</span>
-                <span>{step === 'details' ? formatPrice(cartTotal - totalDiscount) : formatPrice(total)}</span>
+                <span>{step === 'details' ? formatPrice(cartOriginalTotal - totalDiscount) : formatPrice(total)}</span>
               </div>
             </div>
           </div>

@@ -192,10 +192,11 @@ export async function POST(
     // Generate session ID
     const sessionId = `advisor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Fire-and-forget: Save session and update quiz stats (don't block response!)
+    // Fire-and-forget: Save session, update quiz stats, and answer statistics (don't block response!)
     (async () => {
       try {
-        await Promise.all([
+        // Prepare all updates
+        const updatePromises = [
           // Save session
           db.insert(advisorSessions).values({
             quizId,
@@ -217,7 +218,22 @@ export async function POST(
             SET total_completions = total_completions + 1, updated_at = NOW() 
             WHERE id = '${quizId}'
           `),
-        ]);
+        ];
+        
+        // Increment selection counts for each selected answer (efficient batch update)
+        if (selectedAnswerIds.length > 0) {
+          // Use a single SQL statement to increment all selected answers
+          const answerIdsStr = selectedAnswerIds.map(id => `'${id}'`).join(',');
+          updatePromises.push(
+            db.execute(`
+              UPDATE advisor_answers 
+              SET total_selections = total_selections + 1 
+              WHERE id IN (${answerIdsStr})
+            `)
+          );
+        }
+        
+        await Promise.all(updatePromises);
       } catch (error) {
         console.error('Error saving advisor session:', error);
       }

@@ -127,12 +127,20 @@ export async function sendPasswordResetEmail(email: string, token: string, name?
 
 // ============ ORDER CONFIRMATION ============
 
+interface OrderItemAddon {
+  name: string;
+  displayValue: string;
+  priceAdjustment: number;
+}
+
 interface OrderItem {
   name: string;
   quantity: number;
   price: number;
   variantTitle?: string;
   image?: string;
+  addons?: OrderItemAddon[];
+  addonTotal?: number;
 }
 
 // Type for discount details in email
@@ -199,6 +207,22 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
       ? (item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_APP_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
       : null;
     
+    // Calculate item total including addons
+    const addonTotal = item.addonTotal || 0;
+    const itemTotal = (item.price + addonTotal) * item.quantity;
+    
+    // Build addons HTML if present
+    const addonsHtml = item.addons && item.addons.length > 0 
+      ? `<div style="margin-top: 8px; padding: 8px; background: #f9fafb; border-radius: 6px;">
+          ${item.addons.map(addon => `
+            <p style="margin: 0 0 4px 0; font-size: 12px; color: #666;">
+              ${addon.name}: <span style="color: #1a1a1a;">${addon.displayValue}</span>
+              ${addon.priceAdjustment > 0 ? `<span style="color: #16a34a;"> (+₪${addon.priceAdjustment.toFixed(2)})</span>` : ''}
+            </p>
+          `).join('')}
+        </div>`
+      : '';
+    
     return `
     <tr>
       <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;" colspan="2">
@@ -218,10 +242,11 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
               ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
               <p style="margin: 0; font-size: 14px; color: #666;">כמות: ${item.quantity}</p>
               <p style="margin: 4px 0 0 0; font-size: 14px; color: #1a1a1a;">₪${item.price.toFixed(2)}</p>
+              ${addonsHtml}
             </td>
             <!-- Price on LEFT -->
             <td style="width: 100px; vertical-align: top; text-align: left;">
-              <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${(item.price * item.quantity).toFixed(2)}</span>
+              <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${itemTotal.toFixed(2)}</span>
             </td>
           </tr>
         </table>
@@ -310,7 +335,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
             <div style="padding: 24px; background: #f9fafb;">
               <table width="100%" cellpadding="0" cellspacing="0" style="direction: rtl;">
                 <tr>
-                  <td style="padding: 12px 0; color: #6b7280; text-align: right; width: 50%;">סכום ביניים</td>
+                  <td style="padding: 12px 0; color: #6b7280; text-align: right; width: 50%;">סכום לפני הנחות</td>
                   <td style="padding: 12px 0; text-align: left; font-weight: 500; color: #1a1a1a; width: 50%;">₪${subtotal.toFixed(2)}</td>
                 </tr>
                 <tr>

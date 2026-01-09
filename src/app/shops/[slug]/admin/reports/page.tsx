@@ -147,26 +147,26 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
           
           {/* Bars */}
           <div className="relative flex items-end gap-1 h-full">
-            {data.map((day, i) => {
-              const height = (day.revenue / maxRevenue) * 100;
-              
-              // Format label based on whether it's by hour or by day
-              let label = '';
-              if (isByHour) {
-                const hourMatch = day.date.match(/\s(\d{2}):/);
-                const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
-                label = `${hour}:00`;
-              } else {
-                const date = new Date(day.date);
+        {data.map((day, i) => {
+          const height = (day.revenue / maxRevenue) * 100;
+          
+          // Format label based on whether it's by hour or by day
+          let label = '';
+          if (isByHour) {
+            const hourMatch = day.date.match(/\s(\d{2}):/);
+            const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
+            label = `${hour}:00`;
+          } else {
+          const date = new Date(day.date);
                 label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'short' });
-              }
-              
-              return (
-                <div 
-                  key={i} 
+          }
+          
+          return (
+            <div 
+              key={i} 
                   className="flex-1 group relative h-full flex items-end"
-                >
-                  {/* Tooltip */}
+            >
+              {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-20 pointer-events-none">
                     <div className="bg-gray-900 text-white text-xs px-3 py-2.5 rounded-lg shadow-xl whitespace-nowrap border border-gray-700">
                       <div className="font-semibold text-gray-100 mb-1">{label}</div>
@@ -177,20 +177,20 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
                       <div className="text-gray-400 text-[11px] mt-0.5">{day.orders} הזמנות</div>
                       {/* Arrow */}
                       <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                    </div>
-                  </div>
-                  
-                  {/* Bar */}
-                  <div 
+                </div>
+              </div>
+              
+              {/* Bar */}
+                <div 
                     className="w-full bg-gradient-to-t from-gray-800 to-gray-600 hover:from-gray-700 hover:to-gray-500 transition-all duration-200 rounded-t cursor-pointer"
                     style={{ 
                       height: `${Math.max(height, 3)}%`,
                       minHeight: day.revenue > 0 ? '4px' : '2px'
                     }}
-                  />
-                </div>
-              );
-            })}
+                />
+            </div>
+          );
+        })}
           </div>
         </div>
       </div>
@@ -210,7 +210,7 @@ function SalesChart({ data }: { data: Array<{ date: string; revenue: number; ord
             const hour = hourMatch ? parseInt(hourMatch[1]) : 0;
             label = `${hour}:00`;
           } else {
-            const date = new Date(day.date);
+          const date = new Date(day.date);
             label = date.toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' });
           }
           
@@ -349,26 +349,26 @@ async function StatsContent({
   const dashboard = await getReportsDashboard(storeId, period, customRange);
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <StatCard
-        label="סה״כ הכנסות"
-        value={formatCurrency(dashboard.salesOverview.totalRevenue)}
-        subLabel={`${dashboard.salesOverview.totalOrders} הזמנות`}
-      />
-      <StatCard
-        label="ממוצע הזמנה"
-        value={formatCurrency(dashboard.salesOverview.averageOrderValue)}
-      />
-      <StatCard
-        label="לקוחות חדשים"
-        value={formatNumber(dashboard.salesOverview.newCustomers)}
-        subLabel={`מתוך ${dashboard.salesOverview.totalCustomers}`}
-      />
-      <StatCard
-        label="שיעור המרה"
-        value={formatPercent(dashboard.salesOverview.conversionRate)}
-      />
-    </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          label="סה״כ הכנסות"
+          value={formatCurrency(dashboard.salesOverview.totalRevenue)}
+          subLabel={`${dashboard.salesOverview.totalOrders} הזמנות`}
+        />
+        <StatCard
+          label="ממוצע הזמנה"
+          value={formatCurrency(dashboard.salesOverview.averageOrderValue)}
+        />
+        <StatCard
+          label="לקוחות חדשים"
+          value={formatNumber(dashboard.salesOverview.newCustomers)}
+          subLabel={`מתוך ${dashboard.salesOverview.totalCustomers}`}
+        />
+        <StatCard
+          label="שיעור המרה"
+          value={formatPercent(dashboard.salesOverview.conversionRate)}
+        />
+      </div>
   );
 }
 
@@ -587,14 +587,14 @@ export default async function ReportsPage({
 
       {/* Charts and Lists - BOTTOM */}
       <div className="mt-6 sm:mt-8">
-        <Suspense fallback={
+      <Suspense fallback={
           <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
             <ChartSkeleton />
             <ChartSkeleton />
           </div>
-        }>
+      }>
           <ChartsContent storeId={store.id} period={period} customRange={customRange} />
-        </Suspense>
+      </Suspense>
       </div>
     </div>
   );

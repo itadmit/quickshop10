@@ -19,6 +19,7 @@ import {
   ChevronLeft, ChevronRight, Share2, Pause, Play, Send, Loader2, Check,
 } from 'lucide-react';
 import type { Story, StoriesSettings } from './stories-bar';
+import { decodeHtmlEntities } from '@/lib/format-price';
 
 interface Comment {
   id: string;
@@ -678,7 +679,7 @@ export function StoryViewer({
             </h3>
             {currentStory.product.description && (
               <p className="text-gray-300 text-sm mb-2 line-clamp-2">
-                {currentStory.product.description.replace(/<[^>]*>/g, '')}
+                {decodeHtmlEntities(currentStory.product.description.replace(/<[^>]*>/g, ''))}
               </p>
             )}
             <div className="flex items-center justify-between">

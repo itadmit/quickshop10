@@ -15,7 +15,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   ArrowRight, Save, Eye, Plus, Trash2, ChevronDown, ChevronUp,
-  Package, Brain, Settings, HelpCircle, Palette,
+  Package, Brain, Settings, HelpCircle, Palette, BarChart3,
 } from 'lucide-react';
 import {
   updateAdvisorQuiz,
@@ -42,6 +42,7 @@ interface Answer {
   emoji?: string | null;
   color?: string | null;
   position: number;
+  totalSelections: number;
 }
 
 interface Question {
@@ -112,7 +113,7 @@ export function AdvisorEditor({ quiz: initialQuiz, products, storeSlug }: Adviso
   const [quiz, setQuiz] = useState(initialQuiz);
   const [questions, setQuestions] = useState(initialQuiz.questions);
   const [rules, setRules] = useState(initialQuiz.rules);
-  const [activeTab, setActiveTab] = useState<'questions' | 'rules' | 'settings'>('questions');
+  const [activeTab, setActiveTab] = useState<'questions' | 'rules' | 'statistics' | 'settings'>('questions');
   const [expandedQuestions, setExpandedQuestions] = useState<Set<string>>(
     new Set(initialQuiz.questions.map(q => q.id))
   );
@@ -249,6 +250,7 @@ export function AdvisorEditor({ quiz: initialQuiz, products, storeSlug }: Adviso
                       id: result.answerId!,
                       answerText: 'תשובה חדשה',
                       position: q.answers.length,
+                      totalSelections: 0,
                     },
                   ],
                 }
@@ -467,6 +469,17 @@ export function AdvisorEditor({ quiz: initialQuiz, products, storeSlug }: Adviso
             התאמת מוצרים
           </button>
           <button
+            onClick={() => setActiveTab('statistics')}
+            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
+              activeTab === 'statistics'
+                ? 'border-black text-black'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <BarChart3 className="h-4 w-4" />
+            סטטיסטיקות
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
               activeTab === 'settings'
@@ -682,6 +695,89 @@ export function AdvisorEditor({ quiz: initialQuiz, products, storeSlug }: Adviso
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Statistics Tab */}
+        {activeTab === 'statistics' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl border p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <BarChart3 className="h-5 w-5 text-purple-600" />
+                <h2 className="text-lg font-semibold">סטטיסטיקות תשובות</h2>
+              </div>
+              
+              {questions.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  אין שאלות עדיין. הוסף שאלות בטאב "שאלות ותשובות".
+                </p>
+              ) : (
+                <div className="space-y-6">
+                  {questions.map((question, qIndex) => {
+                    // Calculate total selections for this question
+                    const totalForQuestion = question.answers.reduce(
+                      (sum, a) => sum + (a.totalSelections || 0),
+                      0
+                    );
+                    
+                    return (
+                      <div key={question.id} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-3 mb-4">
+                          <span className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm">
+                            {qIndex + 1}
+                          </span>
+                          <h3 className="font-medium">{question.questionText}</h3>
+                          <span className="text-sm text-gray-500 mr-auto">
+                            {totalForQuestion} תשובות
+                          </span>
+                        </div>
+                        
+                        {question.answers.length === 0 ? (
+                          <p className="text-gray-400 text-sm">אין תשובות</p>
+                        ) : (
+                          <div className="space-y-3">
+                            {question.answers.map(answer => {
+                              const percentage = totalForQuestion > 0
+                                ? Math.round((answer.totalSelections / totalForQuestion) * 100)
+                                : 0;
+                              
+                              return (
+                                <div key={answer.id} className="space-y-1">
+                                  <div className="flex items-center justify-between text-sm">
+                                    <span className="flex items-center gap-2">
+                                      {answer.emoji && <span>{answer.emoji}</span>}
+                                      {answer.answerText}
+                                    </span>
+                                    <span className="text-gray-600">
+                                      {answer.totalSelections || 0} ({percentage}%)
+                                    </span>
+                                  </div>
+                                  {/* Progress Bar */}
+                                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                                      style={{ width: `${percentage}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            {/* Info Note */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                💡 הסטטיסטיקות מתעדכנות בכל פעם שלקוח משלים את השאלון.
+                האחוזים מחושבים יחסית לסך התשובות לכל שאלה.
+              </p>
+            </div>
           </div>
         )}
 

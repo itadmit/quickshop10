@@ -2,6 +2,7 @@ import { getDemoStore, getProductBySlug, getProductsByStore, getProductOptions, 
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductCard } from '@/components/product-card';
+import { decodeHtmlEntities } from '@/lib/format-price';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -164,7 +165,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 <div className="mb-8">
                   <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
                   <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                    {product.description}
+                    {decodeHtmlEntities(product.description)}
                   </p>
                 </div>
               )}

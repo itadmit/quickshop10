@@ -87,3 +87,41 @@ export function formatDiscount(
   return `-${formatted}`;
 }
 
+/**
+ * ניקוי HTML entities מטקסט
+ * ממיר entities נפוצים כמו &nbsp; לתווים רגילים
+ * @param text - הטקסט לניקוי
+ * @returns טקסט נקי
+ */
+export function decodeHtmlEntities(text: string | null | undefined): string {
+  if (!text) return '';
+  
+  // Common HTML entities mapping - fast O(1) lookup
+  // Using Unicode escape sequences for special characters
+  const entities: Record<string, string> = {
+    '&nbsp;': ' ',
+    '&amp;': '&',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&quot;': '"',
+    '&#39;': "'",
+    '&apos;': "'",
+    '&ndash;': '\u2013',  // en dash
+    '&mdash;': '\u2014',  // em dash
+    '&lsquo;': '\u2018',  // left single quote
+    '&rsquo;': '\u2019',  // right single quote
+    '&ldquo;': '\u201C',  // left double quote
+    '&rdquo;': '\u201D',  // right double quote
+    '&bull;': '\u2022',   // bullet
+    '&hellip;': '\u2026', // ellipsis
+    '&copy;': '\u00A9',   // copyright
+    '&reg;': '\u00AE',    // registered
+    '&trade;': '\u2122',  // trademark
+  };
+  
+  // Single regex pass for all entities - O(n) complexity
+  return text.replace(/&(?:nbsp|amp|lt|gt|quot|#39|apos|ndash|mdash|lsquo|rsquo|ldquo|rdquo|bull|hellip|copy|reg|trade);/gi, 
+    (match) => entities[match.toLowerCase()] || match
+  );
+}
+

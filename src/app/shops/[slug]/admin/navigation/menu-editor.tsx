@@ -216,33 +216,33 @@ export function MenuEditor({
     const hasChildren = children.length > 0;
     const isAddingSubHere = addingSubTo === item.id;
 
-    return (
+  return (
       <div key={item.id}>
         <div
           className={`flex items-center gap-3 p-3 bg-gray-50 rounded-lg ${level > 0 ? 'mr-6 border-r-2 border-gray-200' : ''}`}
-        >
-          {/* Reorder arrows */}
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => handleMoveUp(item, siblings)}
-              disabled={index === 0 || isPending}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 2l4 4H2l4-4z" />
-              </svg>
-            </button>
-            <button
+          {/* Reorder arrows */}
+              <div className="flex flex-col gap-1">
+                <button
+              onClick={() => handleMoveUp(item, siblings)}
+                  disabled={index === 0 || isPending}
+                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 2l4 4H2l4-4z" />
+                  </svg>
+                </button>
+                <button
               onClick={() => handleMoveDown(item, siblings)}
               disabled={index === siblings.length - 1 || isPending}
-              className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M6 10l4-4H2l4 4z" />
-              </svg>
-            </button>
-          </div>
-          
+                  className="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30"
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M6 10l4-4H2l4 4z" />
+                  </svg>
+                </button>
+              </div>
+              
           {/* Image thumbnail for mega menu */}
           <div className="relative w-12 h-12 bg-gray-200 rounded overflow-hidden flex-shrink-0">
             {item.imageUrl ? (
@@ -282,19 +282,19 @@ export function MenuEditor({
 
           {/* Item info */}
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900">{item.title}</p>
+                <p className="font-medium text-gray-900">{item.title}</p>
             <p className="text-xs text-gray-500 truncate" dir="ltr">{getLinkDisplay(item)}</p>
-          </div>
-          
+              </div>
+              
           {/* Type badge */}
           <span className={`px-2 py-0.5 text-xs rounded flex-shrink-0 ${
-            item.linkType === 'url' ? 'bg-blue-100 text-blue-700' :
-            item.linkType === 'page' ? 'bg-green-100 text-green-700' :
-            'bg-purple-100 text-purple-700'
-          }`}>
-            {item.linkType === 'url' ? 'קישור' : item.linkType === 'page' ? 'עמוד' : 'קטגוריה'}
-          </span>
-
+                item.linkType === 'url' ? 'bg-blue-100 text-blue-700' :
+                item.linkType === 'page' ? 'bg-green-100 text-green-700' :
+                'bg-purple-100 text-purple-700'
+              }`}>
+                {item.linkType === 'url' ? 'קישור' : item.linkType === 'page' ? 'עמוד' : 'קטגוריה'}
+              </span>
+              
           {/* Children count */}
           {hasChildren && (
             <span className="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded flex-shrink-0">
@@ -321,23 +321,23 @@ export function MenuEditor({
           )}
           
           {/* Delete button */}
-          <button
-            onClick={() => handleDelete(item.id)}
-            disabled={isPending}
-            className="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M1 3h12M4.67 3V2a1 1 0 011-1h2.66a1 1 0 011 1v1m1.67 0v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3h10z" />
-            </svg>
-          </button>
-        </div>
+              <button
+                onClick={() => handleDelete(item.id)}
+                disabled={isPending}
+                className="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M1 3h12M4.67 3V2a1 1 0 011-1h2.66a1 1 0 011 1v1m1.67 0v9a1 1 0 01-1 1H4a1 1 0 01-1-1V3h10z" />
+                </svg>
+              </button>
+            </div>
 
         {/* Sub-item add form */}
         {isAddingSubHere && (
           <div className="mr-6 mt-2 mb-2 border-r-2 border-blue-200 pr-4">
             {renderAddForm(true)}
-          </div>
-        )}
+        </div>
+      )}
 
         {/* Render children */}
         {hasChildren && (
@@ -355,84 +355,84 @@ export function MenuEditor({
       {isSubItem && (
         <p className="text-xs text-blue-600 font-medium">הוספת תת-פריט לתפריט</p>
       )}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">כותרת</label>
-          <input
-            type="text"
-            value={newItem.title}
-            onChange={(e) => setNewItem(prev => ({ ...prev, title: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-            placeholder="שם הקישור"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">סוג</label>
-          <select
-            value={newItem.linkType}
-            onChange={(e) => setNewItem(prev => ({ 
-              ...prev, 
-              linkType: e.target.value as 'url' | 'page' | 'category',
-              linkUrl: '',
-              linkResourceId: '',
-            }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-          >
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">כותרת</label>
+              <input
+                type="text"
+                value={newItem.title}
+                onChange={(e) => setNewItem(prev => ({ ...prev, title: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                placeholder="שם הקישור"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">סוג</label>
+              <select
+                value={newItem.linkType}
+                onChange={(e) => setNewItem(prev => ({ 
+                  ...prev, 
+                  linkType: e.target.value as 'url' | 'page' | 'category',
+                  linkUrl: '',
+                  linkResourceId: '',
+                }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+              >
             <option value="category">קטגוריה</option>
             <option value="page">עמוד</option>
-            <option value="url">קישור חיצוני</option>
-          </select>
-        </div>
-      </div>
+                <option value="url">קישור חיצוני</option>
+              </select>
+            </div>
+          </div>
 
-      {newItem.linkType === 'url' && (
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">כתובת URL</label>
-          <input
-            type="url"
-            value={newItem.linkUrl}
-            onChange={(e) => setNewItem(prev => ({ ...prev, linkUrl: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-            placeholder="https://example.com"
-            dir="ltr"
-          />
-        </div>
-      )}
-
-      {newItem.linkType === 'page' && (
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">בחר עמוד</label>
-          <select
-            value={newItem.linkResourceId}
-            onChange={(e) => setNewItem(prev => ({ ...prev, linkResourceId: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-          >
-            <option value="">בחר עמוד...</option>
-            {availablePages.map((page) => (
-              <option key={page.id} value={page.id}>{page.title}</option>
-            ))}
-          </select>
-          {availablePages.length === 0 && (
-            <p className="text-xs text-amber-600 mt-1">אין עמודים - צור עמודים בניהול עמודים</p>
+          {newItem.linkType === 'url' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">כתובת URL</label>
+              <input
+                type="url"
+                value={newItem.linkUrl}
+                onChange={(e) => setNewItem(prev => ({ ...prev, linkUrl: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                placeholder="https://example.com"
+                dir="ltr"
+              />
+            </div>
           )}
-        </div>
-      )}
 
-      {newItem.linkType === 'category' && (
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">בחר קטגוריה</label>
-          <select
-            value={newItem.linkResourceId}
-            onChange={(e) => setNewItem(prev => ({ ...prev, linkResourceId: e.target.value }))}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
-          >
-            <option value="">בחר קטגוריה...</option>
-            {availableCategories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+          {newItem.linkType === 'page' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">בחר עמוד</label>
+              <select
+                value={newItem.linkResourceId}
+                onChange={(e) => setNewItem(prev => ({ ...prev, linkResourceId: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+              >
+                <option value="">בחר עמוד...</option>
+                {availablePages.map((page) => (
+                  <option key={page.id} value={page.id}>{page.title}</option>
+                ))}
+              </select>
+              {availablePages.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">אין עמודים - צור עמודים בניהול עמודים</p>
+              )}
+            </div>
+          )}
+
+          {newItem.linkType === 'category' && (
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">בחר קטגוריה</label>
+              <select
+                value={newItem.linkResourceId}
+                onChange={(e) => setNewItem(prev => ({ ...prev, linkResourceId: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+              >
+                <option value="">בחר קטגוריה...</option>
+                {availableCategories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
       {/* Image URL for mega menu */}
       <div>
@@ -448,31 +448,31 @@ export function MenuEditor({
         <p className="text-[10px] text-gray-500 mt-1">תמונה תוצג בתפריט הגדול בעת hover (ניתן גם להעלות אחרי יצירה)</p>
       </div>
 
-      {error && (
-        <p className="text-xs text-red-600">{error}</p>
-      )}
+          {error && (
+            <p className="text-xs text-red-600">{error}</p>
+          )}
 
-      <div className="flex gap-2">
-        <button
-          onClick={handleAdd}
-          disabled={isPending}
-          className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
-        >
-          {isPending ? '...' : 'הוסף'}
-        </button>
-        <button
-          onClick={() => {
-            setShowAddForm(false);
+          <div className="flex gap-2">
+            <button
+              onClick={handleAdd}
+              disabled={isPending}
+              className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+            >
+              {isPending ? '...' : 'הוסף'}
+            </button>
+            <button
+              onClick={() => {
+                setShowAddForm(false);
             setAddingSubTo(null);
             setNewItem({ title: '', linkType: 'category', linkUrl: '', linkResourceId: '', imageUrl: '', parentId: null });
-            setError(null);
-          }}
-          className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
-        >
-          ביטול
-        </button>
-      </div>
-    </div>
+                setError(null);
+              }}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              ביטול
+            </button>
+          </div>
+        </div>
   );
 
   return (

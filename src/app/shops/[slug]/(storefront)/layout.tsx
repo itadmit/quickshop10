@@ -280,7 +280,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           {showHeader && (
             <>
               {HeaderContent}
-              <CartSidebar basePath={basePath} />
+              <CartSidebar basePath={basePath} storeSlug={slug} />
               {/* Stories Bar - Renders only if plugin is active and there are stories */}
               {storiesEnabled && storiesSettings && stories.length > 0 && (
                 <StoriesBar

@@ -1,12 +1,13 @@
-import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds } from '@/lib/db/queries';
+import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds, getProductAddonsForStorefront } from '@/lib/db/queries';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
+import { ProductWithAddons } from '@/components/product-with-addons';
 import { ProductCard } from '@/components/product-card';
 import { ProductImage } from '@/components/product-image';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewProduct } from '@/components/tracking-events';
 import { ScrollToTop } from '@/components/scroll-to-top';
-import { formatPrice } from '@/lib/format-price';
+import { formatPrice, decodeHtmlEntities } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
@@ -85,13 +86,15 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
   const maxRelatedProducts = isPreviewMode ? 9 : pageSettings.related.count + 1;
-  const [options, variants, allProducts, categories, productCategoryIds] = await Promise.all([
+  const [options, variants, allProducts, categories, productCategoryIds, productAddons] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
     getProductsByStore(store.id, maxRelatedProducts),
     getCategoriesByStore(store.id),
     // Get all product categories (for automatic discount check)
     getProductCategoryIds(product.id),
+    // Get product addons (for display in product page)
+    getProductAddonsForStorefront(product.id),
   ]);
   
   // Get automatic discounts for this product (server-side, no extra round trips)
@@ -236,7 +239,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           >
             <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
             <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-              {product.description}
+              {decodeHtmlEntities(product.description)}
             </p>
           </div>
         );
@@ -452,7 +455,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   {/* Short Description */}
                   {product.shortDescription && (
                     <p className="text-gray-500 mb-6">
-                      {product.shortDescription}
+                      {decodeHtmlEntities(product.shortDescription)}
                     </p>
                   )}
 
@@ -467,6 +470,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       basePrice={Number(product.price)}
                       baseComparePrice={product.comparePrice ? Number(product.comparePrice) : null}
                       automaticDiscountName={discountLabels.join(' + ') || undefined}
+                      discountPercent={automaticDiscountsResult.totalDiscountPercent || undefined}
                       categoryIds={productCategoryIds}
                     />
                   ) : (
@@ -497,21 +501,43 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         </div>
                       )}
 
-                      {/* Add to Cart - ALWAYS use original price! Discounts are calculated at checkout */}
-                      {/* Note: automaticDiscountName is for cart/checkout display only */}
-                      <AddToCartButton 
-                        productId={product.id}
-                        name={product.name}
-                        price={Number(product.price)}
-                        image={mainImage || '/placeholder.svg'}
-                        sku={product.sku || undefined}
-                        inventory={product.inventory}
-                        trackInventory={product.trackInventory}
-                        allowBackorder={product.allowBackorder}
-                        className="w-full mb-4"
-                        automaticDiscountName={discountLabels.join(' + ') || undefined}
-                        categoryIds={productCategoryIds}
-                      />
+                      {/* Add to Cart - with optional addons */}
+                      {/* If product has addons, use ProductWithAddons component */}
+                      {productAddons.length > 0 ? (
+                        <ProductWithAddons
+                          productId={product.id}
+                          productName={product.name}
+                          productSlug={product.slug}
+                          basePrice={Number(product.price)}
+                          finalPrice={finalPrice}
+                          image={mainImage || '/placeholder.svg'}
+                          sku={product.sku || undefined}
+                          inventory={product.inventory}
+                          trackInventory={product.trackInventory}
+                          allowBackorder={product.allowBackorder}
+                          addons={productAddons}
+                          automaticDiscountName={discountLabels.join(' + ') || undefined}
+                          discountedPrice={hasAutomaticDiscount ? finalPrice : undefined}
+                          categoryIds={productCategoryIds}
+                          className="mb-4"
+                          showDecimalPrices={showDecimalPrices}
+                        />
+                      ) : (
+                        <AddToCartButton 
+                          productId={product.id}
+                          name={product.name}
+                          price={Number(product.price)}
+                          image={mainImage || '/placeholder.svg'}
+                          sku={product.sku || undefined}
+                          inventory={product.inventory}
+                          trackInventory={product.trackInventory}
+                          allowBackorder={product.allowBackorder}
+                          className="w-full mb-4"
+                          automaticDiscountName={discountLabels.join(' + ') || undefined}
+                          discountedPrice={hasAutomaticDiscount ? finalPrice : undefined}
+                          categoryIds={productCategoryIds}
+                        />
+                      )}
 
                       {/* Stock Status - Live Preview */}
                       <LiveInventoryDisplay
@@ -531,7 +557,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                     <div className="mb-8">
                       <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
                       <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                        {product.description}
+                        {decodeHtmlEntities(product.description)}
                       </p>
                     </div>
                   )}

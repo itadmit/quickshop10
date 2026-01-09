@@ -31,6 +31,8 @@ interface VariantSelectorProps {
   baseComparePrice: number | null;
   // הנחה אוטומטית (מחושב בשרת)
   automaticDiscountName?: string;
+  // אחוז ההנחה האוטומטית - לחישוב מחיר מוזל לוריאנטים
+  discountPercent?: number;
   // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
   categoryIds?: string[];
 }
@@ -44,6 +46,7 @@ export function VariantSelector({
   basePrice,
   baseComparePrice,
   automaticDiscountName,
+  discountPercent,
   categoryIds,
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
@@ -87,18 +90,25 @@ export function VariantSelector({
     const variantTitle = selectedVariant.title;
     // מעבירים maxQuantity לבדיקה מקומית מהירה בסל ⚡
     const hasInventoryTracking = selectedVariant.inventory !== null;
+    // חישוב מחיר מוזל לוריאנט (לתצוגה בעגלה)
+    const variantPrice = Number(selectedVariant.price);
+    const variantDiscountedPrice = discountPercent 
+      ? Math.round(variantPrice * (1 - discountPercent / 100) * 100) / 100 
+      : undefined;
+    
     addToCart({
       productId,
       variantId: selectedVariant.id,
       name: productName,
-      price: Number(selectedVariant.price),
+      price: variantPrice,
       image: productImage,
       variantTitle,
-      sku: selectedVariant.sku || undefined, // מק"ט וריאנט
+      sku: selectedVariant.sku || undefined,
       maxQuantity: hasInventoryTracking ? selectedVariant.inventory : null,
       trackInventory: hasInventoryTracking,
       automaticDiscountName,
-      categoryIds, // 🔑 לחישוב הנחות בצ'קאאוט
+      discountedPrice: variantDiscountedPrice,
+      categoryIds,
     });
     
     setAdded(true);

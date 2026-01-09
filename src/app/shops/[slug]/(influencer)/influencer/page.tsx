@@ -2,12 +2,14 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { getCurrentInfluencer } from '@/lib/influencer-auth';
 import { db } from '@/lib/db';
 import { influencerSales, orders, discounts, automaticDiscounts, refunds } from '@/lib/db/schema';
-import { eq, desc, and, gte, sql } from 'drizzle-orm';
+import { eq, desc, and, gte, lte, sql } from 'drizzle-orm';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
 
 interface DashboardPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
 }
 
 // Helper to format currency
@@ -52,8 +54,46 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default async function InfluencerDashboardPage({ params }: DashboardPageProps) {
+// Helper to parse date range from URL params
+function getDateRange(period?: string, from?: string, to?: string): { start: Date; end: Date; label: string } {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  
+  if (period === 'custom' && from && to) {
+    return {
+      start: new Date(from),
+      end: new Date(to + 'T23:59:59'),
+      label: 'תקופה מותאמת',
+    };
+  }
+  
+  switch (period) {
+    case 'today':
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return { start: todayStart, end: today, label: 'היום' };
+    case 'yesterday':
+      const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const yesterdayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1, 23, 59, 59);
+      return { start: yesterdayStart, end: yesterdayEnd, label: 'אתמול' };
+    case '7d':
+      return { start: new Date(Date.now() - 7 * 86400000), end: today, label: 'השבוע' };
+    case '90d':
+      return { start: new Date(Date.now() - 90 * 86400000), end: today, label: '90 יום' };
+    case '6m':
+      return { start: new Date(Date.now() - 180 * 86400000), end: today, label: 'חצי שנה' };
+    case '1y':
+      return { start: new Date(Date.now() - 365 * 86400000), end: today, label: 'שנה' };
+    case '30d':
+    default:
+      // Default to current month
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start: monthStart, end: today, label: 'החודש' };
+  }
+}
+
+export default async function InfluencerDashboardPage({ params, searchParams }: DashboardPageProps) {
   const { slug } = await params;
+  const search = await searchParams;
   
   const store = await getStoreBySlug(slug);
   if (!store) {
@@ -68,13 +108,16 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
     redirect(`${basePath}/influencer/login`);
   }
 
-  // Get current month start
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Parse date range from URL params - default to '30d' (current month)
+  const { start: dateStart, end: dateEnd, label: periodLabel } = getDateRange(
+    search.period,
+    search.from,
+    search.to
+  );
 
   // Run all queries in parallel for maximum speed
-  const [sales, monthlyStats, monthlyRefunds, linkedCouponResult, linkedAutoDiscountResult] = await Promise.all([
-    // Fetch influencer's sales with order details
+  const [sales, periodStats, periodRefunds, linkedCouponResult, linkedAutoDiscountResult] = await Promise.all([
+    // Fetch influencer's sales with order details (filtered by date range)
     db
       .select({
         id: influencerSales.id,
@@ -88,11 +131,17 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
       })
       .from(influencerSales)
       .innerJoin(orders, eq(orders.id, influencerSales.orderId))
-      .where(eq(influencerSales.influencerId, influencer.id))
+      .where(
+        and(
+          eq(influencerSales.influencerId, influencer.id),
+          gte(influencerSales.createdAt, dateStart),
+          lte(influencerSales.createdAt, dateEnd)
+        )
+      )
       .orderBy(desc(influencerSales.createdAt))
       .limit(10),
     
-    // Calculate monthly stats
+    // Calculate stats for selected period
     db
       .select({
         totalSales: sql<string>`COALESCE(SUM(${influencerSales.orderTotal}::numeric), 0)`,
@@ -103,11 +152,12 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
       .where(
         and(
           eq(influencerSales.influencerId, influencer.id),
-          gte(influencerSales.createdAt, monthStart)
+          gte(influencerSales.createdAt, dateStart),
+          lte(influencerSales.createdAt, dateEnd)
         )
       ),
     
-    // Get refunds count for this month
+    // Get refunds count for selected period
     db
       .select({
         count: sql<number>`COUNT(*)`,
@@ -118,7 +168,8 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
       .where(
         and(
           eq(influencerSales.influencerId, influencer.id),
-          gte(refunds.createdAt, monthStart)
+          gte(refunds.createdAt, dateStart),
+          lte(refunds.createdAt, dateEnd)
         )
       ),
     
@@ -135,19 +186,24 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
 
   const linkedCoupon = linkedCouponResult[0] || null;
   const linkedAutoDiscount = linkedAutoDiscountResult[0] || null;
-  const stats = monthlyStats[0] || { totalSales: '0', totalCommission: '0', totalOrders: 0 };
-  const refundStats = monthlyRefunds[0] || { count: 0, total: '0' };
+  const stats = periodStats[0] || { totalSales: '0', totalCommission: '0', totalOrders: 0 };
+  const refundStats = periodRefunds[0] || { count: 0, total: '0' };
 
   return (
     <div className="space-y-8">
-      {/* Welcome Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          שלום, {influencer.name.split(' ')[0]}! 👑
-        </h1>
-        <p className="text-gray-500 mt-1">
-          הנה סיכום הביצועים שלך החודש
-        </p>
+      {/* Welcome Header with Date Filter */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            שלום, {influencer.name.split(' ')[0]}! 👑
+          </h1>
+          <p className="text-gray-500 mt-1">
+            הנה סיכום הביצועים שלך - {periodLabel}
+          </p>
+        </div>
+        
+        {/* Date Range Picker - Server Component friendly */}
+        <DateRangePicker />
       </div>
 
       {/* Stats Grid */}
@@ -161,7 +217,7 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm text-gray-500">מכירות החודש</span>
+              <span className="text-xs sm:text-sm text-gray-500">מכירות</span>
             </div>
             <p className="text-lg sm:text-2xl font-bold text-gray-900">
               {formatCurrency(stats.totalSales)}
@@ -177,7 +233,7 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             </div>
-            <span className="text-xs sm:text-sm text-gray-500">הזמנות החודש</span>
+            <span className="text-xs sm:text-sm text-gray-500">הזמנות</span>
           </div>
           <p className="text-lg sm:text-2xl font-bold text-gray-900">
             {stats.totalOrders}
@@ -193,7 +249,7 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
               </div>
-              <span className="text-xs sm:text-sm text-gray-500">עמלות החודש</span>
+              <span className="text-xs sm:text-sm text-gray-500">עמלות</span>
             </div>
             <p className="text-lg sm:text-2xl font-bold text-purple-600">
               {formatCurrency(stats.totalCommission)}
@@ -231,7 +287,7 @@ export default async function InfluencerDashboardPage({ params }: DashboardPageP
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-orange-800 text-sm sm:text-base">
-              {refundStats.count} החזרים החודש
+              {refundStats.count} החזרים בתקופה
             </p>
             <p className="text-xs sm:text-sm text-orange-600">
               סה"כ {formatCurrency(refundStats.total)}

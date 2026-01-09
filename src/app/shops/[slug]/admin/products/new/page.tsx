@@ -1,6 +1,7 @@
 import { getStoreBySlug, getCategoriesByStore } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
+import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
 
 interface NewProductPageProps {
   params: Promise<{ slug: string }>;
@@ -16,8 +17,23 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
     notFound();
   }
 
-  // Fetch categories (cached)
-  const categories = await getCategoriesByStore(store.id);
+  // Fetch categories and addons in parallel for speed ⚡
+  const [categories, storeAddons] = await Promise.all([
+    getCategoriesByStore(store.id),
+    getStoreAddons(store.id),
+  ]);
+
+  // Format addons for the form
+  const formattedAddons = storeAddons
+    .filter(a => a.isActive)
+    .map(a => ({
+      id: a.id,
+      name: a.name,
+      fieldType: a.fieldType,
+      priceAdjustment: Number(a.priceAdjustment) || 0,
+      options: (a.options as Array<{ label: string; value: string; priceAdjustment: number }>) || [],
+      isRequired: a.isRequired,
+    }));
 
   return (
     <ProductForm
@@ -25,6 +41,7 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
       storeSlug={slug}
       customDomain={store.customDomain}
       categories={categories}
+      storeAddons={formattedAddons}
       mode="create"
     />
   );

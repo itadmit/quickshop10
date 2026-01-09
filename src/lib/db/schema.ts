@@ -421,6 +421,7 @@ export const products = pgTable('products', {
   seoTitle: varchar('seo_title', { length: 255 }),
   seoDescription: text('seo_description'),
   metadata: jsonb('metadata').default({}),
+  upsellProductIds: jsonb('upsell_product_ids').default([]), // Array of product IDs to show as upsells
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -487,6 +488,81 @@ export const productVariants = pgTable('product_variants', {
 }, (table) => [
   index('idx_variants_product').on(table.productId),
   index('idx_variants_sku').on(table.sku),
+]);
+
+// Inventory Logs - track all inventory changes
+export const inventoryLogs = pgTable('inventory_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  previousQuantity: integer('previous_quantity').notNull(),
+  newQuantity: integer('new_quantity').notNull(),
+  changeAmount: integer('change_amount').notNull(), // positive = added, negative = removed
+  reason: varchar('reason', { length: 50 }).notNull(), // 'manual', 'order', 'restock', 'adjustment', 'return'
+  note: varchar('note', { length: 255 }),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  changedByUserId: uuid('changed_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  changedByName: varchar('changed_by_name', { length: 100 }), // Store name for display even if user deleted
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_inventory_logs_product').on(table.productId),
+  index('idx_inventory_logs_variant').on(table.variantId),
+  index('idx_inventory_logs_store').on(table.storeId),
+  index('idx_inventory_logs_created').on(table.storeId, table.createdAt),
+]);
+
+// ============ PRODUCT ADDONS ============
+
+// Addon Field Type Enum
+export const addonFieldTypeEnum = pgEnum('addon_field_type', [
+  'text',       // שדה טקסט חופשי
+  'select',     // בחירה מרשימה
+  'checkbox',   // תיבת סימון
+  'radio',      // בחירה בודדת
+  'date'        // בחירת תאריך
+]);
+
+// Product Addons - Store-level addon templates
+export const productAddons = pgTable('product_addons', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar('name', { length: 100 }).notNull(), // "רקמה אישית"
+  fieldType: addonFieldTypeEnum('field_type').notNull(), // text, select, checkbox, radio, date
+  placeholder: varchar('placeholder', { length: 255 }), // "הכנס טקסט..."
+  
+  // Options for select/radio/checkbox types
+  // Array of { label: string, value: string, priceAdjustment: number }
+  options: jsonb('options').default([]),
+  
+  // Price adjustment for simple types (text, checkbox, date)
+  priceAdjustment: decimal('price_adjustment', { precision: 10, scale: 2 }).default('0'),
+  
+  isRequired: boolean('is_required').default(false).notNull(),
+  maxLength: integer('max_length'), // For text fields
+  sortOrder: integer('sort_order').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_product_addons_store').on(table.storeId),
+]);
+
+// Product Addon Assignments - Links addons to products
+export const productAddonAssignments = pgTable('product_addon_assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  addonId: uuid('addon_id').references(() => productAddons.id, { onDelete: 'cascade' }).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  
+  // Optional overrides for this specific product
+  isRequired: boolean('is_required'), // null = use addon default
+  priceOverride: decimal('price_override', { precision: 10, scale: 2 }), // null = use addon default
+}, (table) => [
+  index('idx_addon_assignments_product').on(table.productId),
+  index('idx_addon_assignments_addon').on(table.addonId),
+  uniqueIndex('idx_addon_assignments_unique').on(table.productId, table.addonId),
 ]);
 
 // ============ CUSTOMERS ============
@@ -1394,6 +1470,27 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   options: many(productOptions),
   variants: many(productVariants),
   orderItems: many(orderItems),
+  addonAssignments: many(productAddonAssignments),
+}));
+
+// Product Addons Relations
+export const productAddonsRelations = relations(productAddons, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [productAddons.storeId],
+    references: [stores.id],
+  }),
+  assignments: many(productAddonAssignments),
+}));
+
+export const productAddonAssignmentsRelations = relations(productAddonAssignments, ({ one }) => ({
+  product: one(products, {
+    fields: [productAddonAssignments.productId],
+    references: [products.id],
+  }),
+  addon: one(productAddons, {
+    fields: [productAddonAssignments.addonId],
+    references: [productAddons.id],
+  }),
 }));
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
@@ -2332,6 +2429,7 @@ export const advisorAnswers = pgTable('advisor_answers', {
   color: varchar('color', { length: 20 }),
   value: varchar('value', { length: 100 }),
   position: integer('position').default(0).notNull(),
+  totalSelections: integer('total_selections').default(0).notNull(), // Statistics: how many times this answer was selected
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({
@@ -3155,6 +3253,8 @@ export type ProductOptionValue = typeof productOptionValues.$inferSelect;
 export type NewProductOptionValue = typeof productOptionValues.$inferInsert;
 export type ProductVariant = typeof productVariants.$inferSelect;
 export type NewProductVariant = typeof productVariants.$inferInsert;
+export type InventoryLog = typeof inventoryLogs.$inferSelect;
+export type NewInventoryLog = typeof inventoryLogs.$inferInsert;
 export type PageSection = typeof pageSections.$inferSelect;
 export type NewPageSection = typeof pageSections.$inferInsert;
 export type AutomaticDiscount = typeof automaticDiscounts.$inferSelect;
@@ -3283,3 +3383,9 @@ export type ReviewVote = typeof reviewVotes.$inferSelect;
 export type NewReviewVote = typeof reviewVotes.$inferInsert;
 export type ProductReviewSummary = typeof productReviewSummary.$inferSelect;
 export type NewProductReviewSummary = typeof productReviewSummary.$inferInsert;
+
+// Product Addons types
+export type ProductAddon = typeof productAddons.$inferSelect;
+export type NewProductAddon = typeof productAddons.$inferInsert;
+export type ProductAddonAssignment = typeof productAddonAssignments.$inferSelect;
+export type NewProductAddonAssignment = typeof productAddonAssignments.$inferInsert;

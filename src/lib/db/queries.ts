@@ -1,6 +1,6 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages } from './schema';
-import { eq, and, desc, asc } from 'drizzle-orm';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons } from './schema';
+import { eq, and, desc, asc, inArray } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 
@@ -377,8 +377,12 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
       financialStatus: orders.financialStatus,
       fulfillmentStatus: orders.fulfillmentStatus,
       subtotal: orders.subtotal,
+      discountCode: orders.discountCode, // For coupon filtering
       discountAmount: orders.discountAmount,
       shippingAmount: orders.shippingAmount,
+      shippingMethod: orders.shippingMethod, // For delivery method filtering
+      shippingAddress: orders.shippingAddress, // For destination filtering
+      paymentMethod: orders.paymentMethod, // For payment method filtering
       total: orders.total,
       createdAt: orders.createdAt,
       isRead: orders.isRead,
@@ -401,6 +405,108 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
     return query.limit(limit);
   }
   return query;
+});
+
+// Get unique shipping methods and cities for filtering
+export const getOrderFilterOptions = cache(async (storeId: string) => {
+  const allOrders = await db
+    .select({ 
+      shippingMethod: orders.shippingMethod,
+      shippingAddress: orders.shippingAddress,
+      paymentMethod: orders.paymentMethod,
+    })
+    .from(orders)
+    .where(eq(orders.storeId, storeId));
+  
+  // Extract unique values
+  const shippingMethods = [...new Set(
+    allOrders.map(o => o.shippingMethod).filter((m): m is string => !!m)
+  )].sort();
+  
+  const paymentMethods = [...new Set(
+    allOrders.map(o => o.paymentMethod).filter((m): m is string => !!m)
+  )].sort();
+  
+  const cities = [...new Set(
+    allOrders
+      .map(o => (o.shippingAddress as { city?: string })?.city)
+      .filter((c): c is string => !!c)
+  )].sort();
+  
+  return { shippingMethods, paymentMethods, cities };
+});
+
+// Get order items count and category data for filtering
+// Returns: { orderId -> { itemCount, categoryIds } }
+export const getOrderItemsMetadata = cache(async (storeId: string) => {
+  // Get all order items with their product categories in one query
+  const items = await db
+    .select({
+      orderId: orderItems.orderId,
+      quantity: orderItems.quantity,
+      productId: orderItems.productId,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(eq(orders.storeId, storeId));
+  
+  // Get all product categories for products in orders
+  const productIds = [...new Set(items.filter(i => i.productId).map(i => i.productId!))];
+  
+  let productCategoryMap: Record<string, string[]> = {};
+  if (productIds.length > 0) {
+    const { inArray } = await import('drizzle-orm');
+    const prodCategories = await db
+      .select({
+        productId: productCategories.productId,
+        categoryId: productCategories.categoryId,
+      })
+      .from(productCategories)
+      .where(inArray(productCategories.productId, productIds));
+    
+    // Build product -> categories map
+    for (const pc of prodCategories) {
+      if (!productCategoryMap[pc.productId]) {
+        productCategoryMap[pc.productId] = [];
+      }
+      productCategoryMap[pc.productId].push(pc.categoryId);
+    }
+  }
+  
+  // Build order -> metadata map
+  const orderMetadata: Record<string, { itemCount: number; categoryIds: string[] }> = {};
+  
+  for (const item of items) {
+    if (!orderMetadata[item.orderId]) {
+      orderMetadata[item.orderId] = { itemCount: 0, categoryIds: [] };
+    }
+    orderMetadata[item.orderId].itemCount += item.quantity;
+    
+    // Add category IDs for this product
+    if (item.productId && productCategoryMap[item.productId]) {
+      for (const catId of productCategoryMap[item.productId]) {
+        if (!orderMetadata[item.orderId].categoryIds.includes(catId)) {
+          orderMetadata[item.orderId].categoryIds.push(catId);
+        }
+      }
+    }
+  }
+  
+  return orderMetadata;
+});
+
+// Get unique coupon codes used in orders
+export const getOrderCouponCodes = cache(async (storeId: string) => {
+  const result = await db
+    .select({ discountCode: orders.discountCode })
+    .from(orders)
+    .where(eq(orders.storeId, storeId))
+    .groupBy(orders.discountCode);
+  
+  return result
+    .map(r => r.discountCode)
+    .filter((code): code is string => !!code)
+    .sort();
 });
 
 export const getUnreadOrdersCount = cache(async (storeId: string) => {
@@ -530,8 +636,8 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
 
   if (!product) return null;
 
-  // Get images, options, variants, categories, and user info in parallel
-  const [images, options, variants, productCats, createdByUser, updatedByUser] = await Promise.all([
+  // Get images, options, variants, categories, addons, and user info in parallel
+  const [images, options, variants, productCats, productAddonsData, createdByUser, updatedByUser] = await Promise.all([
     db
       .select()
       .from(productImages)
@@ -552,6 +658,12 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
       .select({ categoryId: productCategories.categoryId })
       .from(productCategories)
       .where(eq(productCategories.productId, productId)),
+    // Get product addons
+    db
+      .select({ addonId: productAddonAssignments.addonId })
+      .from(productAddonAssignments)
+      .where(eq(productAddonAssignments.productId, productId))
+      .orderBy(productAddonAssignments.sortOrder),
     // Get created by user
     product.createdBy
       ? db
@@ -590,9 +702,70 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
     options: optionsWithValues, 
     variants,
     categoryIds: productCats.map(pc => pc.categoryId),
+    upsellProductIds: (product.upsellProductIds as string[] | null) ?? [],
+    addonIds: productAddonsData.map(pa => pa.addonId),
     createdByUser,
     updatedByUser,
   };
+});
+
+// Get active addons for a product (for storefront display)
+export const getProductAddonsForStorefront = cache(async (productId: string) => {
+  // First get the addon assignments for this product
+  const assignments = await db
+    .select({ addonId: productAddonAssignments.addonId })
+    .from(productAddonAssignments)
+    .where(eq(productAddonAssignments.productId, productId))
+    .orderBy(asc(productAddonAssignments.sortOrder));
+
+  if (assignments.length === 0) return [];
+
+  const addonIds = assignments.map(a => a.addonId);
+
+  // Get the actual addons (only active ones)
+  const addons = await db
+    .select()
+    .from(productAddons)
+    .where(and(
+      inArray(productAddons.id, addonIds),
+      eq(productAddons.isActive, true)
+    ));
+
+  // Return in the order of assignments
+  return addonIds
+    .map(id => addons.find(a => a.id === id))
+    .filter(Boolean)
+    .map(addon => ({
+      id: addon!.id,
+      name: addon!.name,
+      fieldType: addon!.fieldType,
+      placeholder: addon!.placeholder,
+      options: (addon!.options as Array<{ label: string; value: string; priceAdjustment: number }>) || [],
+      priceAdjustment: Number(addon!.priceAdjustment) || 0,
+      isRequired: addon!.isRequired,
+      maxLength: addon!.maxLength,
+    }));
+});
+
+// Get products for upsell selection in product editor (lightweight query)
+export const getProductsForUpsell = cache(async (storeId: string) => {
+  return db
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      imageUrl: productImages.url,
+    })
+    .from(products)
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
+    .where(and(
+      eq(products.storeId, storeId),
+      eq(products.isActive, true)
+    ))
+    .orderBy(products.name);
 });
 
 // Legacy - for backwards compatibility

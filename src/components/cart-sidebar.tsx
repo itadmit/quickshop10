@@ -3,12 +3,14 @@
 import { useStoreOptional } from '@/lib/store-context';
 import Link from 'next/link';
 import { tracker } from '@/lib/tracking';
+import { CartUpsells } from './cart-upsells';
 
 interface CartSidebarProps {
   basePath?: string;
+  storeSlug?: string;
 }
 
-export function CartSidebar({ basePath = '' }: CartSidebarProps) {
+export function CartSidebar({ basePath = '', storeSlug }: CartSidebarProps) {
   const store = useStoreOptional();
   
   // SSR safety - don't render if store context not available
@@ -90,7 +92,8 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
               <p className="text-gray-400 text-sm tracking-wide">העגלה שלך ריקה</p>
             </div>
           ) : (
-            <ul className="space-y-6">
+            <>
+            <ul className="space-y-6 mb-4">
               {cart.map(item => (
                 <li key={item.id} className="flex gap-5 pb-6 border-b border-gray-100 last:border-0">
                   {/* Product Image */}
@@ -117,12 +120,47 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
                       {item.variantTitle && (
                         <p className="text-xs text-gray-500 mb-1">{item.variantTitle}</p>
                       )}
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
+                      <div className="flex flex-col gap-1">
+                        {/* Price - show discounted price if available */}
+                        <div className="flex items-center gap-2">
+                          {item.discountedPrice ? (
+                            <>
+                              <p className="text-sm text-green-600 font-medium">{formatPrice(item.discountedPrice)}</p>
+                              <p className="text-xs text-gray-400 line-through">{formatPrice(item.price)}</p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-gray-500">{formatPrice(item.price)}</p>
+                          )}
+                        </div>
+                        
+                        {/* Discount Badges - separate badge for each discount */}
                         {item.automaticDiscountName && (
-                          <span className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
-                            {item.automaticDiscountName}
-                          </span>
+                          <div className="flex flex-wrap gap-1">
+                            {item.automaticDiscountName.split(' + ').map((name, i) => (
+                              <span key={i} className="text-[9px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Addons Display */}
+                        {item.addons && item.addons.length > 0 && (
+                          <div className="mt-1.5 space-y-0.5">
+                            {item.addons.map((addon, i) => (
+                              <div key={i} className="flex items-center justify-between text-xs">
+                                <span className="text-gray-500">{addon.name}: <span className="text-gray-700">{addon.displayValue}</span></span>
+                                {addon.priceAdjustment > 0 && (
+                                  <span className="text-green-600">+{formatPrice(addon.priceAdjustment)}</span>
+                                )}
+                              </div>
+                            ))}
+                            {item.addonTotal && item.addonTotal > 0 && (
+                              <div className="text-xs text-gray-400 pt-0.5 border-t border-gray-100">
+                                תוספות: +{formatPrice(item.addonTotal)}
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -170,6 +208,9 @@ export function CartSidebar({ basePath = '' }: CartSidebarProps) {
                 </li>
               ))}
             </ul>
+            
+            {storeSlug && <CartUpsells storeSlug={storeSlug} />}
+            </>
           )}
         </div>
 

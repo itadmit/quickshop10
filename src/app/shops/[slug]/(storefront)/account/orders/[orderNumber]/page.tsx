@@ -175,7 +175,7 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
               
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">סכום ביניים</span>
+                  <span className="text-gray-500">סכום לפני הנחות</span>
                   <span>₪{Number(order.subtotal).toFixed(2)}</span>
                 </div>
                 

@@ -367,8 +367,8 @@ export async function getProductAutomaticDiscounts(
       // אם ההנחה לא ניתנת לשילוב, מפסיקים
       if (!discount.stackable) {
         hasNonStackable = true;
-      }
     }
+  }
   }
 
   const totalDiscountPercent = price > 0 ? Math.round((1 - currentPrice / price) * 100) : 0;
@@ -502,11 +502,11 @@ export async function getProductsAutomaticDiscounts(
     
     // 🔑 תמיד מוסיפים לתוצאה - גם אם אין הנחות, כדי שה-categoryIds יהיו זמינים בעגלה
     const discountPercent = appliedNames.length > 0 ? Math.round((1 - currentPrice / price) * 100) : 0;
-    result.set(product.id, {
+        result.set(product.id, {
       name: appliedNames[0] || '',                        // תאימות לאחור
       names: appliedNames,                                // כל ההנחות
       discountedPrice: Math.round(currentPrice * 100) / 100,
-      discountPercent,
+          discountPercent,
       categoryIds,                                        // לחישוב הנחות בצ'קאאוט
     });
   }

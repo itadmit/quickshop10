@@ -5,6 +5,7 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { InlineInventoryEditor } from './inline-inventory-editor';
+import { InventoryHistoryModal } from './inventory-history-modal';
 
 export const dynamic = 'force-dynamic';
 
@@ -279,16 +280,23 @@ export default async function InventoryPage({ params, searchParams }: InventoryP
                     )}
                   </td>
                   <td className="py-4 px-4">
-                    <Link
-                      href={`/shops/${slug}/admin/products/${item.productId}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="ערוך מוצר"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                      </svg>
-                      ערוך
-                    </Link>
+                    <div className="flex items-center gap-1">
+                      <InventoryHistoryModal
+                        itemId={item.id}
+                        itemName={item.variantTitle ? `${item.productName} - ${item.variantTitle}` : item.productName}
+                        isVariant={item.isVariant}
+                      />
+                      <Link
+                        href={`/shops/${slug}/admin/products/${item.productId}`}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+                        title="ערוך מוצר"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        ערוך
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

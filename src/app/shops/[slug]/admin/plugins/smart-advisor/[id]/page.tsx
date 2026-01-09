@@ -105,6 +105,7 @@ export default async function AdvisorEditorPage({ params }: PageProps) {
         emoji: a.emoji,
         color: a.color,
         position: a.position,
+        totalSelections: a.totalSelections,
       })),
     })),
     rules: quiz.rules.map(r => ({

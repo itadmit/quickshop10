@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, productImages, productOptions, productOptionValues, productVariants, productCategories } from '@/lib/db/schema';
+import { products, productImages, productOptions, productOptionValues, productVariants, productCategories, productAddonAssignments } from '@/lib/db/schema';
 import { eq, and, like, sql, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
@@ -155,6 +155,12 @@ export interface ProductFormData {
   isActive: boolean;
   isFeatured: boolean;
   
+  // Upsell Products
+  upsellProductIds?: string[];
+  
+  // Product Addons
+  addonIds?: string[];
+  
   // SEO
   seoTitle?: string;
   seoDescription?: string;
@@ -197,6 +203,7 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       seoTitle: data.seoTitle || null,
       seoDescription: data.seoDescription || null,
       hasVariants: data.hasVariants,
+      upsellProductIds: data.upsellProductIds || [],
       categoryId: primaryCategoryId, // Set legacy categoryId for backward compatibility
       createdBy: userId,
       updatedBy: userId,
@@ -266,6 +273,17 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       }
     }
 
+    // Add addon assignments if provided
+    if (data.addonIds && data.addonIds.length > 0) {
+      await db.insert(productAddonAssignments).values(
+        data.addonIds.map((addonId, index) => ({
+          productId: product.id,
+          addonId,
+          sortOrder: index,
+        }))
+      );
+    }
+
     revalidatePath(`/shops/${storeSlug}/admin/products`);
     revalidatePath(`/shops/${storeSlug}`);
     
@@ -316,6 +334,7 @@ export async function updateProduct(
         seoTitle: data.seoTitle || null,
         seoDescription: data.seoDescription || null,
         hasVariants: data.hasVariants,
+        upsellProductIds: data.upsellProductIds || [],
         categoryId: primaryCategoryId, // Set legacy categoryId for backward compatibility
         updatedBy: userId,
         updatedAt: new Date(),
@@ -395,6 +414,19 @@ export async function updateProduct(
           }))
         );
       }
+    }
+
+    // Update addon assignments - delete existing and re-add
+    await db.delete(productAddonAssignments).where(eq(productAddonAssignments.productId, productId));
+    
+    if (data.addonIds && data.addonIds.length > 0) {
+      await db.insert(productAddonAssignments).values(
+        data.addonIds.map((addonId, index) => ({
+          productId,
+          addonId,
+          sortOrder: index,
+        }))
+      );
     }
 
     revalidatePath(`/shops/${storeSlug}/admin/products`);

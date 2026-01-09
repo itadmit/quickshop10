@@ -630,17 +630,28 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         // Create order items (only for legacy flow - new flow already has items)
         if (cartItems.length > 0) {
           await db.insert(orderItems).values(
-            cartItems.map(item => ({
-              orderId: newOrder.id,
-              productId: item.productId,
-              name: item.name,
-              variantTitle: item.variantTitle || null,
-              sku: item.sku || '',
-              price: String(item.price),
-              quantity: item.quantity,
-              total: String(item.price * item.quantity),
-              imageUrl: item.image || item.imageUrl || null,
-            }))
+            cartItems.map(item => {
+              // Calculate item total including addons
+              const addonTotal = (item as { addonTotal?: number }).addonTotal || 0;
+              const itemTotal = (item.price + addonTotal) * item.quantity;
+              
+              return {
+                orderId: newOrder.id,
+                productId: item.productId,
+                name: item.name,
+                variantTitle: item.variantTitle || null,
+                sku: item.sku || '',
+                price: String(item.price),
+                quantity: item.quantity,
+                total: String(itemTotal),
+                imageUrl: item.image || item.imageUrl || null,
+                // Store addons in properties field
+                properties: {
+                  addons: (item as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}> }).addons || [],
+                  addonTotal: addonTotal,
+                },
+              };
+            })
           );
         }
         
@@ -940,7 +951,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     }
   }
   
-  // Map items with images
+  // Map items with images and properties (includes addons)
   const items = rawItems.map(item => ({
     id: item.id,
     productId: item.productId,
@@ -950,6 +961,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
     price: item.price,
     total: item.total,
     imageUrl: item.imageUrl || (item.productId ? productImageMap.get(item.productId) || null : null),
+    properties: item.properties, // Include properties for addon display
   }));
 
   // Payment info from query params or order
@@ -1044,6 +1056,27 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                       <p className="text-sm text-gray-500">{item.variantTitle}</p>
                     )}
                     <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
+                    
+                    {/* Display addons if present */}
+                    {(() => {
+                      const props = item.properties as { addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number } | null;
+                      if (props?.addons && props.addons.length > 0) {
+                        return (
+                          <div className="mt-1 space-y-0.5 text-xs text-gray-500 bg-gray-50 p-1.5 rounded">
+                            {props.addons.map((addon, i) => (
+                              <div key={i} className="flex items-center justify-between">
+                                <span>{addon.name}: <span className="text-gray-700">{addon.displayValue}</span></span>
+                                {addon.priceAdjustment > 0 && (
+                                  <span className="text-green-600">+{format(addon.priceAdjustment)}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    
                     <p className="text-sm font-medium text-gray-900 mt-1">
                       {format(item.total)}
                     </p>
@@ -1103,7 +1136,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           <div className="p-6 bg-gray-50">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">סכום ביניים</span>
+                <span className="text-gray-600">סכום לפני הנחות</span>
                 <span>{format(order.subtotal)}</span>
               </div>
               
