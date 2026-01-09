@@ -1,11 +1,10 @@
-import { getStoreBySlug, getStoreOrders, getStoreProducts, getStoreCustomers } from '@/lib/db/queries';
+import { getStoreBySlug, getStoreOrders, getStoreProducts } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
   PackageIcon, 
   TruckIcon, 
-  UsersIcon, 
   AlertTriangleIcon,
   ShoppingCartIcon,
   TagIcon,
@@ -13,6 +12,7 @@ import {
   PlusIcon,
   ChartBarIcon,
   ArrowLeftIcon,
+  CalendarIcon,
 } from '@/components/admin/icons';
 
 interface AdminPageProps {
@@ -346,13 +346,23 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
   }
 
   // Fetch all data in parallel ⚡
-  const [orders, products, customers] = await Promise.all([
+  const [orders, products] = await Promise.all([
     getStoreOrders(store.id),
     getStoreProducts(store.id),
-    getStoreCustomers(store.id),
   ]);
 
-  // Calculate metrics
+  // Calculate today's metrics
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const todayOrders = orders.filter(o => {
+    if (!o.createdAt) return false;
+    return new Date(o.createdAt) >= today;
+  });
+  const todaySales = todayOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  const todayOrdersCount = todayOrders.length;
+  
+  // Calculate monthly metrics
   const thisMonth = new Date();
   thisMonth.setDate(1);
   thisMonth.setHours(0, 0, 0, 0);
@@ -372,11 +382,6 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
     p.trackInventory && (p.inventory === null || p.inventory === 0)
   ).length;
 
-  // Average order value
-  const avgOrderValue = orders.length > 0 
-    ? Math.round(orders.reduce((sum, o) => sum + Number(o.total), 0) / orders.length)
-    : 0;
-
   // Chart data
   const salesByDay = getRevenueByDay(orders, 14);
 
@@ -394,21 +399,21 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
       {/* Main Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
-          label="מכירות החודש"
-          value={formatCurrency(monthlyRevenue)}
-          subLabel={`${monthlyOrders.length} הזמנות`}
-          icon={<ChartBarIcon size={20} />}
+          label="מכירות היום"
+          value={formatCurrency(todaySales)}
+          subLabel={todayOrdersCount > 0 ? `${todayOrdersCount} הזמנות` : undefined}
+          icon={<CalendarIcon size={20} />}
         />
         <StatCard
-          label="ממוצע הזמנה"
-          value={formatCurrency(avgOrderValue)}
+          label="הזמנות היום"
+          value={todayOrdersCount}
           icon={<ShoppingCartIcon size={20} />}
         />
         <StatCard
-          label="לקוחות"
-          value={customers.length}
-          subLabel="רשומים"
-          icon={<UsersIcon size={20} />}
+          label="מכירות חודשיות"
+          value={formatCurrency(monthlyRevenue)}
+          subLabel={`${monthlyOrders.length} הזמנות`}
+          icon={<ChartBarIcon size={20} />}
         />
         <StatCard
           label="מוצרים"
