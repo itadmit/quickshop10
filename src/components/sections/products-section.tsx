@@ -15,11 +15,13 @@ interface Product {
   allowBackorder?: boolean;
 }
 
-// הנחה אוטומטית
+// הנחה אוטומטית - תומך במספר הנחות!
 interface AutomaticDiscount {
-  name: string;
+  name: string;           // שם ההנחה הראשונה (תאימות לאחור)
+  names?: string[];       // כל שמות ההנחות
   discountedPrice: number;
   discountPercent: number;
+  categoryIds?: string[]; // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
 }
 
 interface ProductsSectionProps {

@@ -28,6 +28,8 @@ export interface CartItem {
   giftFromCouponId?: string; // ID של הקופון שהביא את המתנה
   // הנחה אוטומטית - שם ההנחה לתצוגה בעגלה
   automaticDiscountName?: string;
+  // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
+  categoryIds?: string[];
 }
 
 // קופון מוחל

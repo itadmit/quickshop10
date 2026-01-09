@@ -206,6 +206,11 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                           <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
                         </svg>
                       )}
+                      {discount.type === 'credit' && (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
+                        </svg>
+                      )}
                       {discount.type === 'coupon' ? `קופון ${discount.code}${discount.description ? ` (${discount.description})` : ''}` :
                        discount.type === 'gift_card' ? `גיפט קארד ${discount.code}` :
                        discount.type === 'auto' ? `הנחה אוטומטית: ${discount.name}` :
@@ -227,7 +232,12 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                 {/* Credit used - only if not already in discountDetails */}
                 {Number(order.creditUsed) > 0 && !((order.discountDetails as Array<{type: string}>)?.some(d => d.type === 'credit')) && (
                   <div className="flex justify-between text-blue-600">
-                    <span>קרדיט</span>
+                    <span className="flex items-center gap-1">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
+                      </svg>
+                      קרדיט
+                    </span>
                     <span>-₪{Number(order.creditUsed).toFixed(2)}</span>
                   </div>
                 )}

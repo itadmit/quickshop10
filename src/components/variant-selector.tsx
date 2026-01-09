@@ -31,6 +31,8 @@ interface VariantSelectorProps {
   baseComparePrice: number | null;
   // הנחה אוטומטית (מחושב בשרת)
   automaticDiscountName?: string;
+  // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
+  categoryIds?: string[];
 }
 
 export function VariantSelector({
@@ -42,6 +44,7 @@ export function VariantSelector({
   basePrice,
   baseComparePrice,
   automaticDiscountName,
+  categoryIds,
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -95,6 +98,7 @@ export function VariantSelector({
       maxQuantity: hasInventoryTracking ? selectedVariant.inventory : null,
       trackInventory: hasInventoryTracking,
       automaticDiscountName,
+      categoryIds, // 🔑 לחישוב הנחות בצ'קאאוט
     });
     
     setAdded(true);

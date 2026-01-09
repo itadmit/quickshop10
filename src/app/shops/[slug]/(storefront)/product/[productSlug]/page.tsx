@@ -10,7 +10,7 @@ import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
-import { getProductAutomaticDiscount } from '@/app/actions/automatic-discount';
+import { getProductAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { 
   ProductPagePreviewProvider, 
   LiveFeaturesSection, 
@@ -94,27 +94,38 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     getProductCategoryIds(product.id),
   ]);
   
-  // Get automatic discount for this product (server-side, no extra round trips)
-  // Use all product categories to check against category-based discounts
-  const automaticDiscount = await getProductAutomaticDiscount(store.id, product.id, productCategoryIds, Number(product.price));
+  // Get automatic discounts for this product (server-side, no extra round trips)
+  // 🆕 Now returns ALL applicable discounts!
+  const automaticDiscountsResult = await getProductAutomaticDiscounts(store.id, product.id, productCategoryIds, Number(product.price));
 
   // Get related products (all available for preview mode, limited for production)
   const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, isPreviewMode ? 8 : pageSettings.related.count);
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
   
-  // Calculate discount - automatic discount takes priority over compare price
-  const hasAutomaticDiscount = !!automaticDiscount;
+  // Calculate discounts
+  const hasAutomaticDiscount = automaticDiscountsResult.discounts.length > 0;
   const hasCompareDiscount = product.comparePrice && Number(product.comparePrice) > Number(product.price);
   const hasDiscount = hasAutomaticDiscount || hasCompareDiscount;
   
-  // Calculate final price and discount percentage
-  const originalPrice = hasAutomaticDiscount ? Number(product.price) : (hasCompareDiscount ? Number(product.comparePrice) : Number(product.price));
-  const finalPrice = hasAutomaticDiscount ? automaticDiscount.discountedPrice : Number(product.price);
+  // 🔑 Compare price discount - שחור (רק הנחת מחיר השוואה, לא כולל הנחות אוטומטיות)
+  const compareDiscount = hasCompareDiscount 
+    ? Math.round((1 - Number(product.price) / Number(product.comparePrice)) * 100) 
+    : null;
+  
+  // Calculate final price (after all discounts)
+  const basePrice = Number(product.price);
+  const finalPrice = hasAutomaticDiscount ? automaticDiscountsResult.finalPrice : basePrice;
+  const originalPrice = hasCompareDiscount ? Number(product.comparePrice) : basePrice;
+  
+  // Total discount for display (based on original vs final price)
   const discount = hasDiscount 
     ? Math.round((1 - finalPrice / originalPrice) * 100) 
     : null;
-  const discountLabel = hasAutomaticDiscount ? automaticDiscount.name : null;
+  
+  // 🆕 All automatic discount names for green badges
+  const discountLabels = automaticDiscountsResult.discounts.map(d => d.name);
+  const discountLabel = discountLabels.length > 0 ? discountLabels[0] : null;
 
   // Track product view
   const trackingProduct = {
@@ -403,23 +414,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   data-section-id="pp-info"
                   data-section-name="מידע מוצר"
                 >
-                  {/* Badges */}
+                  {/* Badges - מעל שם המוצר */}
                   <div className="flex flex-wrap gap-3 mb-6">
-                    {/* Automatic Discount Badge with Name */}
-                    {discountLabel && (
-                      <span className="text-[10px] tracking-[0.15em] uppercase bg-green-600 text-white px-3 py-1.5">
-                        {discountLabel}
+                    {/* Compare Price Discount Badge (BLACK) - הנחת מחיר השוואה בלבד */}
+                    {compareDiscount && compareDiscount > 0 && (
+                      <span className="text-[10px] tracking-[0.15em] uppercase bg-black text-white px-3 py-1.5">
+                        -{compareDiscount}%
                       </span>
                     )}
                     
-                    {/* Discount Percentage Badge */}
-                    {pageSettings.price.showDiscount && hasDiscount && (
-                      pageSettings.price.discountStyle === 'badge' || pageSettings.price.discountStyle === 'both' ? (
-                        <span className="text-[10px] tracking-[0.15em] uppercase bg-black text-white px-3 py-1.5">
-                          -{discount}%
-                        </span>
-                      ) : null
-                    )}
+                    {/* Automatic Discount Badges (GREEN) - שמות ההנחות האוטומטיות */}
+                    {discountLabels.map((label, i) => (
+                      <span key={i} className="text-[10px] tracking-[0.15em] uppercase bg-green-500 text-white px-3 py-1.5">
+                        {label}
+                      </span>
+                    ))}
                     
                     {/* Featured Badge */}
                     {product.isFeatured && (
@@ -457,6 +466,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       variants={variants}
                       basePrice={Number(product.price)}
                       baseComparePrice={product.comparePrice ? Number(product.comparePrice) : null}
+                      automaticDiscountName={discountLabels.join(' + ') || undefined}
+                      categoryIds={productCategoryIds}
                     />
                   ) : (
                     <>
@@ -478,33 +489,28 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                             <span className="text-lg text-gray-400 line-through">{format(originalPrice)}</span>
                           )}
                           
-                          {/* Discount Percentage */}
+                          {/* Total Discount Percentage - הנחה כוללת */}
                           {pageSettings.price.showDiscount && hasDiscount && 
                            (pageSettings.price.discountStyle === 'text' || pageSettings.price.discountStyle === 'both') && (
-                            <span className="text-sm text-red-500">-{discount}%</span>
-                          )}
-                          
-                          {/* Automatic Discount Badge */}
-                          {discountLabel && (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                              {discountLabel}
-                            </span>
+                            <span className="text-sm text-green-600 font-medium">הנחה כוללת: -{discount}%</span>
                           )}
                         </div>
                       )}
 
-                      {/* Add to Cart - Uses discounted price if automatic discount applies */}
+                      {/* Add to Cart - ALWAYS use original price! Discounts are calculated at checkout */}
+                      {/* Note: automaticDiscountName is for cart/checkout display only */}
                       <AddToCartButton 
                         productId={product.id}
                         name={product.name}
-                        price={finalPrice}
+                        price={Number(product.price)}
                         image={mainImage || '/placeholder.svg'}
                         sku={product.sku || undefined}
                         inventory={product.inventory}
                         trackInventory={product.trackInventory}
                         allowBackorder={product.allowBackorder}
                         className="w-full mb-4"
-                        automaticDiscountName={discountLabel || undefined}
+                        automaticDiscountName={discountLabels.join(' + ') || undefined}
+                        categoryIds={productCategoryIds}
                       />
 
                       {/* Stock Status - Live Preview */}

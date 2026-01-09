@@ -160,7 +160,7 @@ export async function getAutomaticDiscounts(
         break;
     }
 
-    // Check applies to condition
+    // Check applies to condition using matchingItems (which already uses productCategoriesMap for correct category matching)
     switch (discount.appliesTo) {
       case 'all':
         // Applies to all products
@@ -168,23 +168,15 @@ export async function getAutomaticDiscounts(
         break;
 
       case 'category':
-        // Check if any cart item is in the discount categories
-        const categoryIds = (discount.categoryIds as string[]) || [];
-        const hasMatchingCategory = cartItems.some(
-          item => item.categoryId && categoryIds.includes(item.categoryId)
-        );
-        if (hasMatchingCategory) {
+        // Use matchingItems which already correctly checks categories via productCategoriesMap
+        if (matchingItems.length > 0) {
           applicableDiscounts.push(formatDiscount(discount));
         }
         break;
 
       case 'product':
-        // Check if any cart item is in the discount products
-        const productIds = (discount.productIds as string[]) || [];
-        const hasMatchingProduct = cartItems.some(
-          item => productIds.includes(item.productId)
-        );
-        if (hasMatchingProduct) {
+        // Use matchingItems which already correctly checks product IDs
+        if (matchingItems.length > 0) {
           applicableDiscounts.push(formatDiscount(discount));
         }
         break;
@@ -244,6 +236,7 @@ function formatDiscount(discount: typeof automaticDiscounts.$inferSelect): Autom
  * Used for displaying discounted price on product pages
  * 
  * ⚡ Performance: Single DB query with proper filtering
+ * 🔄 תומך במספר הנחות - מחזיר את כולן!
  */
 export type ProductAutomaticDiscount = {
   id: string;
@@ -254,18 +247,40 @@ export type ProductAutomaticDiscount = {
   discountedPrice: number;
 };
 
+export type ProductAutomaticDiscounts = {
+  discounts: ProductAutomaticDiscount[];
+  finalPrice: number;
+  totalDiscountPercent: number;
+};
+
 export async function getProductAutomaticDiscount(
   storeId: string,
   productId: string,
   categoryIds: string[], // תמיכה במספר קטגוריות למוצר
   price: number
 ): Promise<ProductAutomaticDiscount | null> {
-  if (!storeId || !productId) return null;
+  // קריאה לפונקציה החדשה והחזרת ההנחה הראשונה (תאימות לאחור)
+  const result = await getProductAutomaticDiscounts(storeId, productId, categoryIds, price);
+  return result.discounts.length > 0 ? result.discounts[0] : null;
+}
+
+/**
+ * 🆕 Get ALL automatic discounts for a single product
+ * Returns array of all applicable discounts + combined final price
+ */
+export async function getProductAutomaticDiscounts(
+  storeId: string,
+  productId: string,
+  categoryIds: string[],
+  price: number
+): Promise<ProductAutomaticDiscounts> {
+  const emptyResult: ProductAutomaticDiscounts = { discounts: [], finalPrice: price, totalDiscountPercent: 0 };
+  
+  if (!storeId || !productId || price <= 0) return emptyResult;
 
   const now = new Date();
   
-  // Get all active automatic discounts that apply to this product
-  // Only percentage and fixed_amount are simple enough to show on product page
+  // Get all active automatic discounts
   const discounts = await db
     .select()
     .from(automaticDiscounts)
@@ -283,11 +298,18 @@ export async function getProductAutomaticDiscount(
     ))
     .orderBy(automaticDiscounts.priority);
 
+  const applicableDiscounts: ProductAutomaticDiscount[] = [];
+  let currentPrice = price;
+  let hasNonStackable = false;
+
   for (const discount of discounts) {
     // Only handle percentage and fixed_amount for product page display
     if (discount.type !== 'percentage' && discount.type !== 'fixed_amount') {
       continue;
     }
+
+    // אם כבר יש הנחה לא ניתנת לשילוב, לא מוסיפים עוד
+    if (hasNonStackable) break;
 
     // Check exclusions first
     const excludeProductIds = (discount.excludeProductIds as string[]) || [];
@@ -309,7 +331,6 @@ export async function getProductAutomaticDiscount(
         
       case 'category':
         const discountCategoryIds = (discount.categoryIds as string[]) || [];
-        // בדיקה אם אחת מקטגוריות המוצר נמצאת בקטגוריות ההנחה
         applies = categoryIds.length > 0 && discountCategoryIds.some(cat => categoryIds.includes(cat));
         break;
         
@@ -324,36 +345,52 @@ export async function getProductAutomaticDiscount(
     }
 
     if (applies) {
-      // Calculate discounted price
-      let discountedPrice = price;
+      // Calculate discounted price progressively
+      let discountedPrice = currentPrice;
       if (discount.type === 'percentage') {
-        discountedPrice = price * (1 - Number(discount.value) / 100);
+        discountedPrice = currentPrice * (1 - Number(discount.value) / 100);
       } else if (discount.type === 'fixed_amount') {
-        discountedPrice = Math.max(0, price - Number(discount.value));
+        discountedPrice = Math.max(0, currentPrice - Number(discount.value));
       }
 
-      return {
+      applicableDiscounts.push({
         id: discount.id,
         name: discount.name,
         description: discount.description,
         type: discount.type as 'percentage' | 'fixed_amount',
         value: Number(discount.value),
         discountedPrice: Math.round(discountedPrice * 100) / 100,
-      };
+      });
+      
+      currentPrice = discountedPrice;
+      
+      // אם ההנחה לא ניתנת לשילוב, מפסיקים
+      if (!discount.stackable) {
+        hasNonStackable = true;
+      }
     }
   }
 
-  return null;
+  const totalDiscountPercent = price > 0 ? Math.round((1 - currentPrice / price) * 100) : 0;
+
+  return {
+    discounts: applicableDiscounts,
+    finalPrice: Math.round(currentPrice * 100) / 100,
+    totalDiscountPercent,
+  };
 }
 
 /**
  * 🚀 חישוב הנחות אוטומטיות לרשימת מוצרים (Batch) - מהיר!
  * שליפה אחת מה-DB, חישוב בזיכרון
+ * 🆕 תומך במספר הנחות - מחזיר את כולן!
  */
 export type ProductDiscountMap = Map<string, {
-  name: string;
+  name: string;           // שם ההנחה הראשונה (תאימות לאחור)
+  names: string[];        // כל שמות ההנחות
   discountedPrice: number;
   discountPercent: number;
+  categoryIds: string[];  // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
 }>;
 
 export async function getProductsAutomaticDiscounts(
@@ -405,16 +442,22 @@ export async function getProductsAutomaticDiscounts(
     }
   }
 
-  // 3. חישוב הנחה לכל מוצר
+  // 3. חישוב הנחות לכל מוצר (תומך במספר הנחות!)
   for (const product of products) {
     const price = Number(product.price) || 0;
     if (price <= 0) continue;
     
     const categoryIds = product.categoryIds || productCategoryMap.get(product.id) || [];
+    const appliedNames: string[] = [];
+    let currentPrice = price;
+    let hasNonStackable = false;
     
     for (const discount of discounts) {
       // רק percentage ו-fixed_amount מתאימים לתצוגה בכרטיסי מוצר
       if (discount.type !== 'percentage' && discount.type !== 'fixed_amount') continue;
+      
+      // אם כבר יש הנחה לא ניתנת לשילוב, מפסיקים
+      if (hasNonStackable) break;
       
       const excludeProductIds = (discount.excludeProductIds as string[]) || [];
       const excludeCategoryIds = (discount.excludeCategoryIds as string[]) || [];
@@ -441,26 +484,31 @@ export async function getProductsAutomaticDiscounts(
       }
       
       if (applies) {
-        let discountedPrice = price;
-        let discountPercent = 0;
-        
+        // חישוב מחיר מצטבר
         if (discount.type === 'percentage') {
-          discountPercent = Number(discount.value);
-          discountedPrice = price * (1 - discountPercent / 100);
+          currentPrice = currentPrice * (1 - Number(discount.value) / 100);
         } else if (discount.type === 'fixed_amount') {
-          discountedPrice = Math.max(0, price - Number(discount.value));
-          discountPercent = Math.round((1 - discountedPrice / price) * 100);
+          currentPrice = Math.max(0, currentPrice - Number(discount.value));
         }
         
-        result.set(product.id, {
-          name: discount.name,
-          discountedPrice: Math.round(discountedPrice * 100) / 100,
-          discountPercent,
-        });
+        appliedNames.push(discount.name);
         
-        break; // מצאנו הנחה - עוברים למוצר הבא
+        // אם ההנחה לא ניתנת לשילוב, מפסיקים
+        if (!discount.stackable) {
+          hasNonStackable = true;
+        }
       }
     }
+    
+    // 🔑 תמיד מוסיפים לתוצאה - גם אם אין הנחות, כדי שה-categoryIds יהיו זמינים בעגלה
+    const discountPercent = appliedNames.length > 0 ? Math.round((1 - currentPrice / price) * 100) : 0;
+    result.set(product.id, {
+      name: appliedNames[0] || '',                        // תאימות לאחור
+      names: appliedNames,                                // כל ההנחות
+      discountedPrice: Math.round(currentPrice * 100) / 100,
+      discountPercent,
+      categoryIds,                                        // לחישוב הנחות בצ'קאאוט
+    });
   }
   
   return result;

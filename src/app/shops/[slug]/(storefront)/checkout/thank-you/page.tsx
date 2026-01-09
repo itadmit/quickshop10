@@ -20,7 +20,7 @@ import { headers } from 'next/headers';
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, automaticDiscounts, influencerSales, influencers } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, automaticDiscounts, influencerSales, influencers, customerCreditTransactions } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -394,6 +394,42 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 });
             }
             
+            // Deduct customer credit if used (non-blocking for speed)
+            const newFlowCreditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
+            if (newFlowCreditUsed > 0 && existingOrder.customerId) {
+              db.select({ creditBalance: customers.creditBalance })
+                .from(customers)
+                .where(eq(customers.id, existingOrder.customerId))
+                .limit(1)
+                .then(async ([currentCustomer]) => {
+                  if (!currentCustomer) return;
+                  
+                  const currentBalance = Number(currentCustomer.creditBalance) || 0;
+                  const newBalance = Math.max(0, currentBalance - newFlowCreditUsed);
+                  
+                  // Update customer credit balance
+                  await db.update(customers)
+                    .set({ creditBalance: newBalance.toFixed(2) })
+                    .where(eq(customers.id, existingOrder.customerId!));
+                  
+                  // Create credit transaction record
+                  await db.insert(customerCreditTransactions).values({
+                    customerId: existingOrder.customerId!,
+                    storeId: store.id,
+                    type: 'debit',
+                    amount: (-newFlowCreditUsed).toFixed(2),
+                    balanceAfter: newBalance.toFixed(2),
+                    reason: `שימוש בקרדיט בהזמנה #${updatedOrder.orderNumber}`,
+                    orderId: updatedOrder.id,
+                  });
+                  
+                  console.log(`Thank you page (new flow): Deducted credit ${newFlowCreditUsed} from customer ${existingOrder.customerId}, new balance: ${newBalance}`);
+                })
+                .catch(err => {
+                  console.error(`Thank you page (new flow): Failed to deduct customer credit:`, err);
+                });
+            }
+            
             // Send order confirmation email (non-blocking)
             const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
@@ -750,6 +786,38 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           }
         }
         
+        // Deduct customer credit if used
+        if (creditUsed > 0 && customerId) {
+          const [currentCustomer] = await db
+            .select({ creditBalance: customers.creditBalance })
+            .from(customers)
+            .where(eq(customers.id, customerId))
+            .limit(1);
+          
+          if (currentCustomer) {
+            const currentBalance = Number(currentCustomer.creditBalance) || 0;
+            const newBalance = Math.max(0, currentBalance - creditUsed);
+            
+            // Update customer credit balance
+            await db.update(customers)
+              .set({ creditBalance: newBalance.toFixed(2) })
+              .where(eq(customers.id, customerId));
+            
+            // Create credit transaction record
+            await db.insert(customerCreditTransactions).values({
+              customerId,
+              storeId: store.id,
+              type: 'debit',
+              amount: (-creditUsed).toFixed(2),
+              balanceAfter: newBalance.toFixed(2),
+              reason: `שימוש בקרדיט בהזמנה #${orderNumber}`,
+              orderId: newOrder.id,
+            });
+            
+            console.log(`Thank you page (legacy flow): Deducted credit ${creditUsed} from customer ${customerId}, new balance: ${newBalance}`);
+          }
+        }
+        
         // Update pending payment status
         await db
           .update(pendingPayments)
@@ -1066,6 +1134,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
                       </svg>
                     )}
+                    {discount.type === 'credit' && (
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
+                      </svg>
+                    )}
                     {discount.type === 'coupon' ? `קופון ${discount.code}${discount.description ? ` (${discount.description})` : ''}` :
                      discount.type === 'gift_card' ? `גיפט קארד ${discount.code}` :
                      discount.type === 'auto' ? `הנחה אוטומטית: ${discount.name}` :
@@ -1081,6 +1154,19 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 <div className="flex justify-between text-green-600">
                   <span>הנחה {order.discountCode && `(${order.discountCode})`}</span>
                   <span>-{format(order.discountAmount)}</span>
+                </div>
+              )}
+              
+              {/* Credit used - fallback if not already in discountDetails */}
+              {Number(order.creditUsed) > 0 && !((order.discountDetails as Array<{type: string}>)?.some(d => d.type === 'credit')) && (
+                <div className="flex justify-between text-blue-600">
+                  <span className="flex items-center gap-1">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
+                    </svg>
+                    קרדיט
+                  </span>
+                  <span>-{format(order.creditUsed)}</span>
                 </div>
               )}
               

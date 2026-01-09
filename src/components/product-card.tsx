@@ -19,11 +19,13 @@ interface ProductCardProps {
   inventory?: number | null;
   trackInventory?: boolean;
   allowBackorder?: boolean;
-  // הנחה אוטומטית (מחושב בשרת)
+  // הנחה אוטומטית (מחושב בשרת) - תומך במספר הנחות!
   automaticDiscount?: {
-    name: string;
+    name: string;           // שם ההנחה הראשונה (תאימות לאחור)
+    names?: string[];       // כל שמות ההנחות
     discountedPrice: number;
     discountPercent: number;
+    categoryIds?: string[]; // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
   } | null;
 }
 
@@ -43,7 +45,8 @@ export function ProductCard({
   automaticDiscount,
 }: ProductCardProps) {
   // הנחה אוטומטית גוברת על comparePrice
-  const hasAutoDiscount = !!automaticDiscount;
+  // 🔑 בודקים שיש הנחה בפועל (discountPercent > 0)
+  const hasAutoDiscount = !!automaticDiscount && automaticDiscount.discountPercent > 0;
   const hasCompareDiscount = !hasAutoDiscount && comparePrice && comparePrice > price;
   const hasDiscount = hasAutoDiscount || hasCompareDiscount;
   
@@ -75,7 +78,7 @@ export function ProductCard({
               </span>
             )}
             {hasAutoDiscount && !outOfStock && (
-              <span className="text-[10px] tracking-[0.15em] bg-green-600 px-3 py-1.5 text-white">
+              <span className="text-[10px] tracking-[0.15em] bg-green-500 px-3 py-1.5 text-white">
                 {automaticDiscount.discountPercent}%-
               </span>
             )}
@@ -87,18 +90,20 @@ export function ProductCard({
           </div>
           
           {/* Quick Add - Shows on Hover (only if in stock) */}
+          {/* ⚠️ IMPORTANT: Always pass ORIGINAL price! Discount is calculated at checkout */}
           {!outOfStock && (
             <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
               <AddToCartButton 
                 productId={id}
                 name={name}
-                price={finalPrice}
+                price={price}
                 image={image}
                 inventory={inventory}
                 trackInventory={trackInventory}
                 allowBackorder={allowBackorder}
                 className="w-full"
-                automaticDiscountName={automaticDiscount?.name}
+                automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                categoryIds={automaticDiscount?.categoryIds}
               />
             </div>
           )}

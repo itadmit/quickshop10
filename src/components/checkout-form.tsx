@@ -547,7 +547,7 @@ export function CheckoutForm({
   };
 
   // Calculate automatic discounts using the new discount engine
-  // Note: categoryId will be fetched from products if needed for discount matching
+  // 🔑 Now using categoryIds from cart items for proper category-based discount matching
   const cartItemsForEngine: EngineCartItem[] = cart.map(item => ({
     id: item.id || `item-${item.productId}`,
     productId: item.productId,
@@ -556,8 +556,7 @@ export function CheckoutForm({
     price: item.price,
     quantity: item.quantity,
     imageUrl: item.image,
-    // categoryId will be undefined for now - discounts will match by productId if needed
-    categoryId: undefined,
+    categoryIds: item.categoryIds || [],
   }));
   
   // Convert auto discounts to engine format
