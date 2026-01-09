@@ -446,21 +446,34 @@ export const productImages = pgTable('product_images', {
 
 // ============ PRODUCT OPTIONS & VARIANTS ============
 
+// Option Display Type Enum
+export const optionDisplayTypeEnum = pgEnum('option_display_type', [
+  'button',   // כפתור טקסט רגיל
+  'color',    // בוחר צבע (עיגול צבעוני)
+  'pattern',  // דוגמה/פטרן (CSS pattern)
+  'image',    // תמונה
+]);
+
 // Product Options (e.g., "Size", "Color")
 export const productOptions = pgTable('product_options', {
   id: uuid('id').primaryKey().defaultRandom(),
   productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
   name: varchar('name', { length: 100 }).notNull(), // "מידה", "צבע"
+  displayType: optionDisplayTypeEnum('display_type').default('button').notNull(), // סוג התצוגה
   sortOrder: integer('sort_order').default(0),
 }, (table) => [
   index('idx_product_options_product').on(table.productId),
 ]);
 
 // Option Values (e.g., "S", "M", "L" for Size)
+// For color type: metadata = { color: "#FF0000" }
+// For pattern type: metadata = { pattern: "dots", color: "#000" }
+// For image type: metadata = { imageUrl: "https://..." }
 export const productOptionValues = pgTable('product_option_values', {
   id: uuid('id').primaryKey().defaultRandom(),
   optionId: uuid('option_id').references(() => productOptions.id, { onDelete: 'cascade' }).notNull(),
   value: varchar('value', { length: 100 }).notNull(), // "S", "M", "אדום"
+  metadata: jsonb('metadata').default({}), // Additional data based on option type
   sortOrder: integer('sort_order').default(0),
 }, (table) => [
   index('idx_option_values_option').on(table.optionId),
@@ -477,6 +490,7 @@ export const productVariants = pgTable('product_variants', {
   comparePrice: decimal('compare_price', { precision: 10, scale: 2 }),
   cost: decimal('cost', { precision: 10, scale: 2 }),
   inventory: integer('inventory').default(0),
+  allowBackorder: boolean('allow_backorder').default(false).notNull(), // Allow ordering when out of stock
   weight: decimal('weight', { precision: 10, scale: 3 }),
   imageUrl: varchar('image_url', { length: 500 }),
   option1: varchar('option1', { length: 100 }), // First option value (e.g., "S")

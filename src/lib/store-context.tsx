@@ -1,6 +1,8 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, ReactNode } from 'react';
+import { getAutomaticDiscounts, type AutomaticDiscountResult } from '@/app/actions/automatic-discount';
+import { calculateDiscounts, type CartItem as EngineCartItem, type Discount } from '@/lib/discount-engine';
 
 // ============ TYPES ============
 
@@ -80,8 +82,9 @@ interface StoreContextType {
   // Cart state
   cart: CartItem[];
   cartOpen: boolean;
-  cartTotal: number;          // Uses discountedPrice for UI (cart sidebar)
+  cartTotal: number;          // Final price after discounts (calculated via discount engine)
   cartOriginalTotal: number;  // ALWAYS original price (for checkout calculations)
+  cartDiscountAmount: number; // Total discount amount from automatic discounts
   cartCount: number;
   isHydrated: boolean;
   
@@ -254,6 +257,7 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
     const addonPrice = item.addonTotal || 0;
     return sum + (effectivePrice + addonPrice) * item.quantity;
   }, 0);
+  const cartDiscountAmount = cartOriginalTotal - cartTotal;
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   // Actions
@@ -408,6 +412,7 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
       cartOpen,
       cartTotal,
       cartOriginalTotal,
+      cartDiscountAmount,
       cartCount,
       isHydrated: mounted,
       appliedCoupons,

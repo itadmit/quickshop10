@@ -28,10 +28,16 @@ type Product = {
   isActive: boolean;
   inventory: number | null;
   trackInventory: boolean;
+  hasVariants?: boolean;
   image?: string | null;
   categoryId: string | null;
   categoryName?: string | null;
   productCategories?: ProductCategory[];
+  // Variant aggregate data
+  variantMinPrice?: string | null;
+  variantMaxPrice?: string | null;
+  variantTotalInventory?: number | null;
+  variantCount?: number | null;
 };
 
 type Category = {
@@ -251,6 +257,24 @@ export function ProductsDataTable({
       width: '100px',
       align: 'center',
       render: (product) => {
+        // For products with variants, show total variant inventory
+        if (product.hasVariants) {
+          const stock = product.variantTotalInventory ?? 0;
+          return (
+            <div className="flex flex-col items-center">
+              <span className={`font-medium ${
+                stock === 0 ? 'text-red-600' : 
+                stock <= 5 ? 'text-amber-600' : 
+                'text-gray-900'
+              }`}>
+                {stock}
+              </span>
+              {product.variantCount && (
+                <span className="text-[10px] text-gray-400">{product.variantCount} וריאציות</span>
+              )}
+            </div>
+          );
+        }
         if (!product.trackInventory) {
           return <span className="text-gray-400">-</span>;
         }
@@ -269,18 +293,38 @@ export function ProductsDataTable({
     {
       key: 'price',
       header: 'מחיר',
-      width: '120px',
+      width: '140px',
       align: 'center',
-      render: (product) => (
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="font-medium">₪{Number(product.price).toFixed(2)}</span>
-          {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
-            <span className="text-xs text-gray-400 line-through">
-              ₪{Number(product.comparePrice).toFixed(2)}
-            </span>
-          )}
-        </div>
-      ),
+      render: (product) => {
+        // For products with variants, show price range
+        if (product.hasVariants && product.variantMinPrice) {
+          const minPrice = Number(product.variantMinPrice);
+          const maxPrice = Number(product.variantMaxPrice);
+          
+          if (minPrice === maxPrice) {
+            return (
+              <span className="font-medium">₪{minPrice.toFixed(2)}</span>
+            );
+          }
+          
+          return (
+            <div className="flex flex-col items-center">
+              <span className="font-medium text-sm">₪{minPrice.toFixed(2)} - ₪{maxPrice.toFixed(2)}</span>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="font-medium">₪{Number(product.price || 0).toFixed(2)}</span>
+            {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
+              <span className="text-xs text-gray-400 line-through">
+                ₪{Number(product.comparePrice).toFixed(2)}
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'actions',

@@ -2,6 +2,7 @@ import { getStoreBySlug, getCategoriesByStore } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
 import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
+import { getStoreMetafields } from '@/app/shops/[slug]/admin/metafields/actions';
 
 interface NewProductPageProps {
   params: Promise<{ slug: string }>;
@@ -17,10 +18,11 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
     notFound();
   }
 
-  // Fetch categories and addons in parallel for speed ⚡
-  const [categories, storeAddons] = await Promise.all([
+  // Fetch categories, addons and metafields in parallel for speed ⚡
+  const [categories, storeAddons, storeMetafields] = await Promise.all([
     getCategoriesByStore(store.id),
     getStoreAddons(store.id),
+    getStoreMetafields(store.id),
   ]);
 
   // Format addons for the form
@@ -42,6 +44,7 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
       customDomain={store.customDomain}
       categories={categories}
       storeAddons={formattedAddons}
+      storeMetafields={storeMetafields}
       mode="create"
     />
   );

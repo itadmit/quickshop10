@@ -68,7 +68,15 @@ function LowStockTable({
   products,
   storeSlug
 }: { 
-  products: Array<{ id: string; name: string; sku: string | null; inventory: number | null; image: string | null }>;
+  products: Array<{ 
+    id: string; 
+    name: string; 
+    sku: string | null; 
+    inventory: number | null; 
+    image: string | null;
+    isVariant?: boolean;
+    variantTitle?: string | null;
+  }>;
   storeSlug: string;
 }) {
   if (!products.length) {
@@ -110,7 +118,12 @@ function LowStockTable({
                     ) : (
                       <div className="w-10 h-10 bg-gray-100" />
                     )}
-                    <span className="font-medium">{product.name}</span>
+                    <div>
+                      <span className="font-medium">{product.name}</span>
+                      {product.isVariant && product.variantTitle && (
+                        <p className="text-sm text-gray-500">{product.variantTitle}</p>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td className="py-3 px-4 text-gray-500">

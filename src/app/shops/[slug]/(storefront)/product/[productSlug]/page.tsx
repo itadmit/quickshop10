@@ -97,32 +97,45 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     getProductAddonsForStorefront(product.id),
   ]);
   
-  // Get automatic discounts for this product (server-side, no extra round trips)
-  // 🆕 Now returns ALL applicable discounts!
-  const automaticDiscountsResult = await getProductAutomaticDiscounts(store.id, product.id, productCategoryIds, Number(product.price));
-
   // Get related products (all available for preview mode, limited for production)
   const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, isPreviewMode ? 8 : pageSettings.related.count);
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
   
+  // 🆕 Calculate base price - for products with variants, use min variant price
+  const minVariantPrice = variants.length > 0 
+    ? Math.min(...variants.map(v => Number(v.price)))
+    : 0;
+  const effectivePrice = product.hasVariants && variants.length > 0 
+    ? minVariantPrice 
+    : Number(product.price);
+
+  // Get automatic discounts for this product (server-side, no extra round trips)
+  // 🆕 Now uses effective price (variant or product price)
+  const automaticDiscountsResult = await getProductAutomaticDiscounts(store.id, product.id, productCategoryIds, effectivePrice);
+  
   // Calculate discounts
   const hasAutomaticDiscount = automaticDiscountsResult.discounts.length > 0;
-  const hasCompareDiscount = product.comparePrice && Number(product.comparePrice) > Number(product.price);
+  
+  // For products with variants, check variant compare prices; otherwise use product compare price
+  const effectiveComparePrice = product.hasVariants && variants.length > 0 
+    ? (variants[0].comparePrice ? Number(variants[0].comparePrice) : null)
+    : (product.comparePrice ? Number(product.comparePrice) : null);
+  const hasCompareDiscount = effectiveComparePrice && effectiveComparePrice > effectivePrice;
   const hasDiscount = hasAutomaticDiscount || hasCompareDiscount;
   
   // 🔑 Compare price discount - שחור (רק הנחת מחיר השוואה, לא כולל הנחות אוטומטיות)
   const compareDiscount = hasCompareDiscount 
-    ? Math.round((1 - Number(product.price) / Number(product.comparePrice)) * 100) 
+    ? Math.round((1 - effectivePrice / effectiveComparePrice) * 100) 
     : null;
   
   // Calculate final price (after all discounts)
-  const basePrice = Number(product.price);
+  const basePrice = effectivePrice;
   const finalPrice = hasAutomaticDiscount ? automaticDiscountsResult.finalPrice : basePrice;
-  const originalPrice = hasCompareDiscount ? Number(product.comparePrice) : basePrice;
+  const originalPrice = hasCompareDiscount ? effectiveComparePrice : basePrice;
   
   // Total discount for display (based on original vs final price)
-  const discount = hasDiscount 
+  const discount = hasDiscount && originalPrice > 0
     ? Math.round((1 - finalPrice / originalPrice) * 100) 
     : null;
   
@@ -134,8 +147,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const trackingProduct = {
     id: product.id,
     name: product.name,
-    price: Number(product.price),
-    compareAtPrice: product.comparePrice ? Number(product.comparePrice) : null,
+    price: effectivePrice,
+    compareAtPrice: effectiveComparePrice,
     image: mainImage,
   };
 
@@ -467,10 +480,14 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       productImage={mainImage || '/placeholder.svg'}
                       options={options}
                       variants={variants}
-                      basePrice={Number(product.price)}
-                      baseComparePrice={product.comparePrice ? Number(product.comparePrice) : null}
+                      basePrice={variants.length > 0 ? Number(variants[0].price) : 0}
+                      baseComparePrice={variants.length > 0 && variants[0].comparePrice ? Number(variants[0].comparePrice) : null}
                       automaticDiscountName={discountLabels.join(' + ') || undefined}
-                      discountPercent={automaticDiscountsResult.totalDiscountPercent || undefined}
+                      automaticDiscounts={automaticDiscountsResult.discounts.map(d => ({
+                        type: d.type,
+                        value: d.value,
+                        name: d.name,
+                      }))}
                       categoryIds={productCategoryIds}
                     />
                   ) : (

@@ -111,18 +111,32 @@ export interface VariantFormData {
   id?: string;
   title: string;
   sku?: string;
+  barcode?: string;
   price: string;
   comparePrice?: string;
   cost?: string;
+  weight?: string;
   inventory: number;
+  allowBackorder?: boolean;
   option1?: string;
   option2?: string;
   option3?: string;
 }
 
+export interface OptionValueFormData {
+  value: string;
+  metadata?: {
+    color?: string;      // for color type
+    pattern?: string;    // for pattern type
+    imageUrl?: string;   // for image type
+    images?: string[];   // gallery images per value
+  };
+}
+
 export interface OptionFormData {
   name: string;
-  values: string[];
+  displayType: 'button' | 'color' | 'pattern' | 'image';
+  values: OptionValueFormData[];
 }
 
 export interface ProductFormData {
@@ -165,6 +179,9 @@ export interface ProductFormData {
   seoTitle?: string;
   seoDescription?: string;
   
+  // Custom Fields (metafields)
+  metadata?: Record<string, unknown>;
+  
   // Images (URLs for now)
   images?: { url: string; alt?: string; isPrimary: boolean }[];
 }
@@ -204,6 +221,7 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       seoDescription: data.seoDescription || null,
       hasVariants: data.hasVariants,
       upsellProductIds: data.upsellProductIds || [],
+      metadata: data.metadata || {},
       categoryId: primaryCategoryId, // Set legacy categoryId for backward compatibility
       createdBy: userId,
       updatedBy: userId,
@@ -240,14 +258,17 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
         const [option] = await db.insert(productOptions).values({
           productId: product.id,
           name: opt.name,
+          displayType: opt.displayType || 'button',
           sortOrder: i,
         }).returning();
 
-        // Create option values
+        // Create option values with metadata
         for (let j = 0; j < opt.values.length; j++) {
+          const val = opt.values[j];
           await db.insert(productOptionValues).values({
             optionId: option.id,
-            value: opt.values[j],
+            value: typeof val === 'string' ? val : val.value,
+            metadata: typeof val === 'string' ? {} : (val.metadata || {}),
             sortOrder: j,
           });
         }
@@ -260,10 +281,13 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
             productId: product.id,
             title: v.title,
             sku: v.sku || null,
-            price: v.price,
-            comparePrice: v.comparePrice || null,
-            cost: v.cost || null,
-            inventory: v.inventory,
+            barcode: v.barcode || null,
+            price: v.price && v.price !== '' ? v.price : '0',
+            comparePrice: v.comparePrice && v.comparePrice !== '' ? v.comparePrice : null,
+            cost: v.cost && v.cost !== '' ? v.cost : null,
+            weight: v.weight && v.weight !== '' ? v.weight : null,
+            inventory: v.inventory ?? 0,
+            allowBackorder: v.allowBackorder || false,
             option1: v.option1 || null,
             option2: v.option2 || null,
             option3: v.option3 || null,
@@ -335,6 +359,7 @@ export async function updateProduct(
         seoDescription: data.seoDescription || null,
         hasVariants: data.hasVariants,
         upsellProductIds: data.upsellProductIds || [],
+        metadata: data.metadata || {},
         categoryId: primaryCategoryId, // Set legacy categoryId for backward compatibility
         updatedBy: userId,
         updatedAt: new Date(),
@@ -383,14 +408,17 @@ export async function updateProduct(
         const [option] = await db.insert(productOptions).values({
           productId,
           name: opt.name,
+          displayType: opt.displayType || 'button',
           sortOrder: i,
         }).returning();
 
-        // Create option values
+        // Create option values with metadata
         for (let j = 0; j < opt.values.length; j++) {
+          const val = opt.values[j];
           await db.insert(productOptionValues).values({
             optionId: option.id,
-            value: opt.values[j],
+            value: typeof val === 'string' ? val : val.value,
+            metadata: typeof val === 'string' ? {} : (val.metadata || {}),
             sortOrder: j,
           });
         }
@@ -403,10 +431,13 @@ export async function updateProduct(
             productId,
             title: v.title,
             sku: v.sku || null,
-            price: v.price,
-            comparePrice: v.comparePrice || null,
-            cost: v.cost || null,
-            inventory: v.inventory,
+            barcode: v.barcode || null,
+            price: v.price && v.price !== '' ? v.price : '0',
+            comparePrice: v.comparePrice && v.comparePrice !== '' ? v.comparePrice : null,
+            cost: v.cost && v.cost !== '' ? v.cost : null,
+            weight: v.weight && v.weight !== '' ? v.weight : null,
+            inventory: v.inventory ?? 0,
+            allowBackorder: v.allowBackorder || false,
             option1: v.option1 || null,
             option2: v.option2 || null,
             option3: v.option3 || null,

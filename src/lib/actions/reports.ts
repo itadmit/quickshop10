@@ -6,7 +6,7 @@ import {
   analyticsEvents, searchQueries, abandonedCarts,
   giftCards, influencers, influencerSales, refunds,
   customerCreditTransactions, productImages, discounts,
-  gamificationWins, gamificationCampaigns
+  gamificationWins, gamificationCampaigns, productVariants
 } from '@/lib/db/schema';
 import { eq, and, gte, lte, desc, asc, sql, count, sum, inArray } from 'drizzle-orm';
 import { cache } from 'react';
@@ -886,12 +886,13 @@ export const getStoreCreditStats = cache(async (storeId: string) => {
 // ============ INVENTORY REPORTS ============
 
 export const getInventoryStats = cache(async (storeId: string) => {
-  const [stats] = await db
+  // Get product stats (for products without variants)
+  const [productStats] = await db
     .select({
       totalProducts: sql<number>`COUNT(*)`,
-      totalInventory: sql<number>`COALESCE(SUM(${products.inventory}), 0)`,
-      lowStock: sql<number>`COUNT(CASE WHEN ${products.inventory} > 0 AND ${products.inventory} <= 5 AND ${products.trackInventory} = true THEN 1 END)`,
-      outOfStock: sql<number>`COUNT(CASE WHEN ${products.inventory} = 0 AND ${products.trackInventory} = true THEN 1 END)`,
+      totalInventory: sql<number>`COALESCE(SUM(CASE WHEN ${products.hasVariants} = false THEN ${products.inventory} ELSE 0 END), 0)`,
+      lowStock: sql<number>`COUNT(CASE WHEN ${products.hasVariants} = false AND ${products.inventory} > 0 AND ${products.inventory} <= 5 AND ${products.trackInventory} = true THEN 1 END)`,
+      outOfStock: sql<number>`COUNT(CASE WHEN ${products.hasVariants} = false AND ${products.inventory} = 0 AND ${products.trackInventory} = true THEN 1 END)`,
       tracked: sql<number>`COUNT(CASE WHEN ${products.trackInventory} = true THEN 1 END)`,
     })
     .from(products)
@@ -900,12 +901,27 @@ export const getInventoryStats = cache(async (storeId: string) => {
       eq(products.isActive, true)
     ));
 
+  // Get variant stats (for products with variants)
+  const [variantStats] = await db
+    .select({
+      totalInventory: sql<number>`COALESCE(SUM(${productVariants.inventory}), 0)`,
+      lowStock: sql<number>`COUNT(CASE WHEN ${productVariants.inventory} > 0 AND ${productVariants.inventory} <= 5 THEN 1 END)`,
+      outOfStock: sql<number>`COUNT(CASE WHEN ${productVariants.inventory} = 0 OR ${productVariants.inventory} IS NULL THEN 1 END)`,
+    })
+    .from(productVariants)
+    .innerJoin(products, eq(productVariants.productId, products.id))
+    .where(and(
+      eq(products.storeId, storeId),
+      eq(products.isActive, true),
+      eq(products.hasVariants, true)
+    ));
+
   return {
-    totalProducts: Number(stats?.totalProducts || 0),
-    totalInventory: Number(stats?.totalInventory || 0),
-    lowStock: Number(stats?.lowStock || 0),
-    outOfStock: Number(stats?.outOfStock || 0),
-    tracked: Number(stats?.tracked || 0),
+    totalProducts: Number(productStats?.totalProducts || 0),
+    totalInventory: Number(productStats?.totalInventory || 0) + Number(variantStats?.totalInventory || 0),
+    lowStock: Number(productStats?.lowStock || 0) + Number(variantStats?.lowStock || 0),
+    outOfStock: Number(productStats?.outOfStock || 0) + Number(variantStats?.outOfStock || 0),
+    tracked: Number(productStats?.tracked || 0),
   };
 });
 
@@ -914,13 +930,16 @@ export const getLowStockProducts = cache(async (
   threshold = 5,
   limit = 20
 ) => {
-  const result = await db
+  // Get low stock products (without variants)
+  const productResult = await db
     .select({
       id: products.id,
       name: products.name,
       sku: products.sku,
       inventory: products.inventory,
       image: productImages.url,
+      isVariant: sql<boolean>`false`,
+      variantTitle: sql<string | null>`null`,
     })
     .from(products)
     .leftJoin(productImages, and(
@@ -931,12 +950,44 @@ export const getLowStockProducts = cache(async (
       eq(products.storeId, storeId),
       eq(products.isActive, true),
       eq(products.trackInventory, true),
+      eq(products.hasVariants, false),
       sql`${products.inventory} <= ${threshold}`
     ))
     .orderBy(asc(products.inventory))
     .limit(limit);
 
-  return result;
+  // Get low stock variants
+  const variantResult = await db
+    .select({
+      id: productVariants.id,
+      name: products.name,
+      sku: productVariants.sku,
+      inventory: productVariants.inventory,
+      image: productImages.url,
+      isVariant: sql<boolean>`true`,
+      variantTitle: productVariants.title,
+    })
+    .from(productVariants)
+    .innerJoin(products, eq(productVariants.productId, products.id))
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
+    .where(and(
+      eq(products.storeId, storeId),
+      eq(products.isActive, true),
+      eq(products.hasVariants, true),
+      sql`${productVariants.inventory} <= ${threshold}`
+    ))
+    .orderBy(asc(productVariants.inventory))
+    .limit(limit);
+
+  // Combine and sort by inventory
+  const combined = [...productResult, ...variantResult]
+    .sort((a, b) => (a.inventory || 0) - (b.inventory || 0))
+    .slice(0, limit);
+
+  return combined;
 });
 
 // ============ COMBINED DASHBOARD ============

@@ -35,6 +35,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
     slug: string;
     price: string | null;
     comparePrice: string | null;
+    hasVariants?: boolean;
     images: Array<{ url: string; isPrimary: boolean }>;
   }> = [];
   
@@ -67,7 +68,31 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
       slug: p.slug,
       price: p.price,
       comparePrice: p.comparePrice,
+      hasVariants: p.hasVariants,
       images: p.images,
+    }));
+  }
+  
+  // For products with variants, get variant prices
+  const variantProducts = searchResults.filter(p => p.hasVariants);
+  if (variantProducts.length > 0) {
+    const { productVariants } = await import('@/lib/db/schema');
+    const { inArray, min } = await import('drizzle-orm');
+    
+    const variantPrices = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: min(productVariants.price),
+      })
+      .from(productVariants)
+      .where(inArray(productVariants.productId, variantProducts.map(p => p.id)))
+      .groupBy(productVariants.productId);
+    
+    const variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
+    
+    searchResults = searchResults.map(p => ({
+      ...p,
+      price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
     }));
   }
 

@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
-import { categories, products, productImages, productCategories } from '@/lib/db/schema';
-import { eq, and, asc, desc } from 'drizzle-orm';
+import { categories, products, productImages, productCategories, productVariants } from '@/lib/db/schema';
+import { eq, and, asc, desc, inArray, sql } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -46,6 +46,7 @@ async function getCategoryWithProducts(storeId: string, categoryId: string, perP
       price: products.price,
       inventory: products.inventory,
       trackInventory: products.trackInventory,
+      hasVariants: products.hasVariants,
       isActive: products.isActive,
       sortOrder: productCategories.sortOrder,
       image: productImages.url,
@@ -63,6 +64,28 @@ async function getCategoryWithProducts(storeId: string, categoryId: string, perP
     .orderBy(asc(productCategories.sortOrder), desc(products.createdAt))
     .limit(perPage);
 
+  // Get variant prices for products with variants
+  const variantProductIds = categoryProducts.filter(p => p.hasVariants).map(p => p.id);
+  let variantPriceMap = new Map<string, string | null>();
+  if (variantProductIds.length > 0) {
+    const variantPrices = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: sql<string>`MIN(${productVariants.price})`,
+      })
+      .from(productVariants)
+      .where(inArray(productVariants.productId, variantProductIds))
+      .groupBy(productVariants.productId);
+
+    variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
+  }
+
+  // Map products with variant prices
+  const productsWithPrices = categoryProducts.map(p => ({
+    ...p,
+    price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
+  }));
+
   // Get total count
   const totalProducts = await db
     .select({ id: productCategories.productId })
@@ -76,7 +99,7 @@ async function getCategoryWithProducts(storeId: string, categoryId: string, perP
   return {
     category,
     allCategories,
-    products: categoryProducts,
+    products: productsWithPrices,
     totalProducts: totalProducts.length,
   };
 }

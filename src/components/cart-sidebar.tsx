@@ -62,13 +62,13 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
       
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 left-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+        className={`fixed top-0 left-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col ${
           cartOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
         dir="rtl"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100">
+        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 shrink-0">
           <h2 className="font-display text-xl tracking-[0.1em] font-light">עגלת קניות</h2>
           <button 
             onClick={closeCart}
@@ -82,7 +82,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
         </div>
 
         {/* Cart Items */}
-        <div className="flex-1 overflow-y-auto px-8 py-6" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+        <div className="flex-1 overflow-y-auto px-8 py-6 min-h-0">
           {cart.length === 0 ? (
             <div className="text-center py-16">
               <svg 
@@ -175,7 +175,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                     </div>
                     
                     {/* Quantity Controls */}
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mt-3">
                       <div className="flex items-center border border-gray-200">
                         <button
                           onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
@@ -225,7 +225,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
 
         {/* Footer */}
         {cart.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 px-8 py-6 bg-white border-t border-gray-100">
+          <div className="shrink-0 px-8 py-6 bg-white border-t border-gray-100">
             {/* Free Shipping Progress Indicator */}
             {freeShippingThreshold && freeShippingThreshold > 0 && (
               <div className="mb-4">

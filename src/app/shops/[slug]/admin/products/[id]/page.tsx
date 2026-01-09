@@ -2,6 +2,7 @@ import { getStoreBySlug, getCategoriesByStore, getProductForEdit, getProductsFor
 import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
 import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
+import { getStoreMetafields } from '@/app/shops/[slug]/admin/metafields/actions';
 
 interface EditProductPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -17,12 +18,13 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     notFound();
   }
 
-  // Fetch product, categories, all products for upsell, and store addons in parallel for speed ⚡
-  const [product, categories, allProducts, storeAddons] = await Promise.all([
+  // Fetch product, categories, all products for upsell, addons and metafields in parallel for speed ⚡
+  const [product, categories, allProducts, storeAddons, storeMetafields] = await Promise.all([
     getProductForEdit(store.id, id),
     getCategoriesByStore(store.id),
     getProductsForUpsell(store.id),
     getStoreAddons(store.id),
+    getStoreMetafields(store.id),
   ]);
 
   if (!product) {
@@ -41,6 +43,19 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       isRequired: a.isRequired,
     }));
 
+  // Cast metadata and options values metadata to correct types
+  const productForForm = {
+    ...product,
+    metadata: product.metadata as Record<string, unknown> | undefined,
+    options: product.options?.map(opt => ({
+      ...opt,
+      values: opt.values.map(val => ({
+        ...val,
+        metadata: val.metadata as { color?: string; pattern?: string; imageUrl?: string; images?: string[] } | undefined,
+      })),
+    })),
+  };
+
   return (
     <ProductForm
       storeId={store.id}
@@ -49,7 +64,8 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       categories={categories}
       allProducts={allProducts}
       storeAddons={formattedAddons}
-      product={product}
+      storeMetafields={storeMetafields}
+      product={productForForm}
       mode="edit"
     />
   );

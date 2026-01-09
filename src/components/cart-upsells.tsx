@@ -116,7 +116,7 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
 
   return (
     <div className="mt-6 pt-4 border-t border-gray-100">
-      <h3 className="text-sm font-medium text-gray-700 mb-3">אולי יעניין אותך גם</h3>
+      <h3 className="text-sm font-medium text-gray-700 mb-3">לקוחות שקנו מוצר זה קנו גם:</h3>
       
       {/* Horizontal scroll container */}
       <div className="flex gap-3 overflow-x-auto pb-2 -mx-2 px-2 scrollbar-hide">
@@ -197,7 +197,7 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
               <button
                 onClick={() => handleAddToCart(product)}
                 disabled={isPending}
-                className="w-full mt-2 py-1.5 bg-black text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors disabled:opacity-50"
+                className="w-full mt-2 py-1.5 bg-black text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
               >
                 הוסף לסל
               </button>

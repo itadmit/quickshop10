@@ -1,6 +1,6 @@
 import { db } from './index';
 import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons } from './schema';
-import { eq, and, desc, asc, inArray } from 'drizzle-orm';
+import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 
@@ -102,7 +102,7 @@ export type ProductWithImage = Awaited<ReturnType<typeof getProductsByStore>>[nu
 
 // React cache for request deduplication
 export const getProductsByStore = cache(async (storeId: string, limit?: number) => {
-  const query = db
+  let query = db
     .select({
       id: products.id,
       name: products.name,
@@ -127,14 +127,33 @@ export const getProductsByStore = cache(async (storeId: string, limit?: number) 
     .where(and(eq(products.storeId, storeId), eq(products.isActive, true)))
     .orderBy(desc(products.isFeatured), desc(products.createdAt));
 
-  if (limit) {
-    return query.limit(limit);
+  const productsData = limit ? await query.limit(limit) : await query;
+
+  // Get variant prices for products with variants
+  const variantProductIds = productsData.filter(p => p.hasVariants).map(p => p.id);
+  if (variantProductIds.length > 0) {
+    const variantPrices = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: sql<string>`MIN(${productVariants.price})`,
+      })
+      .from(productVariants)
+      .where(inArray(productVariants.productId, variantProductIds))
+      .groupBy(productVariants.productId);
+
+    const variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
+
+    return productsData.map(p => ({
+      ...p,
+      price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
+    }));
   }
-  return query;
+
+  return productsData;
 });
 
 export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
-  return db
+  const productsData = await db
     .select({
       id: products.id,
       name: products.name,
@@ -148,6 +167,7 @@ export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
       allowBackorder: products.allowBackorder,
       isFeatured: products.isFeatured,
       categoryId: products.categoryId,
+      hasVariants: products.hasVariants,
       image: productImages.url,
     })
     .from(products)
@@ -162,6 +182,28 @@ export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
     ))
     .orderBy(desc(products.createdAt))
     .limit(limit);
+
+  // Get variant prices for products with variants
+  const variantProductIds = productsData.filter(p => p.hasVariants).map(p => p.id);
+  if (variantProductIds.length > 0) {
+    const variantPrices = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: sql<string>`MIN(${productVariants.price})`,
+      })
+      .from(productVariants)
+      .where(inArray(productVariants.productId, variantProductIds))
+      .groupBy(productVariants.productId);
+
+    const variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
+
+    return productsData.map(p => ({
+      ...p,
+      price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
+    }));
+  }
+
+  return productsData;
 });
 
 export const getProductsByCategory = cache(async (storeId: string, categoryId: string) => {
@@ -180,6 +222,7 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
       trackInventory: products.trackInventory,
       allowBackorder: products.allowBackorder,
       isFeatured: products.isFeatured,
+      hasVariants: products.hasVariants,
       createdAt: products.createdAt,
       image: productImages.url,
     })
@@ -198,11 +241,33 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
 
   // Remove duplicates (in case of multiple category assignments) and exclude createdAt from result
   const seen = new Set<string>();
-  return results.filter(p => {
+  const uniqueProducts = results.filter(p => {
     if (seen.has(p.id)) return false;
     seen.add(p.id);
     return true;
   }).map(({ createdAt, ...rest }) => rest);
+
+  // Get variant prices for products with variants
+  const variantProductIds = uniqueProducts.filter(p => p.hasVariants).map(p => p.id);
+  if (variantProductIds.length > 0) {
+    const variantPrices = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: sql<string>`MIN(${productVariants.price})`,
+      })
+      .from(productVariants)
+      .where(inArray(productVariants.productId, variantProductIds))
+      .groupBy(productVariants.productId);
+
+    const variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
+
+    return uniqueProducts.map(p => ({
+      ...p,
+      price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
+    }));
+  }
+
+  return uniqueProducts;
 });
 
 export async function getProductBySlug(storeId: string, slug: string) {
@@ -618,12 +683,36 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
     });
   }
 
-  // Combine products with their categories
-  return productsData.map(product => ({
-    ...product,
-    category: productCategoriesMap.get(product.id)?.[0] || null, // First category for backward compatibility
-    categories: productCategoriesMap.get(product.id) || [], // All categories
-  }));
+  // Get variant aggregates for products with variants
+  const variantAggregates = await db
+    .select({
+      productId: productVariants.productId,
+      minPrice: sql<string>`MIN(${productVariants.price})`,
+      maxPrice: sql<string>`MAX(${productVariants.price})`,
+      totalInventory: sql<number>`COALESCE(SUM(${productVariants.inventory}), 0)`,
+      variantCount: sql<number>`COUNT(*)`,
+    })
+    .from(productVariants)
+    .where(inArray(productVariants.productId, productIds))
+    .groupBy(productVariants.productId);
+
+  // Create a map of productId -> variant aggregate
+  const variantAggregateMap = new Map(variantAggregates.map(v => [v.productId, v]));
+
+  // Combine products with their categories and variant aggregates
+  return productsData.map(product => {
+    const variantData = product.hasVariants ? variantAggregateMap.get(product.id) : null;
+    return {
+      ...product,
+      category: productCategoriesMap.get(product.id)?.[0] || null, // First category for backward compatibility
+      categories: productCategoriesMap.get(product.id) || [], // All categories
+      // Variant aggregate data
+      variantMinPrice: variantData?.minPrice || null,
+      variantMaxPrice: variantData?.maxPrice || null,
+      variantTotalInventory: variantData?.totalInventory || null,
+      variantCount: variantData?.variantCount || null,
+    };
+  });
 });
 
 // Get full product details for editing

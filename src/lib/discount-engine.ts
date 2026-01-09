@@ -213,15 +213,22 @@ function calculateFixedAmountDiscount(
   discount: Discount,
   cartTotal: number
 ): DiscountResult | null {
-  // אם יש החרגות, נחשב מחדש את הסכום המתאים
+  // מציאת הפריטים המתאימים להנחה
+  const matchingItems = getMatchingItems(items, discount);
+  
+  if (matchingItems.length === 0) return null;
+  
+  // חישוב הסכום המתאים
   const matchingTotal = (discount.appliesTo === 'all' || discount.appliesTo === 'member') && !hasExclusions(discount)
     ? cartTotal
     : calculateMatchingTotal(items, discount);
   
   if (matchingTotal === 0) return null;
   
-  // לא יכול להיות יותר מהסכום המתאים
-  const amount = Math.min(discount.value, matchingTotal);
+  // 🔧 הנחה קבועה מוחלת על כל מוצר (לפי כמות)
+  // למשל: הנחה של 7₪ על כל מוצר = 7₪ × סה"כ כמות מוצרים
+  const totalQuantity = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+  const amount = Math.min(discount.value * totalQuantity, matchingTotal);
   
   return {
     discountId: discount.id,
@@ -230,7 +237,7 @@ function calculateFixedAmountDiscount(
     type: 'fixed_amount',
     amount,
     description: `₪${discount.value} הנחה`,
-    affectedItems: getMatchingItems(items, discount).map(i => i.id),
+    affectedItems: matchingItems.map(i => i.id),
   };
 }
 
