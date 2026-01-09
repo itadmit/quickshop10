@@ -73,22 +73,22 @@ interface Props {
 // ============================================
 
 const COMMON_COUNTRIES = [
-  { code: 'IL', name: 'ישראל', flag: '🇮🇱' },
-  { code: 'US', name: 'ארה"ב', flag: '🇺🇸' },
-  { code: 'GB', name: 'בריטניה', flag: '🇬🇧' },
-  { code: 'DE', name: 'גרמניה', flag: '🇩🇪' },
-  { code: 'FR', name: 'צרפת', flag: '🇫🇷' },
-  { code: 'CA', name: 'קנדה', flag: '🇨🇦' },
-  { code: 'AU', name: 'אוסטרליה', flag: '🇦🇺' },
-  { code: '*', name: 'כל העולם', flag: '🌍' },
+  { code: 'IL', name: 'ישראל' },
+  { code: 'US', name: 'ארה"ב' },
+  { code: 'GB', name: 'בריטניה' },
+  { code: 'DE', name: 'גרמניה' },
+  { code: 'FR', name: 'צרפת' },
+  { code: 'CA', name: 'קנדה' },
+  { code: 'AU', name: 'אוסטרליה' },
+  { code: '*', name: 'כל העולם' },
 ];
 
 const METHOD_TYPES = [
-  { value: 'flat_rate', label: 'מחיר קבוע', icon: '📦' },
-  { value: 'free', label: 'משלוח חינם', icon: '🎁' },
-  { value: 'weight_based', label: 'לפי משקל', icon: '⚖️' },
-  { value: 'price_based', label: 'לפי סכום הזמנה', icon: '💰' },
-  { value: 'local_pickup', label: 'איסוף עצמי', icon: '📍' },
+  { value: 'flat_rate', label: 'מחיר קבוע' },
+  { value: 'free', label: 'משלוח חינם' },
+  { value: 'weight_based', label: 'לפי משקל' },
+  { value: 'price_based', label: 'לפי סכום הזמנה' },
+  { value: 'local_pickup', label: 'איסוף עצמי' },
 ] as const;
 
 // ============================================
@@ -321,7 +321,7 @@ export function ShippingZonesManager({
                           : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
                       }`}
                     >
-                      {country.flag} {country.name}
+                      {country.name}
                     </button>
                   ))}
                 </div>
@@ -352,10 +352,11 @@ export function ShippingZonesManager({
               {/* Zone Header */}
               <div className="bg-gray-50 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-xl">
-                    {zone.countries.includes('*') ? '🌍' : 
-                     zone.countries.includes('IL') ? '🇮🇱' : '🌐'}
-                  </span>
+                  <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
                   <div>
                     <h3 className="font-medium">{zone.name}</h3>
                     <p className="text-xs text-gray-500">
@@ -411,7 +412,7 @@ export function ShippingZonesManager({
                       >
                         {METHOD_TYPES.map(type => (
                           <option key={type.value} value={type.value}>
-                            {type.icon} {type.label}
+                            {type.label}
                           </option>
                         ))}
                       </select>
@@ -484,9 +485,22 @@ export function ShippingZonesManager({
                       className={`p-4 flex items-center justify-between ${!method.isActive ? 'opacity-50' : ''}`}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">
-                          {METHOD_TYPES.find(t => t.value === method.type)?.icon || '📦'}
-                        </span>
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                          {method.type === 'free' ? (
+                            <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                            </svg>
+                          ) : method.type === 'local_pickup' ? (
+                            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                          )}
+                        </div>
                         <div>
                           <div className="font-medium">{method.name}</div>
                           <div className="text-sm text-gray-500 flex items-center gap-2">
@@ -516,7 +530,7 @@ export function ShippingZonesManager({
                             onChange={e => handleToggleMethod(zone.id, method.id, e.target.checked)}
                             className="sr-only peer"
                           />
-                          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                          <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
                         </label>
                         <button
                           onClick={() => handleDeleteMethod(zone.id, method.id)}
@@ -628,7 +642,12 @@ export function ShippingZonesManager({
         {/* Pickup Locations List */}
         {pickupLocations.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
-            <div className="text-4xl mb-2">📍</div>
+            <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </div>
             <p>אין נקודות איסוף עצמי.</p>
             <p className="text-sm">הוסף נקודות שבהן לקוחות יכולים לאסוף את ההזמנה.</p>
           </div>
@@ -640,7 +659,11 @@ export function ShippingZonesManager({
                 className={`p-4 border rounded-lg flex items-center justify-between ${!location.isActive ? 'opacity-50' : ''}`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-2xl">📍</span>
+                  <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center shrink-0">
+                    <svg className="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                   <div>
                     <div className="font-medium">{location.name}</div>
                     <div className="text-sm text-gray-500">
@@ -649,7 +672,7 @@ export function ShippingZonesManager({
                     </div>
                     {location.hours && (
                       <div className="text-xs text-gray-400 mt-1">
-                        🕐 {location.hours}
+                        {location.hours}
                       </div>
                     )}
                   </div>
@@ -662,7 +685,7 @@ export function ShippingZonesManager({
                       onChange={e => handleTogglePickup(location.id, e.target.checked)}
                       className="sr-only peer"
                     />
-                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
+                    <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
                   </label>
                   <button
                     onClick={() => handleDeletePickup(location.id)}
@@ -681,7 +704,7 @@ export function ShippingZonesManager({
 
       {/* Tips */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h3 className="text-sm font-medium text-gray-900 mb-2">💡 טיפים</h3>
+        <h3 className="text-sm font-medium text-gray-900 mb-2">טיפים</h3>
         <ul className="text-sm text-gray-600 space-y-1">
           <li>• צור אזור משלוח לכל קבוצת מדינות עם תעריפים שונים</li>
           <li>• משלוח חינם מעל סכום מסוים מגדיל את סכום ההזמנה הממוצע</li>

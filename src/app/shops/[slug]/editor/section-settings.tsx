@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { usePathname } from 'next/navigation';
 import { MediaPickerModal, type MediaItem } from '@/components/admin/media-picker-modal';
 
 // ============================================
@@ -531,7 +532,7 @@ function ContentSettings({
         <CategoriesContentSettings section={section} onUpdate={onUpdate} categories={categories} />
       )}
       {section.type === 'products' && (
-        <ProductsContentSettings section={section} onUpdate={onUpdate} />
+        <ProductsContentSettings section={section} onUpdate={onUpdate} categories={categories} />
       )}
       {section.type === 'newsletter' && (
         <NewsletterContentSettings section={section} onUpdate={onUpdate} />
@@ -917,29 +918,218 @@ function CategoriesContentSettings({
   );
 }
 
-function ProductsContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+function ProductsContentSettings({ 
+  section, 
+  onUpdate,
+  categories = [],
+}: { 
+  section: Section; 
+  onUpdate: (updates: Partial<Section>) => void;
+  categories?: Category[];
+}) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; imageUrl: string | null }>>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pathname = usePathname();
+  const storeSlug = pathname?.split('/')[2] || '';
+  
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
+  };
+  
+  const selectedType = (section.content.type as string) || 'all';
+  const selectedCategoryId = (section.content.categoryId as string) || '';
+  const selectedProductIds = (section.content.productIds as string[]) || [];
+  const selectedProducts = (section.content.selectedProducts as Array<{ id: string; name: string; imageUrl: string | null }>) || [];
+  
+  // Search products dynamically
+  const handleSearch = useCallback(async (term: string) => {
+    if (!term.trim() || term.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/shops/${storeSlug}/products/search?q=${encodeURIComponent(term)}&limit=10`);
+      if (response.ok) {
+        const data = await response.json();
+        // Filter out already selected products
+        setSearchResults(data.products.filter((p: { id: string }) => !selectedProductIds.includes(p.id)));
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [storeSlug, selectedProductIds]);
+  
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    searchTimeoutRef.current = setTimeout(() => {
+      handleSearch(searchTerm);
+    }, 300);
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, [searchTerm, handleSearch]);
+  
+  // Add product to selection
+  const addProduct = (product: { id: string; name: string; imageUrl: string | null }) => {
+    const newProductIds = [...selectedProductIds, product.id];
+    const newSelectedProducts = [...selectedProducts, product];
+    updateContent('productIds', newProductIds);
+    updateContent('selectedProducts', newSelectedProducts);
+    setSearchTerm('');
+    setSearchResults([]);
+    setShowResults(false);
+  };
+  
+  // Remove product from selection
+  const removeProduct = (productId: string) => {
+    const newProductIds = selectedProductIds.filter(id => id !== productId);
+    const newSelectedProducts = selectedProducts.filter(p => p.id !== productId);
+    updateContent('productIds', newProductIds);
+    updateContent('selectedProducts', newSelectedProducts);
   };
 
   return (
     <SettingsGroup title="מוצרים">
       <SelectField
         label="הצג מוצרים"
-        value={(section.content.type as string) || 'all'}
+        value={selectedType}
         options={[
           { value: 'all', label: 'כל המוצרים' },
-          { value: 'featured', label: 'מוצרים מובחרים' },
+          { value: 'featured', label: 'מוצרים מומלצים' },
+          { value: 'category', label: 'לפי קטגוריה' },
+          { value: 'specific', label: 'מוצרים ספציפיים' },
         ]}
-        onChange={(v) => updateContent('type', v)}
+        onChange={(v) => {
+          updateContent('type', v);
+          // Clear specific selections when type changes
+          if (v !== 'category') updateContent('categoryId', '');
+          if (v !== 'specific') {
+            updateContent('productIds', []);
+            updateContent('selectedProducts', []);
+          }
+        }}
       />
-      <SliderField
-        label="כמות להצגה"
-        value={(section.content.limit as number) || 8}
-        min={1}
-        max={24}
-        onChange={(v) => updateContent('limit', v)}
-      />
+      
+      {/* Category selector */}
+      {selectedType === 'category' && (
+        <SelectField
+          label="בחר קטגוריה"
+          value={selectedCategoryId}
+          options={[
+            { value: '', label: 'בחר קטגוריה...' },
+            ...categories.map(c => ({ value: c.id, label: c.name }))
+          ]}
+          onChange={(v) => updateContent('categoryId', v)}
+        />
+      )}
+      
+      {/* Product picker */}
+      {selectedType === 'specific' && (
+        <div className="space-y-3">
+          <label className="block text-xs font-medium text-gray-600">
+            בחר מוצרים
+          </label>
+          
+          {/* Search input */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setShowResults(true)}
+              placeholder="חפש מוצרים..."
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 focus:border-black"
+            />
+            {isSearching && (
+              <div className="absolute left-3 top-1/2 -translate-y-1/2">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+              </div>
+            )}
+            
+            {/* Search results dropdown */}
+            {showResults && searchResults.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+                {searchResults.map(product => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => addProduct(product)}
+                    className="w-full px-3 py-2 text-right text-sm hover:bg-gray-50 flex items-center gap-2"
+                  >
+                    {product.imageUrl && (
+                      <img 
+                        src={product.imageUrl} 
+                        alt="" 
+                        className="w-8 h-8 object-cover rounded"
+                      />
+                    )}
+                    <span>{product.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          
+          {/* Selected products */}
+          {selectedProducts.length > 0 && (
+            <div className="space-y-2">
+              {selectedProducts.map(product => (
+                <div 
+                  key={product.id}
+                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                >
+                  {product.imageUrl && (
+                    <img 
+                      src={product.imageUrl} 
+                      alt="" 
+                      className="w-10 h-10 object-cover rounded"
+                    />
+                  )}
+                  <span className="flex-1 text-sm truncate">{product.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeProduct(product.id)}
+                    className="p-1 text-gray-400 hover:text-red-500"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {selectedProducts.length === 0 && (
+            <p className="text-xs text-gray-400 text-center py-4">
+              חפש והוסף מוצרים לתצוגה
+            </p>
+          )}
+        </div>
+      )}
+      
+      {/* Limit slider - not for specific products */}
+      {selectedType !== 'specific' && (
+        <SliderField
+          label="כמות להצגה"
+          value={(section.content.limit as number) || 8}
+          min={1}
+          max={24}
+          onChange={(v) => updateContent('limit', v)}
+        />
+      )}
     </SettingsGroup>
   );
 }

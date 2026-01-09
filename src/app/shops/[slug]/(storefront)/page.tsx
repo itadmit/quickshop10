@@ -1,4 +1,4 @@
-import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections } from '@/lib/db/queries';
+import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds } from '@/lib/db/queries';
 import { 
   HeroSection, 
   CategoriesSection, 
@@ -97,6 +97,48 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
     );
   }
 
+  // Pre-fetch products for sections that need special queries (category/specific)
+  // This is done in parallel for speed! ⚡
+  type BasicProduct = {
+    id: string;
+    name: string;
+    slug: string;
+    shortDescription: string | null;
+    price: string | null;
+    comparePrice: string | null;
+    inventory: number | null;
+    trackInventory: boolean;
+    allowBackorder: boolean;
+    isFeatured: boolean;
+    hasVariants: boolean;
+    image: string | null;
+  };
+  
+  const productsSectionsFetches: Promise<{ sectionId: string; products: BasicProduct[] }>[] = [];
+  
+  for (const section of sections) {
+    if (section.type === 'products') {
+      const content = section.content as Record<string, unknown>;
+      const productType = content.type as string | undefined;
+      
+      if (productType === 'category' && content.categoryId) {
+        productsSectionsFetches.push(
+          getProductsByCategory(store.id, content.categoryId as string)
+            .then(products => ({ sectionId: section.id, products: products as BasicProduct[] }))
+        );
+      } else if (productType === 'specific' && content.productIds && (content.productIds as string[]).length > 0) {
+        productsSectionsFetches.push(
+          getProductsByIds(store.id, content.productIds as string[])
+            .then(products => ({ sectionId: section.id, products: products as BasicProduct[] }))
+        );
+      }
+    }
+  }
+  
+  // Wait for all product fetches in parallel
+  const productsFetchResults = await Promise.all(productsSectionsFetches);
+  const sectionProductsMap = new Map<string, BasicProduct[]>(productsFetchResults.map(r => [r.sectionId, r.products]));
+
   // Render sections dynamically from database
   // Each section component has data-section-id built-in for editor interaction
   const renderSection = (section: typeof sections[0], index: number) => {
@@ -142,14 +184,35 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         break;
 
       case 'products':
-        const productContent = content as { type?: string; limit?: number };
-        const allProductsToShow = productContent.type === 'featured' ? featuredProducts : allProducts;
+        const productContent = content as { 
+          type?: string; 
+          limit?: number; 
+          categoryId?: string;
+          productIds?: string[];
+        };
         const productLimit = productContent.limit || 8;
+        
+        // Determine which products to show based on type
+        // Uses pre-fetched data from sectionProductsMap for category/specific types
+        let allProductsToShow: BasicProduct[] = [];
+        
+        if (productContent.type === 'featured') {
+          allProductsToShow = featuredProducts as BasicProduct[];
+        } else if (productContent.type === 'category' || productContent.type === 'specific') {
+          // Use pre-fetched products from the map
+          allProductsToShow = sectionProductsMap.get(section.id) || [];
+        } else {
+          // Default: all products
+          allProductsToShow = allProducts as BasicProduct[];
+        }
+        
         // In preview mode: show all products (limiting done via CSS for live preview)
-        // In production: slice to limit
+        // In production: slice to limit (except for specific products which should show all selected)
         const productsToShow = isPreviewMode 
           ? allProductsToShow 
-          : allProductsToShow.slice(0, productLimit);
+          : productContent.type === 'specific' 
+            ? allProductsToShow 
+            : allProductsToShow.slice(0, productLimit);
         
         sectionElement = (
           <ProductsSection
@@ -160,7 +223,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             basePath={basePath}
             showDecimalPrices={showDecimalPrices}
             sectionId={section.id}
-            displayLimit={isPreviewMode ? productLimit : undefined}
+            displayLimit={isPreviewMode && productContent.type !== 'specific' ? productLimit : undefined}
             discountsMap={discountsMap}
           />
         );

@@ -270,6 +270,67 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
   return uniqueProducts;
 });
 
+// Get products by specific IDs (for editor "specific products" feature)
+export const getProductsByIds = cache(async (storeId: string, productIds: string[]) => {
+  if (!productIds || productIds.length === 0) {
+    return [];
+  }
+
+  const results = await db
+    .select({
+      id: products.id,
+      name: products.name,
+      slug: products.slug,
+      shortDescription: products.shortDescription,
+      price: products.price,
+      comparePrice: products.comparePrice,
+      inventory: products.inventory,
+      trackInventory: products.trackInventory,
+      allowBackorder: products.allowBackorder,
+      isFeatured: products.isFeatured,
+      hasVariants: products.hasVariants,
+      image: productImages.url,
+    })
+    .from(products)
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
+    .where(and(
+      eq(products.storeId, storeId),
+      inArray(products.id, productIds),
+      eq(products.isActive, true)
+    ));
+
+  // Maintain the order of productIds
+  const productMap = new Map(results.map(p => [p.id, p]));
+  const orderedProducts = productIds
+    .map(id => productMap.get(id))
+    .filter((p): p is NonNullable<typeof p> => p !== undefined);
+
+  // Get variant prices for products with variants
+  const variantProductIds = orderedProducts.filter(p => p.hasVariants).map(p => p.id);
+  if (variantProductIds.length > 0) {
+    const variantPrices = await db
+      .select({
+        productId: productVariants.productId,
+        minPrice: sql<string>`MIN(${productVariants.price})`,
+      })
+      .from(productVariants)
+      .where(inArray(productVariants.productId, variantProductIds))
+      .groupBy(productVariants.productId);
+
+    const variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
+
+    return orderedProducts.map(p => ({
+      ...p,
+      price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
+    }));
+  }
+
+  return orderedProducts;
+});
+
 export async function getProductBySlug(storeId: string, slug: string) {
   const [product] = await db
     .select({
