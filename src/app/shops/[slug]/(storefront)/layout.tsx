@@ -142,6 +142,12 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   // Build tracking configuration from store settings
   const storeSettings = (store.settings as Record<string, unknown>) || {};
+  
+  // Extract shipping settings for free shipping threshold
+  const shippingSettings = (storeSettings.shipping as Record<string, unknown>) || {};
+  const freeShippingThreshold = shippingSettings.enableFreeShipping 
+    ? (shippingSettings.freeShippingThreshold as number) || undefined 
+    : undefined;
   const trackingConfig: TrackingConfig = {
     storeId: store.id,
     storeSlug: slug,
@@ -280,7 +286,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           {showHeader && (
             <>
               {HeaderContent}
-              <CartSidebar basePath={basePath} storeSlug={slug} />
+              <CartSidebar basePath={basePath} storeSlug={slug} freeShippingThreshold={freeShippingThreshold} />
               {/* Stories Bar - Renders only if plugin is active and there are stories */}
               {storiesEnabled && storiesSettings && stories.length > 0 && (
                 <StoriesBar

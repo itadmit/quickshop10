@@ -147,7 +147,35 @@ export function CheckoutForm({
   // 🏙️ City/Street autocomplete hooks
   const citySearch = useCitySearch(storeSlug || '');
   const [selectedCity, setSelectedCity] = useState('');
+  const [isCityValid, setIsCityValid] = useState(false); // האם העיר נבחרה מהרשימה
+  const [isStreetValid, setIsStreetValid] = useState(false); // האם הרחוב נבחר מהרשימה
   const streetSearch = useStreetSearch(storeSlug || '', selectedCity);
+  
+  // 🚚 Shipping options state
+  interface ShippingOption {
+    id: string;
+    name: string;
+    description?: string | null;
+    type: string;
+    price: number;
+    estimatedDays?: string | null;
+    isFree: boolean;
+    freeThreshold?: number | null;
+    isPickup?: boolean;
+  }
+  interface PickupLocationOption {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    phone?: string | null;
+    hours?: string | null;
+  }
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [pickupLocationsOptions, setPickupLocationsOptions] = useState<PickupLocationOption[]>([]);
+  const [selectedShippingMethod, setSelectedShippingMethod] = useState<string>('');
+  const [selectedPickupLocation, setSelectedPickupLocation] = useState<string>('');
+  const [loadingShippingOptions, setLoadingShippingOptions] = useState(false);
   
   // Recover abandoned cart from URL (e.g., ?recover=TOKEN)
   useEffect(() => {
@@ -377,8 +405,60 @@ export function CheckoutForm({
   useEffect(() => {
     if (formData.city && formData.city !== selectedCity) {
       setSelectedCity(formData.city);
+      setIsCityValid(true); // כתובת שמורה = עיר תקינה
     }
-  }, [formData.city, selectedCity]);
+    if (formData.street && formData.city) {
+      setIsStreetValid(true); // כתובת שמורה = רחוב תקין
+    }
+  }, [formData.city, formData.street, selectedCity]);
+
+  // 🚚 Fetch shipping options when entering shipping step
+  useEffect(() => {
+    if (step !== 'shipping' || !storeSlug) return;
+    
+    const fetchShippingOptions = async () => {
+      setLoadingShippingOptions(true);
+      try {
+        const response = await fetch(`/api/storefront/${storeSlug}/shipping`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            country: 'IL', // Default to Israel
+            cartTotal: cartOriginalTotal,
+            cartWeight: 0, // TODO: Calculate from cart items if products have weight
+          }),
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setShippingOptions(data.methods || []);
+          setPickupLocationsOptions(data.pickupLocations || []);
+          
+          // Auto-select first method if none selected
+          if (data.methods?.length > 0 && !selectedShippingMethod) {
+            // Prefer free shipping if available
+            const freeMethod = data.methods.find((m: ShippingOption) => m.isFree && !m.isPickup);
+            setSelectedShippingMethod(freeMethod?.id || data.methods[0].id);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching shipping options:', error);
+        // Fallback to legacy settings
+        setShippingOptions([{
+          id: 'default',
+          name: shippingSettings.rates[0]?.name || 'משלוח',
+          type: 'flat_rate',
+          price: shippingSettings.rates[0]?.price || 29,
+          estimatedDays: shippingSettings.rates[0]?.estimatedDays || '3-5 ימי עסקים',
+          isFree: false,
+        }]);
+      } finally {
+        setLoadingShippingOptions(false);
+      }
+    };
+    
+    fetchShippingOptions();
+  }, [step, storeSlug, cartOriginalTotal, shippingSettings]);
 
   // Fetch auto discounts on mount and when email changes
   useEffect(() => {
@@ -660,10 +740,15 @@ export function CheckoutForm({
   // Check for free shipping
   const hasFreeShipping = discountCalc.freeShipping || appliedCoupons.some(c => c.type === 'free_shipping');
 
-  // Calculate shipping based on store settings (use original total for threshold)
-  const baseShippingRate = shippingSettings.rates[0]?.price || 29;
+  // Calculate shipping based on selected method OR legacy settings
+  const selectedMethod = shippingOptions.find(m => m.id === selectedShippingMethod);
+  const baseShippingRate = selectedMethod?.price ?? (shippingSettings.rates[0]?.price || 29);
+  const selectedMethodName = selectedMethod?.name || shippingSettings.rates[0]?.name || 'משלוח';
   const freeShippingThreshold = shippingSettings.enableFreeShipping ? shippingSettings.freeShippingThreshold : Infinity;
-  const shipping = cartOriginalTotal >= freeShippingThreshold ? 0 : baseShippingRate;
+  // If using new shipping system, the price is already calculated. If legacy, check threshold
+  const shipping = selectedMethod 
+    ? selectedMethod.price 
+    : (cartOriginalTotal >= freeShippingThreshold ? 0 : baseShippingRate);
   const shippingAfterDiscount = hasFreeShipping ? 0 : shipping;
   const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount + giftCardAmount;
   // ⚠️ CRITICAL: Use cartOriginalTotal - discounts are calculated from original price!
@@ -701,7 +786,7 @@ export function CheckoutForm({
       // Track AddShippingInfo when moving from shipping to payment
       tracker.addShippingInfo({
         ...cartData,
-        shippingMethod: shippingSettings.rates[0]?.name || 'משלוח',
+        shippingMethod: selectedMethodName,
       });
       setStep('payment');
       // Scroll to top so payment section is visible
@@ -741,11 +826,12 @@ export function CheckoutForm({
                 imageUrl: item.image,
               })),
               shipping: shippingAfterDiscount > 0 ? {
-                method: shippingSettings.rates[0]?.name || 'משלוח',
+                method: selectedMethodName,
                 cost: shippingAfterDiscount,
                 address: buildFullAddress(),
                 city: formData.city,
                 postalCode: formData.zipCode,
+                pickupLocationId: selectedMethod?.isPickup ? selectedPickupLocation : undefined,
               } : undefined,
               discountCode: appliedCoupons.length > 0 ? appliedCoupons[0].code : undefined,
               discountAmount: totalDiscount,
@@ -765,8 +851,9 @@ export function CheckoutForm({
                   addonTotal: item.addonTotal,
                 })),
                 shipping: {
-                  method: shippingSettings.rates[0]?.name || 'משלוח',
+                  method: selectedMethodName,
                   cost: shippingAfterDiscount,
+                  pickupLocationId: selectedMethod?.isPickup ? selectedPickupLocation : undefined,
                 },
                 shippingAddress: {
                   firstName: formData.firstName,
@@ -1164,6 +1251,8 @@ export function CheckoutForm({
                       <input
                         type="email"
                         required
+                        autoComplete="email"
+                        name="email"
                         value={formData.email}
                         onChange={e => {
                           const email = e.target.value;
@@ -1191,6 +1280,8 @@ export function CheckoutForm({
                         <input
                           type="text"
                           required
+                          autoComplete="given-name"
+                          name="firstName"
                           value={formData.firstName}
                           onChange={e => setFormData({...formData, firstName: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1203,6 +1294,8 @@ export function CheckoutForm({
                         <input
                           type="text"
                           required
+                          autoComplete="family-name"
+                          name="lastName"
                           value={formData.lastName}
                           onChange={e => setFormData({...formData, lastName: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1217,6 +1310,8 @@ export function CheckoutForm({
                       <input
                         type="tel"
                         required={checkoutSettings.requirePhone}
+                        autoComplete="tel"
+                        name="phone"
                         value={formData.phone}
                         onChange={e => setFormData({...formData, phone: e.target.value})}
                         className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1346,6 +1441,7 @@ export function CheckoutForm({
                       </label>
                       <Autocomplete
                         value={formData.city}
+                        name="city"
                         onChange={(value) => {
                           setFormData({...formData, city: value});
                           citySearch.setQuery(value);
@@ -1353,14 +1449,34 @@ export function CheckoutForm({
                         onSelect={(option) => {
                           setFormData({...formData, city: option.value, street: ''});
                           setSelectedCity(option.value);
+                          setIsCityValid(true);
+                          setIsStreetValid(false); // Reset street validation when city changes
+                          streetSearch.setQuery(''); // Reset street search
                         }}
+                        onValidationChange={(isValid) => setIsCityValid(isValid)}
                         options={citySearch.cities.map((city) => ({
                           value: city.cityName,
                           label: city.cityName,
                         }))}
+                        defaultOptions={[
+                          { value: 'תל אביב יפו', label: 'תל אביב יפו' },
+                          { value: 'ירושלים', label: 'ירושלים' },
+                          { value: 'חיפה', label: 'חיפה' },
+                          { value: 'ראשון לציון', label: 'ראשון לציון' },
+                          { value: 'פתח תקווה', label: 'פתח תקווה' },
+                          { value: 'אשדוד', label: 'אשדוד' },
+                          { value: 'נתניה', label: 'נתניה' },
+                          { value: 'באר שבע', label: 'באר שבע' },
+                          { value: 'בני ברק', label: 'בני ברק' },
+                          { value: 'רמת גן', label: 'רמת גן' },
+                          { value: 'הרצליה', label: 'הרצליה' },
+                          { value: 'כפר סבא', label: 'כפר סבא' },
+                        ]}
                         loading={citySearch.loading}
-                        placeholder="התחל להקליד עיר..."
+                        placeholder="לחץ לבחירת עיר..."
                         inputClassName="border-gray-200 focus:border-black"
+                        selectOnly
+                        errorMessage="יש לבחור עיר מהרשימה"
                         required
                       />
                     </div>
@@ -1373,13 +1489,16 @@ export function CheckoutForm({
                         </label>
                         <Autocomplete
                           value={formData.street}
+                          name="street"
                           onChange={(value) => {
                             setFormData({...formData, street: value});
                             streetSearch.setQuery(value);
                           }}
                           onSelect={(option) => {
                             setFormData({...formData, street: option.value});
+                            setIsStreetValid(true);
                           }}
+                          onValidationChange={(isValid) => setIsStreetValid(isValid)}
                           options={streetSearch.streets.map((street) => ({
                             value: street.streetName,
                             label: street.streetName,
@@ -1388,6 +1507,9 @@ export function CheckoutForm({
                           placeholder={selectedCity ? "התחל להקליד רחוב..." : "בחר עיר קודם"}
                           inputClassName="border-gray-200 focus:border-black"
                           disabled={!selectedCity}
+                          disabledMessage="יש לבחור עיר קודם"
+                          selectOnly
+                          errorMessage="יש לבחור רחוב מהרשימה"
                           required
                         />
                       </div>
@@ -1398,6 +1520,8 @@ export function CheckoutForm({
                         <input
                           type="text"
                           required
+                          autoComplete="address-line2"
+                          name="houseNumber"
                           value={formData.houseNumber}
                           onChange={e => setFormData({...formData, houseNumber: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1414,6 +1538,8 @@ export function CheckoutForm({
                         </label>
                         <input
                           type="text"
+                          autoComplete="address-line3"
+                          name="apartment"
                           value={formData.apartment}
                           onChange={e => setFormData({...formData, apartment: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1426,6 +1552,8 @@ export function CheckoutForm({
                         </label>
                         <input
                           type="text"
+                          autoComplete="off"
+                          name="floor"
                           value={formData.floor}
                           onChange={e => setFormData({...formData, floor: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1442,6 +1570,8 @@ export function CheckoutForm({
                         </label>
                         <input
                           type="text"
+                          autoComplete="postal-code"
+                          name="zipCode"
                           value={formData.zipCode}
                           onChange={e => setFormData({...formData, zipCode: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
@@ -1465,6 +1595,120 @@ export function CheckoutForm({
                         />
                       </div>
                     )}
+                    
+                    {/* 🚚 Shipping Method Selection */}
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <h3 className="font-display text-lg mb-4">שיטת משלוח</h3>
+                      
+                      {loadingShippingOptions ? (
+                        <div className="flex items-center justify-center py-8">
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
+                          <span className="mr-3 text-gray-500">טוען אפשרויות משלוח...</span>
+                        </div>
+                      ) : shippingOptions.length === 0 ? (
+                        <div className="text-center py-4 text-gray-500">
+                          אין אפשרויות משלוח זמינות
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {shippingOptions.map((option) => (
+                            <label
+                              key={option.id}
+                              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-all ${
+                                selectedShippingMethod === option.id
+                                  ? 'border-black bg-gray-50'
+                                  : 'border-gray-200 hover:border-gray-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="radio"
+                                  name="shippingMethod"
+                                  value={option.id}
+                                  checked={selectedShippingMethod === option.id}
+                                  onChange={() => {
+                                    setSelectedShippingMethod(option.id);
+                                    if (!option.isPickup) {
+                                      setSelectedPickupLocation('');
+                                    }
+                                  }}
+                                  className="w-4 h-4 text-black border-gray-300 focus:ring-black"
+                                />
+                                <div>
+                                  <div className="font-medium flex items-center gap-2">
+                                    {option.isPickup ? '📍' : '📦'} {option.name}
+                                    {option.isFree && !option.isPickup && (
+                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">חינם</span>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {option.estimatedDays}
+                                    {option.freeThreshold && (
+                                      <span className="mr-2 text-xs text-green-600">
+                                        (מעל ₪{option.freeThreshold})
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="font-medium">
+                                {option.isFree || option.price === 0 ? (
+                                  <span className="text-green-600">חינם</span>
+                                ) : (
+                                  <span>₪{option.price.toFixed(2)}</span>
+                                )}
+                              </div>
+                            </label>
+                          ))}
+                          
+                          {/* Pickup Location Selection */}
+                          {selectedMethod?.isPickup && pickupLocationsOptions.length > 0 && (
+                            <div className="mt-4 mr-7 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                              <label className="block text-sm font-medium text-gray-700 mb-3">
+                                בחר נקודת איסוף:
+                              </label>
+                              <div className="space-y-2">
+                                {pickupLocationsOptions.map((location) => (
+                                  <label
+                                    key={location.id}
+                                    className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-all ${
+                                      selectedPickupLocation === location.id
+                                        ? 'border-black bg-white'
+                                        : 'border-gray-200 hover:border-gray-300'
+                                    }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="pickupLocation"
+                                      value={location.id}
+                                      checked={selectedPickupLocation === location.id}
+                                      onChange={() => setSelectedPickupLocation(location.id)}
+                                      className="w-4 h-4 mt-0.5 text-black border-gray-300 focus:ring-black"
+                                    />
+                                    <div>
+                                      <div className="font-medium">{location.name}</div>
+                                      <div className="text-sm text-gray-500">
+                                        {location.address}, {location.city}
+                                      </div>
+                                      {location.hours && (
+                                        <div className="text-xs text-gray-400 mt-1">
+                                          🕐 {location.hours}
+                                        </div>
+                                      )}
+                                      {location.phone && (
+                                        <div className="text-xs text-gray-400">
+                                          📞 {location.phone}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </>
               )}

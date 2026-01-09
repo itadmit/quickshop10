@@ -1322,6 +1322,101 @@ export const taxRates = pgTable('tax_rates', {
   index('idx_tax_rates_country').on(table.storeId, table.country),
 ]);
 
+// ============ SHIPPING ZONES & METHODS ============
+
+// Shipping Method Type Enum
+export const shippingMethodTypeEnum = pgEnum('shipping_method_type', [
+  'flat_rate',     // מחיר קבוע
+  'free',          // חינם (עם/בלי תנאים)
+  'weight_based',  // לפי משקל
+  'price_based',   // לפי סכום הזמנה
+  'local_pickup',  // איסוף עצמי
+]);
+
+// Shipping Zones - אזורי משלוח (לפי מדינות)
+export const shippingZones = pgTable('shipping_zones', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(), // "ישראל", "אירופה", "עולמי"
+  countries: jsonb('countries').default([]).notNull().$type<string[]>(), // ["IL"], ["DE", "FR"], ["*"]
+  isDefault: boolean('is_default').default(false).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_shipping_zones_store').on(table.storeId),
+]);
+
+// Shipping Methods - שיטות משלוח לכל אזור
+export const shippingMethods = pgTable('shipping_methods', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  zoneId: uuid('zone_id').references(() => shippingZones.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(), // "משלוח רגיל", "מהיר", "איסוף"
+  description: text('description'), // תיאור נוסף
+  type: shippingMethodTypeEnum('type').notNull(),
+  price: decimal('price', { precision: 10, scale: 2 }).default('0').notNull(), // מחיר בסיס
+  
+  // Conditions - תנאים (JSONB)
+  conditions: jsonb('conditions').default({}).$type<{
+    minOrderAmount?: number;  // מינימום הזמנה (משלוח חינם מעל X)
+    maxOrderAmount?: number;  // מקסימום הזמנה
+    minWeight?: number;       // משקל מינימלי (kg)
+    maxWeight?: number;       // משקל מקסימלי (kg)
+    weightRate?: number;      // מחיר לכל ק"ג נוסף
+    baseWeight?: number;      // משקל בסיס כולל במחיר (ק"ג)
+  }>(),
+  
+  estimatedDays: varchar('estimated_days', { length: 100 }), // "3-5 ימי עסקים"
+  isActive: boolean('is_active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_shipping_methods_zone').on(table.zoneId),
+]);
+
+// Pickup Locations - נקודות איסוף עצמי
+export const pickupLocations = pgTable('pickup_locations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(), // "סניף תל אביב"
+  address: text('address').notNull(), // "דיזנגוף 50"
+  city: varchar('city', { length: 100 }).notNull(),
+  phone: varchar('phone', { length: 50 }),
+  hours: varchar('hours', { length: 255 }), // "א'-ה' 9:00-18:00"
+  instructions: text('instructions'), // הוראות הגעה
+  isActive: boolean('is_active').default(true).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_pickup_locations_store').on(table.storeId),
+]);
+
+// Relations
+export const shippingZonesRelations = relations(shippingZones, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [shippingZones.storeId],
+    references: [stores.id],
+  }),
+  methods: many(shippingMethods),
+}));
+
+export const shippingMethodsRelations = relations(shippingMethods, ({ one }) => ({
+  zone: one(shippingZones, {
+    fields: [shippingMethods.zoneId],
+    references: [shippingZones.id],
+  }),
+}));
+
+export const pickupLocationsRelations = relations(pickupLocations, ({ one }) => ({
+  store: one(stores, {
+    fields: [pickupLocations.storeId],
+    references: [stores.id],
+  }),
+}));
+
 // ============ REFUNDS ============
 
 export const refunds = pgTable('refunds', {
@@ -3285,6 +3380,14 @@ export type DraftOrder = typeof draftOrders.$inferSelect;
 export type NewDraftOrder = typeof draftOrders.$inferInsert;
 export type TaxRate = typeof taxRates.$inferSelect;
 export type NewTaxRate = typeof taxRates.$inferInsert;
+
+// Shipping types
+export type ShippingZone = typeof shippingZones.$inferSelect;
+export type NewShippingZone = typeof shippingZones.$inferInsert;
+export type ShippingMethod = typeof shippingMethods.$inferSelect;
+export type NewShippingMethod = typeof shippingMethods.$inferInsert;
+export type PickupLocation = typeof pickupLocations.$inferSelect;
+export type NewPickupLocation = typeof pickupLocations.$inferInsert;
 
 // Influencers types
 export type Influencer = typeof influencers.$inferSelect;

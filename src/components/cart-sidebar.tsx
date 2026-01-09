@@ -8,9 +8,10 @@ import { CartUpsells } from './cart-upsells';
 interface CartSidebarProps {
   basePath?: string;
   storeSlug?: string;
+  freeShippingThreshold?: number; // סף למשלוח חינם (אם הוגדר)
 }
 
-export function CartSidebar({ basePath = '', storeSlug }: CartSidebarProps) {
+export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }: CartSidebarProps) {
   const store = useStoreOptional();
   
   // SSR safety - don't render if store context not available
@@ -18,6 +19,14 @@ export function CartSidebar({ basePath = '', storeSlug }: CartSidebarProps) {
   
   const { cart, cartOpen, cartTotal, closeCart, removeFromCart, updateQuantity, formatPrice } = store;
   const checkoutUrl = basePath ? `${basePath}/checkout` : '/checkout';
+  
+  // חישוב כמה נשאר למשלוח חינם
+  const remainingForFreeShipping = freeShippingThreshold && freeShippingThreshold > cartTotal 
+    ? freeShippingThreshold - cartTotal 
+    : 0;
+  const freeShippingProgress = freeShippingThreshold 
+    ? Math.min(100, (cartTotal / freeShippingThreshold) * 100) 
+    : 0;
 
   // Track remove from cart
   const handleRemove = (item: typeof cart[0]) => {
@@ -217,6 +226,34 @@ export function CartSidebar({ basePath = '', storeSlug }: CartSidebarProps) {
         {/* Footer */}
         {cart.length > 0 && (
           <div className="absolute bottom-0 left-0 right-0 px-8 py-6 bg-white border-t border-gray-100">
+            {/* Free Shipping Progress Indicator */}
+            {freeShippingThreshold && freeShippingThreshold > 0 && (
+              <div className="mb-4">
+                {remainingForFreeShipping > 0 ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">
+                        🚚 עוד <span className="font-medium text-black">{formatPrice(remainingForFreeShipping)}</span> למשלוח חינם
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-green-500 rounded-full transition-all duration-300"
+                        style={{ width: `${freeShippingProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-2 rounded-lg">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    <span>מזל טוב! המשלוח חינם 🎉</span>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="flex justify-between items-center mb-6">
               <span className="text-sm text-gray-500 tracking-wide">סה״כ</span>
               <span className="text-lg font-display">{formatPrice(cartTotal)}</span>

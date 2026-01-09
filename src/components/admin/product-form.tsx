@@ -844,8 +844,108 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
             </div>
           </div>
 
+          {/* Inventory & Shipping */}
+          {!hasVariants && (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <h2 className="text-sm font-semibold text-gray-900">מלאי ומשלוח</h2>
+              </div>
+              <div className="p-4 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">מק״ט</label>
+                  <input
+                    type="text"
+                    value={sku}
+                    onChange={(e) => setSku(e.target.value)}
+                    placeholder="מק״ט-001"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">ברקוד</label>
+                  <input
+                    type="text"
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    placeholder="1234567890"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors font-mono text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">משקל (ק״ג)</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0"
+                    value={weight}
+                    onChange={(e) => setWeight(e.target.value)}
+                    placeholder="0.000"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
+                  />
+                </div>
+
+                <div className="border-t border-gray-100 pt-4 space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={trackInventory}
+                      onChange={(e) => setTrackInventory(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/10"
+                    />
+                    <span className="text-sm text-gray-700">עקוב אחר מלאי</span>
+                  </label>
+
+                  {trackInventory && (
+                    <div className="mr-7">
+                      <label className="block text-sm font-medium text-gray-700 mb-1">כמות במלאי</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={inventory}
+                        onChange={(e) => setInventory(parseInt(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
+                      />
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allowBackorder}
+                      onChange={(e) => setAllowBackorder(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/10"
+                    />
+                    <span className="text-sm text-gray-700">אפשר הזמנה ללא מלאי</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Metafields (placeholder - defined in settings) */}
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-gray-900">שדות מותאמים</h2>
+              <Link 
+                href={`/shops/${storeSlug}/admin/settings/metafields`}
+                className="text-xs text-blue-600 hover:text-blue-700"
+              >
+                הגדרות
+              </Link>
+            </div>
+            <div className="p-4">
+              <p className="text-sm text-gray-500 text-center py-4">
+                אין שדות מותאמים אישית.
+                <br />
+                <Link href={`/shops/${storeSlug}/admin/settings/metafields`} className="text-blue-600 hover:underline">
+                  הוסף שדות בהגדרות
+                </Link>
+              </p>
+            </div>
+          </div>
+
           {/* Upsell Products */}
-          {mode === 'edit' && allProducts.length > 0 && (
+          {allProducts.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100">
                 <h2 className="text-sm font-semibold text-gray-900">מוצרים משלימים (אפסייל)</h2>
@@ -997,106 +1097,6 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
               </div>
             </div>
           )}
-
-          {/* Inventory & Shipping */}
-          {!hasVariants && (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-900">מלאי ומשלוח</h2>
-              </div>
-              <div className="p-4 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">מק״ט</label>
-                  <input
-                    type="text"
-                    value={sku}
-                    onChange={(e) => setSku(e.target.value)}
-                    placeholder="מק״ט-001"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">ברקוד</label>
-                  <input
-                    type="text"
-                    value={barcode}
-                    onChange={(e) => setBarcode(e.target.value)}
-                    placeholder="1234567890"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors font-mono text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">משקל (ק״ג)</label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    min="0"
-                    value={weight}
-                    onChange={(e) => setWeight(e.target.value)}
-                    placeholder="0.000"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
-                  />
-                </div>
-
-                <div className="border-t border-gray-100 pt-4 space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={trackInventory}
-                      onChange={(e) => setTrackInventory(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/10"
-                    />
-                    <span className="text-sm text-gray-700">עקוב אחר מלאי</span>
-                  </label>
-
-                  {trackInventory && (
-                    <div className="mr-7">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">כמות במלאי</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={inventory}
-                        onChange={(e) => setInventory(parseInt(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
-                      />
-                    </div>
-                  )}
-
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={allowBackorder}
-                      onChange={(e) => setAllowBackorder(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/10"
-                    />
-                    <span className="text-sm text-gray-700">אפשר הזמנה ללא מלאי</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Metafields (placeholder - defined in settings) */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-gray-900">שדות מותאמים</h2>
-              <Link 
-                href={`/shops/${storeSlug}/admin/settings/metafields`}
-                className="text-xs text-blue-600 hover:text-blue-700"
-              >
-                הגדרות
-              </Link>
-            </div>
-            <div className="p-4">
-              <p className="text-sm text-gray-500 text-center py-4">
-                אין שדות מותאמים אישית.
-                <br />
-                <Link href={`/shops/${storeSlug}/admin/settings/metafields`} className="text-blue-600 hover:underline">
-                  הוסף שדות בהגדרות
-                </Link>
-              </p>
-            </div>
-          </div>
 
           {/* Quick Info (Edit mode only) */}
           {mode === 'edit' && product && (
