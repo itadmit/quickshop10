@@ -207,8 +207,8 @@ export function ProductAddons({ addons, onChange, onValidationChange }: ProductA
                 }`}
               >
                 <option value="">בחר...</option>
-                {addon.options.map(option => (
-                  <option key={option.value} value={option.value}>
+                {addon.options.map((option, optIdx) => (
+                  <option key={`${addon.id}-${optIdx}`} value={option.value}>
                     {option.label}
                     {option.priceAdjustment > 0 && ` (+${formatPrice(option.priceAdjustment)})`}
                   </option>
@@ -219,8 +219,8 @@ export function ProductAddons({ addons, onChange, onValidationChange }: ProductA
             {/* Radio Buttons */}
             {addon.fieldType === 'radio' && (
               <div className="space-y-2">
-                {addon.options.map(option => (
-                  <label key={option.value} className="flex items-center gap-3 cursor-pointer">
+                {addon.options.map((option, optIdx) => (
+                  <label key={`${addon.id}-${optIdx}`} className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="radio"
                       name={`addon-${addon.id}`}
