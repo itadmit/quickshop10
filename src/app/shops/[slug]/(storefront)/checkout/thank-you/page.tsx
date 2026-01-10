@@ -20,7 +20,7 @@ import { headers } from 'next/headers';
  */
 
 import { db } from '@/lib/db';
-import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, automaticDiscounts, influencerSales, influencers, customerCreditTransactions } from '@/lib/db/schema';
+import { orders, orderItems, products, pendingPayments, stores, customers, productVariants, giftCards, giftCardTransactions, productImages, discounts, automaticDiscounts, influencerSales, influencers, customerCreditTransactions, inventoryLogs } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
@@ -53,11 +53,15 @@ interface ThankYouPageProps {
 }
 
 // Decrement inventory for order items
-async function decrementInventory(cartItems: Array<{
-  productId: string;
-  variantId?: string;
-  quantity: number;
-}>) {
+async function decrementInventory(
+  cartItems: Array<{
+    productId: string;
+    variantId?: string;
+    quantity: number;
+  }>,
+  storeId: string,
+  orderId?: string
+) {
   for (const item of cartItems) {
     // Skip if productId is missing
     if (!item.productId) {
@@ -67,6 +71,15 @@ async function decrementInventory(cartItems: Array<{
     
     try {
       if (item.variantId) {
+        // Get current inventory before decrement
+        const [current] = await db
+          .select({ inventory: productVariants.inventory })
+          .from(productVariants)
+          .where(eq(productVariants.id, item.variantId))
+          .limit(1);
+        
+        const previousQuantity = current?.inventory ?? 0;
+        
         // Decrement variant inventory
         const [updated] = await db
           .update(productVariants)
@@ -76,12 +89,36 @@ async function decrementInventory(cartItems: Array<{
           .where(eq(productVariants.id, item.variantId))
           .returning({ id: productVariants.id, inventory: productVariants.inventory });
         
+        // Log the inventory change
+        if (updated) {
+          await db.insert(inventoryLogs).values({
+            storeId,
+            productId: item.productId,
+            variantId: item.variantId,
+            previousQuantity,
+            newQuantity: updated.inventory ?? 0,
+            changeAmount: (updated.inventory ?? 0) - previousQuantity,
+            reason: 'order',
+            orderId: orderId || null,
+            changedByName: 'הזמנה',
+          });
+        }
+        
         console.log(`Thank you page: Decremented variant inventory`, {
           variantId: item.variantId,
           quantity: item.quantity,
           updated: updated ? { id: updated.id, inventory: updated.inventory } : null,
         });
       } else {
+        // Get current inventory before decrement
+        const [current] = await db
+          .select({ inventory: products.inventory })
+          .from(products)
+          .where(eq(products.id, item.productId))
+          .limit(1);
+        
+        const previousQuantity = current?.inventory ?? 0;
+        
         // Decrement product inventory
         const [updated] = await db
           .update(products)
@@ -90,6 +127,21 @@ async function decrementInventory(cartItems: Array<{
           })
           .where(eq(products.id, item.productId))
           .returning({ id: products.id, name: products.name, inventory: products.inventory });
+        
+        // Log the inventory change
+        if (updated) {
+          await db.insert(inventoryLogs).values({
+            storeId,
+            productId: item.productId,
+            variantId: null,
+            previousQuantity,
+            newQuantity: updated.inventory ?? 0,
+            changeAmount: (updated.inventory ?? 0) - previousQuantity,
+            reason: 'order',
+            orderId: orderId || null,
+            changedByName: 'הזמנה',
+          });
+        }
         
         console.log(`Thank you page: Decremented product inventory`, {
           productId: item.productId,
@@ -256,8 +308,8 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             }
             
             // ========== POST-PAYMENT LOGIC FOR NEW FLOW ==========
-            // Decrement inventory (non-blocking for speed)
-            decrementInventory(cartItems).catch(err => {
+            // Decrement inventory with logging (non-blocking for speed)
+            decrementInventory(cartItems, store.id, existingOrder.id).catch(err => {
               console.error('Thank you page (new flow): Failed to decrement inventory:', err);
             });
             
@@ -443,16 +495,16 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               items: cartItems.map(item => {
                 const itemWithAddons = item as typeof item & { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number };
                 return {
-                  name: item.name,
-                  quantity: item.quantity,
-                  price: item.price,
-                  image: item.image || undefined,
-                  variantTitle: item.variantTitle || undefined,
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+                image: item.image || undefined,
+                variantTitle: item.variantTitle || undefined,
                   addons: itemWithAddons.addons?.map(a => ({
                     name: a.name,
                     displayValue: a.displayValue,
                     priceAdjustment: a.priceAdjustment,
-                  })),
+              })),
                   addonTotal: itemWithAddons.addonTotal,
                 };
               }),
@@ -760,8 +812,8 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             });
         }
         
-        // Decrement inventory (non-blocking for speed - fire and forget)
-        decrementInventory(cartItems).catch(err => {
+        // Decrement inventory with logging (non-blocking for speed - fire and forget)
+        decrementInventory(cartItems, store.id, newOrder.id).catch(err => {
           console.error('Failed to decrement inventory:', err);
         });
         
@@ -856,16 +908,16 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           items: cartItems.map(item => {
             const itemWithAddons = item as typeof item & { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number };
             return {
-              name: item.name,
-              quantity: item.quantity,
-              price: item.price,
-              image: item.image || undefined,
-              variantTitle: item.variantTitle || undefined,
+            name: item.name,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image || undefined,
+            variantTitle: item.variantTitle || undefined,
               addons: itemWithAddons.addons?.map(a => ({
                 name: a.name,
                 displayValue: a.displayValue,
                 priceAdjustment: a.priceAdjustment,
-              })),
+          })),
               addonTotal: itemWithAddons.addonTotal,
             };
           }),

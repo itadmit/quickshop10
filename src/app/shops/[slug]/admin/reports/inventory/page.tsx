@@ -119,7 +119,7 @@ function LowStockTable({
                       <div className="w-10 h-10 bg-gray-100" />
                     )}
                     <div>
-                      <span className="font-medium">{product.name}</span>
+                    <span className="font-medium">{product.name}</span>
                       {product.isVariant && product.variantTitle && (
                         <p className="text-sm text-gray-500">{product.variantTitle}</p>
                       )}

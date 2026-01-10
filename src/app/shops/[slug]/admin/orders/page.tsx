@@ -4,6 +4,8 @@ import { PageHeader, Button } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
 import { OrdersDataTable } from './orders-data-table';
 import { OrderFilters } from './order-filters';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
+import { parseDateRange } from '@/components/admin/report-header';
 
 // ============================================
 // Orders Page - Server Component
@@ -15,6 +17,10 @@ interface OrdersPageProps {
     status?: string; 
     search?: string; 
     page?: string;
+    // Date range picker (like reports)
+    period?: string;
+    from?: string;
+    to?: string;
     // Advanced filters
     itemCountMin?: string;
     itemCountMax?: string;
@@ -37,6 +43,8 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const { slug } = await params;
   const { 
     status, search, page, 
+    // Date range picker params
+    period, from, to,
     itemCountMin, itemCountMax, categoryId, couponCode,
     totalMin, totalMax, dateFrom, dateTo,
     shippingMethod, paymentMethod, city,
@@ -136,8 +144,22 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     });
   }
   
-  // Advanced filters - date range
-  if (dateFrom || dateTo) {
+  // Advanced filters - date range (supports both DateRangePicker and advanced filters)
+  // Priority: DateRangePicker (always applied, defaults to 30d) > Advanced filter (dateFrom/dateTo)
+  const hasAdvancedDateFilter = dateFrom || dateTo;
+  
+  // 🔑 Always apply DateRangePicker filter - uses parseDateRange which defaults to 30d (החודש)
+  // parseDateRange will use the period from URL, or default to 30d if not specified
+  const { startDate, endDate } = parseDateRange({ period, from, to });
+  
+  filteredOrders = filteredOrders.filter(o => {
+    if (!o.createdAt) return false;
+    const orderDate = new Date(o.createdAt);
+    return orderDate >= startDate && orderDate <= endDate;
+  });
+  
+  // If advanced date filter is also set (override), apply it
+  if (hasAdvancedDateFilter) {
     const fromDate = dateFrom ? new Date(dateFrom) : new Date(0);
     const toDate = dateTo ? new Date(dateTo + 'T23:59:59') : new Date();
     
@@ -207,10 +229,11 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     label: c.name,
   }));
   
-  // Check if any advanced filters are active
+  // Check if any advanced filters are active (beyond default date range)
+  const hasNonDefaultDateFilter = period && period !== '30d'; // User explicitly changed from default
   const hasAdvancedFilters = itemCountMin || itemCountMax || categoryId || couponCode || 
     totalMin || totalMax || dateFrom || dateTo || shippingMethod || paymentMethod || city ||
-    filterFinancialStatus || filterFulfillmentStatus;
+    filterFinancialStatus || filterFulfillmentStatus || hasNonDefaultDateFilter || from || to;
 
   return (
     <div className="space-y-6">
@@ -218,9 +241,12 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
         title="הזמנות"
         description={`${activeOrders.length} הזמנות פעילות${archivedCount > 0 ? ` • ${archivedCount} בארכיון` : ''}${hasAdvancedFilters ? ` • ${filteredOrders.length} תוצאות` : ''}`}
         actions={
-          <Button href={`/shops/${slug}/admin/orders/drafts/new`} variant="primary" icon="plus">
-            צור הזמנה
-          </Button>
+          <div className="flex items-center gap-3">
+            <DateRangePicker />
+            <Button href={`/shops/${slug}/admin/orders/drafts/new`} variant="primary" icon="plus">
+              צור הזמנה
+            </Button>
+          </div>
         }
       />
       

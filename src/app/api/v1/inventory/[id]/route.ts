@@ -9,7 +9,7 @@
 
 import { NextRequest } from 'next/server';
 import { db } from '@/lib/db';
-import { products, productVariants } from '@/lib/db/schema';
+import { products, productVariants, inventoryLogs } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { requireApiAuth, apiSuccess, apiError, logApiRequest } from '@/lib/api-auth';
 
@@ -177,6 +177,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         .where(eq(productVariants.id, id))
         .returning();
       
+      // Log inventory change
+      await db.insert(inventoryLogs).values({
+        storeId: auth.store.id,
+        productId: variant.productId,
+        variantId: id,
+        previousQuantity: currentInventory,
+        newQuantity: newInventory,
+        changeAmount: newInventory - currentInventory,
+        reason: 'api',
+        note: body.reason || 'API inventory update',
+        changedByName: 'API',
+      });
+      
       await logApiRequest(auth.apiKey.id, auth.store.id, request, 200, Date.now() - startTime);
       
       return apiSuccess({
@@ -228,6 +241,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       })
       .where(eq(products.id, id))
       .returning();
+    
+    // Log inventory change
+    await db.insert(inventoryLogs).values({
+      storeId: auth.store.id,
+      productId: id,
+      variantId: null,
+      previousQuantity: currentInventory,
+      newQuantity: newInventory,
+      changeAmount: newInventory - currentInventory,
+      reason: 'api',
+      note: body.reason || 'API inventory update',
+      changedByName: 'API',
+    });
     
     await logApiRequest(auth.apiKey.id, auth.store.id, request, 200, Date.now() - startTime);
     

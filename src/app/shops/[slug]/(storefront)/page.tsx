@@ -211,8 +211,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         const productsToShow = isPreviewMode 
           ? allProductsToShow 
           : productContent.type === 'specific' 
-            ? allProductsToShow 
-            : allProductsToShow.slice(0, productLimit);
+          ? allProductsToShow 
+          : allProductsToShow.slice(0, productLimit);
         
         sectionElement = (
           <ProductsSection

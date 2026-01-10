@@ -935,11 +935,25 @@ function ProductsContentSettings({
   const pathname = usePathname();
   const storeSlug = pathname?.split('/')[2] || '';
   
-  const updateContent = (key: string, value: unknown) => {
-    onUpdate({ content: { ...section.content, [key]: value } });
+  // Use local state for immediate UI updates
+  const [localType, setLocalType] = useState<string>((section.content.type as string) || 'all');
+  
+  // Sync with section prop when it changes
+  useEffect(() => {
+    setLocalType((section.content.type as string) || 'all');
+  }, [section.content.type]);
+  
+  const updateContent = (keyOrUpdates: string | Record<string, unknown>, value?: unknown) => {
+    if (typeof keyOrUpdates === 'string') {
+      // Single update: updateContent('key', value)
+      onUpdate({ content: { ...section.content, [keyOrUpdates]: value } });
+    } else {
+      // Multiple updates: updateContent({ key1: value1, key2: value2 })
+      onUpdate({ content: { ...section.content, ...keyOrUpdates } });
+    }
   };
   
-  const selectedType = (section.content.type as string) || 'all';
+  const selectedType = localType;
   const selectedCategoryId = (section.content.categoryId as string) || '';
   const selectedProductIds = (section.content.productIds as string[]) || [];
   const selectedProducts = (section.content.selectedProducts as Array<{ id: string; name: string; imageUrl: string | null }>) || [];
@@ -1012,13 +1026,23 @@ function ProductsContentSettings({
           { value: 'specific', label: 'מוצרים ספציפיים' },
         ]}
         onChange={(v) => {
-          updateContent('type', v);
+          // Update local state immediately for instant UI feedback
+          setLocalType(v);
+          
+          // Prepare all updates at once
+          const updates: Record<string, unknown> = { type: v };
+          
           // Clear specific selections when type changes
-          if (v !== 'category') updateContent('categoryId', '');
-          if (v !== 'specific') {
-            updateContent('productIds', []);
-            updateContent('selectedProducts', []);
+          if (v !== 'category') {
+            updates.categoryId = '';
           }
+          if (v !== 'specific') {
+            updates.productIds = [];
+            updates.selectedProducts = [];
+          }
+          
+          // Apply all updates in a single call
+          updateContent(updates);
         }}
       />
       
@@ -1122,13 +1146,13 @@ function ProductsContentSettings({
       
       {/* Limit slider - not for specific products */}
       {selectedType !== 'specific' && (
-        <SliderField
-          label="כמות להצגה"
-          value={(section.content.limit as number) || 8}
-          min={1}
-          max={24}
-          onChange={(v) => updateContent('limit', v)}
-        />
+      <SliderField
+        label="כמות להצגה"
+        value={(section.content.limit as number) || 8}
+        min={1}
+        max={24}
+        onChange={(v) => updateContent('limit', v)}
+      />
       )}
     </SettingsGroup>
   );

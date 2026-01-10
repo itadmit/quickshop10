@@ -55,9 +55,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // Helper to parse date range from URL params
+// ⚠️ Default must match DateRangePicker default (30d = החודש)
 function getDateRange(period?: string, from?: string, to?: string): { start: Date; end: Date; label: string } {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   
   if (period === 'custom' && from && to) {
     return {
@@ -69,7 +71,6 @@ function getDateRange(period?: string, from?: string, to?: string): { start: Dat
   
   switch (period) {
     case 'today':
-      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       return { start: todayStart, end: today, label: 'היום' };
     case 'yesterday':
       const yesterdayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
@@ -85,9 +86,8 @@ function getDateRange(period?: string, from?: string, to?: string): { start: Dat
       return { start: new Date(Date.now() - 365 * 86400000), end: today, label: 'שנה' };
     case '30d':
     default:
-      // Default to current month
-      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { start: monthStart, end: today, label: 'החודש' };
+      // 🔑 Default to 30d (החודש) - must match DateRangePicker default
+      return { start: new Date(Date.now() - 30 * 86400000), end: today, label: 'החודש' };
   }
 }
 

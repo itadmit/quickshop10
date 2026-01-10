@@ -315,14 +315,14 @@ export function ProductsDataTable({
         }
         
         return (
-          <div className="flex items-center justify-center gap-1.5">
+        <div className="flex items-center justify-center gap-1.5">
             <span className="font-medium">₪{Number(product.price || 0).toFixed(2)}</span>
-            {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
-              <span className="text-xs text-gray-400 line-through">
-                ₪{Number(product.comparePrice).toFixed(2)}
-              </span>
-            )}
-          </div>
+          {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
+            <span className="text-xs text-gray-400 line-through">
+              ₪{Number(product.comparePrice).toFixed(2)}
+            </span>
+          )}
+        </div>
         );
       },
     },

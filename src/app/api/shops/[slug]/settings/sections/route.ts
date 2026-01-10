@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { pageSections, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 // ============================================
 // API: Update Page Sections
@@ -102,6 +102,8 @@ export async function PUT(
     }
 
     // Revalidate cache so the storefront shows updated content
+    // IMPORTANT: revalidateTag invalidates unstable_cache with 'sections' tag!
+    revalidateTag('sections');
     revalidatePath(`/shops/${slug}`);
     if (page === 'coming_soon') {
       revalidatePath(`/shops/${slug}/coming-soon`);

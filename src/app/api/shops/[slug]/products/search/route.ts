@@ -3,7 +3,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { products, stores, productImages } from '@/lib/db/schema';
-import { eq, and, ilike, or } from 'drizzle-orm';
+import { eq, and, ilike, or, inArray } from 'drizzle-orm';
 
 // ============================================
 // Product Search API for Editor
@@ -69,17 +69,15 @@ export async function GET(
           .where(
             and(
               eq(productImages.isPrimary, true),
-              // Use in_ when available or manual filter
+              inArray(productImages.productId, productIds)
             )
           )
       : [];
-
+    
     // Create a map of product ID to image URL
     const imageMap = new Map<string, string>();
     images.forEach(img => {
-      if (productIds.includes(img.productId)) {
-        imageMap.set(img.productId, img.url);
-      }
+      imageMap.set(img.productId, img.url);
     });
 
     // Format response

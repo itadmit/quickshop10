@@ -764,9 +764,9 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
   return productsData.map(product => {
     const variantData = product.hasVariants ? variantAggregateMap.get(product.id) : null;
     return {
-      ...product,
-      category: productCategoriesMap.get(product.id)?.[0] || null, // First category for backward compatibility
-      categories: productCategoriesMap.get(product.id) || [], // All categories
+    ...product,
+    category: productCategoriesMap.get(product.id)?.[0] || null, // First category for backward compatibility
+    categories: productCategoriesMap.get(product.id) || [], // All categories
       // Variant aggregate data
       variantMinPrice: variantData?.minPrice || null,
       variantMaxPrice: variantData?.maxPrice || null,

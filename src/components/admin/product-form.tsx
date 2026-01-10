@@ -372,7 +372,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
       };
     }));
   }, []);
-  
+
   // Update option display type
   const updateOptionDisplayType = useCallback((index: number, displayType: ProductOptionForm['displayType']) => {
     setOptions(prev => prev.map((opt, i) => i === index ? { ...opt, displayType } : opt));
@@ -452,9 +452,9 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
         weight: existing?.weight || '',
         inventory: existing?.inventory || 0,
         allowBackorder: existing?.allowBackorder || false,
-        option1: combo[0],
-        option2: combo[1],
-        option3: combo[2],
+      option1: combo[0],
+      option2: combo[1],
+      option3: combo[2],
       };
     });
 
@@ -672,62 +672,62 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
 
           {/* Pricing - only show when no variants */}
           {!hasVariants && (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100">
-                <h2 className="text-sm font-semibold text-gray-900">תמחור</h2>
-              </div>
-              <div className="p-4">
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">מחיר</label>
-                    <div className="relative">
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">₪</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
-                      />
-                    </div>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <h2 className="text-sm font-semibold text-gray-900">תמחור</h2>
+            </div>
+            <div className="p-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">מחיר</label>
+                  <div className="relative">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">₪</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
+                    />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">מחיר השוואה</label>
-                    <div className="relative">
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">₪</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={comparePrice}
-                        onChange={(e) => setComparePrice(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">יוצג כמחיר מחוק</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">מחיר השוואה</label>
+                  <div className="relative">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">₪</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={comparePrice}
+                      onChange={(e) => setComparePrice(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
+                    />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">עלות</label>
-                    <div className="relative">
-                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">₪</span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={cost}
-                        onChange={(e) => setCost(e.target.value)}
-                        placeholder="0.00"
-                        className="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">לחישוב רווח</p>
+                  <p className="text-xs text-gray-400 mt-1">יוצג כמחיר מחוק</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">עלות</label>
+                  <div className="relative">
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500">₪</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={cost}
+                      onChange={(e) => setCost(e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pr-8 pl-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors"
+                    />
                   </div>
+                  <p className="text-xs text-gray-400 mt-1">לחישוב רווח</p>
                 </div>
               </div>
             </div>
+          </div>
           )}
 
           {/* Variants */}
@@ -813,12 +813,12 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                           {/* Values */}
                           <div className="space-y-2">
                             <label className="text-xs text-gray-500">ערכים</label>
-                            <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-2">
                               {option.values.map((val, valIndex) => (
-                                <span 
-                                  key={valIndex} 
+                              <span 
+                                key={valIndex} 
                                   className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded text-sm"
-                                >
+                              >
                                   {/* Color swatch for color type */}
                                   {option.displayType === 'color' && val.metadata?.color && (
                                     <span 
@@ -838,35 +838,35 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                                     />
                                   )}
                                   {val.value}
-                                  <button
-                                    type="button"
-                                    onClick={() => removeOptionValue(optIndex, valIndex)}
-                                    className="text-gray-400 hover:text-red-500"
-                                  >
-                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                  </button>
-                                </span>
-                              ))}
+                                <button
+                                  type="button"
+                                  onClick={() => removeOptionValue(optIndex, valIndex)}
+                                  className="text-gray-400 hover:text-red-500"
+                                >
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </span>
+                            ))}
                             </div>
                             
                             {/* Input based on display type */}
                             {option.displayType === 'button' && (
                               <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
+                            <input
+                              type="text"
                                   id={`button-value-${optIndex}`}
                                   placeholder="הוסף ערך (S, M, L...)"
                                   className="flex-1 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-gray-900/10 outline-none"
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                      e.preventDefault();
-                                      addOptionValue(optIndex, (e.target as HTMLInputElement).value);
-                                      (e.target as HTMLInputElement).value = '';
-                                    }
-                                  }}
-                                />
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addOptionValue(optIndex, (e.target as HTMLInputElement).value);
+                                  (e.target as HTMLInputElement).value = '';
+                                }
+                              }}
+                            />
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1137,13 +1137,13 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                                     <span>{variant.title}</span>
                                   </div>
                                 </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    value={variant.price}
-                                    onChange={(e) => updateVariant(index, 'price', e.target.value)}
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  value={variant.price}
+                                  onChange={(e) => updateVariant(index, 'price', e.target.value)}
                                     className="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-gray-900/10 outline-none"
                                     placeholder="₪"
                                   />
@@ -1156,27 +1156,27 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                                     value={variant.comparePrice}
                                     onChange={(e) => updateVariant(index, 'comparePrice', e.target.value)}
                                     className="w-20 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-gray-900/10 outline-none"
-                                    placeholder="₪"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="text"
-                                    value={variant.sku}
-                                    onChange={(e) => updateVariant(index, 'sku', e.target.value)}
-                                    className="w-24 px-2 py-1 border border-gray-200 rounded text-sm font-mono focus:ring-1 focus:ring-gray-900/10 outline-none"
-                                    placeholder="מק״ט"
-                                  />
-                                </td>
-                                <td className="px-3 py-2">
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    value={variant.inventory}
-                                    onChange={(e) => updateVariant(index, 'inventory', parseInt(e.target.value) || 0)}
+                                  placeholder="₪"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="text"
+                                  value={variant.sku}
+                                  onChange={(e) => updateVariant(index, 'sku', e.target.value)}
+                                  className="w-24 px-2 py-1 border border-gray-200 rounded text-sm font-mono focus:ring-1 focus:ring-gray-900/10 outline-none"
+                                  placeholder="מק״ט"
+                                />
+                              </td>
+                              <td className="px-3 py-2">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={variant.inventory}
+                                  onChange={(e) => updateVariant(index, 'inventory', parseInt(e.target.value) || 0)}
                                     className="w-16 px-2 py-1 border border-gray-200 rounded text-sm focus:ring-1 focus:ring-gray-900/10 outline-none"
-                                  />
-                                </td>
+                                />
+                              </td>
                                 <td className="px-3 py-2">
                                   <button
                                     type="button"
@@ -1189,7 +1189,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                                     </svg>
                                   </button>
                                 </td>
-                              </tr>
+                            </tr>
                               {/* Expanded Row - Extra Fields */}
                               {expandedVariant === index && (
                                 <tr className="bg-gray-50">
@@ -1707,7 +1707,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                 
                 {/* Search & Add Products */}
                 {upsellProductIds.length < 5 && (
-                  <div className="relative">
+                <div className="relative">
                     <div className="relative">
                       <svg className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -1715,7 +1715,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                       <input
                         type="text"
                         value={upsellSearch}
-                        onChange={(e) => {
+                    onChange={(e) => {
                           setUpsellSearch(e.target.value);
                           setShowUpsellResults(true);
                         }}
@@ -1729,14 +1729,14 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                     {/* Search Results Dropdown */}
                     {showUpsellResults && upsellSearch.trim() && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-auto">
-                        {allProducts
+                    {allProducts
                           .filter(p => 
                             p.id !== product?.id && 
                             !upsellProductIds.includes(p.id) &&
                             p.name.toLowerCase().includes(upsellSearch.toLowerCase())
                           )
                           .slice(0, 10)
-                          .map(p => (
+                      .map(p => (
                             <button
                               key={p.id}
                               type="button"
@@ -1769,7 +1769,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                         ).length === 0 && (
                           <div className="px-3 py-2 text-sm text-gray-500 text-center">
                             לא נמצאו מוצרים
-                          </div>
+                </div>
                         )}
                       </div>
                     )}

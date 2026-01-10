@@ -886,9 +886,104 @@ export function CheckoutForm({
         };
         
         // Check if we have an active payment provider
-        if (hasActivePaymentProvider && storeSlug) {
-          // Real payment flow - redirect to payment provider
+        // 🆕 If total is 0 (fully covered by credit/gift card), create order directly without payment provider
+        const isZeroPayment = total <= 0;
+        
+        if (isZeroPayment || (hasActivePaymentProvider && storeSlug)) {
+          // Build discount details for order creation
           const discountDetails = buildDiscountDetails();
+          
+          // 🆕 Handle zero payment - create order directly without payment provider
+          if (isZeroPayment) {
+            const primaryCoupon = appliedCoupons.length > 0 ? appliedCoupons[0] : null;
+            
+            const result = await createOrder(
+              storeId || '',
+              cart.map(item => ({
+                productId: item.productId,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                variantTitle: item.variantTitle,
+              })),
+              formData,
+              primaryCoupon ? {
+                id: primaryCoupon.id,
+                code: primaryCoupon.code,
+                type: primaryCoupon.type,
+                value: primaryCoupon.value,
+              } : null,
+              cartOriginalTotal,
+              totalDiscount,
+              shippingAfterDiscount,
+              0, // total is 0
+              creditUsed,
+              discountDetails
+            );
+
+            if (result.success) {
+              // Generate secure token for order verification
+              const token = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+              
+              // Save order summary to localStorage for thank you page
+              const orderData = {
+                items: cart.map(item => ({
+                  productId: item.productId,
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: item.price,
+                  variantTitle: item.variantTitle,
+                  image: item.image,
+                  addons: item.addons,
+                  addonTotal: item.addonTotal,
+                })),
+                subtotal: cartOriginalTotal,
+                discount: totalDiscount,
+                shipping: shippingAfterDiscount,
+                total: 0,
+                couponCodes: appliedCoupons.map(c => c.code),
+                orderDate: new Date().toISOString(),
+                orderNumber: result.orderNumber,
+                token,
+                customer: {
+                  email: formData.email,
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  phone: formData.phone,
+                  address: buildFullAddress(),
+                  city: formData.city,
+                  zipCode: formData.zipCode,
+                },
+              };
+              
+              localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orderData));
+              
+              // Mark abandoned cart as recovered if this was a recovery
+              if (recoveredCartId) {
+                try {
+                  const { markCartAsRecovered } = await import('@/app/shops/[slug]/admin/abandoned/actions');
+                  await markCartAsRecovered(recoveredCartId, result.orderId);
+                } catch (error) {
+                  console.error('Failed to mark cart as recovered:', error);
+                }
+              }
+              
+              // Mark as redirecting BEFORE clearing cart to prevent flash of empty state
+              setIsRedirecting(true);
+              clearCart();
+              clearCoupons();
+              
+              // Redirect to thank you page with order number in path and token in query
+              router.push(`${basePath}/checkout/thank-you/${result.orderNumber}?t=${token}`);
+              return; // Exit early, don't continue to payment provider
+            } else {
+              setOrderError(result.error);
+              setIsSubmitting(false);
+              return; // Exit early on error
+            }
+          }
+          
+          // Real payment flow - redirect to payment provider (total > 0)
           
           const response = await fetch('/api/payments/initiate', {
             method: 'POST',
@@ -1940,7 +2035,9 @@ export function CheckoutForm({
                   className="btn-primary flex-1"
                 >
                   {isSubmitting ? 'מעבד...' : 
-                   step === 'payment' ? `לתשלום ${formatPrice(total)}` : 'המשך'}
+                   step === 'payment' 
+                     ? (total <= 0 ? 'השלם הזמנה' : `לתשלום ${formatPrice(total)}`)
+                     : 'המשך'}
                 </button>
               </div>
             </form>
@@ -2175,15 +2272,15 @@ export function CheckoutForm({
                     <span>{formatPrice(shipping)}</span>
                   )}
                 </div>
-                {/* Free shipping threshold message */}
-                {step !== 'details' && shipping === 0 && !hasFreeShipping && shippingSettings.enableFreeShipping && cartOriginalTotal >= shippingSettings.freeShippingThreshold && (
+                {/* Free shipping threshold message - use new shipping system's freeThreshold if available */}
+                {step !== 'details' && shipping === 0 && !hasFreeShipping && selectedMethod?.freeThreshold && (
                   <p className="text-xs text-green-600">
-                    ✓ משלוח חינם בקנייה מעל {formatPrice(shippingSettings.freeShippingThreshold)}
+                    ✓ משלוח חינם בקנייה מעל {formatPrice(selectedMethod.freeThreshold)}
                   </p>
                 )}
-                {step !== 'details' && shipping > 0 && !hasFreeShipping && shippingSettings.enableFreeShipping && (
+                {step !== 'details' && shipping > 0 && !hasFreeShipping && selectedMethod?.freeThreshold && (
                   <p className="text-xs text-gray-400">
-                    משלוח חינם בקנייה מעל {formatPrice(shippingSettings.freeShippingThreshold)}
+                    משלוח חינם בקנייה מעל {formatPrice(selectedMethod.freeThreshold)}
                   </p>
                 )}
               </div>

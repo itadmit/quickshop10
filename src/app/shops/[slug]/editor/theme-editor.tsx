@@ -350,7 +350,7 @@ export function ThemeEditor({
         updates,
       }, '*');
     }
-  }, []);
+  }, [sections]);
 
   // Save all changes to DB (sections + theme settings)
   const handleSave = async () => {

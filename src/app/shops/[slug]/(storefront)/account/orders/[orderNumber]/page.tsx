@@ -131,22 +131,22 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                   const itemTotal = (Number(item.price) + addonTotal) * item.quantity;
                   
                   return (
-                    <div key={item.id} className="flex gap-4 p-6">
-                      <div className="w-20 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
-                        {item.imageUrl && (
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{item.name}</h3>
-                        {item.variantTitle && (
-                          <p className="text-sm text-gray-500 mt-1">{item.variantTitle}</p>
-                        )}
-                        <p className="text-sm text-gray-500 mt-1">כמות: {item.quantity}</p>
+                  <div key={item.id} className="flex gap-4 p-6">
+                    <div className="w-20 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
+                      {item.imageUrl && (
+                        <img 
+                          src={item.imageUrl} 
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium">{item.name}</h3>
+                      {item.variantTitle && (
+                        <p className="text-sm text-gray-500 mt-1">{item.variantTitle}</p>
+                      )}
+                      <p className="text-sm text-gray-500 mt-1">כמות: {item.quantity}</p>
                         
                         {/* Display addons if present */}
                         {props?.addons && props.addons.length > 0 && (
@@ -161,16 +161,16 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                             ))}
                           </div>
                         )}
-                      </div>
-                      <div className="text-left">
-                        <p className="font-medium">₪{Number(item.price).toFixed(2)}</p>
-                        {(item.quantity > 1 || addonTotal > 0) && (
-                          <p className="text-sm text-gray-500">
-                            סה״כ: ₪{itemTotal.toFixed(2)}
-                          </p>
-                        )}
-                      </div>
                     </div>
+                    <div className="text-left">
+                      <p className="font-medium">₪{Number(item.price).toFixed(2)}</p>
+                        {(item.quantity > 1 || addonTotal > 0) && (
+                        <p className="text-sm text-gray-500">
+                            סה״כ: ₪{itemTotal.toFixed(2)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                   );
                 })}
               </div>
