@@ -800,9 +800,96 @@ export function CheckoutForm({
       setIsSubmitting(true);
       
       try {
+        // Build discount details breakdown for real payment flow
+        const buildDiscountDetails = (): Array<{
+          type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+          code?: string;
+          name: string;
+          description?: string;
+          amount: number;
+        }> => {
+          const details: Array<{
+            type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+            code?: string;
+            name: string;
+            description?: string;
+            amount: number;
+          }> = [];
+          
+          // Add member discount
+          if (memberDiscount > 0) {
+            details.push({
+              type: 'member',
+              name: 'הנחת חברי מועדון',
+              description: '5% הנחה',
+              amount: memberDiscount,
+            });
+          }
+          
+          // Add auto discounts
+          autoDiscountResults.filter(d => engineAutoDiscounts.find(ed => ed.id === d.discountId)?.appliesTo !== 'member').forEach(d => {
+            const discountInfo = autoDiscounts.find(ad => ad.id === d.discountId);
+            if (discountInfo && d.amount > 0) {
+              details.push({
+                type: 'auto',
+                name: discountInfo.name || 'הנחה אוטומטית',
+                description: discountInfo.type === 'percentage' ? `${discountInfo.value}% הנחה` : `הנחה של ₪${discountInfo.value}`,
+                amount: d.amount,
+              });
+            }
+          });
+          
+          // Add regular coupons (not gift cards)
+          appliedCoupons.filter(c => c.type !== 'gift_card' && c.type !== 'free_shipping').forEach(coupon => {
+            const discountResult = couponDiscountResults.find(r => r.discountId === coupon.id);
+            if (discountResult && discountResult.amount > 0) {
+              const getDescription = () => {
+                switch (coupon.type) {
+                  case 'percentage': return `${coupon.value}% הנחה`;
+                  case 'fixed_amount': return `הנחה של ₪${coupon.value}`;
+                  case 'buy_x_pay_y': return coupon.buyQuantity && coupon.payAmount ? `קנה ${coupon.buyQuantity} שלם ${coupon.payAmount}` : 'הנחת כמות';
+                  default: return coupon.title || 'הנחה';
+                }
+              };
+              details.push({
+                type: 'coupon',
+                code: coupon.code,
+                name: coupon.title || coupon.code,
+                description: getDescription(),
+                amount: discountResult.amount,
+              });
+            }
+          });
+          
+          // Add gift card
+          if (giftCardAmount > 0 && giftCardCoupon) {
+            details.push({
+              type: 'gift_card',
+              code: giftCardCoupon.code,
+              name: 'גיפט קארד',
+              description: `יתרה: ₪${giftCardCoupon.value}`,
+              amount: giftCardAmount,
+            });
+          }
+          
+          // Add credit used
+          if (creditUsed > 0) {
+            details.push({
+              type: 'credit',
+              name: 'קרדיט',
+              description: 'יתרת קרדיט בחשבון',
+              amount: creditUsed,
+            });
+          }
+          
+          return details;
+        };
+        
         // Check if we have an active payment provider
         if (hasActivePaymentProvider && storeSlug) {
           // Real payment flow - redirect to payment provider
+          const discountDetails = buildDiscountDetails();
+          
           const response = await fetch('/api/payments/initiate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -835,6 +922,7 @@ export function CheckoutForm({
               } : undefined,
               discountCode: appliedCoupons.length > 0 ? appliedCoupons[0].code : undefined,
               discountAmount: totalDiscount,
+              discountDetails: discountDetails,
               orderData: {
                 customer: formData,
                 items: cart.map(item => ({

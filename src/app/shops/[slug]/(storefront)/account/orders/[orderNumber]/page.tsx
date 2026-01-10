@@ -121,34 +121,58 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                 <h2 className="font-medium">פריטים בהזמנה</h2>
               </div>
               <div className="divide-y divide-gray-100">
-                {items.map((item) => (
-                  <div key={item.id} className="flex gap-4 p-6">
-                    <div className="w-20 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
-                      {item.imageUrl && (
-                        <img 
-                          src={item.imageUrl} 
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
+                {items.map((item) => {
+                  // Get addon info from properties
+                  const props = item.properties as { 
+                    addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; 
+                    addonTotal?: number 
+                  } | null;
+                  const addonTotal = props?.addonTotal || 0;
+                  const itemTotal = (Number(item.price) + addonTotal) * item.quantity;
+                  
+                  return (
+                    <div key={item.id} className="flex gap-4 p-6">
+                      <div className="w-20 h-24 bg-gray-100 rounded overflow-hidden shrink-0">
+                        {item.imageUrl && (
+                          <img 
+                            src={item.imageUrl} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-medium">{item.name}</h3>
+                        {item.variantTitle && (
+                          <p className="text-sm text-gray-500 mt-1">{item.variantTitle}</p>
+                        )}
+                        <p className="text-sm text-gray-500 mt-1">כמות: {item.quantity}</p>
+                        
+                        {/* Display addons if present */}
+                        {props?.addons && props.addons.length > 0 && (
+                          <div className="mt-2 space-y-0.5 text-xs bg-gray-50 p-2 rounded">
+                            {props.addons.map((addon, i) => (
+                              <div key={i} className="flex items-center justify-between text-gray-600">
+                                <span>{addon.name}: <span className="text-gray-800">{addon.displayValue}</span></span>
+                                {addon.priceAdjustment > 0 && (
+                                  <span className="text-green-600">+₪{addon.priceAdjustment.toFixed(2)}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className="text-left">
+                        <p className="font-medium">₪{Number(item.price).toFixed(2)}</p>
+                        {(item.quantity > 1 || addonTotal > 0) && (
+                          <p className="text-sm text-gray-500">
+                            סה״כ: ₪{itemTotal.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="font-medium">{item.name}</h3>
-                      {item.variantTitle && (
-                        <p className="text-sm text-gray-500 mt-1">{item.variantTitle}</p>
-                      )}
-                      <p className="text-sm text-gray-500 mt-1">כמות: {item.quantity}</p>
-                    </div>
-                    <div className="text-left">
-                      <p className="font-medium">₪{Number(item.price).toFixed(2)}</p>
-                      {item.quantity > 1 && (
-                        <p className="text-sm text-gray-500">
-                          סה״כ: ₪{(Number(item.price) * item.quantity).toFixed(2)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

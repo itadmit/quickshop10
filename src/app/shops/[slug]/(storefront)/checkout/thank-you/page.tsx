@@ -440,13 +440,22 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               orderNumber: updatedOrder.orderNumber,
               customerName: updatedOrder.customerName || 'לקוח יקר',
               customerEmail: updatedOrder.customerEmail || '',
-              items: cartItems.map(item => ({
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-                image: item.image || undefined,
-                variantTitle: item.variantTitle || undefined,
-              })),
+              items: cartItems.map(item => {
+                const itemWithAddons = item as typeof item & { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number };
+                return {
+                  name: item.name,
+                  quantity: item.quantity,
+                  price: item.price,
+                  image: item.image || undefined,
+                  variantTitle: item.variantTitle || undefined,
+                  addons: itemWithAddons.addons?.map(a => ({
+                    name: a.name,
+                    displayValue: a.displayValue,
+                    priceAdjustment: a.priceAdjustment,
+                  })),
+                  addonTotal: itemWithAddons.addonTotal,
+                };
+              }),
               subtotal,
               shippingAmount: shippingCost,
               discountAmount,
@@ -844,13 +853,22 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           orderNumber,
           customerName: newOrder.customerName || search.customer_name || 'לקוח יקר',
           customerEmail: newOrder.customerEmail || '',
-          items: cartItems.map(item => ({
-            name: item.name,
-            quantity: item.quantity,
-            price: item.price,
-            image: item.image || undefined,
-            variantTitle: item.variantTitle || undefined,
-          })),
+          items: cartItems.map(item => {
+            const itemWithAddons = item as typeof item & { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number };
+            return {
+              name: item.name,
+              quantity: item.quantity,
+              price: item.price,
+              image: item.image || undefined,
+              variantTitle: item.variantTitle || undefined,
+              addons: itemWithAddons.addons?.map(a => ({
+                name: a.name,
+                displayValue: a.displayValue,
+                priceAdjustment: a.priceAdjustment,
+              })),
+              addonTotal: itemWithAddons.addonTotal,
+            };
+          }),
           subtotal,
           shippingAmount: shippingCost,
           discountAmount,

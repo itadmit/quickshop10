@@ -54,6 +54,13 @@ interface InitiatePaymentBody {
   // Discount
   discountCode?: string;
   discountAmount?: number;
+  discountDetails?: Array<{
+    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+    code?: string;
+    name: string;
+    description?: string;
+    amount: number;
+  }>;
   
   // Influencer
   influencerId?: string;
@@ -412,6 +419,7 @@ export async function POST(request: NextRequest) {
       
       // Discount
       discountCode: body.discountCode,
+      discountDetails: body.discountDetails || [],
       
       // Influencer
       influencerId: body.influencerId,
