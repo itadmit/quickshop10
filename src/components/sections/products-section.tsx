@@ -77,6 +77,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
               className={`animate-slide-up ${displayLimit && i >= displayLimit ? 'hidden' : ''}`}
               style={{ animationDelay: `${i * 50}ms` }}
               data-product-index={i}
+              data-product-id={product.id}
             >
               <ProductCard
                 id={product.id}

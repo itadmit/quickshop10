@@ -380,8 +380,7 @@ export function EditorSectionHighlighter() {
         // =====================================================
         // PRODUCT TYPE AND PRODUCTS UPDATES (LIVE PREVIEW)
         // =====================================================
-        // ⚡ PERFORMANCE: Simple DOM manipulation - no complex HTML creation
-        // Just show/hide existing products + add indicator text
+        // ⚡ PERFORMANCE: Simple DOM manipulation - show/hide existing products by ID!
         if (updates.content?.type !== undefined || updates.content?.productIds !== undefined) {
           const productType = updates.content.type as string | undefined;
           const productIds = updates.content.productIds as string[] | undefined;
@@ -397,7 +396,7 @@ export function EditorSectionHighlighter() {
           const grid = element.querySelector('[data-products-grid]') as HTMLElement;
           if (!grid) return;
           
-          const productElements = grid.querySelectorAll('[data-product-index]');
+          const productElements = grid.querySelectorAll('[data-product-id]');
           
           // Get current state
           const currentType = productType || (element as HTMLElement).dataset.productType || 'all';
@@ -410,26 +409,20 @@ export function EditorSectionHighlighter() {
             }
           })();
           
-          // Remove any existing indicator
-          const existingIndicator = grid.querySelector('[data-preview-indicator]');
-          if (existingIndicator) existingIndicator.remove();
-          
-          // Simple show/hide logic - FAST! ⚡
+          // Filter products by ID - FAST! ⚡
           if (currentType === 'specific' && currentProductIds && currentProductIds.length > 0) {
-            // Show indicator for specific products mode
-            const indicator = document.createElement('div');
-            indicator.className = 'col-span-full text-center py-4 text-sm text-blue-600 bg-blue-50 rounded-lg mb-4';
-            indicator.setAttribute('data-preview-indicator', 'true');
-            indicator.textContent = `נבחרו ${currentProductIds.length} מוצרים ספציפיים - שמור לראות את התוצאה`;
-            grid.insertBefore(indicator, grid.firstChild);
-            
-            // Show all products with a visual indicator
+            // Show only selected products, hide others
             productElements.forEach((prodEl) => {
-              prodEl.classList.remove('hidden');
-              (prodEl as HTMLElement).style.opacity = '0.5';
+              const productId = (prodEl as HTMLElement).dataset.productId;
+              if (productId && currentProductIds.includes(productId)) {
+                prodEl.classList.remove('hidden');
+                (prodEl as HTMLElement).style.opacity = '1';
+              } else {
+                prodEl.classList.add('hidden');
+              }
             });
           } else {
-            // Show all products normally
+            // Show all products normally (for 'all', 'featured', 'category')
             productElements.forEach((prodEl) => {
               prodEl.classList.remove('hidden');
               (prodEl as HTMLElement).style.opacity = '1';

@@ -103,7 +103,8 @@ export async function PUT(
 
     // Revalidate cache so the storefront shows updated content
     // IMPORTANT: revalidateTag invalidates unstable_cache with 'sections' tag!
-    revalidateTag('sections');
+    // In Next.js 16, revalidateTag requires a profile - use expire: 0 for immediate invalidation
+    revalidateTag('sections', { expire: 0 });
     revalidatePath(`/shops/${slug}`);
     if (page === 'coming_soon') {
       revalidatePath(`/shops/${slug}/coming-soon`);
