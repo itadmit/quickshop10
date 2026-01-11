@@ -931,6 +931,7 @@ function ProductsContentSettings({
   const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; slug: string; price: string; comparePrice: string | null; imageUrl: string | null }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [isLoadingCategory, setIsLoadingCategory] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const storeSlug = pathname?.split('/')[2] || '';
@@ -942,6 +943,32 @@ function ProductsContentSettings({
   useEffect(() => {
     setLocalType((section.content.type as string) || 'all');
   }, [section.content.type]);
+  
+  // ⚡ Fetch category products for real-time preview
+  const fetchCategoryProducts = useCallback(async (categoryId: string) => {
+    if (!categoryId || !storeSlug) return;
+    
+    setIsLoadingCategory(true);
+    try {
+      // Fetch products from category
+      const response = await fetch(`/api/shops/${storeSlug}/products/by-category?categoryId=${categoryId}&limit=12`);
+      if (response.ok) {
+        const data = await response.json();
+        // Send to preview with categoryProducts for real-time display
+        onUpdate({ 
+          content: { 
+            ...section.content, 
+            categoryId,
+            categoryProducts: data.products,
+          } 
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching category products:', error);
+    } finally {
+      setIsLoadingCategory(false);
+    }
+  }, [storeSlug, section.content, onUpdate]);
   
   const updateContent = (keyOrUpdates: string | Record<string, unknown>, value?: unknown) => {
     if (typeof keyOrUpdates === 'string') {
@@ -1054,15 +1081,25 @@ function ProductsContentSettings({
       
       {/* Category selector */}
       {selectedType === 'category' && (
-        <SelectField
-          label="בחר קטגוריה"
-          value={selectedCategoryId}
-          options={[
-            { value: '', label: 'בחר קטגוריה...' },
-            ...categories.map(c => ({ value: c.id, label: c.name }))
-          ]}
-          onChange={(v) => updateContent('categoryId', v)}
-        />
+        <div className="relative">
+          <SelectField
+            label="בחר קטגוריה"
+            value={selectedCategoryId}
+            options={[
+              { value: '', label: 'בחר קטגוריה...' },
+              ...categories.map(c => ({ value: c.id, label: c.name }))
+            ]}
+            onChange={(v) => {
+              // ⚡ Fetch category products for real-time preview
+              fetchCategoryProducts(v);
+            }}
+          />
+          {isLoadingCategory && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2">
+              <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
       )}
       
       {/* Product picker */}

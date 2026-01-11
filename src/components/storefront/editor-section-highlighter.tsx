@@ -380,8 +380,8 @@ export function EditorSectionHighlighter() {
         // =====================================================
         // PRODUCT TYPE AND PRODUCTS UPDATES (LIVE PREVIEW)
         // =====================================================
-        // ⚡ REAL-TIME: Render selected products directly!
-        if (updates.content?.type !== undefined || updates.content?.selectedProducts !== undefined || updates.content?.productIds !== undefined) {
+        // ⚡ REAL-TIME: Render selected/category products directly!
+        if (updates.content?.type !== undefined || updates.content?.selectedProducts !== undefined || updates.content?.productIds !== undefined || updates.content?.categoryProducts !== undefined || updates.content?.categoryId !== undefined) {
           const productType = updates.content.type as string | undefined;
           const selectedProducts = updates.content.selectedProducts as Array<{ 
             id: string; 
@@ -391,6 +391,14 @@ export function EditorSectionHighlighter() {
             comparePrice?: string | number | null;
             imageUrl?: string | null;
             image?: string | null;
+          }> | undefined;
+          const categoryProducts = updates.content.categoryProducts as Array<{ 
+            id: string; 
+            name: string; 
+            slug?: string;
+            price?: string | number;
+            comparePrice?: string | number | null;
+            imageUrl?: string | null;
           }> | undefined;
           
           // Store current type
@@ -409,55 +417,67 @@ export function EditorSectionHighlighter() {
           // ⚡ STEP 2: Get ONLY original products (those with data-product-index)
           const originalProductEls = grid.querySelectorAll('[data-product-index]');
           
+          // Helper function to render product cards
+          const renderProductCards = (productsToRender: Array<{ 
+            id: string; 
+            name: string; 
+            slug?: string;
+            price?: string | number;
+            comparePrice?: string | number | null;
+            imageUrl?: string | null;
+            image?: string | null;
+          }>) => {
+            const basePath = window.location.pathname.split('/').slice(0, 3).join('/');
+            
+            productsToRender.forEach((product, index) => {
+              const imageUrl = product.imageUrl || (product as { image?: string }).image || '/placeholder.svg';
+              const price = product.price ? Number(product.price) : 0;
+              const comparePrice = product.comparePrice ? Number(product.comparePrice) : null;
+              const hasDiscount = comparePrice && comparePrice > price;
+              const discountPercent = hasDiscount ? Math.round((1 - price / comparePrice) * 100) : 0;
+              
+              const productHtml = `
+                <div 
+                  class="animate-slide-up group"
+                  style="animation-delay: ${index * 50}ms"
+                  data-preview-product
+                >
+                  <a href="${basePath}/product/${product.slug || product.id}" class="block">
+                    <div class="relative bg-gray-50 mb-3 overflow-hidden aspect-3/4">
+                      <img 
+                        src="${imageUrl}" 
+                        alt="${product.name}"
+                        class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]"
+                        loading="lazy"
+                      />
+                      ${hasDiscount ? `
+                        <div class="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-medium px-2 py-0.5 rounded-full tracking-wide">
+                          ${discountPercent}%-
+                        </div>
+                      ` : ''}
+                    </div>
+                    <div class="text-center space-y-2">
+                      <h3 class="font-display text-sm tracking-wide text-gray-900 line-clamp-1">${product.name}</h3>
+                      <div class="flex items-center justify-center gap-2">
+                        ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">₪${comparePrice.toFixed(2)}</span>` : ''}
+                        <span class="text-sm font-medium ${hasDiscount ? 'text-green-600' : 'text-gray-900'}">₪${price.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </a>
+                </div>
+              `;
+              
+              grid.insertAdjacentHTML('beforeend', productHtml);
+            });
+          };
+          
           // For "specific" mode: render the selected products directly
           if (currentType === 'specific') {
             // Hide original products
             originalProductEls.forEach(el => el.classList.add('hidden'));
             
             if (selectedProducts && selectedProducts.length > 0) {
-              // Create product cards for selected products
-              const basePath = window.location.pathname.split('/').slice(0, 3).join('/');
-              
-              selectedProducts.forEach((product, index) => {
-                const imageUrl = product.imageUrl || product.image || '/placeholder.svg';
-                const price = product.price ? Number(product.price) : 0;
-                const comparePrice = product.comparePrice ? Number(product.comparePrice) : null;
-                const hasDiscount = comparePrice && comparePrice > price;
-                const discountPercent = hasDiscount ? Math.round((1 - price / comparePrice) * 100) : 0;
-                
-                const productHtml = `
-                  <div 
-                    class="animate-slide-up group"
-                    style="animation-delay: ${index * 50}ms"
-                    data-preview-product
-                  >
-                    <a href="${basePath}/product/${product.slug || product.id}" class="block">
-                      <div class="relative bg-gray-50 mb-3 overflow-hidden aspect-3/4">
-                        <img 
-                          src="${imageUrl}" 
-                          alt="${product.name}"
-                          class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]"
-                          loading="lazy"
-                        />
-                        ${hasDiscount ? `
-                          <div class="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-medium px-2 py-0.5 rounded-full tracking-wide">
-                            ${discountPercent}%-
-                          </div>
-                        ` : ''}
-                      </div>
-                      <div class="text-center space-y-2">
-                        <h3 class="font-display text-sm tracking-wide text-gray-900 line-clamp-1">${product.name}</h3>
-                        <div class="flex items-center justify-center gap-2">
-                          ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">₪${comparePrice.toFixed(2)}</span>` : ''}
-                          <span class="text-sm font-medium ${hasDiscount ? 'text-green-600' : 'text-gray-900'}">₪${price.toFixed(2)}</span>
-                        </div>
-                      </div>
-                    </a>
-                  </div>
-                `;
-                
-                grid.insertAdjacentHTML('beforeend', productHtml);
-              });
+              renderProductCards(selectedProducts);
             } else {
               // No products selected - show placeholder
               const emptyHtml = `
@@ -467,8 +487,26 @@ export function EditorSectionHighlighter() {
               `;
               grid.insertAdjacentHTML('beforeend', emptyHtml);
             }
-          } else {
-            // For other modes (all, featured, category): show original products
+          } 
+          // For "category" mode: render category products
+          else if (currentType === 'category') {
+            // Hide original products
+            originalProductEls.forEach(el => el.classList.add('hidden'));
+            
+            if (categoryProducts && categoryProducts.length > 0) {
+              renderProductCards(categoryProducts);
+            } else {
+              // No category selected or empty - show placeholder
+              const emptyHtml = `
+                <div data-preview-product class="col-span-full text-center py-12 text-gray-400">
+                  <p>בחר קטגוריה להצגת מוצרים</p>
+                </div>
+              `;
+              grid.insertAdjacentHTML('beforeend', emptyHtml);
+            }
+          } 
+          else {
+            // For other modes (all, featured): show original products
             originalProductEls.forEach(el => el.classList.remove('hidden'));
           }
         }
