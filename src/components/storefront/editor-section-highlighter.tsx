@@ -916,18 +916,25 @@ export function EditorSectionHighlighter() {
           case 'banner':
             const hasHeroImage = !!(content?.imageUrl || content?.mobileImageUrl);
             const heroBgColor = hasHeroImage ? 'transparent' : '#6B7280'; // Gray fallback if no image
-            placeholder.className = 'relative min-h-[60vh] flex items-center justify-center overflow-hidden';
+            // Match exact styling from HeroSection component
+            placeholder.className = 'relative overflow-hidden';
+            placeholder.style.height = '90vh';
             placeholder.dataset.hasImage = hasHeroImage ? 'true' : 'false';
-            placeholder.style.backgroundColor = heroBgColor;
+            placeholder.style.backgroundColor = hasHeroImage ? '' : heroBgColor;
             html = `
               <div class="absolute inset-0">
                 <div class="absolute inset-0 bg-cover bg-center" data-bg-desktop style="background-size: cover; background-position: center; ${content?.imageUrl ? `background-image: url('${content.imageUrl}')` : 'background-image: none;'}"></div>
                 <div class="absolute inset-0" data-overlay style="background-color: rgba(0,0,0,0.3);"></div>
               </div>
-              <div class="relative z-10 text-center text-white px-4" data-content-container>
-                <h2 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-wide mb-4" data-section-title>${title || 'כותרת הבאנר'}</h2>
-                <p class="text-xl md:text-2xl mb-8 opacity-90" data-section-subtitle>${subtitle || 'תת כותרת'}</p>
-                <a href="${content?.buttonLink || '/products'}" class="inline-block px-8 py-3 bg-white text-black hover:bg-black hover:text-white transition-colors text-sm tracking-wider uppercase" data-section-button>${content?.buttonText || 'לחנות'}</a>
+              <div class="relative z-10 h-full flex flex-col justify-center items-center text-center container mx-auto px-6" data-content-container>
+                <h1 class="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 uppercase" data-section-title style="${title ? '' : 'display:none'}">${title || ''}</h1>
+                <p class="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12" data-section-subtitle style="${subtitle ? '' : 'display:none'}">${subtitle || ''}</p>
+                <a href="${content?.buttonLink || '/products'}" class="inline-block px-8 py-3 bg-white text-black uppercase tracking-wider text-sm transition-all" data-section-button style="${content?.buttonText ? '' : 'display:none'}">${content?.buttonText || ''}</a>
+              </div>
+              <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1">
+                  <path d="M12 5v14M19 12l-7 7-7-7"/>
+                </svg>
               </div>
             `;
             break;
