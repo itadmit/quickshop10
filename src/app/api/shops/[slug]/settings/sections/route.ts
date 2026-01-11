@@ -42,6 +42,9 @@ export async function PUT(
 
     console.log('[Sections API] Saving sections:', { page, sectionsCount: sections.length });
     
+    // Track newly inserted section IDs so we don't delete them
+    const newlyInsertedIds: string[] = [];
+    
     // Update each section
     for (const section of sections) {
       console.log('[Sections API] Processing section:', { id: section.id, type: section.type, isTemp: section.id.startsWith('temp-') });
@@ -51,7 +54,7 @@ export async function PUT(
         // Create new section - type is validated by DB enum
         console.log('[Sections API] Inserting new section:', { type: section.type, page, title: section.title });
         try {
-          await db.insert(pageSections).values({
+          const [inserted] = await db.insert(pageSections).values({
             storeId: store.id,
             page: page, // Use the page parameter
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -62,8 +65,11 @@ export async function PUT(
             settings: section.settings,
             sortOrder: section.sortOrder,
             isActive: section.isActive,
-          });
-          console.log('[Sections API] Section inserted successfully');
+          }).returning({ id: pageSections.id });
+          
+          // Track the new ID so we don't delete it
+          newlyInsertedIds.push(inserted.id);
+          console.log('[Sections API] Section inserted successfully with ID:', inserted.id);
         } catch (insertError) {
           console.error('[Sections API] Insert error:', insertError);
           throw insertError;
@@ -94,6 +100,10 @@ export async function PUT(
     const currentSectionIds = sections
       .filter(s => !s.id.startsWith('temp-'))
       .map(s => s.id);
+    
+    // Include newly inserted IDs in the keep list
+    const idsToKeep = [...currentSectionIds, ...newlyInsertedIds];
+    console.log('[Sections API] IDs to keep:', idsToKeep);
 
     const existingSections = await db
       .select({ id: pageSections.id })
@@ -106,7 +116,8 @@ export async function PUT(
       );
 
     for (const existing of existingSections) {
-      if (!currentSectionIds.includes(existing.id)) {
+      if (!idsToKeep.includes(existing.id)) {
+        console.log('[Sections API] Deleting section:', existing.id);
         await db
           .delete(pageSections)
           .where(eq(pageSections.id, existing.id));
