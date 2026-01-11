@@ -59,6 +59,28 @@ export function EditorSectionHighlighter() {
         console.log('[EditorHighlighter] Element found:', element);
 
         // =====================================================
+        // CLEANUP OLD PLACEHOLDER STRUCTURE
+        // Fix old placeholders that have hardcoded bg classes
+        // =====================================================
+        const bgDesktopEl = element.querySelector('[data-bg-desktop]') as HTMLElement;
+        if (bgDesktopEl) {
+          // Remove hardcoded bg-gray classes
+          bgDesktopEl.classList.remove('bg-gray-200', 'bg-gray-100', 'bg-gray-300', 'bg-gray-400');
+        }
+        
+        // Find or create data-overlay element
+        const existingOverlay = element.querySelector('[data-overlay]') as HTMLElement;
+        if (!existingOverlay) {
+          // Check for old overlay with bg-black/30 class
+          const oldOverlay = element.querySelector('.bg-black\\/30, [class*="bg-black/"]') as HTMLElement;
+          if (oldOverlay) {
+            oldOverlay.setAttribute('data-overlay', '');
+            oldOverlay.classList.remove('bg-black/30', 'bg-black/50', 'bg-black/40');
+            oldOverlay.style.backgroundColor = 'rgba(0,0,0,0.3)';
+          }
+        }
+
+        // =====================================================
         // BASIC TITLE/SUBTITLE UPDATES
         // =====================================================
           if (updates.title !== undefined) {
@@ -305,11 +327,19 @@ export function EditorSectionHighlighter() {
             currentBg: sectionEl.style.backgroundColor
           });
           
-          // Apply backgroundColor if no image
-          if (!hasImage) {
-            sectionEl.style.backgroundColor = updates.settings.backgroundColor as string;
-            console.log('[EditorHighlighter] Applied backgroundColor:', updates.settings.backgroundColor);
+          // Apply backgroundColor to section
+          sectionEl.style.backgroundColor = updates.settings.backgroundColor as string;
+          
+          // Also hide/show the background div that might have bg-gray-200
+          const bgDesktop = element.querySelector('[data-bg-desktop]') as HTMLElement;
+          if (bgDesktop) {
+            // Remove the gray background class and make it transparent when no image
+            bgDesktop.classList.remove('bg-gray-200', 'bg-gray-100', 'bg-gray-300');
+            if (!hasImage) {
+              bgDesktop.style.backgroundColor = 'transparent';
+            }
           }
+          console.log('[EditorHighlighter] Applied backgroundColor:', updates.settings.backgroundColor);
         }
         if (updates.settings?.sectionBackground !== undefined) {
           (element as HTMLElement).style.backgroundColor = updates.settings.sectionBackground as string;
@@ -483,19 +513,36 @@ export function EditorSectionHighlighter() {
         
         // Overlay opacity
         if (updates.settings?.overlay !== undefined) {
-          const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
+          let overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
+          
+          // If no data-overlay, try to find overlay by class pattern (bg-black/XX)
+          if (!overlayEl) {
+            overlayEl = element.querySelector('.bg-black\\/30, .bg-black\\/50, [class*="bg-black"]') as HTMLElement;
+          }
+          
+          // Also check for nested overlay in the absolute container
+          if (!overlayEl) {
+            const absoluteContainer = element.querySelector('.absolute.inset-0');
+            if (absoluteContainer) {
+              overlayEl = absoluteContainer.querySelector('.absolute.inset-0:last-child') as HTMLElement;
+            }
+          }
+          
           console.log('[EditorHighlighter] Overlay update:', {
             value: updates.settings.overlay,
             overlayElFound: !!overlayEl
           });
+          
           if (overlayEl) {
             const overlayValue = updates.settings.overlay as number;
             // Ensure value is between 0 and 1
             const clampedValue = Math.max(0, Math.min(1, overlayValue));
+            // Remove any bg-black classes that might override our style
+            overlayEl.className = overlayEl.className.replace(/bg-black\/\d+/g, '').trim();
             overlayEl.style.backgroundColor = `rgba(0,0,0,${clampedValue})`;
             console.log('[EditorHighlighter] Applied overlay:', `rgba(0,0,0,${clampedValue})`);
           } else {
-            console.warn('[EditorHighlighter] Overlay element [data-overlay] not found in section');
+            console.warn('[EditorHighlighter] Overlay element not found in section');
           }
         }
         

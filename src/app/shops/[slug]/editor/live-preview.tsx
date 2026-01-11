@@ -76,8 +76,10 @@ export function LivePreview({
   useEffect(() => {
     if (iframeRef.current && refreshKey > 0) {
       setIsLoading(true);
-      iframeRef.current.src = iframeRef.current.src;
+      // Use getPreviewUrl() to get URL with new refreshKey
+      iframeRef.current.src = getPreviewUrl();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshKey]);
 
   // Navigate to new page when currentPage changes
