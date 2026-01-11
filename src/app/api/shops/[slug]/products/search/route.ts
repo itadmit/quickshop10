@@ -42,6 +42,9 @@ export async function GET(
       .select({
         id: products.id,
         name: products.name,
+        slug: products.slug,
+        price: products.price,
+        comparePrice: products.comparePrice,
       })
       .from(products)
       .where(
@@ -80,10 +83,13 @@ export async function GET(
       imageMap.set(img.productId, img.url);
     });
 
-    // Format response
+    // Format response with full product data for live preview
     const result = foundProducts.map(p => ({
       id: p.id,
       name: p.name,
+      slug: p.slug,
+      price: p.price,
+      comparePrice: p.comparePrice,
       imageUrl: imageMap.get(p.id) || null,
     }));
 

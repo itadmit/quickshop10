@@ -380,53 +380,101 @@ export function EditorSectionHighlighter() {
         // =====================================================
         // PRODUCT TYPE AND PRODUCTS UPDATES (LIVE PREVIEW)
         // =====================================================
-        // ⚡ PERFORMANCE: Simple DOM manipulation - show/hide existing products by ID!
-        if (updates.content?.type !== undefined || updates.content?.productIds !== undefined) {
+        // ⚡ REAL-TIME: Render selected products directly!
+        if (updates.content?.type !== undefined || updates.content?.selectedProducts !== undefined || updates.content?.productIds !== undefined) {
           const productType = updates.content.type as string | undefined;
-          const productIds = updates.content.productIds as string[] | undefined;
+          const selectedProducts = updates.content.selectedProducts as Array<{ 
+            id: string; 
+            name: string; 
+            slug?: string;
+            price?: string | number;
+            comparePrice?: string | number | null;
+            imageUrl?: string | null;
+            image?: string | null;
+          }> | undefined;
           
-          // Store current state in data attributes
+          // Store current type
           if (productType !== undefined) {
             (element as HTMLElement).dataset.productType = productType;
-          }
-          if (productIds !== undefined) {
-            (element as HTMLElement).dataset.productIds = JSON.stringify(productIds);
           }
           
           const grid = element.querySelector('[data-products-grid]') as HTMLElement;
           if (!grid) return;
           
-          const productElements = grid.querySelectorAll('[data-product-id]');
-          
-          // Get current state
+          const allProductEls = grid.querySelectorAll('[data-product-id]');
           const currentType = productType || (element as HTMLElement).dataset.productType || 'all';
-          const currentProductIds = productIds || (() => {
-            try {
-              const stored = (element as HTMLElement).dataset.productIds;
-              return stored ? JSON.parse(stored) : undefined;
-            } catch {
-              return undefined;
-            }
-          })();
           
-          // Filter products by ID - FAST! ⚡
-          if (currentType === 'specific' && currentProductIds && currentProductIds.length > 0) {
-            // Show only selected products, hide others
-            productElements.forEach((prodEl) => {
-              const productId = (prodEl as HTMLElement).dataset.productId;
-              if (productId && currentProductIds.includes(productId)) {
-                prodEl.classList.remove('hidden');
-                (prodEl as HTMLElement).style.opacity = '1';
-              } else {
-                prodEl.classList.add('hidden');
-              }
-            });
+          // For "specific" mode: render the selected products directly
+          if (currentType === 'specific') {
+            if (selectedProducts && selectedProducts.length > 0) {
+              // Hide all existing products
+              allProductEls.forEach(el => el.classList.add('hidden'));
+              
+              // Create or update product cards for selected products
+              const basePath = window.location.pathname.split('/').slice(0, 3).join('/');
+              
+              // Remove previously injected preview products
+              grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
+              
+              // Add selected products
+              selectedProducts.forEach((product, index) => {
+                const imageUrl = product.imageUrl || product.image || '/placeholder.svg';
+                const price = product.price ? Number(product.price) : 0;
+                const comparePrice = product.comparePrice ? Number(product.comparePrice) : null;
+                const hasDiscount = comparePrice && comparePrice > price;
+                const discountPercent = hasDiscount ? Math.round((1 - price / comparePrice) * 100) : 0;
+                
+                const productHtml = `
+                  <div 
+                    class="animate-slide-up group"
+                    style="animation-delay: ${index * 50}ms"
+                    data-preview-product
+                    data-product-id="${product.id}"
+                  >
+                    <a href="${basePath}/product/${product.slug || product.id}" class="block">
+                        <div class="relative bg-gray-50 mb-3 overflow-hidden aspect-3/4">
+                        <img 
+                          src="${imageUrl}" 
+                          alt="${product.name}"
+                          class="absolute inset-0 w-full h-full object-cover transition-all duration-500 group-hover:scale-[1.02]"
+                          loading="lazy"
+                        />
+                        ${hasDiscount ? `
+                          <div class="absolute top-3 right-3 bg-green-500 text-white text-[10px] font-medium px-2 py-0.5 rounded-full tracking-wide">
+                            ${discountPercent}%-
+                          </div>
+                        ` : ''}
+                      </div>
+                      <div class="text-center space-y-2">
+                        <h3 class="font-display text-sm tracking-wide text-gray-900 line-clamp-1">${product.name}</h3>
+                        <div class="flex items-center justify-center gap-2">
+                          ${hasDiscount ? `<span class="text-xs text-gray-400 line-through">₪${comparePrice.toFixed(2)}</span>` : ''}
+                          <span class="text-sm font-medium ${hasDiscount ? 'text-green-600' : 'text-gray-900'}">₪${price.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                `;
+                
+                grid.insertAdjacentHTML('beforeend', productHtml);
+              });
+            } else {
+              // No products selected - show placeholder
+              allProductEls.forEach(el => el.classList.add('hidden'));
+              grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
+              
+              // Add empty state placeholder
+              const emptyHtml = `
+                <div data-preview-product class="col-span-full text-center py-12 text-gray-400">
+                  <p>בחר מוצרים להצגה</p>
+                </div>
+              `;
+              grid.insertAdjacentHTML('beforeend', emptyHtml);
+            }
           } else {
-            // Show all products normally (for 'all', 'featured', 'category')
-            productElements.forEach((prodEl) => {
-              prodEl.classList.remove('hidden');
-              (prodEl as HTMLElement).style.opacity = '1';
-            });
+            // For other modes (all, featured, category): show existing products, remove preview ones
+            grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
+            allProductEls.forEach(el => el.classList.remove('hidden'));
           }
         }
         

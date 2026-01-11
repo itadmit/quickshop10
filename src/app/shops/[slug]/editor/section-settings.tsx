@@ -928,7 +928,7 @@ function ProductsContentSettings({
   categories?: Category[];
 }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; imageUrl: string | null }>>([]);
+  const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; slug: string; price: string; comparePrice: string | null; imageUrl: string | null }>>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -956,7 +956,7 @@ function ProductsContentSettings({
   const selectedType = localType;
   const selectedCategoryId = (section.content.categoryId as string) || '';
   const selectedProductIds = (section.content.productIds as string[]) || [];
-  const selectedProducts = (section.content.selectedProducts as Array<{ id: string; name: string; imageUrl: string | null }>) || [];
+  const selectedProducts = (section.content.selectedProducts as Array<{ id: string; name: string; slug?: string; price?: string; comparePrice?: string | null; imageUrl: string | null }>) || [];
   
   // Search products dynamically
   const handleSearch = useCallback(async (term: string) => {
@@ -995,23 +995,29 @@ function ProductsContentSettings({
     };
   }, [searchTerm, handleSearch]);
   
-  // Add product to selection
-  const addProduct = (product: { id: string; name: string; imageUrl: string | null }) => {
+  // Add product to selection - single update for real-time preview!
+  const addProduct = (product: { id: string; name: string; slug?: string; price?: string; comparePrice?: string | null; imageUrl: string | null }) => {
     const newProductIds = [...selectedProductIds, product.id];
     const newSelectedProducts = [...selectedProducts, product];
-    updateContent('productIds', newProductIds);
-    updateContent('selectedProducts', newSelectedProducts);
+    // ⚡ Single update with both fields for immediate preview
+    updateContent({
+      productIds: newProductIds,
+      selectedProducts: newSelectedProducts,
+    });
     setSearchTerm('');
     setSearchResults([]);
     setShowResults(false);
   };
   
-  // Remove product from selection
+  // Remove product from selection - single update for real-time preview!
   const removeProduct = (productId: string) => {
     const newProductIds = selectedProductIds.filter(id => id !== productId);
     const newSelectedProducts = selectedProducts.filter(p => p.id !== productId);
-    updateContent('productIds', newProductIds);
-    updateContent('selectedProducts', newSelectedProducts);
+    // ⚡ Single update with both fields for immediate preview
+    updateContent({
+      productIds: newProductIds,
+      selectedProducts: newSelectedProducts,
+    });
   };
 
   return (
