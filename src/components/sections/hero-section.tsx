@@ -30,9 +30,9 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   const height = settings.height || '90vh';
   const overlay = settings.overlay ?? 0.3;
   const textAlign = settings.textAlign || 'center';
-  const backgroundColor = settings.backgroundColor || 'transparent';
-  const buttonBg = settings.buttonBackground || '#000000';
-  const buttonText = settings.buttonTextColor || '#FFFFFF';
+  const backgroundColor = settings.backgroundColor || '#6B7280'; // Gray as fallback
+  const buttonBg = settings.buttonBackground || '#FFFFFF'; // White default
+  const buttonText = settings.buttonTextColor || '#000000'; // Black default
   const containerType = settings.containerType || 'container';
   const paddingTop = settings.paddingTop || 0;
   const paddingBottom = settings.paddingBottom || 0;
@@ -47,8 +47,8 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
       style={{ 
         height,
         backgroundColor,
-        paddingTop: `${paddingTop}px`,
-        paddingBottom: `${paddingBottom}px`,
+        marginTop: `${paddingTop}px`,
+        marginBottom: `${paddingBottom}px`,
         ...(settings.customCss ? { cssText: settings.customCss } : {})
       }}
       data-section-id={sectionId}
@@ -75,7 +75,15 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
         />
       </div>
       
-      <div className={`relative z-10 h-full flex flex-col justify-center px-6 ${alignmentClass} ${containerType === 'container' ? 'container mx-auto' : ''}`}>
+      <div className={`relative z-10 h-full flex flex-col justify-center ${alignmentClass} ${
+        containerType === 'container' 
+          ? 'container mx-auto px-6' 
+          : textAlign === 'right' 
+            ? 'pr-5 pl-6' 
+            : textAlign === 'left' 
+              ? 'pl-5 pr-6' 
+              : 'px-5'
+      }`}>
         {/* Title */}
         <h1 
           className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"

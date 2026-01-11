@@ -311,14 +311,39 @@ export function EditorSectionHighlighter() {
         
         // Container type (container vs full width)
         if (updates.settings?.containerType !== undefined) {
-          const contentContainer = element.querySelector('.container, .relative.z-10 > div, [data-content-container]') as HTMLElement;
+          // Find the content container inside the section
+          const contentContainer = element.querySelector('.relative.z-10') as HTMLElement;
           if (contentContainer) {
             if (updates.settings.containerType === 'full') {
+              // Remove container classes
               contentContainer.classList.remove('container', 'mx-auto');
-              contentContainer.classList.add('w-full');
+              // Detect current text alignment from classes
+              let textAlign = 'center';
+              if (contentContainer.classList.contains('text-right') || contentContainer.classList.contains('items-end')) {
+                textAlign = 'right';
+              } else if (contentContainer.classList.contains('text-left') || contentContainer.classList.contains('items-start')) {
+                textAlign = 'left';
+              }
+              // Also check if textAlign is in updates
+              if (updates.settings.textAlign) {
+                textAlign = updates.settings.textAlign as string;
+              }
+              // Apply 20px padding from the correct side
+              if (textAlign === 'right') {
+                contentContainer.style.paddingRight = '20px';
+                contentContainer.style.paddingLeft = '24px';
+              } else if (textAlign === 'left') {
+                contentContainer.style.paddingLeft = '20px';
+                contentContainer.style.paddingRight = '24px';
+              } else {
+                contentContainer.style.paddingLeft = '20px';
+                contentContainer.style.paddingRight = '20px';
+              }
             } else {
-              contentContainer.classList.remove('w-full');
+              // Add container classes and remove custom padding
               contentContainer.classList.add('container', 'mx-auto');
+              contentContainer.style.paddingLeft = '';
+              contentContainer.style.paddingRight = '';
             }
           }
         }
@@ -356,15 +381,31 @@ export function EditorSectionHighlighter() {
             } else {
               contentContainer.classList.add('items-center', 'text-center');
             }
+            
+            // If full width, update padding based on alignment
+            // Check if container has 'container' class to determine type
+            const isFullWidth = !contentContainer.classList.contains('container');
+            if (isFullWidth) {
+              if (align === 'right') {
+                contentContainer.style.paddingRight = '20px';
+                contentContainer.style.paddingLeft = '24px';
+              } else if (align === 'left') {
+                contentContainer.style.paddingLeft = '20px';
+                contentContainer.style.paddingRight = '24px';
+              } else {
+                contentContainer.style.paddingLeft = '20px';
+                contentContainer.style.paddingRight = '20px';
+              }
+            }
           }
         }
         
-        // Padding top/bottom
+        // Margin top/bottom (spacing for entire section)
         if (updates.settings?.paddingTop !== undefined) {
-          (element as HTMLElement).style.paddingTop = `${updates.settings.paddingTop}px`;
+          (element as HTMLElement).style.marginTop = `${updates.settings.paddingTop}px`;
         }
         if (updates.settings?.paddingBottom !== undefined) {
-          (element as HTMLElement).style.paddingBottom = `${updates.settings.paddingBottom}px`;
+          (element as HTMLElement).style.marginBottom = `${updates.settings.paddingBottom}px`;
         }
         
         // Accent color (for series grid, hero premium, etc.)
@@ -391,7 +432,9 @@ export function EditorSectionHighlighter() {
         // Overlay opacity
         if (updates.settings?.overlay !== undefined) {
           const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
-          if (overlayEl) overlayEl.style.opacity = String(updates.settings.overlay);
+          if (overlayEl) {
+            overlayEl.style.backgroundColor = `rgba(0,0,0,${updates.settings.overlay})`;
+          }
         }
         
         // Height

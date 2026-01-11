@@ -632,12 +632,12 @@ function DesignSettings({
         <SettingsGroup title="עיצוב כפתור">
           <ColorField
             label="צבע רקע כפתור"
-            value={(section.settings.buttonBackground as string) || '#000000'}
+            value={(section.settings.buttonBackground as string) || '#FFFFFF'}
             onChange={(v) => updateSettings('buttonBackground', v)}
           />
           <ColorField
             label="צבע טקסט כפתור"
-            value={(section.settings.buttonTextColor as string) || '#FFFFFF'}
+            value={(section.settings.buttonTextColor as string) || '#000000'}
             onChange={(v) => updateSettings('buttonTextColor', v)}
           />
         </SettingsGroup>
