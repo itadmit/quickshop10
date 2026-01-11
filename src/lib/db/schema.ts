@@ -13,7 +13,7 @@ import {
   uniqueIndex,
   index,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // ============ ENUMS ============
 
@@ -577,6 +577,35 @@ export const productAddonAssignments = pgTable('product_addon_assignments', {
   index('idx_addon_assignments_product').on(table.productId),
   index('idx_addon_assignments_addon').on(table.addonId),
   uniqueIndex('idx_addon_assignments_unique').on(table.productId, table.addonId),
+]);
+
+// ============ PRODUCT WAITLIST ============
+
+// Product Waitlist - Customers waiting for out-of-stock products
+export const productWaitlist = pgTable('product_waitlist', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }), // null = simple product
+  
+  // Customer contact details
+  email: varchar('email', { length: 255 }).notNull(),
+  firstName: varchar('first_name', { length: 100 }),
+  phone: varchar('phone', { length: 50 }),
+  
+  // Tracking
+  notifiedAt: timestamp('notified_at'), // When email was sent
+  isNotified: boolean('is_notified').default(false).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_waitlist_product').on(table.productId),
+  index('idx_waitlist_variant').on(table.variantId),
+  index('idx_waitlist_store').on(table.storeId),
+  index('idx_waitlist_email').on(table.email),
+  // Prevent duplicate entries
+  uniqueIndex('idx_waitlist_unique_product').on(table.storeId, table.productId, table.email).where(sql`variant_id IS NULL`),
+  uniqueIndex('idx_waitlist_unique_variant').on(table.storeId, table.variantId, table.email).where(sql`variant_id IS NOT NULL`),
 ]);
 
 // ============ CUSTOMERS ============
@@ -3506,3 +3535,7 @@ export type ProductAddon = typeof productAddons.$inferSelect;
 export type NewProductAddon = typeof productAddons.$inferInsert;
 export type ProductAddonAssignment = typeof productAddonAssignments.$inferSelect;
 export type NewProductAddonAssignment = typeof productAddonAssignments.$inferInsert;
+
+// Product Waitlist types
+export type ProductWaitlistEntry = typeof productWaitlist.$inferSelect;
+export type NewProductWaitlistEntry = typeof productWaitlist.$inferInsert;

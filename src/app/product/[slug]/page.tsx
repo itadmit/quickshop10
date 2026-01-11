@@ -123,6 +123,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   productId={product.id}
                   productName={product.name}
                   productImage={mainImage || '/placeholder.svg'}
+                  storeSlug={store.slug || ''}
                   options={options}
                   variants={variants}
                   basePrice={Number(product.price)}

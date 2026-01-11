@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store-context';
+import { ProductWaitlistForm } from './product-waitlist-form';
 
 interface OptionValueMetadata {
   color?: string;      // for color type
@@ -58,6 +59,8 @@ interface VariantSelectorProps {
   categoryIds?: string[];
   // Callback when option changes (for gallery switching)
   onOptionChange?: (optionName: string, value: string, valueMetadata?: OptionValue['metadata']) => void;
+  // Store slug for waitlist
+  storeSlug: string;
 }
 
 export function VariantSelector({
@@ -72,6 +75,7 @@ export function VariantSelector({
   automaticDiscounts = [],
   categoryIds,
   onOptionChange,
+  storeSlug,
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -353,24 +357,29 @@ export function VariantSelector({
         </div>
       ))}
 
-      {/* Add to Cart */}
-      <button
-        onClick={handleAddToCart}
-        disabled={!selectedVariant || isOutOfStock || added}
-        className={`
-          btn-primary w-full
-          ${added ? '!bg-black !text-white' : ''}
-          ${isOutOfStock ? '!bg-gray-200 !text-gray-500 !border-gray-200 cursor-not-allowed' : ''}
-          disabled:cursor-not-allowed
-        `}
-      >
-        {added 
-          ? 'נוסף לעגלה ✓' 
-          : isOutOfStock 
-            ? 'אזל מהמלאי' 
-            : 'הוסף לעגלה'
-        }
-      </button>
+      {/* Add to Cart or Waitlist */}
+      {isOutOfStock ? (
+        <div className="mt-4">
+          <ProductWaitlistForm
+            storeSlug={storeSlug}
+            productId={productId}
+            variantId={selectedVariant?.id}
+            variantTitle={selectedVariant?.title}
+          />
+        </div>
+      ) : (
+        <button
+          onClick={handleAddToCart}
+          disabled={!selectedVariant || added}
+          className={`
+            btn-primary w-full
+            ${added ? '!bg-black !text-white' : ''}
+            disabled:cursor-not-allowed
+          `}
+        >
+          {added ? 'נוסף לעגלה ✓' : 'הוסף לעגלה'}
+        </button>
+      )}
 
       {/* Stock Status */}
       {selectedVariant && inventory !== null && inventory !== undefined && inventory > 0 && (

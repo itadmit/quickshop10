@@ -37,6 +37,9 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   const paddingTop = settings.paddingTop || 0;
   const paddingBottom = settings.paddingBottom || 0;
 
+  // Check if there's any image
+  const hasImage = !!(content.imageUrl || content.mobileImageUrl);
+  
   // Text alignment classes
   const alignmentClass = textAlign === 'right' ? 'items-end text-right' : textAlign === 'left' ? 'items-start text-left' : 'items-center text-center';
 
@@ -46,13 +49,14 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
       className={`relative overflow-hidden ${settings.customClass || ''}`}
       style={{ 
         height,
-        backgroundColor,
+        backgroundColor: hasImage ? undefined : backgroundColor, // Only apply background if no image
         marginTop: `${paddingTop}px`,
         marginBottom: `${paddingBottom}px`,
         ...(settings.customCss ? { cssText: settings.customCss } : {})
       }}
       data-section-id={sectionId}
       data-section-name="באנר ראשי"
+      data-has-image={hasImage ? 'true' : 'false'}
     >
       <div className="absolute inset-0">
         {/* Desktop Image */}

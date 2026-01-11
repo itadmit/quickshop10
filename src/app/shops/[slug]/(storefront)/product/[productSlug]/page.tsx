@@ -491,6 +491,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         name: d.name,
                       }))}
                       categoryIds={productCategoryIds}
+                      storeSlug={slug}
                     />
                   ) : (
                     <>
@@ -540,6 +541,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                           categoryIds={productCategoryIds}
                           className="mb-4"
                           showDecimalPrices={showDecimalPrices}
+                          storeSlug={slug}
                         />
                       ) : (
                         <AddToCartButton 

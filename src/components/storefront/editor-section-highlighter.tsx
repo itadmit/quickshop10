@@ -179,6 +179,34 @@ export function EditorSectionHighlighter() {
           if (fallback) {
             fallback.style.display = updates.content.imageUrl ? 'none' : 'block';
           }
+          
+          // Update hasImage attribute and background color for hero sections
+          const hasImage = !!(updates.content.imageUrl || updates.content.mobileImageUrl);
+          (element as HTMLElement).dataset.hasImage = hasImage ? 'true' : 'false';
+          if (hasImage) {
+            (element as HTMLElement).style.backgroundColor = '';
+          } else if (updates.settings?.backgroundColor) {
+            (element as HTMLElement).style.backgroundColor = updates.settings.backgroundColor as string;
+          }
+        }
+        
+        // Mobile image updates
+        if (updates.content?.mobileImageUrl !== undefined) {
+          const bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
+          if (bgMobile) {
+            bgMobile.style.backgroundImage = updates.content.mobileImageUrl 
+              ? `url("${updates.content.mobileImageUrl}")` 
+              : 'none';
+          }
+          
+          // Update hasImage attribute and background color
+          const hasImage = !!(updates.content.imageUrl || updates.content.mobileImageUrl);
+          (element as HTMLElement).dataset.hasImage = hasImage ? 'true' : 'false';
+          if (hasImage) {
+            (element as HTMLElement).style.backgroundColor = '';
+          } else if (updates.settings?.backgroundColor) {
+            (element as HTMLElement).style.backgroundColor = updates.settings.backgroundColor as string;
+          }
         }
         
         // =====================================================
@@ -189,15 +217,6 @@ export function EditorSectionHighlighter() {
           if (btnEl) {
             btnEl.href = updates.content.buttonLink || '#';
             btnEl.classList.toggle('hidden', !updates.content.buttonLink || !btnEl.textContent);
-          }
-        }
-        if (updates.content?.mobileImageUrl !== undefined) {
-          const bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
-          if (bgMobile) {
-            const desktopUrl = (element.querySelector('[data-bg-desktop]') as HTMLElement)?.style.backgroundImage;
-            bgMobile.style.backgroundImage = updates.content.mobileImageUrl 
-              ? `url("${updates.content.mobileImageUrl}")` 
-              : desktopUrl || 'none';
           }
         }
         
@@ -273,9 +292,17 @@ export function EditorSectionHighlighter() {
         // =====================================================
         // SETTINGS UPDATES - Colors, heights, etc.
         // =====================================================
-        // Background color (multiple property names)
+        // Background color (only if no image for hero sections)
         if (updates.settings?.backgroundColor !== undefined) {
-          (element as HTMLElement).style.backgroundColor = updates.settings.backgroundColor as string;
+          const sectionEl = element as HTMLElement;
+          const hasImage = sectionEl.dataset.hasImage === 'true' || 
+                          element.querySelector('[data-bg-desktop]')?.getAttribute('style')?.includes('url') ||
+                          element.querySelector('[data-bg-mobile]')?.getAttribute('style')?.includes('url');
+          if (!hasImage) {
+            sectionEl.style.backgroundColor = updates.settings.backgroundColor as string;
+          } else {
+            sectionEl.style.backgroundColor = '';
+          }
         }
         if (updates.settings?.sectionBackground !== undefined) {
           (element as HTMLElement).style.backgroundColor = updates.settings.sectionBackground as string;
@@ -433,7 +460,10 @@ export function EditorSectionHighlighter() {
         if (updates.settings?.overlay !== undefined) {
           const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
           if (overlayEl) {
-            overlayEl.style.backgroundColor = `rgba(0,0,0,${updates.settings.overlay})`;
+            const overlayValue = updates.settings.overlay as number;
+            // Ensure value is between 0 and 1
+            const clampedValue = Math.max(0, Math.min(1, overlayValue));
+            overlayEl.style.backgroundColor = `rgba(0,0,0,${clampedValue})`;
           }
         }
         

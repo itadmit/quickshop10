@@ -127,6 +127,13 @@
       "when": 1767890514220,
       "tag": "0017_awesome_terror",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1768143464361,
+      "tag": "0018_mixed_sumo",
+      "breakpoints": true
     }
   ]
 }
