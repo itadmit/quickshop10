@@ -35,18 +35,65 @@ interface RichTextEditorProps {
   maxHeight?: number;
 }
 
-// Common text colors
+// Common text colors - Extended palette
 const TEXT_COLORS = [
+  // Neutrals
   { value: '#000000', label: 'שחור' },
+  { value: '#1F2937', label: 'אפור כהה מאוד' },
   { value: '#374151', label: 'אפור כהה' },
   { value: '#6B7280', label: 'אפור' },
-  { value: '#EF4444', label: 'אדום' },
-  { value: '#F97316', label: 'כתום' },
+  { value: '#9CA3AF', label: 'אפור בהיר' },
+  { value: '#D1D5DB', label: 'אפור בהיר מאוד' },
+  { value: '#F3F4F6', label: 'אפור חיוור' },
+  { value: '#FFFFFF', label: 'לבן' },
+  
+  // Reds
+  { value: '#7F1D1D', label: 'אדום כהה' },
+  { value: '#DC2626', label: 'אדום' },
+  { value: '#EF4444', label: 'אדום בהיר' },
+  { value: '#FCA5A5', label: 'אדום חיוור' },
+  
+  // Oranges
+  { value: '#9A3412', label: 'כתום כהה' },
+  { value: '#EA580C', label: 'כתום' },
+  { value: '#F97316', label: 'כתום בהיר' },
+  { value: '#FDBA74', label: 'כתום חיוור' },
+  
+  // Yellows/Golds
+  { value: '#854D0E', label: 'זהב כהה' },
+  { value: '#CA8A04', label: 'זהב' },
   { value: '#EAB308', label: 'צהוב' },
-  { value: '#22C55E', label: 'ירוק' },
-  { value: '#3B82F6', label: 'כחול' },
-  { value: '#8B5CF6', label: 'סגול' },
-  { value: '#EC4899', label: 'ורוד' },
+  { value: '#FDE047', label: 'צהוב בהיר' },
+  
+  // Greens
+  { value: '#14532D', label: 'ירוק כהה' },
+  { value: '#16A34A', label: 'ירוק' },
+  { value: '#22C55E', label: 'ירוק בהיר' },
+  { value: '#86EFAC', label: 'ירוק חיוור' },
+  
+  // Teals
+  { value: '#134E4A', label: 'טורקיז כהה' },
+  { value: '#0D9488', label: 'טורקיז' },
+  { value: '#14B8A6', label: 'טורקיז בהיר' },
+  { value: '#5EEAD4', label: 'טורקיז חיוור' },
+  
+  // Blues
+  { value: '#1E3A8A', label: 'כחול כהה' },
+  { value: '#2563EB', label: 'כחול' },
+  { value: '#3B82F6', label: 'כחול בהיר' },
+  { value: '#93C5FD', label: 'כחול חיוור' },
+  
+  // Purples
+  { value: '#581C87', label: 'סגול כהה' },
+  { value: '#7C3AED', label: 'סגול' },
+  { value: '#8B5CF6', label: 'סגול בהיר' },
+  { value: '#C4B5FD', label: 'סגול חיוור' },
+  
+  // Pinks
+  { value: '#831843', label: 'ורוד כהה' },
+  { value: '#DB2777', label: 'ורוד' },
+  { value: '#EC4899', label: 'ורוד בהיר' },
+  { value: '#F9A8D4', label: 'ורוד חיוור' },
 ];
 
 // Block formats
@@ -288,10 +335,10 @@ export function RichTextEditor({
                   className="fixed inset-0 z-10" 
                   onClick={() => setShowColorPicker(false)}
                 />
-                {/* Color picker popover */}
-                <div className="absolute top-full right-0 mt-1 p-3 bg-white border border-gray-200 rounded-xl shadow-xl z-20">
-                  <p className="text-xs text-gray-500 mb-2 text-right">בחר צבע</p>
-                  <div className="grid grid-cols-5 gap-2">
+                {/* Color picker popover - Expanded, opens to the left */}
+                <div className="absolute top-full left-0 mt-1 p-4 bg-white border border-gray-200 rounded-xl shadow-xl z-20 w-80">
+                  <p className="text-xs text-gray-500 mb-3 text-right font-medium">בחר צבע</p>
+                  <div className="grid grid-cols-8 gap-2">
                     {TEXT_COLORS.map(color => (
                       <button
                         key={color.value}
@@ -302,7 +349,7 @@ export function RichTextEditor({
                         }}
                         onMouseDown={(e) => e.preventDefault()}
                         title={color.label}
-                        className="w-7 h-7 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-100 transition-all cursor-pointer"
+                        className="w-8 h-8 rounded-md border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
                         style={{ backgroundColor: color.value }}
                       />
                     ))}
