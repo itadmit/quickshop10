@@ -629,15 +629,46 @@ function DesignSettings({
   if (section.type === 'hero') {
     return (
       <div className="p-4 space-y-6">
-        <SettingsGroup title="עיצוב טקסט">
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#ffffff',
+              fontSize: sizeToPx(section.settings.titleSize, 48),
+              fontWeight: mapWeight(section.settings.titleWeight, 'bold'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#ffffff"
+          />
+          <TypographyPopover
+            label="תת-כותרת"
+            value={{
+              color: (section.settings.subtitleColor as string) || 'rgba(255,255,255,0.9)',
+              fontSize: sizeToPx(section.settings.subtitleSize, 18),
+              fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
+            }}
+            onChange={(typography) => {
+              updateSettings('subtitleColor', typography.color);
+              updateSettings('subtitleSize', typography.fontSize);
+              updateSettings('subtitleWeight', typography.fontWeight);
+            }}
+            defaultColor="rgba(255,255,255,0.9)"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מיקום טקסט">
           <ToggleField
-            label="יישור טקסט"
+            label="יישור אופקי"
             options={['ימין', 'מרכז', 'שמאל']}
             value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
             onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
           />
           <ToggleField
-            label="מיקום טקסט"
+            label="יישור אנכי"
             options={['למעלה', 'מרכז', 'למטה']}
             value={(section.settings.textPosition as string) === 'top' ? 'למעלה' : (section.settings.textPosition as string) === 'bottom' ? 'למטה' : 'מרכז'}
             onChange={(v) => updateSettings('textPosition', v === 'למעלה' ? 'top' : v === 'למטה' ? 'bottom' : 'center')}
@@ -662,14 +693,19 @@ function DesignSettings({
 
         <SettingsGroup title="עיצוב כפתור">
           <ColorField
-            label="צבע רקע כפתור"
+            label="צבע רקע"
             value={(section.settings.buttonBackground as string) || '#FFFFFF'}
             onChange={(v) => updateSettings('buttonBackground', v)}
           />
           <ColorField
-            label="צבע טקסט כפתור"
+            label="צבע טקסט"
             value={(section.settings.buttonTextColor as string) || '#000000'}
             onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+          <ColorField
+            label="צבע מסגרת"
+            value={(section.settings.buttonBorderColor as string) || '#FFFFFF'}
+            onChange={(v) => updateSettings('buttonBorderColor', v)}
           />
         </SettingsGroup>
 
@@ -3086,56 +3122,81 @@ function VideoBannerContentSettings({ section, onUpdate, storeInfo }: { section:
 
 // Reviews Content Settings
 function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
+  const reviews = (section.content.reviews as Array<{ name: string; text: string; rating: number; date?: string }>) || [
+    { name: 'שרה כ.', text: 'מוצר מעולה, ממליצה בחום!', rating: 5 },
+    { name: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
+    { name: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
+  ];
+
+  const updateReviews = (newReviews: Array<{ name: string; text: string; rating: number; date?: string }>) => {
+    onUpdate({ content: { ...section.content, reviews: newReviews } });
+  };
+
+  const updateReview = (index: number, field: 'name' | 'text' | 'rating' | 'date', value: string | number) => {
+    const newReviews = [...reviews];
+    newReviews[index] = { ...newReviews[index], [field]: value };
+    updateReviews(newReviews);
+  };
+
+  const addReview = () => {
+    updateReviews([...reviews, { name: 'לקוח חדש', text: 'ביקורת', rating: 5 }]);
+  };
+
+  const removeReview = (index: number) => {
+    const newReviews = reviews.filter((_, i) => i !== index);
+    updateReviews(newReviews);
   };
 
   return (
     <>
-      <SettingsGroup title="הגדרות תצוגה">
-        <SelectField
-          label="עמודות"
-          value={String((section.settings.columns as number) || 3)}
-          options={[
-            { value: '1', label: '1' },
-            { value: '2', label: '2' },
-            { value: '3', label: '3' },
-            { value: '4', label: '4' },
-          ]}
-          onChange={(v) => updateSettings('columns', parseInt(v))}
-        />
-        <SelectField
-          label="סגנון"
-          value={(section.settings.style as string) || 'cards'}
-          options={[
-            { value: 'cards', label: 'כרטיסים' },
-            { value: 'minimal', label: 'מינימלי' },
-            { value: 'quotes', label: 'ציטוטים' },
-          ]}
-          onChange={(v) => updateSettings('style', v)}
-        />
-        <SwitchField
-          label="הצג דירוג כוכבים"
-          value={(section.settings.showRating as boolean) !== false}
-          onChange={(v) => updateSettings('showRating', v)}
-        />
-        <SwitchField
-          label="הצג תאריך"
-          value={(section.settings.showDate as boolean) !== false}
-          onChange={(v) => updateSettings('showDate', v)}
-        />
-        <SwitchField
-          label="הצג אווטאר"
-          value={(section.settings.showAvatar as boolean) !== false}
-          onChange={(v) => updateSettings('showAvatar', v)}
-        />
-      </SettingsGroup>
-      <SettingsGroup title="רקע">
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || 'transparent'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
-        />
+      <SettingsGroup title="ביקורות">
+        <div className="space-y-3">
+          {reviews.map((review, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">ביקורת {index + 1}</span>
+                <button
+                  onClick={() => removeReview(index)}
+                  className="p-1 hover:bg-red-100 text-red-600 rounded"
+                  title="הסר"
+                >
+                  ✕
+                </button>
+              </div>
+              <input
+                type="text"
+                value={review.name}
+                onChange={(e) => updateReview(index, 'name', e.target.value)}
+                className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
+                placeholder="שם"
+              />
+              <textarea
+                value={review.text}
+                onChange={(e) => updateReview(index, 'text', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded px-2 py-1 min-h-[60px]"
+                placeholder="טקסט הביקורת"
+              />
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500">דירוג:</span>
+                <select
+                  value={review.rating}
+                  onChange={(e) => updateReview(index, 'rating', parseInt(e.target.value))}
+                  className="text-sm border border-gray-200 rounded px-2 py-1"
+                >
+                  {[5, 4, 3, 2, 1].map(n => (
+                    <option key={n} value={n}>{'⭐'.repeat(n)}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={addReview}
+            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+          >
+            + הוסף ביקורת
+          </button>
+        </div>
       </SettingsGroup>
     </>
   );
@@ -3187,15 +3248,106 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
 
 // Features Content Settings
 function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
-  // Features content is managed dynamically via the features array
-  // Most settings are now in DesignSettings
+  const features = (section.content.features as Array<{ icon: string; title: string; description: string }>) || [
+    { icon: '🚚', title: 'משלוח חינם', description: 'בהזמנה מעל ₪200' },
+    { icon: '↩️', title: 'החזרות', description: '14 יום להחזרה' },
+    { icon: '🔒', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
+    { icon: '💬', title: 'תמיכה', description: '24/7 זמינים' },
+  ];
+
+  const updateFeatures = (newFeatures: Array<{ icon: string; title: string; description: string }>) => {
+    onUpdate({ content: { ...section.content, features: newFeatures } });
+  };
+
+  const updateFeature = (index: number, field: 'icon' | 'title' | 'description', value: string) => {
+    const newFeatures = [...features];
+    newFeatures[index] = { ...newFeatures[index], [field]: value };
+    updateFeatures(newFeatures);
+  };
+
+  const addFeature = () => {
+    updateFeatures([...features, { icon: '⭐', title: 'יתרון חדש', description: 'תיאור' }]);
+  };
+
+  const removeFeature = (index: number) => {
+    const newFeatures = features.filter((_, i) => i !== index);
+    updateFeatures(newFeatures);
+  };
+
+  const moveFeature = (index: number, direction: 'up' | 'down') => {
+    const newFeatures = [...features];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= features.length) return;
+    [newFeatures[index], newFeatures[newIndex]] = [newFeatures[newIndex], newFeatures[index]];
+    updateFeatures(newFeatures);
+  };
+
   return (
     <>
       <SettingsGroup title="יתרונות">
-        <p className="text-sm text-gray-500">
-          ניהול היתרונות נעשה דרך הגדרות מתקדמות יותר.
-          כברירת מחדל מוצגים 4 יתרונות.
-        </p>
+        <div className="space-y-3">
+          {features.map((feature, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">יתרון {index + 1}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => moveFeature(index, 'up')}
+                    disabled={index === 0}
+                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    title="הזז למעלה"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveFeature(index, 'down')}
+                    disabled={index === features.length - 1}
+                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    title="הזז למטה"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => removeFeature(index)}
+                    className="p-1 hover:bg-red-100 text-red-600 rounded"
+                    title="הסר"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={feature.icon}
+                  onChange={(e) => updateFeature(index, 'icon', e.target.value)}
+                  className="w-12 text-center text-xl border border-gray-200 rounded px-1 py-1"
+                  placeholder="🔥"
+                />
+                <input
+                  type="text"
+                  value={feature.title}
+                  onChange={(e) => updateFeature(index, 'title', e.target.value)}
+                  className="flex-1 text-sm border border-gray-200 rounded px-2 py-1"
+                  placeholder="כותרת"
+                />
+              </div>
+              <input
+                type="text"
+                value={feature.description}
+                onChange={(e) => updateFeature(index, 'description', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded px-2 py-1"
+                placeholder="תיאור"
+              />
+            </div>
+          ))}
+          <button
+            onClick={addFeature}
+            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+          >
+            + הוסף יתרון
+          </button>
+        </div>
       </SettingsGroup>
     </>
   );
@@ -3237,56 +3389,104 @@ function BannerSmallContentSettings({ section, onUpdate }: { section: Section; o
 
 // Gallery Content Settings
 function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  
+  const images = (section.content.images as Array<{ url: string; alt?: string }>) || [];
+
+  const updateImages = (newImages: Array<{ url: string; alt?: string }>) => {
+    onUpdate({ content: { ...section.content, images: newImages } });
+  };
+
+  const addImage = (url: string) => {
+    updateImages([...images, { url, alt: '' }]);
+    setShowMediaPicker(false);
+  };
+
+  const updateImageAlt = (index: number, alt: string) => {
+    const newImages = [...images];
+    newImages[index] = { ...newImages[index], alt };
+    updateImages(newImages);
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = images.filter((_, i) => i !== index);
+    updateImages(newImages);
+  };
+
+  const moveImage = (index: number, direction: 'up' | 'down') => {
+    const newImages = [...images];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= images.length) return;
+    [newImages[index], newImages[newIndex]] = [newImages[newIndex], newImages[index]];
+    updateImages(newImages);
   };
 
   return (
     <>
-      <SettingsGroup title="הגדרות תצוגה">
-        <SelectField
-          label="עמודות"
-          value={String((section.settings.columns as number) || 4)}
-          options={[
-            { value: '2', label: '2' },
-            { value: '3', label: '3' },
-            { value: '4', label: '4' },
-            { value: '5', label: '5' },
-            { value: '6', label: '6' },
-          ]}
-          onChange={(v) => updateSettings('columns', parseInt(v))}
-        />
-        <SelectField
-          label="יחס תמונה"
-          value={(section.settings.aspectRatio as string) || 'square'}
-          options={[
-            { value: 'square', label: 'ריבוע (1:1)' },
-            { value: '4:3', label: '4:3' },
-            { value: '16:9', label: '16:9' },
-            { value: 'auto', label: 'אוטומטי' },
-          ]}
-          onChange={(v) => updateSettings('aspectRatio', v)}
-        />
-        <SelectField
-          label="רווח"
-          value={String((section.settings.gap as number) || 4)}
-          options={[
-            { value: '0', label: 'ללא' },
-            { value: '2', label: 'קטן' },
-            { value: '4', label: 'בינוני' },
-            { value: '6', label: 'גדול' },
-            { value: '8', label: 'גדול מאוד' },
-          ]}
-          onChange={(v) => updateSettings('gap', parseInt(v))}
-        />
+      <SettingsGroup title="תמונות גלריה">
+        <div className="space-y-3">
+          {images.map((image, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden shrink-0">
+                  {image.url ? (
+                    <img src={image.url} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">📷</div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <input
+                    type="text"
+                    value={image.alt || ''}
+                    onChange={(e) => updateImageAlt(index, e.target.value)}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+                    placeholder="טקסט חלופי (alt)"
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => moveImage(index, 'up')}
+                    disabled={index === 0}
+                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveImage(index, 'down')}
+                    disabled={index === images.length - 1}
+                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => removeImage(index)}
+                    className="p-0.5 hover:bg-red-100 text-red-600 rounded text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => setShowMediaPicker(true)}
+            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+          >
+            + הוסף תמונה
+          </button>
+        </div>
       </SettingsGroup>
-      <SettingsGroup title="רקע">
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || 'transparent'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
+
+      {showMediaPicker && storeInfo && (
+        <MediaPickerModal
+          isOpen={showMediaPicker}
+          onClose={() => setShowMediaPicker(false)}
+          onSelect={(items: MediaItem[]) => items[0] && addImage(items[0].url)}
+          storeId={storeInfo.id}
+          storeSlug={storeInfo.slug}
         />
-      </SettingsGroup>
+      )}
     </>
   );
 }
@@ -3328,87 +3528,206 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
 
 // Logos Content Settings
 function LogosContentSettings({ section, onUpdate, storeInfo }: { section: Section; onUpdate: (updates: Partial<Section>) => void; storeInfo?: StoreInfo }) {
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
+  const [showMediaPicker, setShowMediaPicker] = useState(false);
+  
+  const logos = (section.content.logos as Array<{ url: string; name?: string; link?: string }>) || [];
+
+  const updateLogos = (newLogos: Array<{ url: string; name?: string; link?: string }>) => {
+    onUpdate({ content: { ...section.content, logos: newLogos } });
+  };
+
+  const addLogo = (url: string) => {
+    updateLogos([...logos, { url, name: '', link: '' }]);
+    setShowMediaPicker(false);
+  };
+
+  const updateLogo = (index: number, field: 'name' | 'link', value: string) => {
+    const newLogos = [...logos];
+    newLogos[index] = { ...newLogos[index], [field]: value };
+    updateLogos(newLogos);
+  };
+
+  const removeLogo = (index: number) => {
+    const newLogos = logos.filter((_, i) => i !== index);
+    updateLogos(newLogos);
+  };
+
+  const moveLogo = (index: number, direction: 'up' | 'down') => {
+    const newLogos = [...logos];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= logos.length) return;
+    [newLogos[index], newLogos[newIndex]] = [newLogos[newIndex], newLogos[index]];
+    updateLogos(newLogos);
   };
 
   return (
     <>
-      <SettingsGroup title="הגדרות תצוגה">
-        <SelectField
-          label="עמודות"
-          value={String((section.settings.columns as number) || 6)}
-          options={[
-            { value: '3', label: '3' },
-            { value: '4', label: '4' },
-            { value: '5', label: '5' },
-            { value: '6', label: '6' },
-            { value: '8', label: '8' },
-          ]}
-          onChange={(v) => updateSettings('columns', parseInt(v))}
-        />
-        <SliderField
-          label="גובה לוגו"
-          value={(section.settings.logoHeight as number) || 48}
-          min={24}
-          max={96}
-          suffix="px"
-          onChange={(v) => updateSettings('logoHeight', v)}
-        />
-        <SwitchField
-          label="שחור-לבן (גרייסקייל)"
-          value={(section.settings.grayscale as boolean) !== false}
-          onChange={(v) => updateSettings('grayscale', v)}
-        />
+      <SettingsGroup title="לוגואים">
+        <div className="space-y-3">
+          {logos.map((logo, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2">
+              <div className="flex items-start gap-2">
+                <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden shrink-0 flex items-center justify-center">
+                  {logo.url ? (
+                    <img src={logo.url} alt="" className="max-w-full max-h-full object-contain" />
+                  ) : (
+                    <span className="text-gray-400 text-xs">לוגו</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <input
+                    type="text"
+                    value={logo.name || ''}
+                    onChange={(e) => updateLogo(index, 'name', e.target.value)}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+                    placeholder="שם (אופציונלי)"
+                  />
+                  <input
+                    type="text"
+                    value={logo.link || ''}
+                    onChange={(e) => updateLogo(index, 'link', e.target.value)}
+                    className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+                    placeholder="קישור (אופציונלי)"
+                  />
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  <button
+                    onClick={() => moveLogo(index, 'up')}
+                    disabled={index === 0}
+                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveLogo(index, 'down')}
+                    disabled={index === logos.length - 1}
+                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => removeLogo(index)}
+                    className="p-0.5 hover:bg-red-100 text-red-600 rounded text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button
+            onClick={() => setShowMediaPicker(true)}
+            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+          >
+            + הוסף לוגו
+          </button>
+        </div>
       </SettingsGroup>
-      <SettingsGroup title="רקע">
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || 'transparent'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
+
+      {showMediaPicker && storeInfo && (
+        <MediaPickerModal
+          isOpen={showMediaPicker}
+          onClose={() => setShowMediaPicker(false)}
+          onSelect={(items: MediaItem[]) => items[0] && addLogo(items[0].url)}
+          storeId={storeInfo.id}
+          storeSlug={storeInfo.slug}
         />
-      </SettingsGroup>
+      )}
     </>
   );
 }
 
 // FAQ Content Settings
 function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
+  const faqs = (section.content.faqs as Array<{ question: string; answer: string }>) || [
+    { question: 'מהי מדיניות ההחזרות?', answer: 'ניתן להחזיר מוצרים תוך 14 ימים מיום הרכישה.' },
+    { question: 'כמה זמן לוקח המשלוח?', answer: 'משלוחים מגיעים תוך 3-5 ימי עסקים.' },
+    { question: 'האם יש משלוח חינם?', answer: 'כן, משלוח חינם בהזמנות מעל ₪200.' },
+  ];
+
+  const updateFaqs = (newFaqs: Array<{ question: string; answer: string }>) => {
+    onUpdate({ content: { ...section.content, faqs: newFaqs } });
+  };
+
+  const updateFaq = (index: number, field: 'question' | 'answer', value: string) => {
+    const newFaqs = [...faqs];
+    newFaqs[index] = { ...newFaqs[index], [field]: value };
+    updateFaqs(newFaqs);
+  };
+
+  const addFaq = () => {
+    updateFaqs([...faqs, { question: 'שאלה חדשה', answer: 'תשובה' }]);
+  };
+
+  const removeFaq = (index: number) => {
+    const newFaqs = faqs.filter((_, i) => i !== index);
+    updateFaqs(newFaqs);
+  };
+
+  const moveFaq = (index: number, direction: 'up' | 'down') => {
+    const newFaqs = [...faqs];
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= faqs.length) return;
+    [newFaqs[index], newFaqs[newIndex]] = [newFaqs[newIndex], newFaqs[index]];
+    updateFaqs(newFaqs);
   };
 
   return (
     <>
-      <SettingsGroup title="הגדרות תצוגה">
-        <SelectField
-          label="רוחב מקסימלי"
-          value={(section.settings.maxWidth as string) || 'lg'}
-          options={[
-            { value: 'sm', label: 'קטן' },
-            { value: 'md', label: 'בינוני' },
-            { value: 'lg', label: 'גדול' },
-            { value: 'xl', label: 'גדול מאוד' },
-          ]}
-          onChange={(v) => updateSettings('maxWidth', v)}
-        />
-        <SelectField
-          label="סגנון"
-          value={(section.settings.style as string) || 'accordion'}
-          options={[
-            { value: 'accordion', label: 'אקורדיון' },
-            { value: 'cards', label: 'כרטיסים' },
-            { value: 'simple', label: 'פשוט' },
-          ]}
-          onChange={(v) => updateSettings('style', v)}
-        />
-      </SettingsGroup>
-      <SettingsGroup title="רקע">
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || 'transparent'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
-        />
+      <SettingsGroup title="שאלות ותשובות">
+        <div className="space-y-3">
+          {faqs.map((faq, index) => (
+            <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">שאלה {index + 1}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => moveFaq(index, 'up')}
+                    disabled={index === 0}
+                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    title="הזז למעלה"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    onClick={() => moveFaq(index, 'down')}
+                    disabled={index === faqs.length - 1}
+                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    title="הזז למטה"
+                  >
+                    ↓
+                  </button>
+                  <button
+                    onClick={() => removeFaq(index)}
+                    className="p-1 hover:bg-red-100 text-red-600 rounded"
+                    title="הסר"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <input
+                type="text"
+                value={faq.question}
+                onChange={(e) => updateFaq(index, 'question', e.target.value)}
+                className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
+                placeholder="שאלה"
+              />
+              <textarea
+                value={faq.answer}
+                onChange={(e) => updateFaq(index, 'answer', e.target.value)}
+                className="w-full text-sm border border-gray-200 rounded px-2 py-1 min-h-[60px]"
+                placeholder="תשובה"
+              />
+            </div>
+          ))}
+          <button
+            onClick={addFaq}
+            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+          >
+            + הוסף שאלה
+          </button>
+        </div>
       </SettingsGroup>
     </>
   );
