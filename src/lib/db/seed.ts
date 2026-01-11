@@ -11,6 +11,61 @@ const db = drizzle(sql, { schema });
 async function seed() {
   console.log('🌱 Starting seed...\n');
 
+  // 0. Seed platform settings (default pricing)
+  console.log('⚙️ Creating platform settings...');
+  
+  const platformDefaults = [
+    { key: 'branding_plan_price', value: '299.00', description: 'מחיר מנוי מסלול תדמית (ש"ח)', category: 'billing' },
+    { key: 'quickshop_plan_price', value: '399.00', description: 'מחיר מנוי קוויק שופ (ש"ח)', category: 'billing' },
+    { key: 'trial_days', value: '7', description: 'ימי נסיון', category: 'billing' },
+    { key: 'transaction_fee_rate', value: '0.005', description: 'אחוז עמלה מעסקאות (0.5%)', category: 'billing' },
+    { key: 'vat_rate', value: '18', description: 'אחוז מע"מ', category: 'billing' },
+    { key: 'min_charge_amount', value: '1.00', description: 'סכום מינימלי לחיוב (ש"ח)', category: 'billing' },
+  ];
+  
+  let settingsCreated = 0;
+  for (const setting of platformDefaults) {
+    const existing = await db.select().from(schema.platformSettings).where(
+      eq(schema.platformSettings.key, setting.key)
+    ).limit(1);
+    if (existing.length === 0) {
+      await db.insert(schema.platformSettings).values({
+        key: setting.key,
+        value: setting.value,
+        description: setting.description,
+        category: setting.category,
+      });
+      settingsCreated++;
+    }
+  }
+  console.log(`   ✓ Platform settings created: ${settingsCreated} new settings`);
+
+  // 0.1 Seed plugin pricing defaults
+  console.log('🔌 Creating plugin pricing defaults...');
+  const pluginDefaults = [
+    { pluginSlug: 'reviews', monthlyPrice: '29.00', trialDays: 14 },
+    { pluginSlug: 'inventory-alerts', monthlyPrice: '19.00', trialDays: 14 },
+    { pluginSlug: 'order-status-sms', monthlyPrice: '49.00', trialDays: 7 },
+    { pluginSlug: 'product-advisor', monthlyPrice: '79.00', trialDays: 14 },
+    { pluginSlug: 'abandoned-cart', monthlyPrice: '49.00', trialDays: 14 },
+    { pluginSlug: 'wishlist', monthlyPrice: '19.00', trialDays: 14 },
+    { pluginSlug: 'order-notes', monthlyPrice: '0.00', trialDays: 14 },
+    { pluginSlug: 'digital-products', monthlyPrice: '39.00', trialDays: 14 },
+    { pluginSlug: 'product-bundles', monthlyPrice: '29.00', trialDays: 14 },
+  ];
+
+  let pluginsCreated = 0;
+  for (const plugin of pluginDefaults) {
+    const existing = await db.select().from(schema.pluginPricing).where(
+      eq(schema.pluginPricing.pluginSlug, plugin.pluginSlug)
+    ).limit(1);
+    if (existing.length === 0) {
+      await db.insert(schema.pluginPricing).values(plugin);
+      pluginsCreated++;
+    }
+  }
+  console.log(`   ✓ Plugin pricing defaults created: ${pluginsCreated} new plugins`);
+
   // 1. Create demo user (merchant) with password
   console.log('👤 Creating demo user...');
   const passwordHash = await bcrypt.hash('12345678', 12);
@@ -921,6 +976,8 @@ async function seed() {
 
   console.log('\n✅ Seed completed successfully!');
   console.log(`\n📊 Summary:`);
+  console.log(`   - Platform settings initialized`);
+  console.log(`   - Plugin pricing defaults set`);
   console.log(`   - 5 Users (owner + 4 team members)`);
   console.log(`   - 1 Store (${store.name})`);
   console.log(`   - ${categories.length} Categories`);

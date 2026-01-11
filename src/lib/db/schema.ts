@@ -3177,6 +3177,24 @@ export const pluginPricing = pgTable('plugin_pricing', {
   index('idx_plugin_pricing_slug').on(table.pluginSlug),
 ]);
 
+/**
+ * Platform Settings - הגדרות פלטפורמה
+ * מחירי מנויים, עמלות וכו' - ניתנות לעריכה על ידי הסופר אדמין
+ */
+export const platformSettings = pgTable('platform_settings', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  key: varchar('key', { length: 100 }).notNull().unique(),
+  value: jsonb('value').notNull(),
+  description: varchar('description', { length: 500 }),
+  category: varchar('category', { length: 50 }).default('general').notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_platform_settings_key').on(table.key),
+  index('idx_platform_settings_category').on(table.category),
+]);
+
 // Platform Billing Relations
 export const storeSubscriptionsRelations = relations(storeSubscriptions, ({ one, many }) => ({
   store: one(stores, {
@@ -3542,3 +3560,7 @@ export type NewProductAddonAssignment = typeof productAddonAssignments.$inferIns
 // Product Waitlist types
 export type ProductWaitlistEntry = typeof productWaitlist.$inferSelect;
 export type NewProductWaitlistEntry = typeof productWaitlist.$inferInsert;
+
+// Platform Settings types
+export type PlatformSetting = typeof platformSettings.$inferSelect;
+export type NewPlatformSetting = typeof platformSettings.$inferInsert;

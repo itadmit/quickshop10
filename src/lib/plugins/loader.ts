@@ -8,7 +8,7 @@
  */
 
 import { db } from '@/lib/db';
-import { storePlugins, productStories, products, productImages, advisorQuizzes } from '@/lib/db/schema';
+import { storePlugins, productStories, products, productImages, advisorQuizzes, pluginPricing } from '@/lib/db/schema';
 import { eq, and, desc, asc } from 'drizzle-orm';
 import { getPluginDefinition, pluginRegistry } from './registry';
 import type { PluginWithStatus, StorePlugin } from './types';
@@ -73,6 +73,7 @@ export async function getStorePlugin(storeId: string, pluginSlug: string): Promi
 
 /**
  * קבלת כל התוספים עם סטטוס התקנה לחנות ספציפית
+ * מחירים נקראים מה-DB (pluginPricing) אם קיימים, אחרת מה-registry
  */
 export async function getPluginsWithStatus(storeId: string): Promise<PluginWithStatus[]> {
   // קבלת כל התוספים המותקנים
@@ -81,13 +82,24 @@ export async function getPluginsWithStatus(storeId: string): Promise<PluginWithS
     .from(storePlugins)
     .where(eq(storePlugins.storeId, storeId));
 
+  // קבלת מחירים מה-DB
+  const dbPricing = await db.select().from(pluginPricing);
+  const pricingMap = new Map(
+    dbPricing.map(p => [p.pluginSlug, { 
+      price: Number(p.monthlyPrice), 
+      trialDays: p.trialDays || 14,
+      isActive: p.isActive
+    }])
+  );
+
   const installedMap = new Map(
     installedPlugins.map(p => [p.pluginSlug, p])
   );
 
-  // מיזוג עם ה-registry
+  // מיזוג עם ה-registry - מחירי DB עוקפים את ה-registry
   return pluginRegistry.map(definition => {
     const installed = installedMap.get(definition.slug);
+    const dbPrice = pricingMap.get(definition.slug);
     
     // Plugin is considered installed only if:
     // 1. Record exists AND
@@ -95,8 +107,14 @@ export async function getPluginsWithStatus(storeId: string): Promise<PluginWithS
     const isCancelled = installed?.subscriptionStatus === 'cancelled';
     const isInstalled = !!installed && !isCancelled;
     
+    // Use DB price if available, otherwise use registry default
+    const price = dbPrice?.price ?? definition.price;
+    const trialDays = dbPrice?.trialDays ?? definition.trialDays;
+    
     return {
       ...definition,
+      price,
+      trialDays,
       isInstalled,
       isActive: isInstalled && (installed?.isActive ?? false),
       config: (installed?.config as Record<string, unknown>) || definition.defaultConfig,

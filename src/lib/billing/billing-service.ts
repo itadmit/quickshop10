@@ -18,11 +18,14 @@ import { eq, and, gte, lte, sql, desc, inArray } from 'drizzle-orm';
 import {
   chargeWithToken,
   calculateSubscriptionPrice,
+  calculateSubscriptionPriceAsync,
   calculateTransactionFee,
+  calculateTransactionFeeAsync,
   PLAN_PRICING,
   VAT_RATE,
   TRANSACTION_FEE_RATE,
 } from './payplus-billing';
+import { getFeeRates } from './platform-settings';
 
 // Types
 export interface SubscriptionDetails {
@@ -195,7 +198,8 @@ export async function createSubscriptionInvoice(
   payplusInvoiceNumber: string | null,
   payplusInvoiceUrl: string | null
 ): Promise<string> {
-  const pricing = calculateSubscriptionPrice(plan);
+  // Use async version to get prices from DB
+  const pricing = await calculateSubscriptionPriceAsync(plan);
   const invoiceNumber = await generateInvoiceNumber();
   const planNameHe = plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
   const now = new Date();
@@ -295,7 +299,9 @@ export async function chargeTransactionFees(
 
   // Calculate total transactions
   const totalAmount = paidOrders.reduce((sum, order) => sum + Number(order.total), 0);
-  const fee = calculateTransactionFee(totalAmount);
+  // Use async version to get fee rate from DB
+  const fee = await calculateTransactionFeeAsync(totalAmount);
+  const feePercentDisplay = (fee.feeRate * 100).toFixed(1);
 
   // Skip if fee is too small (less than ₪1)
   if (fee.totalFee < 1) {
@@ -310,7 +316,7 @@ export async function chargeTransactionFees(
     description: `עמלות עסקאות - ${periodStart.toLocaleDateString('he-IL')} עד ${periodEnd.toLocaleDateString('he-IL')}`,
     invoiceItems: [
       {
-        name: `עמלות עסקאות (0.5%)`,
+        name: `עמלות עסקאות (${feePercentDisplay}%)`,
         quantity: 1,
         price: fee.feeAmount,
       },
@@ -392,7 +398,7 @@ export async function chargeTransactionFees(
     periodEnd,
     totalTransactionsAmount: String(totalAmount),
     totalTransactionsCount: paidOrders.length,
-    feePercentage: String(TRANSACTION_FEE_RATE),
+    feePercentage: String(fee.feeRate), // Use rate from DB
     feeAmount: String(fee.feeAmount),
     invoiceId: invoice.id,
     orderIds: paidOrders.map(o => o.id),
@@ -554,7 +560,8 @@ export async function renewSubscription(storeId: string): Promise<{
   }
 
   const plan = subscription.plan as 'branding' | 'quickshop';
-  const pricing = calculateSubscriptionPrice(plan);
+  // Use async version to get prices from DB
+  const pricing = await calculateSubscriptionPriceAsync(plan);
   const planNameHe = plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
 
   // Charge with token
@@ -684,7 +691,7 @@ export async function getStoreBillingSummary(storeId: string): Promise<StoreBill
     ));
 
   const transactionAmount = currentPeriodOrders.reduce((sum, o) => sum + Number(o.total), 0);
-  const transactionFee = calculateTransactionFee(transactionAmount);
+  const transactionFee = await calculateTransactionFeeAsync(transactionAmount);
 
   // Get active plugins
   const activePluginsData = await db

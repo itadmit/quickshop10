@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { stores, storeSubscriptions, platformInvoices, storePlugins, orders } from '@/lib/db/schema';
 import { sql, desc, eq, gte, and, count, sum } from 'drizzle-orm';
 import Link from 'next/link';
+import { getSubscriptionPricing, getFeeRates } from '@/lib/billing/platform-settings';
 
 export default async function PlatformBillingPage() {
   const session = await auth();
@@ -89,6 +90,11 @@ export default async function PlatformBillingPage() {
     .leftJoin(stores, eq(platformInvoices.storeId, stores.id))
     .orderBy(desc(platformInvoices.createdAt))
     .limit(20);
+
+  // Get pricing from DB for MRR calculation
+  const subscriptionPricing = await getSubscriptionPricing();
+  const feeRates = await getFeeRates();
+  const vatMultiplier = 1 + feeRates.vatRate;
 
   const formatCurrency = (amount: string | number) => {
     return new Intl.NumberFormat('he-IL', {
@@ -355,29 +361,29 @@ export default async function PlatformBillingPage() {
           <h3 className="font-semibold text-gray-900 mb-4">📊 הכנסה חודשית צפויה (MRR)</h3>
           <div className="grid md:grid-cols-3 gap-6">
             <div>
-              <p className="text-sm text-gray-600">מנויי תדמית ({subscriptionStats.brandingPlans})</p>
+              <p className="text-sm text-gray-600">מנויי תדמית ({subscriptionStats.brandingPlans}) × ₪{subscriptionPricing.branding}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(subscriptionStats.brandingPlans * 299 * 1.18)}
+                {formatCurrency(subscriptionStats.brandingPlans * subscriptionPricing.branding * vatMultiplier)}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">מנויי קוויק שופ ({subscriptionStats.quickshopPlans})</p>
+              <p className="text-sm text-gray-600">מנויי קוויק שופ ({subscriptionStats.quickshopPlans}) × ₪{subscriptionPricing.quickshop}</p>
               <p className="text-2xl font-bold text-gray-900">
-                {formatCurrency(subscriptionStats.quickshopPlans * 399 * 1.18)}
+                {formatCurrency(subscriptionStats.quickshopPlans * subscriptionPricing.quickshop * vatMultiplier)}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-600">סה״כ MRR</p>
               <p className="text-3xl font-bold text-green-600">
                 {formatCurrency(
-                  (subscriptionStats.brandingPlans * 299 * 1.18) +
-                  (subscriptionStats.quickshopPlans * 399 * 1.18)
+                  (subscriptionStats.brandingPlans * subscriptionPricing.branding * vatMultiplier) +
+                  (subscriptionStats.quickshopPlans * subscriptionPricing.quickshop * vatMultiplier)
                 )}
               </p>
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-4">
-            * לא כולל עמלות עסקאות (0.5%) ותוספים
+            * לא כולל עמלות עסקאות ({(feeRates.transactionFee * 100).toFixed(1)}%) ותוספים
           </p>
         </div>
       </main>

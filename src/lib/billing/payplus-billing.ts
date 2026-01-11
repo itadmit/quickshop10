@@ -4,6 +4,7 @@
  */
 
 import crypto from 'crypto';
+import { getSubscriptionPricing, getFeeRates } from './platform-settings';
 
 // PayPlus API Configuration
 const PAYPLUS_CONFIG = {
@@ -15,14 +16,15 @@ const PAYPLUS_CONFIG = {
   paymentPageUid: process.env.PAYPLUS_PAYMENT_PAGE_UID || '',
 };
 
-// Plan pricing (before VAT)
+// Default plan pricing (before VAT) - fallback if DB not available
+// These are now loaded from DB via platform-settings.ts
 export const PLAN_PRICING = {
-  branding: 299,   // ₪299/month
-  quickshop: 399,  // ₪399/month
+  branding: 299,   // ₪299/month (default)
+  quickshop: 399,  // ₪399/month (default)
 } as const;
 
-export const VAT_RATE = 0.18; // 18%
-export const TRANSACTION_FEE_RATE = 0.005; // 0.5%
+export const VAT_RATE = 0.18; // 18% (default)
+export const TRANSACTION_FEE_RATE = 0.005; // 0.5% (default)
 
 // Types
 interface PayPlusResponse<T = unknown> {
@@ -193,9 +195,8 @@ export async function getOrCreatePayPlusCustomer(
 export async function initiateSubscriptionPayment(
   params: InitiateSubscriptionPaymentParams
 ): Promise<{ paymentPageUrl: string; pageRequestUid: string }> {
-  const basePrice = PLAN_PRICING[params.plan];
-  const vatAmount = Math.round(basePrice * VAT_RATE * 100) / 100;
-  const totalAmount = basePrice + vatAmount;
+  // Get pricing from DB
+  const { basePrice, vatAmount, totalPrice: totalAmount } = await calculateSubscriptionPriceAsync(params.plan);
 
   const planNameHe = params.plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
 
@@ -415,7 +416,8 @@ export async function removeToken(tokenUid: string): Promise<boolean> {
 }
 
 /**
- * Calculate subscription price with VAT
+ * Calculate subscription price with VAT (sync version - uses defaults)
+ * @deprecated Use calculateSubscriptionPriceAsync for DB values
  */
 export function calculateSubscriptionPrice(plan: 'branding' | 'quickshop'): {
   basePrice: number;
@@ -430,7 +432,26 @@ export function calculateSubscriptionPrice(plan: 'branding' | 'quickshop'): {
 }
 
 /**
- * Calculate transaction fee with VAT
+ * Calculate subscription price with VAT (async version - reads from DB)
+ */
+export async function calculateSubscriptionPriceAsync(plan: 'branding' | 'quickshop'): Promise<{
+  basePrice: number;
+  vatAmount: number;
+  totalPrice: number;
+}> {
+  const pricing = await getSubscriptionPricing();
+  const feeRates = await getFeeRates();
+  
+  const basePrice = plan === 'branding' ? pricing.branding : pricing.quickshop;
+  const vatAmount = Math.round(basePrice * feeRates.vatRate * 100) / 100;
+  const totalPrice = basePrice + vatAmount;
+  
+  return { basePrice, vatAmount, totalPrice };
+}
+
+/**
+ * Calculate transaction fee with VAT (sync version - uses defaults)
+ * @deprecated Use calculateTransactionFeeAsync for DB values
  */
 export function calculateTransactionFee(transactionTotal: number): {
   feeAmount: number;
@@ -442,5 +463,23 @@ export function calculateTransactionFee(transactionTotal: number): {
   const totalFee = feeAmount + vatAmount;
   
   return { feeAmount, vatAmount, totalFee };
+}
+
+/**
+ * Calculate transaction fee with VAT (async version - reads from DB)
+ */
+export async function calculateTransactionFeeAsync(transactionTotal: number): Promise<{
+  feeAmount: number;
+  vatAmount: number;
+  totalFee: number;
+  feeRate: number;
+}> {
+  const feeRates = await getFeeRates();
+  
+  const feeAmount = Math.round(transactionTotal * feeRates.transactionFee * 100) / 100;
+  const vatAmount = Math.round(feeAmount * feeRates.vatRate * 100) / 100;
+  const totalFee = feeAmount + vatAmount;
+  
+  return { feeAmount, vatAmount, totalFee, feeRate: feeRates.transactionFee };
 }
 
