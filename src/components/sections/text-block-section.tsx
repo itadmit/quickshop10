@@ -67,8 +67,8 @@ export function TextBlockSection({
           data-section-title
           style={{ display: title ? undefined : 'none' }}
         >
-          {title}
-        </h2>
+            {title}
+          </h2>
 
         {/* Subtitle */}
         <p 
@@ -76,15 +76,15 @@ export function TextBlockSection({
           data-section-subtitle
           style={{ display: subtitle ? undefined : 'none' }}
         >
-          {subtitle}
-        </p>
+            {subtitle}
+          </p>
 
         {/* Rich Text Content */}
-        <div 
-          className="prose prose-lg mx-auto mb-8"
+          <div 
+            className="prose prose-lg mx-auto mb-8"
           data-content-text
           dangerouslySetInnerHTML={{ __html: content.text || '' }}
-        />
+          />
 
         {/* Button */}
         {content.buttonText && content.buttonLink && (

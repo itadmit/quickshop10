@@ -1165,18 +1165,18 @@ function ProductsContentSettings({
       {/* Category selector */}
       {selectedType === 'category' && (
         <div className="relative">
-          <SelectField
-            label="בחר קטגוריה"
-            value={selectedCategoryId}
-            options={[
-              { value: '', label: 'בחר קטגוריה...' },
-              ...categories.map(c => ({ value: c.id, label: c.name }))
-            ]}
+        <SelectField
+          label="בחר קטגוריה"
+          value={selectedCategoryId}
+          options={[
+            { value: '', label: 'בחר קטגוריה...' },
+            ...categories.map(c => ({ value: c.id, label: c.name }))
+          ]}
             onChange={(v) => {
               // ⚡ Fetch category products for real-time preview
               fetchCategoryProducts(v);
             }}
-          />
+        />
           {isLoadingCategory && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2">
               <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />

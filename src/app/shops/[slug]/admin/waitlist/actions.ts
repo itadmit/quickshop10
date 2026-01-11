@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { productWaitlist } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { notifyWaitlistForProduct } from '@/lib/waitlist-notifications';
 
 /**
  * Delete waitlist entry
@@ -40,6 +41,38 @@ export async function markAsNotified(id: string, storeSlug: string) {
   } catch (error) {
     console.error('Error marking as notified:', error);
     return { success: false, error: 'שגיאה בעדכון הסטטוס' };
+  }
+}
+
+/**
+ * Send notifications for a product/variant
+ */
+export async function sendNotificationsForProduct(
+  storeId: string,
+  productId: string,
+  variantId: string | null,
+  storeSlug: string
+) {
+  try {
+    const result = await notifyWaitlistForProduct(storeId, productId, variantId);
+    
+    revalidatePath(`/shops/${storeSlug}/admin/waitlist`);
+    
+    if (result.success) {
+      return {
+        success: true,
+        message: `נשלחו ${result.count} הודעות בהצלחה`,
+        count: result.count,
+      };
+    } else {
+      return {
+        success: false,
+        error: `נכשלו ${result.errors.length} שליחות: ${result.errors.join(', ')}`,
+      };
+    }
+  } catch (error) {
+    console.error('Error sending notifications:', error);
+    return { success: false, error: 'שגיאה בשליחת ההודעות' };
   }
 }
 

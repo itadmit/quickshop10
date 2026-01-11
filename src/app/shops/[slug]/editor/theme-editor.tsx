@@ -696,7 +696,7 @@ export function ThemeEditor({
         content: newSection.content, // Include default content for better placeholder
         afterSectionId,
       }, '*');
-      
+
       // Scroll to the new section after a short delay
       setTimeout(() => {
         if (iframeRef.current?.contentWindow) {
@@ -779,18 +779,18 @@ export function ThemeEditor({
 
         {/* Center - Page Selector Dropdown */}
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <button
-              onClick={() => setShowPageDropdown(!showPageDropdown)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-            >
+        <div className="relative">
+          <button
+            onClick={() => setShowPageDropdown(!showPageDropdown)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+          >
               {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : currentPageInfo.icon === 'file' ? <FileIcon /> : <ClockIcon />}
-              <span className="text-white text-sm">{currentPageInfo.label}</span>
+            <span className="text-white text-sm">{currentPageInfo.label}</span>
               {isInternalPage && currentInternalPage && !currentInternalPage.isPublished && (
                 <span className="text-[10px] text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">טיוטה</span>
               )}
-              <ChevronDownIcon />
-            </button>
+            <ChevronDownIcon />
+          </button>
           
           {/* Dropdown */}
           {showPageDropdown && (

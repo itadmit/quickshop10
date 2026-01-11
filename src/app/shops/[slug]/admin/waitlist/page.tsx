@@ -1,11 +1,10 @@
 import { db } from '@/lib/db';
 import { productWaitlist, products, productVariants, stores } from '@/lib/db/schema';
 import { eq, desc, and, count, isNull, not } from 'drizzle-orm';
-import { notFound } from 'next/headers';
+import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/admin/ui';
-import type { Tab } from '@/components/admin/ui';
+import Link from 'next/link';
 import { WaitlistDataTable } from './waitlist-data-table';
-import { Bell } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,26 +102,39 @@ export default async function WaitlistPage({ params, searchParams }: WaitlistPag
     createdAt: e.createdAt,
   }));
 
-  // Tabs
-  const tabs: Tab[] = [
+  const basePath = `/shops/${slug}`;
+  const currentStatus = status || 'all';
+
+  // Tabs data
+  const tabs = [
     { id: 'all', label: 'הכל', count: totalCount[0].count },
     { id: 'pending', label: 'ממתינים', count: pendingCount[0].count },
     { id: 'notified', label: 'נשלח', count: notifiedCount[0].count },
   ];
-
-  const basePath = `/shops/${slug}`;
 
   return (
     <div className="p-6 max-w-[1400px] mx-auto">
       <PageHeader
         title="רשימת המתנה"
         description="לקוחות המחכים להתעדכן על מוצרים שאזל מלאיים"
-        icon={Bell}
-        tabs={tabs}
-        currentTab={status || 'all'}
-        searchPlaceholder="חפש לפי אימייל, שם או מוצר"
-        basePath={`${basePath}/admin/waitlist`}
       />
+      
+      {/* Tabs */}
+      <div className="flex gap-2 mt-4 border-b border-gray-200 pb-2">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.id}
+            href={`${basePath}/admin/waitlist${tab.id === 'all' ? '' : `?status=${tab.id}`}`}
+            className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+              currentStatus === tab.id
+                ? 'bg-gray-100 text-black border-b-2 border-black'
+                : 'text-gray-600 hover:text-black hover:bg-gray-50'
+            }`}
+          >
+            {tab.label} ({tab.count})
+          </Link>
+        ))}
+      </div>
 
       <div className="mt-6">
         <WaitlistDataTable 

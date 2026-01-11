@@ -79,15 +79,16 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
         />
       </div>
       
-      <div className={`relative z-10 h-full flex flex-col justify-center ${alignmentClass} ${
-        containerType === 'container' 
-          ? 'container mx-auto px-6' 
-          : textAlign === 'right' 
-            ? 'pr-5 pl-6' 
-            : textAlign === 'left' 
-              ? 'pl-5 pr-6' 
-              : 'px-5'
-      }`}>
+      <div 
+        className={`relative z-10 h-full flex flex-col justify-center ${alignmentClass} ${
+          containerType === 'container' ? 'container mx-auto px-6' : 'w-full'
+        }`}
+        style={containerType === 'full' ? {
+          paddingRight: textAlign === 'right' ? '20px' : '24px',
+          paddingLeft: textAlign === 'left' ? '20px' : '24px',
+        } : undefined}
+        data-content-container
+      >
         {/* Title */}
         <h1 
           className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"

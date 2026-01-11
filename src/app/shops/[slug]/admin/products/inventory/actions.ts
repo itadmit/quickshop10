@@ -1,10 +1,12 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, productVariants, inventoryLogs } from '@/lib/db/schema';
-import { eq, desc, and } from 'drizzle-orm';
+import { products, productVariants, inventoryLogs, productWaitlist } from '@/lib/db/schema';
+import { eq, desc, and, count, isNull } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
+import { getWaitlistSettings } from '@/lib/waitlist-settings';
+import { notifyWaitlistForProduct } from '@/lib/waitlist-notifications';
 
 // Helper to get current user info from session
 async function getCurrentUserInfo(): Promise<{ userId: string | null; userName: string }> {
@@ -36,6 +38,7 @@ export async function updateInventory(itemId: string, inventory: number, isVaria
     let previousQuantity = 0;
     let productId = itemId;
     let storeId: string | null = null;
+    let waitlistCount = 0;
     
     if (isVariant) {
       // Get current variant inventory
@@ -59,6 +62,19 @@ export async function updateInventory(itemId: string, inventory: number, isVaria
           .where(eq(products.id, productId))
           .limit(1);
         storeId = product?.storeId || null;
+
+        // Check if stock is being increased from 0 and there are waitlist entries
+        if (storeId && previousQuantity === 0 && inventory > 0) {
+          const [waitlistResult] = await db
+            .select({ count: count() })
+            .from(productWaitlist)
+            .where(and(
+              eq(productWaitlist.storeId, storeId),
+              eq(productWaitlist.variantId, itemId),
+              eq(productWaitlist.isNotified, false)
+            ));
+          waitlistCount = waitlistResult?.count || 0;
+        }
       }
       
       await db
@@ -79,6 +95,20 @@ export async function updateInventory(itemId: string, inventory: number, isVaria
       if (product) {
         previousQuantity = product.inventory ?? 0;
         storeId = product.storeId;
+
+        // Check if stock is being increased from 0 and there are waitlist entries
+        if (storeId && previousQuantity === 0 && inventory > 0) {
+          const [waitlistResult] = await db
+            .select({ count: count() })
+            .from(productWaitlist)
+            .where(and(
+              eq(productWaitlist.storeId, storeId),
+              eq(productWaitlist.productId, itemId),
+              isNull(productWaitlist.variantId),
+              eq(productWaitlist.isNotified, false)
+            ));
+          waitlistCount = waitlistResult?.count || 0;
+        }
       }
       
       await db
@@ -103,10 +133,37 @@ export async function updateInventory(itemId: string, inventory: number, isVaria
         changedByUserId: userId,
         changedByName: userName,
       });
+
+      // Check if should auto-notify waitlist
+      if (waitlistCount > 0) {
+        const settings = await getWaitlistSettings(storeId);
+        
+        if (settings.autoNotify && waitlistCount >= settings.notifyThreshold) {
+          // Send notifications automatically in background
+          try {
+            await notifyWaitlistForProduct(
+              storeId,
+              productId,
+              isVariant ? itemId : null
+            );
+            console.log(`Auto-notified ${waitlistCount} customers for product ${productId}`);
+          } catch (error) {
+            console.error('Error auto-notifying waitlist:', error);
+            // Don't fail the inventory update if notification fails
+          }
+        }
+      }
     }
 
     revalidatePath('/shops/[slug]/admin/products/inventory', 'page');
-    return { success: true };
+    
+    // Return with waitlist info if applicable
+    return { 
+      success: true, 
+      waitlistCount: waitlistCount > 0 ? waitlistCount : undefined,
+      productId,
+      variantId: isVariant ? itemId : undefined,
+    };
   } catch (error) {
     console.error('Error updating inventory:', error);
     return { error: 'אירעה שגיאה בעדכון המלאי' };

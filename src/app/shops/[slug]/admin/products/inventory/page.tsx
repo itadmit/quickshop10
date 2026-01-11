@@ -6,6 +6,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { InlineInventoryEditor } from './inline-inventory-editor';
 import { InventoryHistoryModal } from './inventory-history-modal';
+import { WaitlistAlerts } from './waitlist-alerts';
+import { getWaitlistSummary } from './waitlist-queries';
 
 export const dynamic = 'force-dynamic';
 
@@ -146,6 +148,8 @@ export default async function InventoryPage({ params, searchParams }: InventoryP
   }
 
   const { items, stats } = await getInventoryData(store.id, filter);
+  const waitlistSummary = await getWaitlistSummary(store.id);
+  const basePath = `/shops/${slug}`;
 
   return (
     <div className="space-y-4 sm:space-y-8">
@@ -183,6 +187,17 @@ export default async function InventoryPage({ params, searchParams }: InventoryP
           }`}
         >
           <p className="text-[10px] sm:text-sm text-amber-600">מלאי נמוך</p>
+
+      {/* Waitlist Alerts */}
+      {waitlistSummary.length > 0 && (
+        <WaitlistAlerts
+          items={waitlistSummary}
+          storeId={store.id}
+          storeSlug={slug}
+          basePath={basePath}
+        />
+      )}
+
           <p className="text-lg sm:text-2xl font-bold text-amber-600 mt-0.5 sm:mt-1">{stats.lowStock}</p>
         </Link>
         <Link

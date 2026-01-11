@@ -292,16 +292,23 @@ export function EditorSectionHighlighter() {
         // =====================================================
         // SETTINGS UPDATES - Colors, heights, etc.
         // =====================================================
+        console.log('[EditorHighlighter] Processing settings:', updates.settings);
+        
         // Background color (only if no image for hero sections)
         if (updates.settings?.backgroundColor !== undefined) {
           const sectionEl = element as HTMLElement;
-          const hasImage = sectionEl.dataset.hasImage === 'true' || 
-                          element.querySelector('[data-bg-desktop]')?.getAttribute('style')?.includes('url') ||
-                          element.querySelector('[data-bg-mobile]')?.getAttribute('style')?.includes('url');
+          // Simply use data-has-image attribute - it's the source of truth
+          const hasImage = sectionEl.dataset.hasImage === 'true';
+          console.log('[EditorHighlighter] backgroundColor update:', {
+            value: updates.settings.backgroundColor,
+            hasImage,
+            currentBg: sectionEl.style.backgroundColor
+          });
+          
+          // Apply backgroundColor if no image
           if (!hasImage) {
             sectionEl.style.backgroundColor = updates.settings.backgroundColor as string;
-          } else {
-            sectionEl.style.backgroundColor = '';
+            console.log('[EditorHighlighter] Applied backgroundColor:', updates.settings.backgroundColor);
           }
         }
         if (updates.settings?.sectionBackground !== undefined) {
@@ -339,11 +346,13 @@ export function EditorSectionHighlighter() {
         // Container type (container vs full width)
         if (updates.settings?.containerType !== undefined) {
           // Find the content container inside the section
-          const contentContainer = element.querySelector('.relative.z-10') as HTMLElement;
+          const contentContainer = element.querySelector('[data-content-container]') as HTMLElement 
+            || element.querySelector('.relative.z-10') as HTMLElement;
           if (contentContainer) {
             if (updates.settings.containerType === 'full') {
-              // Remove container classes
+              // Remove container classes, add w-full
               contentContainer.classList.remove('container', 'mx-auto');
+              contentContainer.classList.add('w-full');
               // Detect current text alignment from classes
               let textAlign = 'center';
               if (contentContainer.classList.contains('text-right') || contentContainer.classList.contains('items-end')) {
@@ -367,7 +376,8 @@ export function EditorSectionHighlighter() {
                 contentContainer.style.paddingRight = '20px';
               }
             } else {
-              // Add container classes and remove custom padding
+              // Add container classes and remove w-full and custom padding
+              contentContainer.classList.remove('w-full');
               contentContainer.classList.add('container', 'mx-auto');
               contentContainer.style.paddingLeft = '';
               contentContainer.style.paddingRight = '';
@@ -377,10 +387,24 @@ export function EditorSectionHighlighter() {
         
         // Custom class
         if (updates.settings?.customClass !== undefined) {
-          // Remove previous custom classes (if any) - this is tricky, so we just add the new one
-          if (updates.settings.customClass) {
-            (element as HTMLElement).className += ` ${updates.settings.customClass}`;
+          const el = element as HTMLElement;
+          // Get the previous custom class stored in data attribute
+          const prevCustomClass = el.dataset.customClass || '';
+          // Remove previous custom class if exists
+          if (prevCustomClass) {
+            prevCustomClass.split(' ').forEach(cls => {
+              if (cls.trim()) el.classList.remove(cls.trim());
+            });
           }
+          // Add new custom class
+          const newCustomClass = (updates.settings.customClass as string) || '';
+          if (newCustomClass) {
+            newCustomClass.split(' ').forEach(cls => {
+              if (cls.trim()) el.classList.add(cls.trim());
+            });
+          }
+          // Store the new custom class for future reference
+          el.dataset.customClass = newCustomClass;
         }
         
         // Custom ID
@@ -395,7 +419,8 @@ export function EditorSectionHighlighter() {
         
         // Text alignment for section content
         if (updates.settings?.textAlign !== undefined) {
-          const contentContainer = element.querySelector('.relative.z-10') as HTMLElement;
+          const contentContainer = element.querySelector('[data-content-container]') as HTMLElement 
+            || element.querySelector('.relative.z-10') as HTMLElement;
           if (contentContainer) {
             // Remove all alignment classes
             contentContainer.classList.remove('items-start', 'items-center', 'items-end', 'text-left', 'text-center', 'text-right');
@@ -410,8 +435,8 @@ export function EditorSectionHighlighter() {
             }
             
             // If full width, update padding based on alignment
-            // Check if container has 'container' class to determine type
-            const isFullWidth = !contentContainer.classList.contains('container');
+            // Check if container has 'container' class or w-full to determine type
+            const isFullWidth = contentContainer.classList.contains('w-full') || !contentContainer.classList.contains('container');
             if (isFullWidth) {
               if (align === 'right') {
                 contentContainer.style.paddingRight = '20px';
@@ -459,11 +484,18 @@ export function EditorSectionHighlighter() {
         // Overlay opacity
         if (updates.settings?.overlay !== undefined) {
           const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
+          console.log('[EditorHighlighter] Overlay update:', {
+            value: updates.settings.overlay,
+            overlayElFound: !!overlayEl
+          });
           if (overlayEl) {
             const overlayValue = updates.settings.overlay as number;
             // Ensure value is between 0 and 1
             const clampedValue = Math.max(0, Math.min(1, overlayValue));
             overlayEl.style.backgroundColor = `rgba(0,0,0,${clampedValue})`;
+            console.log('[EditorHighlighter] Applied overlay:', `rgba(0,0,0,${clampedValue})`);
+          } else {
+            console.warn('[EditorHighlighter] Overlay element [data-overlay] not found in section');
           }
         }
         
@@ -688,7 +720,7 @@ export function EditorSectionHighlighter() {
             
             if (selectedProducts && selectedProducts.length > 0) {
               renderProductCards(selectedProducts);
-            } else {
+              } else {
               // No products selected - show placeholder
               const emptyHtml = `
                 <div data-preview-product class="col-span-full text-center py-12 text-gray-400">
@@ -705,7 +737,7 @@ export function EditorSectionHighlighter() {
             
             if (categoryProducts && categoryProducts.length > 0) {
               renderProductCards(categoryProducts);
-            } else {
+          } else {
               // No category selected or empty - show placeholder
               const emptyHtml = `
                 <div data-preview-product class="col-span-full text-center py-12 text-gray-400">
@@ -816,12 +848,17 @@ export function EditorSectionHighlighter() {
           
           case 'hero':
           case 'banner':
-            placeholder.className = 'relative min-h-[60vh] flex items-center justify-center';
+            const hasHeroImage = !!(content?.imageUrl || content?.mobileImageUrl);
+            const heroBgColor = hasHeroImage ? 'transparent' : '#6B7280'; // Gray fallback if no image
+            placeholder.className = 'relative min-h-[60vh] flex items-center justify-center overflow-hidden';
+            placeholder.dataset.hasImage = hasHeroImage ? 'true' : 'false';
+            placeholder.style.backgroundColor = heroBgColor;
             html = `
-              <div class="absolute inset-0 bg-gray-200" data-bg-desktop style="background-size: cover; background-position: center; ${content?.imageUrl ? `background-image: url('${content.imageUrl}')` : ''}">
-                <div class="absolute inset-0 bg-black/30"></div>
+              <div class="absolute inset-0">
+                <div class="absolute inset-0 bg-cover bg-center" data-bg-desktop style="background-size: cover; background-position: center; ${content?.imageUrl ? `background-image: url('${content.imageUrl}')` : 'background-image: none;'}"></div>
+                <div class="absolute inset-0" data-overlay style="background-color: rgba(0,0,0,0.3);"></div>
               </div>
-              <div class="relative z-10 text-center text-white px-4">
+              <div class="relative z-10 text-center text-white px-4" data-content-container>
                 <h2 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-wide mb-4" data-section-title>${title || 'כותרת הבאנר'}</h2>
                 <p class="text-xl md:text-2xl mb-8 opacity-90" data-section-subtitle>${subtitle || 'תת כותרת'}</p>
                 <a href="${content?.buttonLink || '/products'}" class="inline-block px-8 py-3 bg-white text-black hover:bg-black hover:text-white transition-colors text-sm tracking-wider uppercase" data-section-button>${content?.buttonText || 'לחנות'}</a>

@@ -103,6 +103,16 @@ const mainMenuItems: MenuItem[] = [
         <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
       </svg>
     ),
+    subItems: [
+      {
+        label: 'כל הממתינים',
+        href: '/waitlist',
+      },
+      {
+        label: 'סטטיסטיקות',
+        href: '/waitlist/stats',
+      },
+    ],
   },
   {
     label: 'עריכה קבוצתית',
