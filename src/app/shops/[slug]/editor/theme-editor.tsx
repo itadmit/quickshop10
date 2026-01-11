@@ -88,6 +88,14 @@ const EDITABLE_PAGES = [
   { id: 'coming_soon', label: 'Coming Soon', icon: 'clock' },
 ] as const;
 
+// Internal page interface
+interface InternalPage {
+  id: string;
+  title: string;
+  slug: string;
+  isPublished: boolean;
+}
+
 interface ThemeEditorProps {
   store: Store;
   slug: string;
@@ -96,6 +104,7 @@ interface ThemeEditorProps {
   categories?: Category[];
   currentPage?: string;
   isPublished?: boolean;
+  internalPages?: InternalPage[];
 }
 
 export function ThemeEditor({
@@ -106,6 +115,7 @@ export function ThemeEditor({
   categories = [],
   currentPage = 'home',
   isPublished = false,
+  internalPages: initialInternalPages = [],
 }: ThemeEditorProps) {
   const router = useRouter();
   const [sections, setSections] = useState<Section[]>(initialSections);
@@ -118,11 +128,75 @@ export function ThemeEditor({
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile' | 'tablet'>('desktop');
   const [previewRefreshKey, setPreviewRefreshKey] = useState(0);
   const [showPageDropdown, setShowPageDropdown] = useState(false);
+  const [internalPages, setInternalPages] = useState<InternalPage[]>(initialInternalPages);
+  const [showNewPageModal, setShowNewPageModal] = useState(false);
+  const [newPageTitle, setNewPageTitle] = useState('');
+  const [newPageSlug, setNewPageSlug] = useState('');
+  const [isCreatingPage, setIsCreatingPage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   
-  // Get current page info
-  const currentPageInfo = EDITABLE_PAGES.find(p => p.id === currentPage) || EDITABLE_PAGES[0];
+  // Get current page info - check internal pages first
+  const isInternalPage = currentPage.startsWith('pages/');
+  const currentInternalPage = isInternalPage 
+    ? internalPages.find(p => `pages/${p.slug}` === currentPage)
+    : null;
+  const currentPageInfo = currentInternalPage
+    ? { id: currentPage, label: currentInternalPage.title, icon: 'file' as const }
+    : (EDITABLE_PAGES.find(p => p.id === currentPage) || EDITABLE_PAGES[0]);
+  
+  // Create new internal page
+  const handleCreatePage = async () => {
+    if (!newPageTitle.trim() || !newPageSlug.trim()) return;
+    
+    setIsCreatingPage(true);
+    try {
+      const response = await fetch(`/api/shops/${slug}/editor/pages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: newPageTitle.trim(), pageSlug: newPageSlug.trim() }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Add to local state
+        setInternalPages(prev => [...prev, {
+          id: data.page.id,
+          title: data.page.title,
+          slug: data.page.slug,
+          isPublished: data.page.isPublished,
+        }]);
+        
+        // Navigate to the new page
+        router.push(`/shops/${slug}/editor?page=${data.pageIdentifier}`);
+        setShowNewPageModal(false);
+        setNewPageTitle('');
+        setNewPageSlug('');
+      } else {
+        alert(data.error || 'שגיאה ביצירת העמוד');
+      }
+    } catch (error) {
+      console.error('Create page error:', error);
+      alert('שגיאה ביצירת העמוד');
+    } finally {
+      setIsCreatingPage(false);
+    }
+  };
+  
+  // Auto-generate slug from title
+  const handleNewPageTitleChange = (title: string) => {
+    setNewPageTitle(title);
+    // Generate slug from title (Hebrew-friendly)
+    const generatedSlug = title
+      .trim()
+      .replace(/[\s\u200B-\u200D\uFEFF\u00A0\u2000-\u200A\u2028\u2029]+/g, '-')
+      .replace(/[.,;:!?()[\]{}'"\`~@#$%^&*+=|\\<>\/]+/g, '-')
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    setNewPageSlug(generatedSlug);
+  };
   
   // Theme settings state - loaded from store settings
   // Original settings from DB (for comparison)
@@ -541,9 +615,9 @@ export function ThemeEditor({
               />
               
               {/* Dropdown Menu */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-56 bg-[#2a2a3e] rounded-lg shadow-xl border border-white/10 overflow-hidden z-50">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-[#2a2a3e] rounded-lg shadow-xl border border-white/10 overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
                 <div className="p-2">
-                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40">עמודים</p>
+                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40">עמודי מערכת</p>
                   
                   {EDITABLE_PAGES.map((page) => (
                     <button
@@ -576,6 +650,58 @@ export function ThemeEditor({
                       )}
                     </button>
                   ))}
+                </div>
+                
+                {/* Internal Pages */}
+                <div className="border-t border-white/10 p-2">
+                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40">עמודים פנימיים</p>
+                  
+                  {internalPages.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-white/30">אין עמודים פנימיים</p>
+                  ) : (
+                    internalPages.map((page) => {
+                      const pageId = `pages/${page.slug}`;
+                      return (
+                        <button
+                          key={page.id}
+                          onClick={() => {
+                            if (pageId !== currentPage) {
+                              router.push(`/shops/${slug}/editor?page=${pageId}`);
+                            }
+                            setShowPageDropdown(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer ${
+                            pageId === currentPage 
+                              ? 'bg-white/10 text-white' 
+                              : 'text-white/70 hover:bg-white/5 hover:text-white'
+                          }`}
+                        >
+                          <FileIcon />
+                          <span className="text-sm truncate">{page.title}</span>
+                          {!page.isPublished && (
+                            <span className="text-[10px] text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">טיוטה</span>
+                          )}
+                          {pageId === currentPage && (
+                            <span className="mr-auto text-green-400">
+                              <CheckIcon />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                  
+                  {/* Add New Page Button */}
+                  <button
+                    onClick={() => {
+                      setShowPageDropdown(false);
+                      setShowNewPageModal(true);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-white/70 hover:bg-white/5 hover:text-white mt-1"
+                  >
+                    <PlusIcon />
+                    <span className="text-sm">הוסף עמוד חדש</span>
+                  </button>
                 </div>
                 
                 {/* Store Status */}
@@ -724,6 +850,70 @@ export function ThemeEditor({
           />
         </div>
       </div>
+      
+      {/* New Page Modal */}
+      {showNewPageModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">עמוד חדש</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  שם העמוד *
+                </label>
+                <input
+                  type="text"
+                  value={newPageTitle}
+                  onChange={(e) => handleNewPageTitleChange(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  placeholder="אודות, תקנון, צור קשר..."
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  כתובת URL *
+                </label>
+                <div className="flex">
+                  <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg text-gray-500 text-sm">
+                    /pages/
+                  </span>
+                  <input
+                    type="text"
+                    value={newPageSlug}
+                    onChange={(e) => setNewPageSlug(e.target.value)}
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                    placeholder="about"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCreatePage}
+                disabled={isCreatingPage || !newPageTitle.trim() || !newPageSlug.trim()}
+                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {isCreatingPage ? 'יוצר...' : 'צור עמוד'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowNewPageModal(false);
+                  setNewPageTitle('');
+                  setNewPageSlug('');
+                }}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -875,6 +1065,27 @@ function PackageIcon() {
       <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
       <path d="m3.3 7 8.7 5 8.7-5" />
       <path d="M12 22V12" />
+    </svg>
+  );
+}
+
+function FileIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
     </svg>
   );
 }

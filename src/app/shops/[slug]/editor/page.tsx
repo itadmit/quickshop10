@@ -3,7 +3,8 @@ import { getStoreBySlug, getPageSections, getCategoriesByStore } from '@/lib/db/
 import { auth } from '@/lib/auth';
 import { ThemeEditor } from './theme-editor';
 import { db } from '@/lib/db';
-import { pageSections } from '@/lib/db/schema';
+import { pageSections, pages } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 // ============================================
 // Theme Editor Page - Full Screen (No Admin Layout)
@@ -39,12 +40,48 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     redirect('/dashboard');
   }
 
-  // Fetch sections for the editor sidebar
-  let rawSections = await getPageSections(store.id, currentPage);
+  // Fetch internal pages in parallel with sections
+  const [rawSections, internalPagesRaw] = await Promise.all([
+    getPageSections(store.id, currentPage),
+    db.query.pages.findMany({
+      where: eq(pages.storeId, store.id),
+      columns: {
+        id: true,
+        title: true,
+        slug: true,
+        isPublished: true,
+      },
+      orderBy: (pages, { asc }) => [asc(pages.title)],
+    }),
+  ]);
+  
+  // Map internal pages
+  const internalPages = internalPagesRaw.map(p => ({
+    id: p.id,
+    title: p.title,
+    slug: p.slug,
+    isPublished: p.isPublished,
+  }));
+  
+  // Re-declare rawSections as mutable for potential modifications
+  let sections = rawSections;
+
+  // For internal pages: verify the page exists
+  if (currentPage.startsWith('pages/')) {
+    const pageSlug = currentPage.replace('pages/', '');
+    const pageExists = await db.query.pages.findFirst({
+      where: and(eq(pages.storeId, store.id), eq(pages.slug, pageSlug)),
+    });
+    
+    if (!pageExists) {
+      // Page doesn't exist, redirect to home editor
+      redirect(`/shops/${slug}/editor?page=home`);
+    }
+  }
 
   // For coming_soon page: auto-create default sections if none exist
   // This handles existing stores that don't have coming_soon sections yet
-  if (currentPage === 'coming_soon' && rawSections.length === 0) {
+  if (currentPage === 'coming_soon' && sections.length === 0) {
     await db.insert(pageSections).values([
       {
         storeId: store.id,
@@ -82,11 +119,11 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
       },
     ]);
     // Refetch after creation
-    rawSections = await getPageSections(store.id, currentPage);
+    sections = await getPageSections(store.id, currentPage);
   }
 
   // Type-cast sections to match expected interface
-  const sections = rawSections.map(s => ({
+  const typedSections = sections.map(s => ({
     ...s,
     content: (s.content || {}) as Record<string, unknown>,
     settings: (s.settings || {}) as Record<string, unknown>,
@@ -111,11 +148,12 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
       key={currentPage} // Force remount when page changes
       store={store}
       slug={slug}
-      sections={sections}
+      sections={typedSections}
       templateId={currentTemplateId}
       categories={categoriesForEditor}
       currentPage={currentPage}
       isPublished={store.isPublished}
+      internalPages={internalPages}
     />
   );
 }
