@@ -66,6 +66,8 @@ interface CategoryData {
   isActive: boolean;
   sortOrder: number;
   parentId: string | null;
+  hideOutOfStock?: boolean;
+  moveOutOfStockToBottom?: boolean;
 }
 
 export async function createCategory(storeId: string, data: CategoryData) {
@@ -112,6 +114,8 @@ export async function updateCategory(categoryId: string, data: CategoryData) {
         isActive: data.isActive,
         sortOrder: data.sortOrder,
         parentId: data.parentId || null,
+        hideOutOfStock: data.hideOutOfStock ?? false,
+        moveOutOfStockToBottom: data.moveOutOfStockToBottom ?? true,
       })
       .where(eq(categories.id, categoryId));
 

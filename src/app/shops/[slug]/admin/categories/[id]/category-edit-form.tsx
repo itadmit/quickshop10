@@ -37,6 +37,8 @@ interface Category {
   isActive: boolean;
   sortOrder: number | null;
   parentId: string | null;
+  hideOutOfStock: boolean;
+  moveOutOfStockToBottom: boolean;
 }
 
 interface ParentCategory {
@@ -67,6 +69,8 @@ export function CategoryEditForm({ category, allCategories, storeId, storeSlug }
     isActive: category.isActive,
     sortOrder: category.sortOrder ?? 0,
     parentId: category.parentId || '',
+    hideOutOfStock: category.hideOutOfStock ?? false,
+    moveOutOfStockToBottom: category.moveOutOfStockToBottom ?? true,
   });
 
   // Filter available parents
@@ -314,6 +318,31 @@ export function CategoryEditForm({ category, allCategories, storeId, storeSlug }
           <span className="text-sm text-gray-700">
             {formData.isActive ? 'קטגוריה פעילה' : 'קטגוריה מוסתרת'}
           </span>
+        </div>
+
+        {/* Out of Stock Settings */}
+        <div className="pt-4 border-t border-gray-200 space-y-3">
+          <h3 className="text-sm font-medium text-gray-900">הגדרות מוצרים שאזלו מהמלאי</h3>
+          
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.moveOutOfStockToBottom}
+              onChange={(e) => setFormData(prev => ({ ...prev, moveOutOfStockToBottom: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <span className="text-sm text-gray-700">הזז מוצרים שאזלו לסוף הרשימה</span>
+          </label>
+          
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.hideOutOfStock}
+              onChange={(e) => setFormData(prev => ({ ...prev, hideOutOfStock: e.target.checked }))}
+              className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <span className="text-sm text-gray-700">הסתר מוצרים שאזלו מעמוד הקטגוריה</span>
+          </label>
         </div>
 
         {/* Actions */}

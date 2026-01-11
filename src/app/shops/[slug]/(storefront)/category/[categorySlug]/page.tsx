@@ -3,6 +3,7 @@ import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
 import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
+import { isOutOfStock } from '@/lib/inventory';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -31,13 +32,34 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   }
 
   // Fetch products, subcategories, parent category, all categories and footer menu in parallel ⚡
-  const [products, subcategories, parentCategory, allCategories, footerMenuItems] = await Promise.all([
+  const [rawProducts, subcategories, parentCategory, allCategories, footerMenuItems] = await Promise.all([
     getProductsByCategory(store.id, category.id),
     getSubcategories(store.id, category.id),
     category.parentId ? getCategoryById(category.parentId) : null,
     getCategoriesByStore(store.id),
     getFooterMenuItems(store.id),
   ]);
+
+  // Apply out-of-stock display settings from category (with fallback for migration)
+  const hideOutOfStock = (category as unknown as { hideOutOfStock?: boolean }).hideOutOfStock ?? false;
+  const moveOutOfStockToBottom = (category as unknown as { moveOutOfStockToBottom?: boolean }).moveOutOfStockToBottom ?? true;
+  
+  // Helper to check if product is out of stock
+  const checkOutOfStock = (p: typeof rawProducts[0]) => 
+    isOutOfStock(p.trackInventory, p.inventory, p.allowBackorder);
+  
+  // Filter and sort products based on category settings
+  let products = rawProducts;
+  
+  if (hideOutOfStock) {
+    // Hide out-of-stock products completely
+    products = rawProducts.filter(p => !checkOutOfStock(p));
+  } else if (moveOutOfStockToBottom) {
+    // Move out-of-stock products to the bottom
+    const inStock = rawProducts.filter(p => !checkOutOfStock(p));
+    const outOfStock = rawProducts.filter(p => checkOutOfStock(p));
+    products = [...inStock, ...outOfStock];
+  }
 
   // חישוב הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת!) ⚡
   const discountsMap = await getProductsAutomaticDiscounts(

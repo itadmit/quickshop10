@@ -376,6 +376,9 @@ export const categories = pgTable('categories', {
   imageUrl: varchar('image_url', { length: 500 }),
   sortOrder: integer('sort_order').default(0),
   isActive: boolean('is_active').default(true).notNull(),
+  // Out-of-stock product display settings
+  hideOutOfStock: boolean('hide_out_of_stock').default(false).notNull(),
+  moveOutOfStockToBottom: boolean('move_out_of_stock_to_bottom').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('idx_categories_store_slug').on(table.storeId, table.slug),
