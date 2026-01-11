@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { productWaitlist, products, productVariants, stores } from '@/lib/db/schema';
+import { productWaitlist, products, productVariants, stores, productImages } from '@/lib/db/schema';
 import { eq, and, desc, count, isNull } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/admin/ui';
@@ -41,7 +41,7 @@ export default async function WaitlistStatsPage({ params }: WaitlistStatsPagePro
       productId: productWaitlist.productId,
       productName: products.name,
       productSlug: products.slug,
-      productImage: products.images,
+      productImageUrl: productImages.url,
       variantId: productWaitlist.variantId,
       variantTitle: productVariants.title,
       count: count(),
@@ -49,12 +49,16 @@ export default async function WaitlistStatsPage({ params }: WaitlistStatsPagePro
     .from(productWaitlist)
     .leftJoin(products, eq(products.id, productWaitlist.productId))
     .leftJoin(productVariants, eq(productVariants.id, productWaitlist.variantId))
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
     .where(eq(productWaitlist.storeId, store.id))
     .groupBy(
       productWaitlist.productId,
       products.name,
       products.slug,
-      products.images,
+      productImages.url,
       productWaitlist.variantId,
       productVariants.title
     )
@@ -68,7 +72,6 @@ export default async function WaitlistStatsPage({ params }: WaitlistStatsPagePro
       <PageHeader
         title="סטטיסטיקות רשימת המתנה"
         description="מוצרים פופולריים וניתוח רשימת המתנה"
-        icon={BarChart3}
       />
 
       {/* Stats Cards */}
@@ -149,14 +152,6 @@ export default async function WaitlistStatsPage({ params }: WaitlistStatsPagePro
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {topProducts.map((item, index) => {
-                    // Get image URL
-                    let imageUrl: string | null = null;
-                    if (item.productImage && Array.isArray(item.productImage)) {
-                      const images = item.productImage as Array<{ url: string; isPrimary?: boolean }>;
-                      const primaryImage = images.find(img => img.isPrimary) || images[0];
-                      imageUrl = primaryImage?.url || null;
-                    }
-
                     // Conversion rate would need additional query per product
                     const conversionRate = 0;
 
@@ -175,12 +170,16 @@ export default async function WaitlistStatsPage({ params }: WaitlistStatsPagePro
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            {imageUrl && (
+                            {item.productImageUrl ? (
                               <img
-                                src={imageUrl}
+                                src={item.productImageUrl}
                                 alt={item.productName || ''}
                                 className="w-12 h-12 rounded-lg object-cover"
                               />
+                            ) : (
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                                <Package className="w-6 h-6 text-gray-400" />
+                              </div>
                             )}
                             <div>
                               <Link

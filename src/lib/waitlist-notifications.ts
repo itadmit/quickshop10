@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { productWaitlist, products, productVariants, stores } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, isNull } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
 
 interface WaitlistEmailData {
@@ -156,7 +156,6 @@ export async function sendWaitlistNotification(waitlistId: string): Promise<{ su
         productName: products.name,
         productSlug: products.slug,
         productPrice: products.price,
-        productImage: products.images,
         variantId: productWaitlist.variantId,
         variantTitle: productVariants.title,
         variantPrice: productVariants.price,
@@ -175,13 +174,8 @@ export async function sendWaitlistNotification(waitlistId: string): Promise<{ su
       return { success: false, error: 'רשומת המתנה לא נמצאה' };
     }
 
-    // Get image URL
-    let imageUrl: string | null = null;
-    if (entry.productImage && Array.isArray(entry.productImage)) {
-      const images = entry.productImage as Array<{ url: string; isPrimary?: boolean }>;
-      const primaryImage = images.find(img => img.isPrimary) || images[0];
-      imageUrl = primaryImage?.url || null;
-    }
+    // No product images column - would need to join productImages table
+    const imageUrl: string | null = null;
 
     // Prepare email data
     const emailData: WaitlistEmailData = {
@@ -245,7 +239,7 @@ export async function notifyWaitlistForProduct(
       conditions.push(eq(productWaitlist.variantId, variantId));
     } else {
       // For simple products, only get entries without variant
-      conditions.push(eq(productWaitlist.variantId, null));
+      conditions.push(isNull(productWaitlist.variantId));
     }
 
     const entries = await db

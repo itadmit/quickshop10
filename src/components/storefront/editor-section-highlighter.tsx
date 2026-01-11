@@ -588,6 +588,125 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // =====================================================
+        // TYPOGRAPHY SETTINGS (for image_text, text_block, etc.)
+        // =====================================================
+        
+        // Title styling
+        if (updates.settings?.titleColor !== undefined) {
+          const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
+          if (titleEl) {
+            titleEl.style.color = updates.settings.titleColor as string;
+          }
+        }
+        
+        if (updates.settings?.titleSize !== undefined) {
+          const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
+          if (titleEl) {
+            // Remove existing size classes and add new one
+            titleEl.classList.remove('text-xl', 'text-2xl', 'text-3xl', 'text-4xl', 'text-5xl', 
+              'md:text-2xl', 'md:text-3xl', 'md:text-4xl', 'md:text-5xl');
+            const sizeMap: Record<string, string[]> = {
+              'sm': ['text-xl', 'md:text-2xl'],
+              'md': ['text-2xl', 'md:text-3xl'],
+              'lg': ['text-3xl', 'md:text-4xl'],
+              'xl': ['text-4xl', 'md:text-5xl'],
+            };
+            const classes = sizeMap[updates.settings.titleSize as string] || sizeMap['lg'];
+            titleEl.classList.add(...classes);
+          }
+        }
+        
+        if (updates.settings?.titleWeight !== undefined) {
+          const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
+          if (titleEl) {
+            titleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold');
+            titleEl.classList.add(`font-${updates.settings.titleWeight}`);
+          }
+        }
+        
+        // Subtitle styling
+        if (updates.settings?.subtitleColor !== undefined) {
+          const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
+          if (subtitleEl) {
+            subtitleEl.style.color = updates.settings.subtitleColor as string;
+          }
+        }
+        
+        if (updates.settings?.subtitleSize !== undefined) {
+          const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
+          if (subtitleEl) {
+            subtitleEl.classList.remove('text-sm', 'text-base', 'text-lg');
+            const sizeMap: Record<string, string> = { 'sm': 'text-sm', 'md': 'text-base', 'lg': 'text-lg' };
+            subtitleEl.classList.add(sizeMap[updates.settings.subtitleSize as string] || 'text-lg');
+          }
+        }
+        
+        if (updates.settings?.subtitleWeight !== undefined) {
+          const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
+          if (subtitleEl) {
+            subtitleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold');
+            subtitleEl.classList.add(`font-${updates.settings.subtitleWeight}`);
+          }
+        }
+        
+        // Content/Text styling
+        if (updates.settings?.textColor !== undefined) {
+          const textEl = element.querySelector('[data-content-text]') as HTMLElement;
+          if (textEl) {
+            textEl.style.color = updates.settings.textColor as string;
+          }
+        }
+        
+        if (updates.settings?.textSize !== undefined) {
+          const textEl = element.querySelector('[data-content-text]') as HTMLElement;
+          if (textEl) {
+            textEl.classList.remove('prose-sm', 'prose', 'prose-lg');
+            const sizeMap: Record<string, string> = { 'sm': 'prose-sm', 'md': 'prose', 'lg': 'prose-lg' };
+            textEl.classList.add(sizeMap[updates.settings.textSize as string] || 'prose-sm');
+          }
+        }
+        
+        // Button styling (for non-hero sections)
+        if (updates.settings?.buttonTextColor !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            btnEl.style.color = updates.settings.buttonTextColor as string;
+          }
+        }
+        
+        if (updates.settings?.buttonBackgroundColor !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            btnEl.style.backgroundColor = updates.settings.buttonBackgroundColor as string;
+          }
+        }
+        
+        if (updates.settings?.buttonBorderColor !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            btnEl.style.borderColor = updates.settings.buttonBorderColor as string;
+          }
+        }
+        
+        // Overlay for image sections (image_text)
+        if (updates.settings?.overlay !== undefined) {
+          const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
+          if (overlayEl) {
+            const opacity = updates.settings.overlay as number;
+            overlayEl.style.backgroundColor = `rgba(0,0,0,${opacity})`;
+          }
+        }
+        
+        // Margin top/bottom (spacing between sections)
+        if (updates.settings?.marginTop !== undefined) {
+          (element as HTMLElement).style.marginTop = `${updates.settings.marginTop}px`;
+        }
+        
+        if (updates.settings?.marginBottom !== undefined) {
+          (element as HTMLElement).style.marginBottom = `${updates.settings.marginBottom}px`;
+        }
+        
         // Card height (series grid overlay style)
         if (updates.settings?.cardHeight !== undefined) {
           const contentDivs = element.querySelectorAll('[data-item-id] .relative.p-8');
@@ -857,23 +976,24 @@ export function EditorSectionHighlighter() {
         let html = '';
         switch (sectionType) {
           case 'image_text':
-            placeholder.className = 'py-0';
+            placeholder.className = 'py-12 md:py-0';
             html = `
-              <div class="flex flex-col md:flex-row min-h-[400px]">
-                <div class="w-full md:w-1/2 relative overflow-hidden" style="min-height: 300px;" data-image-container>
+              <div class="flex flex-col md:flex-row min-h-[400px]" data-image-text-container style="flex-direction: row;">
+                <div class="w-full md:w-1/2 relative overflow-hidden" style="min-height: 300px; flex-basis: 50%; width: 50%;" data-image-container>
                   <img src="${content?.imageUrl || ''}" alt="" class="w-full h-full object-cover absolute inset-0 ${content?.imageUrl ? '' : 'hidden'}" data-content-image />
+                  <div class="absolute inset-0" style="background-color: transparent;" data-overlay></div>
                   <div class="w-full h-full bg-gray-100 flex items-center justify-center ${content?.imageUrl ? 'hidden' : ''}" data-image-placeholder>
                     <svg class="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
                 </div>
-                <div class="w-full md:w-1/2 flex items-center p-8 md:p-12 lg:p-16">
-                  <div class="max-w-lg mx-auto text-right">
-                    <h2 class="text-2xl md:text-3xl lg:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
-                    <p class="text-lg text-gray-600 mb-4 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
-                    <div class="text-gray-600 leading-relaxed mb-6 prose prose-sm" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
-                    <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border border-black text-black hover:bg-black hover:text-white transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" data-section-button>${content?.buttonText || ''}</a>
+                <div class="w-full md:w-1/2 flex items-center p-8 md:p-12 lg:p-16" style="flex-basis: calc(100% - 50%); width: calc(100% - 50%);" data-text-container>
+                  <div class="max-w-lg mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
+                    <p class="text-lg mb-4 ${subtitle ? '' : 'hidden'}" style="color: #4b5563;" data-section-subtitle>${subtitle || ''}</p>
+                    <div class="leading-relaxed mb-6 prose prose-sm" style="color: #4b5563;" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
+                    <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" style="color: #000; background-color: transparent; border-color: #000;" data-section-button>${content?.buttonText || ''}</a>
                   </div>
                 </div>
               </div>
@@ -881,18 +1001,42 @@ export function EditorSectionHighlighter() {
             break;
           
           case 'text_block':
-            placeholder.className = 'py-16 bg-white';
+            placeholder.className = 'py-16 px-4';
             html = `
-              <div class="container mx-auto px-4">
-                <div class="text-center max-w-3xl mx-auto">
-                  <h2 class="text-2xl md:text-3xl lg:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
-                  <p class="text-lg text-gray-600 mb-6 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
-                  <div class="prose prose-lg mx-auto" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
-                </div>
+              <div class="max-w-2xl mx-auto text-center">
+                <h2 class="text-3xl md:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title style="color: inherit;">${title || ''}</h2>
+                <p class="text-lg opacity-80 mb-6 ${subtitle ? '' : 'hidden'}" data-section-subtitle style="color: inherit;">${subtitle || ''}</p>
+                <div class="prose prose mx-auto mb-8" data-content-text style="color: inherit;">${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
+                <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" style="color: #000; background-color: transparent; border-color: currentColor;" data-section-button>${content?.buttonText || ''}</a>
               </div>
             `;
             break;
           
+          case 'video_banner':
+            const hasVideoMedia = !!(content?.videoUrl || content?.imageUrl);
+            placeholder.className = 'relative overflow-hidden';
+            placeholder.style.height = '80vh';
+            placeholder.style.backgroundColor = hasVideoMedia ? '#000' : '#1f2937';
+            placeholder.style.marginTop = '0';
+            placeholder.style.marginBottom = '0';
+            html = `
+              <div class="absolute inset-0 flex items-center justify-center" style="background-color: rgba(0,0,0,0.2);" data-overlay data-content-container>
+                <div class="max-w-2xl px-6 text-center">
+                  <p class="text-xs font-normal tracking-[0.4em] uppercase mb-6 ${subtitle ? '' : 'hidden'}" style="color: rgba(255,255,255,0.8);" data-section-subtitle>${subtitle || ''}</p>
+                  <h2 class="text-4xl md:text-6xl lg:text-7xl font-extralight tracking-[0.2em] uppercase mb-8 ${title ? '' : 'hidden'}" style="color: #fff;" data-section-title>${title || ''}</h2>
+                  <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" style="color: #fff; background-color: transparent; border-color: #fff;" data-section-button>${content?.buttonText || ''}</a>
+                </div>
+              </div>
+              ${!hasVideoMedia ? `
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <svg class="w-20 h-20 text-white/20" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
+              </div>
+              ` : ''}
+            `;
+            break;
+
           case 'hero':
           case 'banner':
             const hasHeroImage = !!(content?.imageUrl || content?.mobileImageUrl);
@@ -935,31 +1079,33 @@ export function EditorSectionHighlighter() {
             break;
           
           case 'features':
-            placeholder.className = 'py-16 bg-white';
+            placeholder.className = 'py-12 px-4';
             html = `
-              <div class="container mx-auto px-4">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-12 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div class="text-center p-6">
-                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                      <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-                    </div>
-                    <h3 class="font-medium mb-2">משלוח חינם</h3>
-                    <p class="text-gray-600 text-sm">בהזמנה מעל 200₪</p>
+              <div class="max-w-7xl mx-auto">
+                <div class="text-center mb-10">
+                  <h2 class="text-2xl md:text-3xl font-light tracking-wide mb-3 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
+                  <p class="text-sm md:text-base ${subtitle ? '' : 'hidden'}" style="color: #4b5563;" data-section-subtitle>${subtitle || ''}</p>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+                  <div class="py-6 px-4 text-center md:border-l md:border-gray-100">
+                    <div class="mb-4 flex justify-center"><span class="text-3xl">🚚</span></div>
+                    <h3 class="font-medium mb-1" style="color: #111827;">משלוח מהיר</h3>
+                    <p class="text-sm" style="color: #6b7280;">עד 3 ימי עסקים</p>
                   </div>
-                  <div class="text-center p-6">
-                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                      <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-                    </div>
-                    <h3 class="font-medium mb-2">תשלום מאובטח</h3>
-                    <p class="text-gray-600 text-sm">SSL מאובטח</p>
+                  <div class="py-6 px-4 text-center md:border-l md:border-gray-100">
+                    <div class="mb-4 flex justify-center"><span class="text-3xl">🔄</span></div>
+                    <h3 class="font-medium mb-1" style="color: #111827;">החזרות חינם</h3>
+                    <p class="text-sm" style="color: #6b7280;">עד 30 יום</p>
                   </div>
-                  <div class="text-center p-6">
-                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
-                      <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-                    </div>
-                    <h3 class="font-medium mb-2">החזרה קלה</h3>
-                    <p class="text-gray-600 text-sm">14 ימי החזרה</p>
+                  <div class="py-6 px-4 text-center md:border-l md:border-gray-100">
+                    <div class="mb-4 flex justify-center"><span class="text-3xl">💬</span></div>
+                    <h3 class="font-medium mb-1" style="color: #111827;">תמיכה 24/7</h3>
+                    <p class="text-sm" style="color: #6b7280;">בכל שאלה</p>
+                  </div>
+                  <div class="py-6 px-4 text-center">
+                    <div class="mb-4 flex justify-center"><span class="text-3xl">✨</span></div>
+                    <h3 class="font-medium mb-1" style="color: #111827;">איכות מובטחת</h3>
+                    <p class="text-sm" style="color: #6b7280;">100% שביעות רצון</p>
                   </div>
                 </div>
               </div>
@@ -1018,6 +1164,110 @@ export function EditorSectionHighlighter() {
                     </div>
                   `).join('')}
                 </div>
+              </div>
+            `;
+            break;
+
+          case 'split_banner':
+            placeholder.className = 'grid md:grid-cols-2';
+            html = `
+              <div class="relative overflow-hidden group" style="height: 70vh;">
+                <div class="absolute inset-0 bg-gradient-to-b from-gray-200 to-gray-300"></div>
+                <div class="absolute inset-0" style="background-color: rgba(0,0,0,0.1);" data-overlay></div>
+                <div class="absolute inset-0 flex items-end justify-center pb-16">
+                  <span class="text-3xl md:text-4xl font-extralight tracking-[0.3em] uppercase" style="color: #fff;" data-section-title>נשים</span>
+                </div>
+              </div>
+              <div class="relative overflow-hidden group" style="height: 70vh;">
+                <div class="absolute inset-0 bg-gradient-to-b from-gray-300 to-gray-400"></div>
+                <div class="absolute inset-0" style="background-color: rgba(0,0,0,0.1);" data-overlay></div>
+                <div class="absolute inset-0 flex items-end justify-center pb-16">
+                  <span class="text-3xl md:text-4xl font-extralight tracking-[0.3em] uppercase" style="color: #fff;" data-section-title>גברים</span>
+                </div>
+              </div>
+            `;
+            break;
+
+          case 'banner_small':
+            placeholder.className = 'py-5 px-4';
+            placeholder.style.backgroundColor = '#000';
+            html = `
+              <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-right">
+                <div class="flex flex-col sm:flex-row items-center gap-2">
+                  <span class="text-base font-medium ${title ? '' : 'hidden'}" style="color: #fff;" data-section-title>${title || ''}</span>
+                  <span class="text-base font-normal opacity-80 ${subtitle ? '' : 'hidden'}" style="color: #fff;" data-section-subtitle>${subtitle || ''}</span>
+                </div>
+                <a href="${content?.buttonLink || '#'}" class="px-4 py-1.5 text-sm font-medium border transition-colors ${content?.buttonText ? '' : 'hidden'}" style="color: #fff; border-color: #fff;" data-section-button>${content?.buttonText || ''}</a>
+              </div>
+            `;
+            break;
+
+          case 'faq':
+            placeholder.className = 'py-16 bg-white';
+            html = `
+              <div class="container mx-auto px-4 max-w-3xl">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'שאלות נפוצות'}</h2>
+                <div class="space-y-4">
+                  ${[1,2,3].map(i => `
+                    <div class="border border-gray-200 rounded-lg p-4">
+                      <div class="flex justify-between items-center">
+                        <span class="font-medium">שאלה ${i}</span>
+                        <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+
+          case 'reviews':
+            placeholder.className = 'py-16 bg-gray-50';
+            html = `
+              <div class="container mx-auto px-4">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'ביקורות לקוחות'}</h2>
+                <div class="grid md:grid-cols-3 gap-6">
+                  ${[1,2,3].map(() => `
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                      <div class="flex gap-1 mb-3">${'★'.repeat(5)}</div>
+                      <p class="text-gray-600 mb-4">"ביקורת לדוגמה..."</p>
+                      <p class="font-medium">לקוח מרוצה</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+
+          case 'logos':
+            placeholder.className = 'py-12 bg-white';
+            html = `
+              <div class="container mx-auto px-4">
+                <h2 class="text-xl font-light tracking-wide text-center mb-8 text-gray-500 ${title ? '' : 'hidden'}" data-section-title>${title || 'הם בחרו בנו'}</h2>
+                <div class="flex flex-wrap justify-center items-center gap-8">
+                  ${[1,2,3,4,5].map(() => `
+                    <div class="w-24 h-12 bg-gray-100 rounded flex items-center justify-center">
+                      <span class="text-gray-400 text-xs">לוגו</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+
+          case 'custom':
+            placeholder.className = 'py-16 bg-gradient-to-b from-blue-50 to-white border-2 border-dashed border-blue-300';
+            html = `
+              <div class="container mx-auto px-4 text-center">
+                <div class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                </div>
+                <h2 class="text-xl font-medium text-gray-900 mb-2" data-section-title>${title || 'סקשן מותאם אישית'}</h2>
+                <p class="text-gray-500">הוסף קוד HTML מותאם אישית</p>
               </div>
             `;
             break;
@@ -1221,3 +1471,4 @@ export function EditorSectionHighlighter() {
 
   return null;
 }
+

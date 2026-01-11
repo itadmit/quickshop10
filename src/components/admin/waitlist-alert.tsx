@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Bell, Send, X } from 'lucide-react';
-import { sendNotificationsForProduct } from '../waitlist/actions';
+import { sendNotificationsForProduct } from '@/app/shops/[slug]/admin/waitlist/actions';
 
 interface WaitlistAlertProps {
   storeId: string;

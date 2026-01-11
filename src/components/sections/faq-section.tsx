@@ -20,9 +20,40 @@ interface FAQSectionProps {
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
     backgroundColor?: string;
     style?: 'accordion' | 'cards' | 'simple';
+    // Typography - Title
+    titleColor?: string;
+    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
+    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    // Typography - Subtitle
+    subtitleColor?: string;
+    // Question styling
+    questionColor?: string;
+    answerColor?: string;
+    // Spacing
+    marginTop?: number;
+    marginBottom?: number;
+    // Custom
+    customClass?: string;
+    customId?: string;
+    customCss?: string;
   };
   sectionId?: string;
 }
+
+const TITLE_SIZES = {
+  sm: 'text-xl md:text-2xl',
+  md: 'text-2xl md:text-3xl',
+  lg: 'text-3xl md:text-4xl',
+  xl: 'text-4xl md:text-5xl',
+};
+
+const FONT_WEIGHTS = {
+  light: 'font-light',
+  normal: 'font-normal',
+  medium: 'font-medium',
+  semibold: 'font-semibold',
+  bold: 'font-bold',
+};
 
 export function FAQSection({ 
   title, 
@@ -33,6 +64,8 @@ export function FAQSection({
 }: FAQSectionProps) {
   const maxWidth = settings.maxWidth || 'lg';
   const style = settings.style || 'accordion';
+  const titleSize = settings.titleSize || 'md';
+  const titleWeight = settings.titleWeight || 'light';
 
   const maxWidthClass = {
     'sm': 'max-w-sm',
@@ -51,31 +84,39 @@ export function FAQSection({
 
   return (
     <section 
-      className="py-16 px-4"
-      style={{ backgroundColor: settings.backgroundColor || 'transparent' }}
+      className={`py-16 px-4 ${settings.customClass || ''}`}
+      style={{ 
+        backgroundColor: settings.backgroundColor || 'transparent',
+        marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
+        marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
+      }}
+      id={settings.customId || undefined}
       data-section-id={sectionId}
       data-section-name="שאלות נפוצות"
     >
+      {settings.customCss && <style>{settings.customCss}</style>}
       <div className={`${maxWidthClass} mx-auto`}>
         {/* Header */}
-        {(title || subtitle) && (
-          <div className="text-center mb-12">
-            {title && (
-              <h2 className="text-2xl md:text-3xl font-display font-light tracking-wide mb-3">
-                {title}
-              </h2>
-            )}
-            {subtitle && (
-              <p className="text-gray-600 text-sm md:text-base">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        )}
+        <div className="text-center mb-12">
+          <h2 
+            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-3 ${!title ? 'hidden' : ''}`}
+            style={{ color: settings.titleColor || 'inherit' }}
+            data-section-title
+          >
+            {title || ''}
+          </h2>
+          <p 
+            className={`text-sm md:text-base ${!subtitle ? 'hidden' : ''}`}
+            style={{ color: settings.subtitleColor || '#4b5563' }}
+            data-section-subtitle
+          >
+            {subtitle || ''}
+          </p>
+        </div>
 
         {/* FAQ Items - Using native <details> for zero JS! */}
         <div className={`space-y-${style === 'cards' ? '4' : '0'}`}>
-          {items.map((item, index) => (
+          {items.map((item) => (
             <details 
               key={item.id}
               className={`
@@ -94,7 +135,10 @@ export function FAQSection({
                   hover:text-gray-600 transition-colors
                 `}
               >
-                <span className="font-medium text-gray-900 text-right pr-4">
+                <span 
+                  className="font-medium text-right pr-4"
+                  style={{ color: settings.questionColor || '#111827' }}
+                >
                   {item.question}
                 </span>
                 <svg 
@@ -108,11 +152,12 @@ export function FAQSection({
               </summary>
               <div 
                 className={`
-                  text-gray-600 leading-relaxed
+                  leading-relaxed
                   ${style === 'accordion' ? 'pb-5' : ''}
                   ${style === 'cards' ? 'px-5 pb-5' : ''}
                   ${style === 'simple' ? 'pb-4 pr-4' : ''}
                 `}
+                style={{ color: settings.answerColor || '#4b5563' }}
               >
                 {item.answer}
               </div>
@@ -123,4 +168,3 @@ export function FAQSection({
     </section>
   );
 }
-

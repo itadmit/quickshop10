@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { MediaPickerModal, type MediaItem } from '@/components/admin/media-picker-modal';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
+import { TypographyPopover } from '@/components/admin/typography-popover';
 
 // ============================================
 // Section Settings - Right Panel (Shopify Style) - עברית
@@ -91,6 +92,30 @@ interface SectionSettingsProps {
   categories?: Category[];
   // Store info for logo/favicon uploads
   storeInfo?: StoreInfo;
+}
+
+// Helper functions for typography settings conversion
+const SIZE_TO_PX: Record<string, number> = {
+  'xs': 12, 'sm': 14, 'md': 16, 'lg': 18, 'xl': 20,
+  '2xl': 24, '3xl': 30, '4xl': 36, '5xl': 48,
+};
+
+const WEIGHT_MAP: Record<string, 'light' | 'normal' | 'medium' | 'bold' | 'extrabold'> = {
+  'light': 'light', 'normal': 'normal', 'medium': 'medium',
+  'semibold': 'bold', 'bold': 'bold', 'extrabold': 'extrabold',
+};
+
+// Convert old size string to px number
+function sizeToPx(size: unknown, defaultPx: number = 16): number {
+  if (typeof size === 'number') return size;
+  if (typeof size === 'string' && SIZE_TO_PX[size]) return SIZE_TO_PX[size];
+  return defaultPx;
+}
+
+// Convert old weight to new format
+function mapWeight(weight: unknown, defaultWeight: 'light' | 'normal' | 'medium' | 'bold' | 'extrabold' = 'normal') {
+  if (typeof weight === 'string' && WEIGHT_MAP[weight]) return WEIGHT_MAP[weight];
+  return defaultWeight;
 }
 
 export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [], storeInfo }: SectionSettingsProps) {
@@ -673,6 +698,1577 @@ function DesignSettings({
             max={100}
             suffix="px"
             onChange={(v) => updateSettings('paddingBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Image + Text design settings
+  if (section.type === 'image_text') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="תמונה">
+          <SelectField
+            label="מיקום תמונה"
+            value={(section.settings.imagePosition as string) || 'right'}
+            options={[
+              { value: 'right', label: 'ימין' },
+              { value: 'left', label: 'שמאל' },
+            ]}
+            onChange={(v) => updateSettings('imagePosition', v)}
+          />
+          <SelectField
+            label="רוחב תמונה"
+            value={(section.settings.imageWidth as string) || '50%'}
+            options={[
+              { value: '40%', label: '40%' },
+              { value: '50%', label: '50%' },
+              { value: '60%', label: '60%' },
+            ]}
+            onChange={(v) => updateSettings('imageWidth', v)}
+          />
+          <SliderField
+            label="שקיפות שכבה כהה"
+            value={Math.round(((section.settings.overlay as number) || 0) * 100)}
+            min={0}
+            max={100}
+            suffix="%"
+            onChange={(v) => updateSettings('overlay', v / 100)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#000000',
+              fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontWeight: mapWeight(section.settings.titleWeight, 'light'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#000000"
+          />
+          <TypographyPopover
+            label="תת-כותרת"
+            value={{
+              color: (section.settings.subtitleColor as string) || '#4b5563',
+              fontSize: sizeToPx(section.settings.subtitleSize, 18),
+              fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
+            }}
+            onChange={(typography) => {
+              updateSettings('subtitleColor', typography.color);
+              updateSettings('subtitleSize', typography.fontSize);
+              updateSettings('subtitleWeight', typography.fontWeight);
+            }}
+            defaultColor="#4b5563"
+          />
+          <TypographyPopover
+            label="תוכן"
+            value={{
+              color: (section.settings.textColor as string) || '#4b5563',
+              fontSize: sizeToPx(section.settings.textSize, 14),
+            }}
+            onChange={(typography) => {
+              updateSettings('textColor', typography.color);
+              updateSettings('textSize', typography.fontSize);
+            }}
+            defaultColor="#4b5563"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כפתור">
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.buttonTextColor as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.buttonBackgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('buttonBackgroundColor', v)}
+          />
+          <ColorField
+            label="צבע מסגרת"
+            value={(section.settings.buttonBorderColor as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonBorderColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="צבע רקע">
+          <ColorField
+            label="צבע רקע סקשן"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Video Banner design settings
+  if (section.type === 'video_banner') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="וידאו והגדרות">
+          <SliderField
+            label="גובה"
+            value={parseInt((section.settings.height as string)?.replace('vh', '') || '80')}
+            min={30}
+            max={100}
+            suffix="vh"
+            onChange={(v) => updateSettings('height', `${v}vh`)}
+          />
+          <SliderField
+            label="שקיפות שכבה כהה"
+            value={Math.round(((section.settings.overlay as number) || 0.2) * 100)}
+            min={0}
+            max={100}
+            suffix="%"
+            onChange={(v) => updateSettings('overlay', v / 100)}
+          />
+          <ColorField
+            label="צבע רקע (אם אין מדיה)"
+            value={(section.settings.backgroundColor as string) || '#000000'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="הגדרות נגן">
+          <div className="flex items-center justify-between">
+            <span className="text-sm">נגינה אוטומטית</span>
+            <input
+              type="checkbox"
+              checked={(section.settings.autoplay as boolean) ?? true}
+              onChange={(e) => updateSettings('autoplay', e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">לופ</span>
+            <input
+              type="checkbox"
+              checked={(section.settings.loop as boolean) ?? true}
+              onChange={(e) => updateSettings('loop', e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">השתקה</span>
+            <input
+              type="checkbox"
+              checked={(section.settings.muted as boolean) ?? true}
+              onChange={(e) => updateSettings('muted', e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">הצג פקדים</span>
+            <input
+              type="checkbox"
+              checked={(section.settings.controls as boolean) ?? false}
+              onChange={(e) => updateSettings('controls', e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב טקסט">
+          <ToggleField
+            label="יישור טקסט"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
+          />
+          <ToggleField
+            label="מיקום טקסט"
+            options={['למעלה', 'מרכז', 'למטה']}
+            value={(section.settings.textPosition as string) === 'top' ? 'למעלה' : (section.settings.textPosition as string) === 'bottom' ? 'למטה' : 'מרכז'}
+            onChange={(v) => updateSettings('textPosition', v === 'למעלה' ? 'top' : v === 'למטה' ? 'bottom' : 'center')}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#ffffff',
+              fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontWeight: mapWeight(section.settings.titleWeight, 'light'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#ffffff"
+          />
+          <TypographyPopover
+            label="תת-כותרת"
+            value={{
+              color: (section.settings.subtitleColor as string) || 'rgba(255,255,255,0.8)',
+              fontSize: sizeToPx(section.settings.subtitleSize, 14),
+              fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
+            }}
+            onChange={(typography) => {
+              updateSettings('subtitleColor', typography.color);
+              updateSettings('subtitleSize', typography.fontSize);
+              updateSettings('subtitleWeight', typography.fontWeight);
+            }}
+            defaultColor="rgba(255,255,255,0.8)"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כפתור">
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.buttonTextColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.buttonBackgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('buttonBackgroundColor', v)}
+          />
+          <ColorField
+            label="צבע מסגרת"
+            value={(section.settings.buttonBorderColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonBorderColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Split Banner design settings
+  if (section.type === 'split_banner') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SliderField
+            label="גובה"
+            value={parseInt((section.settings.height as string)?.replace('vh', '') || '70')}
+            min={30}
+            max={100}
+            suffix="vh"
+            onChange={(v) => updateSettings('height', `${v}vh`)}
+          />
+          <SliderField
+            label="שקיפות שכבה כהה"
+            value={Math.round(((section.settings.overlay as number) || 0.1) * 100)}
+            min={0}
+            max={100}
+            suffix="%"
+            onChange={(v) => updateSettings('overlay', v / 100)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#ffffff',
+              fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontWeight: mapWeight(section.settings.titleWeight, 'light'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#ffffff"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // FAQ design settings
+  if (section.type === 'faq') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="רוחב מקסימלי"
+            value={(section.settings.maxWidth as string) || 'lg'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+            ]}
+            onChange={(v) => updateSettings('maxWidth', v)}
+          />
+          <SelectField
+            label="סגנון"
+            value={(section.settings.style as string) || 'accordion'}
+            options={[
+              { value: 'accordion', label: 'אקורדיון' },
+              { value: 'cards', label: 'כרטיסים' },
+              { value: 'simple', label: 'פשוט' },
+            ]}
+            onChange={(v) => updateSettings('style', v)}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+          <SelectField
+            label="גודל"
+            value={(section.settings.titleSize as string) || 'md'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+            ]}
+            onChange={(v) => updateSettings('titleSize', v)}
+          />
+          <SelectField
+            label="עובי"
+            value={(section.settings.titleWeight as string) || 'light'}
+            options={[
+              { value: 'light', label: 'דק' },
+              { value: 'normal', label: 'רגיל' },
+              { value: 'medium', label: 'בינוני' },
+              { value: 'semibold', label: 'מעובה' },
+              { value: 'bold', label: 'מודגש' },
+            ]}
+            onChange={(v) => updateSettings('titleWeight', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב שאלות">
+          <TypographyPopover
+            label="שאלה"
+            value={{
+              color: (section.settings.questionColor as string) || '#111827',
+            }}
+            onChange={(typography) => {
+              updateSettings('questionColor', typography.color);
+            }}
+            defaultColor="#111827"
+          />
+          <TypographyPopover
+            label="תשובה"
+            value={{
+              color: (section.settings.answerColor as string) || '#4b5563',
+            }}
+            onChange={(typography) => {
+              updateSettings('answerColor', typography.color);
+            }}
+            defaultColor="#4b5563"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Categories design settings
+  if (section.type === 'categories') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="סוג מיכל"
+            value={(section.settings.containerType as string) || 'container'}
+            options={[
+              { value: 'container', label: 'תיבה עם שוליים' },
+              { value: 'full', label: 'רוחב מלא' },
+            ]}
+            onChange={(v) => updateSettings('containerType', v)}
+          />
+          <SelectField
+            label="פריסה"
+            value={(section.settings.layout as string) || 'grid'}
+            options={[
+              { value: 'grid', label: 'גריד' },
+              { value: 'slider', label: 'סליידר' },
+            ]}
+            onChange={(v) => updateSettings('layout', v)}
+          />
+          <SelectField
+            label="עמודות"
+            value={String((section.settings.columns as number) || 4)}
+            options={[
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+              { value: '6', label: '6' },
+            ]}
+            onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+          <SelectField
+            label="גודל"
+            value={(section.settings.titleSize as string) || 'md'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+            ]}
+            onChange={(v) => updateSettings('titleSize', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כרטיס">
+          <SelectField
+            label="סגנון כרטיס"
+            value={(section.settings.cardStyle as string) || 'standard'}
+            options={[
+              { value: 'standard', label: 'סטנדרטי' },
+              { value: 'minimal', label: 'מינימלי' },
+              { value: 'overlay', label: 'עם שכבה' },
+            ]}
+            onChange={(v) => updateSettings('cardStyle', v)}
+          />
+          <SelectField
+            label="אפקט ריחוף"
+            value={(section.settings.hoverEffect as string) || 'scale'}
+            options={[
+              { value: 'none', label: 'ללא' },
+              { value: 'scale', label: 'הגדלה' },
+              { value: 'zoom', label: 'זום' },
+            ]}
+            onChange={(v) => updateSettings('hoverEffect', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Products design settings
+  if (section.type === 'products') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="סוג מיכל"
+            value={(section.settings.containerType as string) || 'container'}
+            options={[
+              { value: 'container', label: 'תיבה עם שוליים' },
+              { value: 'full', label: 'רוחב מלא' },
+            ]}
+            onChange={(v) => updateSettings('containerType', v)}
+          />
+          <SelectField
+            label="פריסה"
+            value={(section.settings.layout as string) || 'grid'}
+            options={[
+              { value: 'grid', label: 'גריד' },
+              { value: 'slider', label: 'סליידר' },
+            ]}
+            onChange={(v) => updateSettings('layout', v)}
+          />
+          <SelectField
+            label="עמודות"
+            value={String((section.settings.columns as number) || 4)}
+            options={[
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+              { value: '6', label: '6' },
+            ]}
+            onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+          <SelectField
+            label="גודל"
+            value={(section.settings.titleSize as string) || 'md'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+            ]}
+            onChange={(v) => updateSettings('titleSize', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כרטיס">
+          <SelectField
+            label="סגנון כרטיס"
+            value={(section.settings.cardStyle as string) || 'standard'}
+            options={[
+              { value: 'standard', label: 'סטנדרטי' },
+              { value: 'minimal', label: 'מינימלי' },
+              { value: 'overlay', label: 'עם שכבה' },
+            ]}
+            onChange={(v) => updateSettings('cardStyle', v)}
+          />
+          <SelectField
+            label="אפקט ריחוף"
+            value={(section.settings.hoverEffect as string) || 'scale'}
+            options={[
+              { value: 'none', label: 'ללא' },
+              { value: 'scale', label: 'הגדלה' },
+              { value: 'zoom', label: 'זום' },
+            ]}
+            onChange={(v) => updateSettings('hoverEffect', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Reviews design settings
+  if (section.type === 'reviews') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="פריסה"
+            value={(section.settings.layout as string) || 'grid'}
+            options={[
+              { value: 'grid', label: 'גריד' },
+              { value: 'slider', label: 'סליידר' },
+            ]}
+            onChange={(v) => updateSettings('layout', v)}
+          />
+          <SelectField
+            label="עמודות"
+            value={String((section.settings.columns as number) || 3)}
+            options={[
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+            ]}
+            onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || '#f9fafb'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Gallery design settings
+  if (section.type === 'gallery') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="עמודות"
+            value={String((section.settings.columns as number) || 4)}
+            options={[
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+              { value: '6', label: '6' },
+            ]}
+            onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Logos design settings
+  if (section.type === 'logos') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="עמודות"
+            value={String((section.settings.columns as number) || 5)}
+            options={[
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+              { value: '6', label: '6' },
+            ]}
+            onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Custom section design settings
+  if (section.type === 'custom') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="עיצוב">
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Newsletter design settings
+  if (section.type === 'newsletter') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || '#f9fafb'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#000000',
+              fontSize: sizeToPx(section.settings.titleSize, 16),
+              fontWeight: mapWeight(section.settings.titleWeight, 'light'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#000000"
+          />
+          <TypographyPopover
+            label="תת-כותרת"
+            value={{
+              color: (section.settings.subtitleColor as string) || '#6b7280',
+            }}
+            onChange={(typography) => {
+              updateSettings('subtitleColor', typography.color);
+            }}
+            defaultColor="#6b7280"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כפתור">
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.buttonTextColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.buttonBackgroundColor as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonBackgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב שדה">
+          <ColorField
+            label="צבע מסגרת"
+            value={(section.settings.inputBorderColor as string) || '#e5e7eb'}
+            onChange={(v) => updateSettings('inputBorderColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Features design settings
+  if (section.type === 'features') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="עמודות"
+            value={String((section.settings.columns as number) || 4)}
+            options={[
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+              { value: '5', label: '5' },
+              { value: '6', label: '6' },
+            ]}
+            onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <SelectField
+            label="סגנון אייקון"
+            value={(section.settings.iconStyle as string) || 'emoji'}
+            options={[
+              { value: 'emoji', label: 'אימוג\'י' },
+              { value: 'icon', label: 'אייקון' },
+              { value: 'none', label: 'ללא' },
+            ]}
+            onChange={(v) => updateSettings('iconStyle', v)}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-sm">קווי הפרדה</span>
+            <input
+              type="checkbox"
+              checked={(section.settings.showDividers as boolean) ?? true}
+              onChange={(e) => updateSettings('showDividers', e.target.checked)}
+              className="h-4 w-4"
+            />
+          </div>
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כותרת ראשית">
+          <ColorField
+            label="צבע"
+            value={(section.settings.titleColor as string) || '#000000'}
+            onChange={(v) => updateSettings('titleColor', v)}
+          />
+          <SelectField
+            label="גודל"
+            value={(section.settings.titleSize as string) || 'md'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+            ]}
+            onChange={(v) => updateSettings('titleSize', v)}
+          />
+          <SelectField
+            label="עובי"
+            value={(section.settings.titleWeight as string) || 'light'}
+            options={[
+              { value: 'light', label: 'דק' },
+              { value: 'normal', label: 'רגיל' },
+              { value: 'medium', label: 'בינוני' },
+              { value: 'semibold', label: 'מעובה' },
+              { value: 'bold', label: 'מודגש' },
+            ]}
+            onChange={(v) => updateSettings('titleWeight', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב תת-כותרת">
+          <ColorField
+            label="צבע"
+            value={(section.settings.subtitleColor as string) || '#4b5563'}
+            onChange={(v) => updateSettings('subtitleColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב יתרונות">
+          <TypographyPopover
+            label="כותרת יתרון"
+            value={{
+              color: (section.settings.featureTitleColor as string) || '#111827',
+            }}
+            onChange={(typography) => {
+              updateSettings('featureTitleColor', typography.color);
+            }}
+            defaultColor="#111827"
+          />
+          <TypographyPopover
+            label="תיאור יתרון"
+            value={{
+              color: (section.settings.featureDescColor as string) || '#6b7280',
+            }}
+            onChange={(typography) => {
+              updateSettings('featureDescColor', typography.color);
+            }}
+            defaultColor="#6b7280"
+          />
+          <ColorField
+            label="צבע אייקון"
+            value={(section.settings.iconColor as string) || '#374151'}
+            onChange={(v) => updateSettings('iconColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Banner Small design settings
+  if (section.type === 'banner_small') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || '#000000'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+          <SelectField
+            label="גודל"
+            value={(section.settings.size as string) || 'medium'}
+            options={[
+              { value: 'small', label: 'קטן' },
+              { value: 'medium', label: 'בינוני' },
+              { value: 'large', label: 'גדול' },
+            ]}
+            onChange={(v) => updateSettings('size', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#ffffff',
+              fontSize: sizeToPx(section.settings.titleSize, 16),
+              fontWeight: mapWeight(section.settings.titleWeight, 'medium'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#ffffff"
+          />
+          <TypographyPopover
+            label="תת-כותרת"
+            value={{
+              color: (section.settings.subtitleColor as string) || '#ffffff',
+              fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
+            }}
+            onChange={(typography) => {
+              updateSettings('subtitleColor', typography.color);
+              updateSettings('subtitleWeight', typography.fontWeight);
+            }}
+            defaultColor="#ffffff"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כפתור">
+          <SelectField
+            label="סגנון"
+            value={(section.settings.buttonStyle as string) || 'outline'}
+            options={[
+              { value: 'outline', label: 'מסגרת' },
+              { value: 'filled', label: 'מלא' },
+              { value: 'none', label: 'ללא כפתור' },
+            ]}
+            onChange={(v) => updateSettings('buttonStyle', v)}
+          />
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.buttonTextColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.buttonBackgroundColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonBackgroundColor', v)}
+          />
+          <ColorField
+            label="צבע מסגרת"
+            value={(section.settings.buttonBorderColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonBorderColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Text Block design settings
+  if (section.type === 'text_block') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="רוחב מקסימלי"
+            value={(section.settings.maxWidth as string) || 'lg'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+              { value: 'full', label: 'מלא' },
+            ]}
+            onChange={(v) => updateSettings('maxWidth', v)}
+          />
+          <SelectField
+            label="ריווח אנכי"
+            value={(section.settings.paddingY as string) || 'medium'}
+            options={[
+              { value: 'small', label: 'קטן' },
+              { value: 'medium', label: 'בינוני' },
+              { value: 'large', label: 'גדול' },
+            ]}
+            onChange={(v) => updateSettings('paddingY', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#000000',
+              fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontWeight: mapWeight(section.settings.titleWeight, 'light'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#000000"
+          />
+          <TypographyPopover
+            label="תת-כותרת"
+            value={{
+              color: (section.settings.subtitleColor as string) || '#6b7280',
+              fontSize: sizeToPx(section.settings.subtitleSize, 18),
+              fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
+            }}
+            onChange={(typography) => {
+              updateSettings('subtitleColor', typography.color);
+              updateSettings('subtitleSize', typography.fontSize);
+              updateSettings('subtitleWeight', typography.fontWeight);
+            }}
+            defaultColor="#6b7280"
+          />
+          <TypographyPopover
+            label="תוכן"
+            value={{
+              color: (section.settings.textColor as string) || '#374151',
+              fontSize: sizeToPx(section.settings.textSize, 16),
+            }}
+            onChange={(typography) => {
+              updateSettings('textColor', typography.color);
+              updateSettings('textSize', typography.fontSize);
+            }}
+            defaultColor="#374151"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כפתור">
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.buttonTextColor as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.buttonBackgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('buttonBackgroundColor', v)}
+          />
+          <ColorField
+            label="צבע מסגרת"
+            value={(section.settings.buttonBorderColor as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonBorderColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="צבע רקע">
+          <ColorField
+            label="צבע רקע סקשן"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="ריווחים">
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.marginTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.marginBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('marginBottom', v)}
           />
         </SettingsGroup>
 
@@ -1431,10 +3027,6 @@ function VideoBannerContentSettings({ section, onUpdate, storeInfo }: { section:
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
-  
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
-  };
 
   return (
     <>
@@ -1467,37 +3059,6 @@ function VideoBannerContentSettings({ section, onUpdate, storeInfo }: { section:
           onChange={(v) => updateContent('mobileImageUrl', v)}
           storeId={storeInfo?.id}
           storeSlug={storeInfo?.slug}
-        />
-      </SettingsGroup>
-
-      <SettingsGroup title="הגדרות וידאו">
-        <SwitchField
-          label="הפעלה אוטומטית"
-          value={(section.settings.autoplay as boolean) ?? true}
-          onChange={(v) => updateSettings('autoplay', v)}
-        />
-        <SwitchField
-          label="לולאה"
-          value={(section.settings.loop as boolean) ?? true}
-          onChange={(v) => updateSettings('loop', v)}
-        />
-        <SwitchField
-          label="השתקה"
-          value={(section.settings.muted as boolean) ?? true}
-          onChange={(v) => updateSettings('muted', v)}
-        />
-        <SwitchField
-          label="הצג פקדים"
-          value={(section.settings.controls as boolean) ?? false}
-          onChange={(v) => updateSettings('controls', v)}
-        />
-        <SliderField
-          label="שקיפות שכבה"
-          value={Math.round(((section.settings.overlay as number) || 0.2) * 100)}
-          min={0}
-          max={100}
-          suffix="%"
-          onChange={(v) => updateSettings('overlay', v / 100)}
         />
       </SettingsGroup>
 
@@ -1585,9 +3146,6 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
-  };
 
   return (
     <>
@@ -1599,29 +3157,10 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
           storeId={storeInfo?.id}
           storeSlug={storeInfo?.slug}
         />
-        <SelectField
-          label="מיקום תמונה"
-          value={(section.settings.imagePosition as string) || 'right'}
-          options={[
-            { value: 'right', label: 'ימין' },
-            { value: 'left', label: 'שמאל' },
-          ]}
-          onChange={(v) => updateSettings('imagePosition', v)}
-        />
-        <SelectField
-          label="רוחב תמונה"
-          value={(section.settings.imageWidth as string) || '50%'}
-          options={[
-            { value: '40%', label: '40%' },
-            { value: '50%', label: '50%' },
-            { value: '60%', label: '60%' },
-          ]}
-          onChange={(v) => updateSettings('imageWidth', v)}
-        />
       </SettingsGroup>
-      <SettingsGroup title="טקסט">
+      <SettingsGroup title="תוכן">
         <RichTextEditor
-          label="תוכן"
+          label="טקסט"
           value={(section.content.text as string) || ''}
           onChange={(v) => updateContent('text', v)}
           placeholder="הזן טקסט..."
@@ -1648,57 +3187,15 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
 
 // Features Content Settings
 function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
-  };
-
+  // Features content is managed dynamically via the features array
+  // Most settings are now in DesignSettings
   return (
     <>
-      <SettingsGroup title="הגדרות תצוגה">
-        <SelectField
-          label="עמודות"
-          value={String((section.settings.columns as number) || 4)}
-          options={[
-            { value: '2', label: '2' },
-            { value: '3', label: '3' },
-            { value: '4', label: '4' },
-            { value: '5', label: '5' },
-            { value: '6', label: '6' },
-          ]}
-          onChange={(v) => updateSettings('columns', parseInt(v))}
-        />
-        <SelectField
-          label="סגנון אייקונים"
-          value={(section.settings.iconStyle as string) || 'emoji'}
-          options={[
-            { value: 'emoji', label: 'אימוג\'י' },
-            { value: 'icon', label: 'אייקונים' },
-            { value: 'none', label: 'ללא' },
-          ]}
-          onChange={(v) => updateSettings('iconStyle', v)}
-        />
-        <SelectField
-          label="יישור"
-          value={(section.settings.textAlign as string) || 'center'}
-          options={[
-            { value: 'right', label: 'ימין' },
-            { value: 'center', label: 'מרכז' },
-            { value: 'left', label: 'שמאל' },
-          ]}
-          onChange={(v) => updateSettings('textAlign', v)}
-        />
-        <SwitchField
-          label="הצג קווים מפרידים"
-          value={(section.settings.showDividers as boolean) !== false}
-          onChange={(v) => updateSettings('showDividers', v)}
-        />
-      </SettingsGroup>
-      <SettingsGroup title="רקע">
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || 'transparent'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
-        />
+      <SettingsGroup title="יתרונות">
+        <p className="text-sm text-gray-500">
+          ניהול היתרונות נעשה דרך הגדרות מתקדמות יותר.
+          כברירת מחדל מוצגים 4 יתרונות.
+        </p>
       </SettingsGroup>
     </>
   );
@@ -1708,9 +3205,6 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
 function BannerSmallContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
-  };
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
   };
 
   return (
@@ -1735,38 +3229,6 @@ function BannerSmallContentSettings({ section, onUpdate }: { section: Section; o
           value={(section.content.buttonLink as string) || ''}
           onChange={(v) => updateContent('buttonLink', v)}
           placeholder="/products"
-        />
-        <SelectField
-          label="סגנון כפתור"
-          value={(section.settings.buttonStyle as string) || 'outline'}
-          options={[
-            { value: 'outline', label: 'מסגרת' },
-            { value: 'filled', label: 'מלא' },
-            { value: 'none', label: 'ללא כפתור' },
-          ]}
-          onChange={(v) => updateSettings('buttonStyle', v)}
-        />
-      </SettingsGroup>
-      <SettingsGroup title="עיצוב">
-        <SelectField
-          label="גודל"
-          value={(section.settings.size as string) || 'medium'}
-          options={[
-            { value: 'small', label: 'קטן' },
-            { value: 'medium', label: 'בינוני' },
-            { value: 'large', label: 'גדול' },
-          ]}
-          onChange={(v) => updateSettings('size', v)}
-        />
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || '#000000'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
-        />
-        <ColorField
-          label="צבע טקסט"
-          value={(section.settings.textColor as string) || '#ffffff'}
-          onChange={(v) => updateSettings('textColor', v)}
         />
       </SettingsGroup>
     </>
@@ -1834,9 +3296,6 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
-  };
 
   return (
     <>
@@ -1861,40 +3320,6 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
           value={(section.content.buttonLink as string) || ''}
           onChange={(v) => updateContent('buttonLink', v)}
           placeholder="/about"
-        />
-      </SettingsGroup>
-      <SettingsGroup title="עיצוב">
-        <SelectField
-          label="רוחב מקסימלי"
-          value={(section.settings.maxWidth as string) || 'lg'}
-          options={[
-            { value: 'sm', label: 'קטן' },
-            { value: 'md', label: 'בינוני' },
-            { value: 'lg', label: 'גדול' },
-            { value: 'xl', label: 'גדול מאוד' },
-            { value: 'full', label: 'מלא' },
-          ]}
-          onChange={(v) => updateSettings('maxWidth', v)}
-        />
-        <SelectField
-          label="ריווח אנכי"
-          value={(section.settings.paddingY as string) || 'medium'}
-          options={[
-            { value: 'small', label: 'קטן' },
-            { value: 'medium', label: 'בינוני' },
-            { value: 'large', label: 'גדול' },
-          ]}
-          onChange={(v) => updateSettings('paddingY', v)}
-        />
-        <ColorField
-          label="צבע רקע"
-          value={(section.settings.backgroundColor as string) || 'transparent'}
-          onChange={(v) => updateSettings('backgroundColor', v)}
-        />
-        <ColorField
-          label="צבע טקסט"
-          value={(section.settings.textColor as string) || ''}
-          onChange={(v) => updateSettings('textColor', v)}
         />
       </SettingsGroup>
     </>

@@ -23,11 +23,42 @@ interface FeaturesSectionProps {
     columns?: number;
     iconStyle?: 'emoji' | 'icon' | 'none';
     backgroundColor?: string;
-    textAlign?: 'right' | 'center' | 'left';
     showDividers?: boolean;
+    // Typography - Title
+    titleColor?: string;
+    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
+    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    // Typography - Subtitle
+    subtitleColor?: string;
+    // Feature styling
+    featureTitleColor?: string;
+    featureDescColor?: string;
+    iconColor?: string;
+    // Spacing
+    marginTop?: number;
+    marginBottom?: number;
+    // Custom
+    customClass?: string;
+    customId?: string;
+    customCss?: string;
   };
   sectionId?: string;
 }
+
+const TITLE_SIZES = {
+  sm: 'text-xl md:text-2xl',
+  md: 'text-2xl md:text-3xl',
+  lg: 'text-3xl md:text-4xl',
+  xl: 'text-4xl md:text-5xl',
+};
+
+const FONT_WEIGHTS = {
+  light: 'font-light',
+  normal: 'font-normal',
+  medium: 'font-medium',
+  semibold: 'font-semibold',
+  bold: 'font-bold',
+};
 
 // Default icons as SVG
 const defaultIcons: Record<string, ReactNode> = {
@@ -62,8 +93,9 @@ export function FeaturesSection({
 }: FeaturesSectionProps) {
   const columns = settings.columns || 4;
   const iconStyle = settings.iconStyle || 'emoji';
-  const textAlign = settings.textAlign || 'center';
   const showDividers = settings.showDividers !== false;
+  const titleSize = settings.titleSize || 'md';
+  const titleWeight = settings.titleWeight || 'light';
 
   // Default features for preview/empty state
   const features = content.features?.length ? content.features : [
@@ -83,25 +115,35 @@ export function FeaturesSection({
 
   return (
     <section 
-      className="py-12 px-4"
-      style={{ backgroundColor: settings.backgroundColor || 'transparent' }}
+      className={`py-12 px-4 ${settings.customClass || ''}`}
+      style={{ 
+        backgroundColor: settings.backgroundColor || 'transparent',
+        marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
+        marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
+      }}
+      id={settings.customId || undefined}
       data-section-id={sectionId}
       data-section-name="יתרונות"
     >
+      {settings.customCss && <style>{settings.customCss}</style>}
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         {(title || subtitle) && (
           <div className="text-center mb-10">
-            {title && (
-              <h2 className="text-2xl md:text-3xl font-display font-light tracking-wide mb-3">
-                {title}
-              </h2>
-            )}
-            {subtitle && (
-              <p className="text-gray-600 text-sm md:text-base">
-                {subtitle}
-              </p>
-            )}
+            <h2 
+              className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-3 ${!title ? 'hidden' : ''}`}
+              style={{ color: settings.titleColor || 'inherit' }}
+              data-section-title
+            >
+              {title || ''}
+            </h2>
+            <p 
+              className={`text-sm md:text-base ${!subtitle ? 'hidden' : ''}`}
+              style={{ color: settings.subtitleColor || '#4b5563' }}
+              data-section-subtitle
+            >
+              {subtitle || ''}
+            </p>
           </div>
         )}
 
@@ -110,19 +152,16 @@ export function FeaturesSection({
           {features.map((feature, index) => (
             <div 
               key={feature.id}
-              className={`
-                py-6 px-4 text-${textAlign}
-                ${showDividers && index < features.length - 1 ? 'md:border-l md:border-gray-100' : ''}
-              `}
+              className={`py-6 px-4 text-center ${showDividers && index < features.length - 1 ? 'md:border-l md:border-gray-100' : ''}`}
             >
               {/* Icon/Emoji */}
               {iconStyle !== 'none' && (
-                <div className={`mb-4 ${textAlign === 'center' ? 'flex justify-center' : ''}`}>
+                <div className="mb-4 flex justify-center">
                   {iconStyle === 'emoji' && feature.emoji && (
                     <span className="text-3xl">{feature.emoji}</span>
                   )}
                   {iconStyle === 'icon' && feature.icon && defaultIcons[feature.icon] && (
-                    <div className="text-gray-700">
+                    <div style={{ color: settings.iconColor || '#374151' }}>
                       {defaultIcons[feature.icon]}
                     </div>
                   )}
@@ -130,13 +169,19 @@ export function FeaturesSection({
               )}
 
               {/* Title */}
-              <h3 className="font-medium text-gray-900 mb-1">
+              <h3 
+                className="font-medium mb-1"
+                style={{ color: settings.featureTitleColor || '#111827' }}
+              >
                 {feature.title}
               </h3>
 
               {/* Description */}
               {feature.description && (
-                <p className="text-sm text-gray-500">
+                <p 
+                  className="text-sm"
+                  style={{ color: settings.featureDescColor || '#6b7280' }}
+                >
                   {feature.description}
                 </p>
               )}
@@ -147,4 +192,3 @@ export function FeaturesSection({
     </section>
   );
 }
-

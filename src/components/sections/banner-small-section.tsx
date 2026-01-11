@@ -15,13 +15,44 @@ interface BannerSmallSectionProps {
   };
   settings: {
     backgroundColor?: string;
-    textColor?: string;
-    buttonStyle?: 'outline' | 'filled' | 'none';
     size?: 'small' | 'medium' | 'large';
+    // Typography - Title
+    titleColor?: string;
+    titleSize?: 'sm' | 'md' | 'lg';
+    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    // Typography - Subtitle
+    subtitleColor?: string;
+    subtitleWeight?: 'light' | 'normal' | 'medium' | 'semibold';
+    // Button
+    buttonTextColor?: string;
+    buttonBackgroundColor?: string;
+    buttonBorderColor?: string;
+    buttonStyle?: 'outline' | 'filled' | 'none';
+    // Spacing
+    marginTop?: number;
+    marginBottom?: number;
+    // Custom
+    customClass?: string;
+    customId?: string;
+    customCss?: string;
   };
   basePath?: string;
   sectionId?: string;
 }
+
+const TITLE_SIZES = {
+  sm: 'text-sm',
+  md: 'text-base',
+  lg: 'text-lg',
+};
+
+const FONT_WEIGHTS = {
+  light: 'font-light',
+  normal: 'font-normal',
+  medium: 'font-medium',
+  semibold: 'font-semibold',
+  bold: 'font-bold',
+};
 
 export function BannerSmallSection({ 
   title, 
@@ -32,9 +63,11 @@ export function BannerSmallSection({
   sectionId 
 }: BannerSmallSectionProps) {
   const backgroundColor = settings.backgroundColor || '#000000';
-  const textColor = settings.textColor || '#ffffff';
   const buttonStyle = settings.buttonStyle || 'outline';
   const size = settings.size || 'medium';
+  const titleSize = settings.titleSize || 'md';
+  const titleWeight = settings.titleWeight || 'medium';
+  const subtitleWeight = settings.subtitleWeight || 'normal';
 
   const paddingY = {
     small: 'py-3',
@@ -42,19 +75,26 @@ export function BannerSmallSection({
     large: 'py-8',
   }[size];
 
-  const textSize = {
-    small: 'text-sm',
-    medium: 'text-base',
-    large: 'text-lg',
-  }[size];
+  // Button styles
+  const buttonStyle_obj = {
+    color: settings.buttonTextColor || (buttonStyle === 'filled' ? backgroundColor : '#ffffff'),
+    backgroundColor: buttonStyle === 'filled' ? (settings.buttonBackgroundColor || '#ffffff') : 'transparent',
+    borderColor: settings.buttonBorderColor || '#ffffff',
+  };
 
   return (
     <section 
-      className={`${paddingY} px-4`}
-      style={{ backgroundColor, color: textColor }}
+      className={`${paddingY} px-4 ${settings.customClass || ''}`}
+      style={{ 
+        backgroundColor,
+        marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
+        marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
+      }}
+      id={settings.customId || undefined}
       data-section-id={sectionId}
       data-section-name="באנר קטן"
     >
+      {settings.customCss && <style>{settings.customCss}</style>}
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-right">
         {/* Icon */}
         {content.icon && (
@@ -63,36 +103,32 @@ export function BannerSmallSection({
 
         {/* Text */}
         <div className="flex flex-col sm:flex-row items-center gap-2">
-          {title && (
-            <span className={`font-medium ${textSize}`}>
-              {title}
-            </span>
-          )}
-          {subtitle && (
-            <span className={`opacity-80 ${textSize}`}>
-              {subtitle}
-            </span>
-          )}
+          <span 
+            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} ${!title ? 'hidden' : ''}`}
+            style={{ color: settings.titleColor || '#ffffff' }}
+            data-section-title
+          >
+            {title || ''}
+          </span>
+          <span 
+            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[subtitleWeight]} opacity-80 ${!subtitle ? 'hidden' : ''}`}
+            style={{ color: settings.subtitleColor || '#ffffff' }}
+            data-section-subtitle
+          >
+            {subtitle || ''}
+          </span>
         </div>
 
         {/* Button */}
-        {buttonStyle !== 'none' && content.buttonText && content.buttonLink && (
-          <Link 
-            href={content.buttonLink.startsWith('/') ? `${basePath}${content.buttonLink}` : content.buttonLink}
-            className={`
-              px-4 py-1.5 text-sm font-medium transition-colors
-              ${buttonStyle === 'outline' 
-                ? 'border border-current hover:bg-white/10' 
-                : 'bg-white text-black hover:bg-white/90'
-              }
-            `}
-            style={buttonStyle === 'filled' ? { color: backgroundColor } : undefined}
-          >
-            {content.buttonText}
-          </Link>
-        )}
+        <Link 
+          href={content.buttonLink?.startsWith('/') ? `${basePath}${content.buttonLink}` : (content.buttonLink || '#')}
+          className={`px-4 py-1.5 text-sm font-medium transition-colors border ${buttonStyle === 'none' || !content.buttonText || !content.buttonLink ? 'hidden' : ''}`}
+          style={buttonStyle_obj}
+          data-section-button
+        >
+          {content.buttonText || ''}
+        </Link>
       </div>
     </section>
   );
 }
-
