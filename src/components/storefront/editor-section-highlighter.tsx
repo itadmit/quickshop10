@@ -289,14 +289,82 @@ export function EditorSectionHighlighter() {
           if (subtitleEl) subtitleEl.style.color = updates.settings.textColor as string;
         }
         
-        // Button colors
+        // Button colors (support both buttonColor and buttonBackground)
         if (updates.settings?.buttonColor !== undefined) {
           const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
-          if (btnEl) btnEl.style.backgroundColor = updates.settings.buttonColor as string;
+          if (btnEl) {
+            btnEl.style.backgroundColor = updates.settings.buttonColor as string;
+            btnEl.style.borderColor = updates.settings.buttonColor as string;
+          }
+        }
+        if (updates.settings?.buttonBackground !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            btnEl.style.backgroundColor = updates.settings.buttonBackground as string;
+            btnEl.style.borderColor = updates.settings.buttonBackground as string;
+          }
         }
         if (updates.settings?.buttonTextColor !== undefined) {
           const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
           if (btnEl) btnEl.style.color = updates.settings.buttonTextColor as string;
+        }
+        
+        // Container type (container vs full width)
+        if (updates.settings?.containerType !== undefined) {
+          const contentContainer = element.querySelector('.container, .relative.z-10 > div, [data-content-container]') as HTMLElement;
+          if (contentContainer) {
+            if (updates.settings.containerType === 'full') {
+              contentContainer.classList.remove('container', 'mx-auto');
+              contentContainer.classList.add('w-full');
+            } else {
+              contentContainer.classList.remove('w-full');
+              contentContainer.classList.add('container', 'mx-auto');
+            }
+          }
+        }
+        
+        // Custom class
+        if (updates.settings?.customClass !== undefined) {
+          // Remove previous custom classes (if any) - this is tricky, so we just add the new one
+          if (updates.settings.customClass) {
+            (element as HTMLElement).className += ` ${updates.settings.customClass}`;
+          }
+        }
+        
+        // Custom ID
+        if (updates.settings?.customId !== undefined) {
+          (element as HTMLElement).id = updates.settings.customId as string;
+        }
+        
+        // Custom CSS
+        if (updates.settings?.customCss !== undefined) {
+          (element as HTMLElement).setAttribute('style', (element as HTMLElement).getAttribute('style') + '; ' + updates.settings.customCss);
+        }
+        
+        // Text alignment for section content
+        if (updates.settings?.textAlign !== undefined) {
+          const contentContainer = element.querySelector('.relative.z-10') as HTMLElement;
+          if (contentContainer) {
+            // Remove all alignment classes
+            contentContainer.classList.remove('items-start', 'items-center', 'items-end', 'text-left', 'text-center', 'text-right');
+            // Add new alignment
+            const align = updates.settings.textAlign as string;
+            if (align === 'left') {
+              contentContainer.classList.add('items-start', 'text-left');
+            } else if (align === 'right') {
+              contentContainer.classList.add('items-end', 'text-right');
+            } else {
+              contentContainer.classList.add('items-center', 'text-center');
+            }
+          }
+        }
+        
+        // Padding top/bottom
+        if (updates.settings?.paddingTop !== undefined) {
+          (element as HTMLElement).style.paddingTop = `${updates.settings.paddingTop}px`;
+        }
+        if (updates.settings?.paddingBottom !== undefined) {
+          (element as HTMLElement).style.paddingBottom = `${updates.settings.paddingBottom}px`;
         }
         
         // Accent color (for series grid, hero premium, etc.)

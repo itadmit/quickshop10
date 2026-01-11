@@ -600,6 +600,102 @@ function DesignSettings({
     });
   };
 
+  // Hero-specific design settings
+  if (section.type === 'hero') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="עיצוב טקסט">
+          <ToggleField
+            label="יישור טקסט"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="שכבה וצבעים">
+          <SliderField
+            label="שקיפות שכבה כהה"
+            value={Math.round(((section.settings.overlay as number) || 0.3) * 100)}
+            min={0}
+            max={100}
+            suffix="%"
+            onChange={(v) => updateSettings('overlay', v / 100)}
+          />
+          <ColorField
+            label="צבע רקע (אם אין תמונה)"
+            value={(section.settings.backgroundColor as string) || 'transparent'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="עיצוב כפתור">
+          <ColorField
+            label="צבע רקע כפתור"
+            value={(section.settings.buttonBackground as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonBackground', v)}
+          />
+          <ColorField
+            label="צבע טקסט כפתור"
+            value={(section.settings.buttonTextColor as string) || '#FFFFFF'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מיכל ופריסה">
+          <SelectField
+            label="רוחב תוכן"
+            value={(section.settings.containerType as string) || 'container'}
+            options={[
+              { value: 'container', label: 'קונטיינר' },
+              { value: 'full', label: 'רוחב מלא' },
+            ]}
+            onChange={(v) => updateSettings('containerType', v)}
+          />
+          <SliderField
+            label="ריווח עליון"
+            value={(section.settings.paddingTop as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('paddingTop', v)}
+          />
+          <SliderField
+            label="ריווח תחתון"
+            value={(section.settings.paddingBottom as number) || 0}
+            min={0}
+            max={100}
+            suffix="px"
+            onChange={(v) => updateSettings('paddingBottom', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="my-custom-id"
+          />
+          <TextField
+            label="CSS מותאם"
+            value={(section.settings.customCss as string) || ''}
+            onChange={(v) => updateSettings('customCss', v)}
+            multiline
+            placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Default design settings for other section types
   return (
     <div className="p-4 space-y-6">
       {/* General */}
@@ -762,10 +858,6 @@ function HeroContentSettings({ section, onUpdate, storeInfo }: { section: Sectio
     onUpdate({ content: { ...section.content, [key]: value } });
   };
 
-  const updateSettings = (key: string, value: unknown) => {
-    onUpdate({ settings: { ...section.settings, [key]: value } });
-  };
-
   return (
     <>
       <SettingsGroup title="תמונה - מחשב">
@@ -786,16 +878,6 @@ function HeroContentSettings({ section, onUpdate, storeInfo }: { section: Sectio
           storeId={storeInfo?.id}
           storeSlug={storeInfo?.slug}
           hint="מומלץ: 750x1334 (אופציונלי - אם ריק תוצג תמונת המחשב)"
-        />
-      </SettingsGroup>
-      <SettingsGroup title="שכבה">
-        <SliderField
-          label="שקיפות שכבה כהה"
-          value={Math.round(((section.settings.overlay as number) || 0.3) * 100)}
-          min={0}
-          max={100}
-          suffix="%"
-          onChange={(v) => updateSettings('overlay', v / 100)}
         />
       </SettingsGroup>
       <SettingsGroup title="כפתור">

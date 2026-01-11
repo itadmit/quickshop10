@@ -12,29 +12,56 @@ interface HeroSectionProps {
   settings: {
     height?: string;
     overlay?: number;
+    textAlign?: 'right' | 'center' | 'left';
+    backgroundColor?: string;
+    buttonBackground?: string;
+    buttonTextColor?: string;
+    containerType?: 'container' | 'full';
+    paddingTop?: number;
+    paddingBottom?: number;
+    customClass?: string;
+    customId?: string;
+    customCss?: string;
   };
   basePath: string;
 }
 
 export function HeroSection({ title, subtitle, content, settings, basePath, sectionId }: HeroSectionProps & { sectionId?: string }) {
   const height = settings.height || '90vh';
-  const overlay = settings.overlay ?? 0.1;
+  const overlay = settings.overlay ?? 0.3;
+  const textAlign = settings.textAlign || 'center';
+  const backgroundColor = settings.backgroundColor || 'transparent';
+  const buttonBg = settings.buttonBackground || '#000000';
+  const buttonText = settings.buttonTextColor || '#FFFFFF';
+  const containerType = settings.containerType || 'container';
+  const paddingTop = settings.paddingTop || 0;
+  const paddingBottom = settings.paddingBottom || 0;
+
+  // Text alignment classes
+  const alignmentClass = textAlign === 'right' ? 'items-end text-right' : textAlign === 'left' ? 'items-start text-left' : 'items-center text-center';
 
   return (
     <section 
-      className="relative bg-gray-50 overflow-hidden" 
-      style={{ height }}
+      id={settings.customId || undefined}
+      className={`relative overflow-hidden ${settings.customClass || ''}`}
+      style={{ 
+        height,
+        backgroundColor,
+        paddingTop: `${paddingTop}px`,
+        paddingBottom: `${paddingBottom}px`,
+        ...(settings.customCss ? { cssText: settings.customCss } : {})
+      }}
       data-section-id={sectionId}
       data-section-name="באנר ראשי"
     >
       <div className="absolute inset-0">
-        {/* Desktop Image - always rendered for live editor */}
+        {/* Desktop Image */}
         <div 
           className={`absolute inset-0 bg-cover bg-center ${content.mobileImageUrl ? 'hidden md:block' : ''}`}
           style={{ backgroundImage: content.imageUrl ? `url("${content.imageUrl}")` : 'none' }}
           data-bg-desktop
         />
-        {/* Mobile Image - always rendered */}
+        {/* Mobile Image */}
         <div 
           className="absolute inset-0 bg-cover bg-center md:hidden"
           style={{ backgroundImage: content.mobileImageUrl ? `url("${content.mobileImageUrl}")` : (content.imageUrl ? `url("${content.imageUrl}")` : 'none') }}
@@ -48,8 +75,8 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
         />
       </div>
       
-      <div className="relative z-10 h-full flex flex-col items-center justify-end text-center px-6 pb-24">
-        {/* Title - always rendered, hidden when empty */}
+      <div className={`relative z-10 h-full flex flex-col justify-center px-6 ${alignmentClass} ${containerType === 'container' ? 'container mx-auto' : ''}`}>
+        {/* Title */}
         <h1 
           className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"
           style={{ display: title ? '' : 'none' }}
@@ -58,7 +85,7 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
           {title || ''}
         </h1>
         
-        {/* Subtitle - always rendered, hidden when empty */}
+        {/* Subtitle */}
         <p 
           className="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12 animate-slide-up"
           style={{ display: subtitle ? '' : 'none' }}
@@ -67,12 +94,19 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
           {subtitle || ''}
         </p>
         
-        {/* Button - always rendered, hidden when no text/link */}
+        {/* Button */}
         <Link 
           href={content.buttonLink?.startsWith('/') ? `${basePath}${content.buttonLink}` : content.buttonLink || '#'}
-          className="btn-secondary !bg-transparent !text-white !border-white hover:!bg-white hover:!text-black animate-slide-up"
-          style={{ animationDelay: '200ms', display: (content.buttonText && content.buttonLink) ? '' : 'none' }}
+          className="inline-block px-8 py-3 uppercase tracking-wider text-sm transition-all"
+          style={{ 
+            animationDelay: '200ms', 
+            display: (content.buttonText && content.buttonLink) ? '' : 'none',
+            backgroundColor: buttonBg,
+            color: buttonText,
+            border: `1px solid ${buttonBg}`
+          }}
           data-section-button
+          data-section-button-link
         >
           {content.buttonText || ''}
         </Link>
