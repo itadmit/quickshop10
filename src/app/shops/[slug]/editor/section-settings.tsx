@@ -1539,16 +1539,6 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
           placeholder="הזן טקסט..."
           minHeight={150}
         />
-        <SelectField
-          label="יישור טקסט"
-          value={(section.settings.textAlign as string) || 'right'}
-          options={[
-            { value: 'right', label: 'ימין' },
-            { value: 'center', label: 'מרכז' },
-            { value: 'left', label: 'שמאל' },
-          ]}
-          onChange={(v) => updateSettings('textAlign', v)}
-        />
       </SettingsGroup>
       <SettingsGroup title="כפתור">
         <TextField
@@ -1797,16 +1787,6 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
             { value: 'full', label: 'מלא' },
           ]}
           onChange={(v) => updateSettings('maxWidth', v)}
-        />
-        <SelectField
-          label="יישור טקסט"
-          value={(section.settings.textAlign as string) || 'center'}
-          options={[
-            { value: 'right', label: 'ימין' },
-            { value: 'center', label: 'מרכז' },
-            { value: 'left', label: 'שמאל' },
-          ]}
-          onChange={(v) => updateSettings('textAlign', v)}
         />
         <SelectField
           label="ריווח אנכי"
@@ -2478,16 +2458,6 @@ function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { sectio
             { value: 'landscape', label: 'לנדסקייפ (16:9)' },
           ]}
           onChange={(v) => updateSettings('imageAspectRatio', v)}
-        />
-        <SelectField
-          label="יישור טקסט"
-          value={(section.settings.textAlign as string) || 'center'}
-          options={[
-            { value: 'right', label: 'ימין' },
-            { value: 'center', label: 'מרכז' },
-            { value: 'left', label: 'שמאל' },
-          ]}
-          onChange={(v) => updateSettings('textAlign', v)}
         />
         <SelectField
           label="אפקט ריחוף"

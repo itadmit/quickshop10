@@ -60,7 +60,7 @@ export function TextBlockSection({
       data-section-id={sectionId}
       data-section-name="בלוק טקסט"
     >
-      <div className={`${maxWidthClass} mx-auto text-${textAlign}`}>
+      <div className={`${maxWidthClass} mx-auto`}>
         {/* Title */}
         <h2 
           className="text-2xl md:text-3xl lg:text-4xl font-display font-light tracking-wide mb-4"
@@ -82,7 +82,6 @@ export function TextBlockSection({
         {/* Rich Text Content */}
         <div 
           className="prose prose-lg mx-auto mb-8"
-          style={{ textAlign }}
           data-content-text
           dangerouslySetInnerHTML={{ __html: content.text || '' }}
         />

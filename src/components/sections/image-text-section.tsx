@@ -86,8 +86,7 @@ export function ImageTextSection({
         <div 
           className="w-full md:w-1/2 flex items-center p-8 md:p-12 lg:p-16"
           style={{ 
-            flexBasis: `calc(100% - ${imageWidth})`,
-            textAlign 
+            flexBasis: `calc(100% - ${imageWidth})`
           }}
           data-text-container
         >
