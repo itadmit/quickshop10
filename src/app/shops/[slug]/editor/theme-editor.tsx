@@ -94,6 +94,8 @@ interface InternalPage {
   title: string;
   slug: string;
   isPublished: boolean;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
 }
 
 interface ThemeEditorProps {
@@ -133,6 +135,18 @@ export function ThemeEditor({
   const [newPageTitle, setNewPageTitle] = useState('');
   const [newPageSlug, setNewPageSlug] = useState('');
   const [isCreatingPage, setIsCreatingPage] = useState(false);
+  // Page settings modal state
+  const [showPageSettingsModal, setShowPageSettingsModal] = useState(false);
+  const [pageSettingsForm, setPageSettingsForm] = useState({
+    title: '',
+    slug: '',
+    seoTitle: '',
+    seoDescription: '',
+    isPublished: false,
+  });
+  const [isSavingPageSettings, setIsSavingPageSettings] = useState(false);
+  const [isDeletingPage, setIsDeletingPage] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   
@@ -196,6 +210,132 @@ export function ThemeEditor({
       .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '');
     setNewPageSlug(generatedSlug);
+  };
+  
+  // Open page settings modal for current internal page
+  const openPageSettings = () => {
+    if (!currentInternalPage) return;
+    setPageSettingsForm({
+      title: currentInternalPage.title,
+      slug: currentInternalPage.slug,
+      seoTitle: currentInternalPage.seoTitle || '',
+      seoDescription: currentInternalPage.seoDescription || '',
+      isPublished: currentInternalPage.isPublished,
+    });
+    setShowPageSettingsModal(true);
+  };
+  
+  // Save page settings
+  const handleSavePageSettings = async () => {
+    if (!currentInternalPage) return;
+    
+    setIsSavingPageSettings(true);
+    try {
+      const response = await fetch(`/api/shops/${slug}/editor/pages/${currentInternalPage.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: pageSettingsForm.title.trim(),
+          pageSlug: pageSettingsForm.slug.trim(),
+          seoTitle: pageSettingsForm.seoTitle.trim() || null,
+          seoDescription: pageSettingsForm.seoDescription.trim() || null,
+          isPublished: pageSettingsForm.isPublished,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Update local state
+        setInternalPages(prev => prev.map(p => 
+          p.id === currentInternalPage.id 
+            ? { 
+                ...p, 
+                title: pageSettingsForm.title.trim(),
+                slug: pageSettingsForm.slug.trim(),
+                seoTitle: pageSettingsForm.seoTitle.trim() || null,
+                seoDescription: pageSettingsForm.seoDescription.trim() || null,
+                isPublished: pageSettingsForm.isPublished,
+              }
+            : p
+        ));
+        
+        // If slug changed, redirect to new URL
+        if (pageSettingsForm.slug.trim() !== currentInternalPage.slug) {
+          router.push(`/shops/${slug}/editor?page=pages/${pageSettingsForm.slug.trim()}`);
+        }
+        
+        setShowPageSettingsModal(false);
+        // Refresh preview
+        setPreviewRefreshKey(k => k + 1);
+      } else {
+        alert(data.error || 'שגיאה בשמירת ההגדרות');
+      }
+    } catch (error) {
+      console.error('Save page settings error:', error);
+      alert('שגיאה בשמירת ההגדרות');
+    } finally {
+      setIsSavingPageSettings(false);
+    }
+  };
+  
+  // Delete page
+  const handleDeletePage = async () => {
+    if (!currentInternalPage) return;
+    
+    setIsDeletingPage(true);
+    try {
+      const response = await fetch(`/api/shops/${slug}/editor/pages/${currentInternalPage.id}`, {
+        method: 'DELETE',
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Remove from local state
+        setInternalPages(prev => prev.filter(p => p.id !== currentInternalPage.id));
+        // Redirect to home
+        router.push(`/shops/${slug}/editor?page=home`);
+      } else {
+        alert(data.error || 'שגיאה במחיקת העמוד');
+      }
+    } catch (error) {
+      console.error('Delete page error:', error);
+      alert('שגיאה במחיקת העמוד');
+    } finally {
+      setIsDeletingPage(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+  
+  // Toggle page publish status
+  const handleTogglePublish = async () => {
+    if (!currentInternalPage) return;
+    
+    const newStatus = !currentInternalPage.isPublished;
+    
+    try {
+      const response = await fetch(`/api/shops/${slug}/editor/pages/${currentInternalPage.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublished: newStatus }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setInternalPages(prev => prev.map(p => 
+          p.id === currentInternalPage.id 
+            ? { ...p, isPublished: newStatus }
+            : p
+        ));
+        setPageSettingsForm(prev => ({ ...prev, isPublished: newStatus }));
+      } else {
+        alert(data.error || 'שגיאה בעדכון סטטוס הפרסום');
+      }
+    } catch (error) {
+      console.error('Toggle publish error:', error);
+    }
   };
   
   // Theme settings state - loaded from store settings
@@ -595,15 +735,19 @@ export function ThemeEditor({
         </div>
 
         {/* Center - Page Selector Dropdown */}
-        <div className="relative">
-          <button
-            onClick={() => setShowPageDropdown(!showPageDropdown)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
-          >
-            {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : <ClockIcon />}
-            <span className="text-white text-sm">{currentPageInfo.label}</span>
-            <ChevronDownIcon />
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <button
+              onClick={() => setShowPageDropdown(!showPageDropdown)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : currentPageInfo.icon === 'file' ? <FileIcon /> : <ClockIcon />}
+              <span className="text-white text-sm">{currentPageInfo.label}</span>
+              {isInternalPage && currentInternalPage && !currentInternalPage.isPublished && (
+                <span className="text-[10px] text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">טיוטה</span>
+              )}
+              <ChevronDownIcon />
+            </button>
           
           {/* Dropdown */}
           {showPageDropdown && (
@@ -715,6 +859,18 @@ export function ThemeEditor({
                 </div>
               </div>
             </>
+          )}
+          </div>
+          
+          {/* Page Settings Button - Only for internal pages */}
+          {isInternalPage && currentInternalPage && (
+            <button
+              onClick={openPageSettings}
+              className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+              title="הגדרות עמוד"
+            >
+              <SettingsIcon />
+            </button>
           )}
         </div>
 
@@ -914,6 +1070,164 @@ export function ThemeEditor({
           </div>
         </div>
       )}
+      
+      {/* Page Settings Modal */}
+      {showPageSettingsModal && currentInternalPage && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">הגדרות עמוד</h2>
+              <button
+                onClick={() => setShowPageSettingsModal(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <div className="space-y-5">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  שם העמוד *
+                </label>
+                <input
+                  type="text"
+                  value={pageSettingsForm.title}
+                  onChange={(e) => setPageSettingsForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  placeholder="אודות"
+                />
+              </div>
+              
+              {/* Slug */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  כתובת URL *
+                </label>
+                <div className="flex">
+                  <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg text-gray-500 text-sm">
+                    /pages/
+                  </span>
+                  <input
+                    type="text"
+                    value={pageSettingsForm.slug}
+                    onChange={(e) => setPageSettingsForm(prev => ({ ...prev, slug: e.target.value }))}
+                    className="flex-1 px-4 py-2 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                    placeholder="about"
+                    dir="ltr"
+                  />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">אפשר להשתמש גם בעברית</p>
+              </div>
+              
+              {/* Publish Toggle */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">מצב פרסום</p>
+                  <p className="text-xs text-gray-500">
+                    {pageSettingsForm.isPublished ? 'העמוד מפורסם ונגיש לכולם' : 'העמוד בטיוטה - לא נגיש לגולשים'}
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={pageSettingsForm.isPublished}
+                    onChange={(e) => setPageSettingsForm(prev => ({ ...prev, isPublished: e.target.checked }))}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                </label>
+              </div>
+              
+              {/* SEO Section */}
+              <div className="border-t pt-5">
+                <p className="text-sm font-medium text-gray-700 mb-3">הגדרות SEO</p>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      כותרת SEO
+                    </label>
+                    <input
+                      type="text"
+                      value={pageSettingsForm.seoTitle}
+                      onChange={(e) => setPageSettingsForm(prev => ({ ...prev, seoTitle: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                      placeholder="כותרת שתוצג בתוצאות החיפוש (אופציונלי)"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                      תיאור SEO
+                    </label>
+                    <textarea
+                      value={pageSettingsForm.seoDescription}
+                      onChange={(e) => setPageSettingsForm(prev => ({ ...prev, seoDescription: e.target.value }))}
+                      rows={2}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                      placeholder="תיאור קצר שיופיע בתוצאות החיפוש (אופציונלי)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex gap-3 mt-6 pt-4 border-t">
+              <button
+                onClick={handleSavePageSettings}
+                disabled={isSavingPageSettings || !pageSettingsForm.title.trim() || !pageSettingsForm.slug.trim()}
+                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {isSavingPageSettings ? 'שומר...' : 'שמור'}
+              </button>
+              <button
+                onClick={() => setShowPageSettingsModal(false)}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+            
+            {/* Delete Section */}
+            <div className="mt-6 pt-4 border-t">
+              {!showDeleteConfirm ? (
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-sm text-red-600 hover:text-red-700 transition-colors"
+                >
+                  מחק עמוד
+                </button>
+              ) : (
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <p className="text-sm text-red-800 mb-3">
+                    האם למחוק את העמוד &quot;{currentInternalPage.title}&quot;?
+                    <br />
+                    <span className="text-xs text-red-600">פעולה זו בלתי הפיכה!</span>
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleDeletePage}
+                      disabled={isDeletingPage}
+                      className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                    >
+                      {isDeletingPage ? 'מוחק...' : 'כן, מחק'}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirm(false)}
+                      className="px-3 py-1.5 border border-gray-200 text-sm rounded-lg hover:bg-white transition-colors"
+                    >
+                      ביטול
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1086,6 +1400,24 @@ function PlusIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
     </svg>
   );
 }
