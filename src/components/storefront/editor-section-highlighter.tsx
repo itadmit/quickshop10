@@ -47,16 +47,12 @@ export function EditorSectionHighlighter() {
       }
       if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
         const { sectionId, updates } = event.data;
-        console.log('[EditorHighlighter] SECTION_CONTENT_UPDATE received:', { sectionId, updates });
         const element = document.querySelector(`[data-section-id="${sectionId}"]`);
         if (!element) {
-          console.warn('[EditorHighlighter] Element not found for sectionId:', sectionId);
           // List all section IDs in DOM for debugging
           const allSections = document.querySelectorAll('[data-section-id]');
-          console.log('[EditorHighlighter] Available section IDs:', Array.from(allSections).map(el => el.getAttribute('data-section-id')));
           return;
         }
-        console.log('[EditorHighlighter] Element found:', element);
 
         // =====================================================
         // CLEANUP OLD PLACEHOLDER STRUCTURE
@@ -314,18 +310,11 @@ export function EditorSectionHighlighter() {
         // =====================================================
         // SETTINGS UPDATES - Colors, heights, etc.
         // =====================================================
-        console.log('[EditorHighlighter] Processing settings:', updates.settings);
         
         // Background color (only if no image for hero sections)
         if (updates.settings?.backgroundColor !== undefined) {
           const sectionEl = element as HTMLElement;
-          // Simply use data-has-image attribute - it's the source of truth
           const hasImage = sectionEl.dataset.hasImage === 'true';
-          console.log('[EditorHighlighter] backgroundColor update:', {
-            value: updates.settings.backgroundColor,
-            hasImage,
-            currentBg: sectionEl.style.backgroundColor
-          });
           
           // Apply backgroundColor to section
           sectionEl.style.backgroundColor = updates.settings.backgroundColor as string;
@@ -339,7 +328,6 @@ export function EditorSectionHighlighter() {
               bgDesktop.style.backgroundColor = 'transparent';
             }
           }
-          console.log('[EditorHighlighter] Applied backgroundColor:', updates.settings.backgroundColor);
         }
         if (updates.settings?.sectionBackground !== undefined) {
           (element as HTMLElement).style.backgroundColor = updates.settings.sectionBackground as string;
@@ -547,11 +535,6 @@ export function EditorSectionHighlighter() {
             }
           }
           
-          console.log('[EditorHighlighter] Overlay update:', {
-            value: updates.settings.overlay,
-            overlayElFound: !!overlayEl
-          });
-          
           if (overlayEl) {
             const overlayValue = updates.settings.overlay as number;
             // Ensure value is between 0 and 1
@@ -559,9 +542,7 @@ export function EditorSectionHighlighter() {
             // Remove any bg-black classes that might override our style
             overlayEl.className = overlayEl.className.replace(/bg-black\/\d+/g, '').trim();
             overlayEl.style.backgroundColor = `rgba(0,0,0,${clampedValue})`;
-            console.log('[EditorHighlighter] Applied overlay:', `rgba(0,0,0,${clampedValue})`);
           } else {
-            console.warn('[EditorHighlighter] Overlay element not found in section');
           }
         }
         

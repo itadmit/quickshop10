@@ -103,12 +103,9 @@ export function PreviewSettingsProvider({
     
     if (!inPreviewMode) return;
 
-    console.log('[Preview] Preview mode detected, listening for settings...');
-
     // Listen for messages from editor parent window
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === 'THEME_SETTINGS_UPDATE') {
-        console.log('[Preview] Received settings:', event.data.settings);
         setSettings(prev => ({ ...prev, ...event.data.settings }));
       }
       if (event.data?.type === 'HIGHLIGHT_SECTION') {

@@ -569,13 +569,6 @@ export function ThemeEditor({
   // Save all changes to DB (sections + theme settings)
   const handleSave = async () => {
     setIsSaving(true);
-    console.log('[ThemeEditor] Saving sections:', sections.map(s => ({ 
-      id: s.id, 
-      type: s.type, 
-      title: s.title, 
-      subtitle: s.subtitle,
-      content: s.content 
-    })));
     try {
       // Simple parallel save - sections and theme settings
       const savePromises: Promise<Response>[] = [
