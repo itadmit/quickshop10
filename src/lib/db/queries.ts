@@ -1064,3 +1064,74 @@ export const getMainMenuWithItems = cache(async (storeId: string) => {
 
   return { ...menu, items: topLevelItems };
 });
+
+// ============ FOOTER MENU ============
+
+export interface FooterMenuItem {
+  id: string;
+  title: string;
+  linkType: 'page' | 'category' | 'product' | 'custom' | 'collection';
+  linkUrl: string | null;
+  linkResourceId: string | null;
+  pageSlug: string | null;
+}
+
+// Get footer menu items for store
+export const getFooterMenuItems = cache(async (storeId: string): Promise<FooterMenuItem[]> => {
+  // Find the footer menu
+  const [menu] = await db
+    .select()
+    .from(menus)
+    .where(and(eq(menus.storeId, storeId), eq(menus.handle, 'footer')))
+    .limit(1);
+
+  if (!menu) {
+    return [];
+  }
+
+  // Get all menu items
+  const items = await db
+    .select()
+    .from(menuItems)
+    .where(and(eq(menuItems.menuId, menu.id), eq(menuItems.isActive, true)))
+    .orderBy(asc(menuItems.sortOrder));
+
+  if (items.length === 0) {
+    return [];
+  }
+
+  // Get linked pages for URL resolution
+  const pageIds = items
+    .filter(i => i.linkType === 'page' && i.linkResourceId)
+    .map(i => i.linkResourceId!);
+
+  const linkedPages = pageIds.length > 0
+    ? await db
+        .select({ id: pages.id, slug: pages.slug })
+        .from(pages)
+        .where(and(eq(pages.storeId, storeId), inArray(pages.id, pageIds)))
+    : [];
+
+  const pageMap = new Map(linkedPages.map(p => [p.id, p.slug]));
+
+  // Resolve page slugs
+  return items.map(item => ({
+    id: item.id,
+    title: item.title,
+    linkType: item.linkType as FooterMenuItem['linkType'],
+    linkUrl: item.linkUrl,
+    linkResourceId: item.linkResourceId,
+    pageSlug: item.linkType === 'page' && item.linkResourceId 
+      ? pageMap.get(item.linkResourceId) || null 
+      : null,
+  }));
+});
+
+// ============ PAGES ============
+
+// Get page by slug
+export const getPageBySlug = cache(async (storeId: string, slug: string) => {
+  return db.query.pages.findFirst({
+    where: and(eq(pages.storeId, storeId), eq(pages.slug, slug)),
+  });
+});

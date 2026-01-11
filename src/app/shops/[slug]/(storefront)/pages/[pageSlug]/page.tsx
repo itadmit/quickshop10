@@ -1,4 +1,4 @@
-import { getStoreBySlug, getCategoriesByStore, getPageSectionsCached, getProductsByStore, getFeaturedProducts, getProductsByCategory, getProductsByIds } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoriesByStore, getPageSectionsCached, getProductsByStore, getFeaturedProducts, getProductsByCategory, getProductsByIds, getFooterMenuItems } from '@/lib/db/queries';
 import { db } from '@/lib/db';
 import { pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -87,11 +87,12 @@ export default async function InternalPage({ params }: InternalPageProps) {
   const pageIdentifier = `pages/${pageSlug}`;
 
   // Parallel data fetching - maximum speed! ⚡
-  const [sections, categories, featuredProducts, allProducts] = await Promise.all([
+  const [sections, categories, featuredProducts, allProducts, footerMenuItems] = await Promise.all([
     getPageSectionsCached(store.id, pageIdentifier),
     getCategoriesByStore(store.id),
     getFeaturedProducts(store.id, 4),
     getProductsByStore(store.id, 12),
+    getFooterMenuItems(store.id),
   ]);
 
   // Get automatic discounts for all products
@@ -125,6 +126,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
           categories={categories} 
           basePath={basePath}
           settings={store.settings as Record<string, unknown>}
+          footerMenuItems={footerMenuItems}
         />
       </div>
     );
@@ -593,6 +595,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
         categories={categories} 
         basePath={basePath}
         settings={store.settings as Record<string, unknown>}
+        footerMenuItems={footerMenuItems}
       />
     </div>
   );

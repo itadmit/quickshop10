@@ -6,6 +6,11 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { PageButtons } from './page-buttons';
 
+// ============================================
+// Pages Management - Server Component
+// Lists all internal pages with "Edit in Builder" links
+// ============================================
+
 export default async function PagesManagementPage({
   params
 }: {
@@ -33,41 +38,43 @@ export default async function PagesManagementPage({
           <p className="text-gray-500 text-xs sm:text-sm mt-1">ניהול עמודי תוכן סטטיים</p>
         </div>
         <Link
-          href={`/shops/${slug}/admin/pages/new`}
+          href={`/shops/${slug}/editor?page=home`}
           className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-900 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
         >
           <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
           </svg>
-          עמוד חדש
+          פתח בעורך
         </Link>
       </div>
 
-      {/* Quick Templates */}
+      {/* Quick Actions - Link to Builder */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         {[
-          { title: 'אודות', slug: 'about', icon: 'info' },
-          { title: 'צור קשר', slug: 'contact', icon: 'mail' },
-          { title: 'משלוחים', slug: 'shipping', icon: 'truck' },
-          { title: 'מדיניות פרטיות', slug: 'privacy', icon: 'shield' },
+          { title: 'אודות', slug: 'about', icon: '📄' },
+          { title: 'צור קשר', slug: 'contact', icon: '📧' },
+          { title: 'משלוחים', slug: 'shipping', icon: '🚚' },
+          { title: 'מדיניות פרטיות', slug: 'privacy', icon: '🔒' },
         ].map((template) => {
-          const exists = storePages.some(p => p.slug === template.slug);
+          const existingPage = storePages.find(p => p.slug === template.slug);
+          const editorUrl = existingPage 
+            ? `/shops/${slug}/editor?page=pages/${template.slug}`
+            : `/shops/${slug}/editor?page=home`; // Fallback if page doesn't exist
+          
           return (
             <Link
               key={template.slug}
-              href={exists 
-                ? `/shops/${slug}/admin/pages/${storePages.find(p => p.slug === template.slug)?.id}` 
-                : `/shops/${slug}/admin/pages/new?template=${template.slug}`
-              }
+              href={editorUrl}
               className={`p-3 sm:p-4 rounded-xl border text-center transition-colors ${
-                exists 
+                existingPage 
                   ? 'border-green-200 bg-green-50 hover:bg-green-100' 
                   : 'border-gray-200 bg-white hover:bg-gray-50'
               }`}
             >
+              <div className="text-xl mb-1">{template.icon}</div>
               <div className="text-xs sm:text-sm font-medium text-gray-900">{template.title}</div>
               <div className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                {exists ? 'קיים ✓' : 'צור עמוד'}
+                {existingPage ? 'ערוך בבילדר ✓' : 'לא קיים'}
               </div>
             </Link>
           );
@@ -87,7 +94,16 @@ export default async function PagesManagementPage({
               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
             </svg>
             <p className="text-sm">אין עמודים עדיין</p>
-            <p className="text-xs sm:text-sm mt-1">צור עמודי תוכן כמו אודות, צור קשר ומדיניות פרטיות</p>
+            <p className="text-xs sm:text-sm mt-1">עמודי ברירת מחדל נוצרים אוטומטית עם החנות</p>
+            <Link
+              href={`/shops/${slug}/admin/settings/advanced`}
+              className="inline-flex items-center gap-2 mt-4 text-sm text-blue-600 hover:text-blue-700"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              איפוס החנות ליצירת עמודי ברירת מחדל
+            </Link>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
@@ -95,12 +111,9 @@ export default async function PagesManagementPage({
               <div key={page.id} className="p-3 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Link 
-                      href={`/shops/${slug}/admin/pages/${page.id}`}
-                      className="font-medium text-sm sm:text-base text-gray-900 hover:text-black truncate"
-                    >
+                    <span className="font-medium text-sm sm:text-base text-gray-900 truncate">
                       {page.title}
-                    </Link>
+                    </span>
                     <span className={`px-2 py-0.5 text-[10px] sm:text-xs rounded-full ${
                       page.isPublished 
                         ? 'bg-green-100 text-green-800' 
@@ -110,13 +123,14 @@ export default async function PagesManagementPage({
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm text-gray-500 mt-1 truncate">
-                    /{page.slug} • 
+                    /pages/{page.slug} • 
                     עודכן {new Date(page.updatedAt).toLocaleDateString('he-IL')}
                   </p>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto">
+                  {/* View Page */}
                   <Link
-                    href={`/shops/${slug}/${page.slug}`}
+                    href={`/shops/${slug}/pages/${page.slug}`}
                     target="_blank"
                     className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                     title="צפה בעמוד"
@@ -125,15 +139,20 @@ export default async function PagesManagementPage({
                       <path d="M12 8.67v4A1.33 1.33 0 0110.67 14H3.33A1.33 1.33 0 012 12.67V5.33A1.33 1.33 0 013.33 4h4M10 2h4v4M6.67 9.33L14 2" />
                     </svg>
                   </Link>
+                  
+                  {/* Edit in Builder - Primary Action */}
                   <Link
-                    href={`/shops/${slug}/admin/pages/${page.id}`}
-                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                    title="ערוך"
+                    href={`/shops/${slug}/editor?page=pages/${page.slug}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 text-white text-xs font-medium rounded-lg hover:bg-gray-800 transition-colors"
+                    title="ערוך בבילדר"
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M11.33 2a1.88 1.88 0 012.67 2.67L5 13.67 2 14.67l1-3L11.33 2z" />
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
+                    ערוך
                   </Link>
+                  
+                  {/* Delete Button */}
                   <PageButtons pageId={page.id} slug={slug} />
                 </div>
               </div>
@@ -141,7 +160,24 @@ export default async function PagesManagementPage({
           </div>
         )}
       </div>
+
+      {/* Help Text */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex gap-3">
+          <div className="text-blue-500">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-blue-900">איך לערוך עמודים?</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              לחצו על כפתור "ערוך" כדי לפתוח את העמוד בעורך הויזואלי. 
+              שם תוכלו להוסיף סקשנים, לערוך תוכן ולצפות בתצוגה מקדימה בזמן אמת.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-

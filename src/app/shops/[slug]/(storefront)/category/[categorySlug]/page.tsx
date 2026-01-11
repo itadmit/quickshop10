@@ -1,4 +1,4 @@
-import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById, getCategoriesByStore } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById, getCategoriesByStore, getFooterMenuItems } from '@/lib/db/queries';
 import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
@@ -30,12 +30,13 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
     notFound();
   }
 
-  // Fetch products, subcategories, parent category and all categories in parallel ⚡
-  const [products, subcategories, parentCategory, allCategories] = await Promise.all([
+  // Fetch products, subcategories, parent category, all categories and footer menu in parallel ⚡
+  const [products, subcategories, parentCategory, allCategories, footerMenuItems] = await Promise.all([
     getProductsByCategory(store.id, category.id),
     getSubcategories(store.id, category.id),
     category.parentId ? getCategoryById(category.parentId) : null,
     getCategoriesByStore(store.id),
+    getFooterMenuItems(store.id),
   ]);
 
   // חישוב הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת!) ⚡
@@ -203,6 +204,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         categories={allCategories} 
         basePath={basePath}
         settings={store.settings as Record<string, unknown>}
+        footerMenuItems={footerMenuItems}
       />
     </div>
   );

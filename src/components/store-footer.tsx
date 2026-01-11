@@ -7,6 +7,15 @@ interface Category {
   slug: string;
 }
 
+interface FooterMenuItem {
+  id: string;
+  title: string;
+  linkType: 'page' | 'category' | 'product' | 'custom' | 'collection';
+  linkUrl?: string | null;
+  linkResourceId?: string | null;
+  pageSlug?: string | null; // For page links
+}
+
 interface ThemeSettings {
   footerShowLogo?: boolean;
   footerShowNewsletter?: boolean;
@@ -30,6 +39,7 @@ interface StoreFooterProps {
   categories?: Category[];
   basePath: string;
   settings?: ThemeSettings;
+  footerMenuItems?: FooterMenuItem[];
 }
 
 export function StoreFooter({ 
@@ -38,6 +48,7 @@ export function StoreFooter({
   categories = [], 
   basePath,
   settings = {},
+  footerMenuItems = [],
 }: StoreFooterProps) {
   // Default settings
   const {
@@ -96,14 +107,44 @@ export function StoreFooter({
             </ul>
           </div>
           
-          {/* Column 3: Customer Service */}
+          {/* Column 3: Information (from footer menu) */}
           <div>
-            <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80">שירות לקוחות</h4>
+            <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80">מידע</h4>
             <ul className="space-y-2.5 text-sm opacity-60">
-              <li><a href="#" className="hover:opacity-100 transition-opacity">צור קשר</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-opacity">משלוחים והחזרות</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-opacity">מדיניות החזרות</a></li>
-              <li><a href="#" className="hover:opacity-100 transition-opacity">שאלות נפוצות</a></li>
+              {footerMenuItems.length > 0 ? (
+                footerMenuItems.slice(0, 6).map(item => {
+                  // Determine the href based on link type
+                  let href = '#';
+                  if (item.linkType === 'page' && item.pageSlug) {
+                    href = `${basePath}/pages/${item.pageSlug}`;
+                  } else if (item.linkType === 'custom' && item.linkUrl) {
+                    href = item.linkUrl;
+                  } else if (item.linkType === 'category' && item.linkResourceId) {
+                    href = `${basePath}/category/${item.linkResourceId}`;
+                  } else if (item.linkType === 'product' && item.linkResourceId) {
+                    href = `${basePath}/products/${item.linkResourceId}`;
+                  }
+                  
+                  return (
+                    <li key={item.id}>
+                      <Link 
+                        href={href}
+                        className="hover:opacity-100 transition-opacity"
+                      >
+                        {item.title}
+                      </Link>
+                    </li>
+                  );
+                })
+              ) : (
+                // Fallback for stores without footer menu
+                <>
+                  <li><Link href={`${basePath}/pages/about`} className="hover:opacity-100 transition-opacity">אודות</Link></li>
+                  <li><Link href={`${basePath}/pages/contact`} className="hover:opacity-100 transition-opacity">צור קשר</Link></li>
+                  <li><Link href={`${basePath}/pages/shipping`} className="hover:opacity-100 transition-opacity">משלוחים</Link></li>
+                  <li><Link href={`${basePath}/pages/privacy`} className="hover:opacity-100 transition-opacity">מדיניות פרטיות</Link></li>
+                </>
+              )}
             </ul>
           </div>
           

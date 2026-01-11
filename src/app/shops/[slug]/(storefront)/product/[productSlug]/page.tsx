@@ -1,4 +1,4 @@
-import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds, getProductAddonsForStorefront } from '@/lib/db/queries';
+import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds, getProductAddonsForStorefront, getFooterMenuItems } from '@/lib/db/queries';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductWithAddons } from '@/components/product-with-addons';
@@ -86,7 +86,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
   const maxRelatedProducts = isPreviewMode ? 9 : pageSettings.related.count + 1;
-  const [options, variants, allProducts, categories, productCategoryIds, productAddons] = await Promise.all([
+  const [options, variants, allProducts, categories, productCategoryIds, productAddons, footerMenuItems] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
     getProductsByStore(store.id, maxRelatedProducts),
@@ -95,6 +95,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     getProductCategoryIds(product.id),
     // Get product addons (for display in product page)
     getProductAddonsForStorefront(product.id),
+    // Get footer menu items
+    getFooterMenuItems(store.id),
   ]);
   
   // Get related products (all available for preview mode, limited for production)
@@ -601,6 +603,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         categories={categories} 
         basePath={basePath}
         settings={store.settings as Record<string, unknown>}
+        footerMenuItems={footerMenuItems}
       />
     </div>
   );

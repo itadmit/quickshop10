@@ -25,6 +25,7 @@ const settingsTabs = [
   { id: 'tax', label: 'מיסים', path: '/tax' },
   { id: 'notifications', label: 'התראות', path: '/notifications' },
   { id: 'gdpr', label: 'עוגיות', path: '/gdpr' },
+  { id: 'advanced', label: 'מתקדם', path: '/advanced' },
 ];
 
 export function SettingsWrapper({ children, storeSlug, activeTab = 'general' }: SettingsWrapperProps) {

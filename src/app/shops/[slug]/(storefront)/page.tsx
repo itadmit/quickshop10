@@ -1,4 +1,4 @@
-import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds } from '@/lib/db/queries';
+import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds, getFooterMenuItems } from '@/lib/db/queries';
 import { 
   HeroSection, 
   CategoriesSection, 
@@ -60,11 +60,12 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
 
   // Parallel data fetching - maximum speed! ⚡
-  const [sections, categories, featuredProducts, allProducts] = await Promise.all([
+  const [sections, categories, featuredProducts, allProducts, footerMenuItems] = await Promise.all([
     getPageSectionsCached(store.id, 'home'),
     getCategoriesByStore(store.id),
     getFeaturedProducts(store.id, 4),
     getProductsByStore(store.id, 12),
+    getFooterMenuItems(store.id),
   ]);
 
   // שליפת הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת מהירה!) ⚡
@@ -579,6 +580,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         categories={categories} 
         basePath={basePath}
         settings={store.settings as Record<string, unknown>}
+        footerMenuItems={footerMenuItems}
       />
     </div>
   );
