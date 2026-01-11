@@ -85,7 +85,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
   // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
-  const maxRelatedProducts = isPreviewMode ? 9 : pageSettings.related.count + 1;
+  // Fetch more to account for out-of-stock filtering
+  const maxRelatedProducts = isPreviewMode ? 16 : (pageSettings.related.count + 1) * 2;
   const [options, variants, allProducts, categories, productCategoryIds, productAddons, footerMenuItems] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
@@ -99,8 +100,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     getFooterMenuItems(store.id),
   ]);
   
+  // Filter out of stock products (only show products that are available)
+  const inStockProducts = allProducts.filter(p => {
+    // Exclude current product
+    if (p.id === product.id) return false;
+    // For products without variants, use isOutOfStock check
+    if (!p.hasVariants) {
+      return !isOutOfStock(p.trackInventory, p.inventory, p.allowBackorder);
+    }
+    // For products with variants, we keep them (variant stock checked on product page)
+    // TODO: Could enhance to check variant-level stock if needed
+    return true;
+  });
+  
   // Get related products (all available for preview mode, limited for production)
-  const relatedProducts = allProducts.filter(p => p.id !== product.id).slice(0, isPreviewMode ? 8 : pageSettings.related.count);
+  const relatedProducts = inStockProducts.slice(0, isPreviewMode ? 8 : pageSettings.related.count);
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
   
