@@ -40,22 +40,34 @@ export async function PUT(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
+    console.log('[Sections API] Saving sections:', { page, sectionsCount: sections.length });
+    
     // Update each section
     for (const section of sections) {
+      console.log('[Sections API] Processing section:', { id: section.id, type: section.type, isTemp: section.id.startsWith('temp-') });
+      
       // Check if it's a new section (temp id)
       if (section.id.startsWith('temp-')) {
-        // Create new section
-        await db.insert(pageSections).values({
-          storeId: store.id,
-          page: page, // Use the page parameter
-          type: section.type as 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom',
-          title: section.title,
-          subtitle: section.subtitle,
-          content: section.content,
-          settings: section.settings,
-          sortOrder: section.sortOrder,
-          isActive: section.isActive,
-        });
+        // Create new section - type is validated by DB enum
+        console.log('[Sections API] Inserting new section:', { type: section.type, page, title: section.title });
+        try {
+          await db.insert(pageSections).values({
+            storeId: store.id,
+            page: page, // Use the page parameter
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            type: section.type as any, // DB validates against enum
+            title: section.title,
+            subtitle: section.subtitle,
+            content: section.content,
+            settings: section.settings,
+            sortOrder: section.sortOrder,
+            isActive: section.isActive,
+          });
+          console.log('[Sections API] Section inserted successfully');
+        } catch (insertError) {
+          console.error('[Sections API] Insert error:', insertError);
+          throw insertError;
+        }
       } else {
         // Update existing section
         await db
