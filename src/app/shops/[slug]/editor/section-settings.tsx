@@ -611,6 +611,12 @@ function DesignSettings({
             value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
             onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
           />
+          <ToggleField
+            label="מיקום טקסט"
+            options={['למעלה', 'מרכז', 'למטה']}
+            value={(section.settings.textPosition as string) === 'top' ? 'למעלה' : (section.settings.textPosition as string) === 'bottom' ? 'למטה' : 'מרכז'}
+            onChange={(v) => updateSettings('textPosition', v === 'למעלה' ? 'top' : v === 'למטה' ? 'bottom' : 'center')}
+          />
         </SettingsGroup>
 
         <SettingsGroup title="שכבה וצבעים">

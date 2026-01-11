@@ -482,6 +482,25 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // Text position (vertical alignment)
+        if (updates.settings?.textPosition !== undefined) {
+          const contentContainer = element.querySelector('[data-content-container]') as HTMLElement 
+            || element.querySelector('.relative.z-10') as HTMLElement;
+          if (contentContainer) {
+            // Remove all position classes
+            contentContainer.classList.remove('justify-start', 'justify-center', 'justify-end', 'pt-20', 'pb-20');
+            // Add new position
+            const position = updates.settings.textPosition as string;
+            if (position === 'top') {
+              contentContainer.classList.add('justify-start', 'pt-20');
+            } else if (position === 'bottom') {
+              contentContainer.classList.add('justify-end', 'pb-20');
+            } else {
+              contentContainer.classList.add('justify-center');
+            }
+          }
+        }
+        
         // Margin top/bottom (spacing for entire section)
         if (updates.settings?.paddingTop !== undefined) {
           (element as HTMLElement).style.marginTop = `${updates.settings.paddingTop}px`;

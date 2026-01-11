@@ -13,6 +13,7 @@ interface HeroSectionProps {
     height?: string;
     overlay?: number;
     textAlign?: 'right' | 'center' | 'left';
+    textPosition?: 'top' | 'center' | 'bottom';
     backgroundColor?: string;
     buttonBackground?: string;
     buttonTextColor?: string;
@@ -30,6 +31,7 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   const height = settings.height || '90vh';
   const overlay = settings.overlay ?? 0.3;
   const textAlign = settings.textAlign || 'center';
+  const textPosition = settings.textPosition || 'center';
   const backgroundColor = settings.backgroundColor || '#6B7280'; // Gray as fallback
   const buttonBg = settings.buttonBackground || '#FFFFFF'; // White default
   const buttonText = settings.buttonTextColor || '#000000'; // Black default
@@ -40,8 +42,11 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   // Check if there's any image
   const hasImage = !!(content.imageUrl || content.mobileImageUrl);
   
-  // Text alignment classes
+  // Text alignment classes (horizontal)
   const alignmentClass = textAlign === 'right' ? 'items-end text-right' : textAlign === 'left' ? 'items-start text-left' : 'items-center text-center';
+  
+  // Text position classes (vertical)
+  const positionClass = textPosition === 'top' ? 'justify-start pt-20' : textPosition === 'bottom' ? 'justify-end pb-20' : 'justify-center';
 
   return (
     <section 
@@ -80,7 +85,7 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
       </div>
       
       <div 
-        className={`relative z-10 h-full flex flex-col justify-center ${alignmentClass} ${
+        className={`relative z-10 h-full flex flex-col ${positionClass} ${alignmentClass} ${
           containerType === 'container' ? 'container mx-auto px-6' : 'w-full'
         }`}
         style={containerType === 'full' ? {
