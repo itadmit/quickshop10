@@ -11,7 +11,7 @@ import { useEffect, useState, useCallback } from 'react';
  * - Hover outline on sections
  * - Click to select section
  * - LIVE content updates from editor
- * 
+image.png * 
  * PERFORMANCE: Zero overhead in production (never loaded)
  */
 
@@ -401,22 +401,23 @@ export function EditorSectionHighlighter() {
           const grid = element.querySelector('[data-products-grid]') as HTMLElement;
           if (!grid) return;
           
-          const allProductEls = grid.querySelectorAll('[data-product-id]');
           const currentType = productType || (element as HTMLElement).dataset.productType || 'all';
+          
+          // ⚡ STEP 1: Always clean up preview products first!
+          grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
+          
+          // ⚡ STEP 2: Get ONLY original products (those with data-product-index)
+          const originalProductEls = grid.querySelectorAll('[data-product-index]');
           
           // For "specific" mode: render the selected products directly
           if (currentType === 'specific') {
+            // Hide original products
+            originalProductEls.forEach(el => el.classList.add('hidden'));
+            
             if (selectedProducts && selectedProducts.length > 0) {
-              // Hide all existing products
-              allProductEls.forEach(el => el.classList.add('hidden'));
-              
-              // Create or update product cards for selected products
+              // Create product cards for selected products
               const basePath = window.location.pathname.split('/').slice(0, 3).join('/');
               
-              // Remove previously injected preview products
-              grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
-              
-              // Add selected products
               selectedProducts.forEach((product, index) => {
                 const imageUrl = product.imageUrl || product.image || '/placeholder.svg';
                 const price = product.price ? Number(product.price) : 0;
@@ -429,10 +430,9 @@ export function EditorSectionHighlighter() {
                     class="animate-slide-up group"
                     style="animation-delay: ${index * 50}ms"
                     data-preview-product
-                    data-product-id="${product.id}"
                   >
                     <a href="${basePath}/product/${product.slug || product.id}" class="block">
-                        <div class="relative bg-gray-50 mb-3 overflow-hidden aspect-3/4">
+                      <div class="relative bg-gray-50 mb-3 overflow-hidden aspect-3/4">
                         <img 
                           src="${imageUrl}" 
                           alt="${product.name}"
@@ -460,10 +460,6 @@ export function EditorSectionHighlighter() {
               });
             } else {
               // No products selected - show placeholder
-              allProductEls.forEach(el => el.classList.add('hidden'));
-              grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
-              
-              // Add empty state placeholder
               const emptyHtml = `
                 <div data-preview-product class="col-span-full text-center py-12 text-gray-400">
                   <p>בחר מוצרים להצגה</p>
@@ -472,9 +468,8 @@ export function EditorSectionHighlighter() {
               grid.insertAdjacentHTML('beforeend', emptyHtml);
             }
           } else {
-            // For other modes (all, featured, category): show existing products, remove preview ones
-            grid.querySelectorAll('[data-preview-product]').forEach(el => el.remove());
-            allProductEls.forEach(el => el.classList.remove('hidden'));
+            // For other modes (all, featured, category): show original products
+            originalProductEls.forEach(el => el.classList.remove('hidden'));
           }
         }
         
