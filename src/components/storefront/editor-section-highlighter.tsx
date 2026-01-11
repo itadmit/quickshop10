@@ -340,6 +340,26 @@ export function EditorSectionHighlighter() {
           });
         }
         
+        // =====================================================
+        // IMAGE_TEXT SECTION - Image Position & Width
+        // =====================================================
+        if (updates.settings?.imagePosition !== undefined) {
+          const container = element.querySelector('[data-image-text-container]') as HTMLElement;
+          if (container) {
+            const isLeft = updates.settings.imagePosition === 'left';
+            container.className = container.className.replace(/md:flex-row(-reverse)?/, isLeft ? 'md:flex-row-reverse' : 'md:flex-row');
+          }
+        }
+        
+        if (updates.settings?.imageWidth !== undefined) {
+          const imageContainer = element.querySelector('[data-image-container]') as HTMLElement;
+          const textContainer = element.querySelector('[data-text-container]') as HTMLElement;
+          if (imageContainer && textContainer) {
+            imageContainer.style.flexBasis = updates.settings.imageWidth as string;
+            textContainer.style.flexBasis = `calc(100% - ${updates.settings.imageWidth})`;
+          }
+        }
+        
         // Card height (series grid overlay style)
         if (updates.settings?.cardHeight !== undefined) {
           const contentDivs = element.querySelectorAll('[data-item-id] .relative.p-8');

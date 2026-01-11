@@ -335,10 +335,10 @@ export function RichTextEditor({
                   className="fixed inset-0 z-10" 
                   onClick={() => setShowColorPicker(false)}
                 />
-                {/* Color picker popover - Expanded, opens to the left */}
-                <div className="absolute top-full left-0 mt-1 p-4 bg-white border border-gray-200 rounded-xl shadow-xl z-20 w-80">
-                  <p className="text-xs text-gray-500 mb-3 text-right font-medium">בחר צבע</p>
-                  <div className="grid grid-cols-8 gap-2">
+                {/* Color picker popover - Compact, opens to the left */}
+                <div className="absolute top-full left-0 mt-1 p-3 bg-white border border-gray-200 rounded-xl shadow-xl z-20 w-64">
+                  <p className="text-xs text-gray-500 mb-2 text-right font-medium">בחר צבע</p>
+                  <div className="grid grid-cols-6 gap-1.5">
                     {TEXT_COLORS.map(color => (
                       <button
                         key={color.value}
@@ -349,7 +349,7 @@ export function RichTextEditor({
                         }}
                         onMouseDown={(e) => e.preventDefault()}
                         title={color.label}
-                        className="w-8 h-8 rounded-md border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
+                        className="w-7 h-7 rounded-md border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
                         style={{ backgroundColor: color.value }}
                       />
                     ))}

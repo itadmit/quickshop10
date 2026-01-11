@@ -49,7 +49,11 @@ export function ImageTextSection({
       data-section-id={sectionId}
       data-section-name="תמונה + טקסט"
     >
-      <div className={`flex flex-col md:${flexDirection} min-h-[400px]`} style={{ minHeight: height !== 'auto' ? height : undefined }}>
+      <div 
+        className={`flex flex-col md:${flexDirection} min-h-[400px]`} 
+        style={{ minHeight: height !== 'auto' ? height : undefined }}
+        data-image-text-container
+      >
         {/* Image Side */}
         <div 
           className="w-full md:w-1/2 relative overflow-hidden"
@@ -85,6 +89,7 @@ export function ImageTextSection({
             flexBasis: `calc(100% - ${imageWidth})`,
             textAlign 
           }}
+          data-text-container
         >
           <div className="max-w-lg mx-auto">
             <h2 
