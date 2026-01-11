@@ -219,19 +219,27 @@ export function RichTextEditor({
             </button>
             
             {showBlockFormat && (
-              <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[120px]">
-                {BLOCK_FORMATS.map(format => (
-                  <button
-                    key={format.value}
-                    type="button"
-                    onClick={() => handleBlockFormat(format.value)}
-                    onMouseDown={(e) => e.preventDefault()}
-                    className="w-full px-3 py-1.5 text-right text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
-                  >
-                    {format.label}
-                  </button>
-                ))}
-              </div>
+              <>
+                {/* Backdrop to close on outside click */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowBlockFormat(false)}
+                />
+                {/* Dropdown */}
+                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[120px]">
+                  {BLOCK_FORMATS.map(format => (
+                    <button
+                      key={format.value}
+                      type="button"
+                      onClick={() => handleBlockFormat(format.value)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-full px-3 py-1.5 text-right text-sm hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
+                    >
+                      {format.label}
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
           </div>
 
@@ -274,25 +282,33 @@ export function RichTextEditor({
             </ToolbarButton>
             
             {showColorPicker && (
-              <div className="absolute top-full right-0 mt-1 p-3 bg-white border border-gray-200 rounded-xl shadow-xl z-20">
-                <p className="text-xs text-gray-500 mb-2 text-right">בחר צבע</p>
-                <div className="grid grid-cols-5 gap-2">
-                  {TEXT_COLORS.map(color => (
-                    <button
-                      key={color.value}
-                      type="button"
-                      onClick={() => {
-                        execCommand('foreColor', color.value);
-                        setShowColorPicker(false);
-                      }}
-                      onMouseDown={(e) => e.preventDefault()}
-                      title={color.label}
-                      className="w-7 h-7 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-100 transition-all cursor-pointer"
-                      style={{ backgroundColor: color.value }}
-                    />
-                  ))}
+              <>
+                {/* Backdrop to close on outside click */}
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setShowColorPicker(false)}
+                />
+                {/* Color picker popover */}
+                <div className="absolute top-full right-0 mt-1 p-3 bg-white border border-gray-200 rounded-xl shadow-xl z-20">
+                  <p className="text-xs text-gray-500 mb-2 text-right">בחר צבע</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {TEXT_COLORS.map(color => (
+                      <button
+                        key={color.value}
+                        type="button"
+                        onClick={() => {
+                          execCommand('foreColor', color.value);
+                          setShowColorPicker(false);
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        title={color.label}
+                        className="w-7 h-7 rounded-lg border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-100 transition-all cursor-pointer"
+                        style={{ backgroundColor: color.value }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              </>
             )}
           </div>
 
@@ -470,17 +486,6 @@ export function RichTextEditor({
 
       {hint && (
         <p className="text-xs text-gray-400 mt-1">{hint}</p>
-      )}
-      
-      {/* Close dropdowns on outside click */}
-      {(showColorPicker || showBlockFormat) && (
-        <div 
-          className="fixed inset-0 z-10" 
-          onClick={() => {
-            setShowColorPicker(false);
-            setShowBlockFormat(false);
-          }}
-        />
       )}
     </div>
   );

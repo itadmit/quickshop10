@@ -224,3 +224,149 @@ input, textarea, select {
 input:focus, textarea:focus, select:focus {
   outline: none;
 }
+
+/* ============================================ */
+/* Rich Text Editor Prose Styles (Global)      */
+/* Applied to all .prose elements in sections   */
+/* ============================================ */
+.prose h1,
+[data-content-text] h1 {
+  font-size: 2.25rem; /* 36px */
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.prose h2,
+[data-content-text] h2 {
+  font-size: 1.875rem; /* 30px */
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 1.25rem;
+  margin-bottom: 0.875rem;
+  color: #111827;
+}
+
+.prose h3,
+[data-content-text] h3 {
+  font-size: 1.5rem; /* 24px */
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1rem;
+  margin-bottom: 0.75rem;
+  color: #1f2937;
+}
+
+.prose h4,
+[data-content-text] h4 {
+  font-size: 1.25rem; /* 20px */
+  font-weight: 600;
+  line-height: 1.5;
+  margin-top: 0.875rem;
+  margin-bottom: 0.625rem;
+  color: #1f2937;
+}
+
+.prose p,
+[data-content-text] p {
+  margin-bottom: 1rem;
+  line-height: 1.7;
+}
+
+.prose a,
+[data-content-text] a {
+  color: #2563eb;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.prose a:hover,
+[data-content-text] a:hover {
+  color: #1d4ed8;
+}
+
+.prose strong,
+[data-content-text] strong,
+.prose b,
+[data-content-text] b {
+  font-weight: 700;
+}
+
+.prose em,
+[data-content-text] em,
+.prose i,
+[data-content-text] i {
+  font-style: italic;
+}
+
+.prose u,
+[data-content-text] u {
+  text-decoration: underline;
+}
+
+.prose blockquote,
+[data-content-text] blockquote {
+  border-right: 4px solid #60a5fa;
+  background: #eff6ff;
+  padding: 0.75rem 1rem;
+  padding-right: 1rem;
+  padding-left: 0.75rem;
+  margin: 1rem 0;
+  color: #4b5563;
+  font-style: italic;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.prose ul,
+[data-content-text] ul {
+  list-style-type: disc;
+  padding-right: 1.5rem;
+  margin: 0.75rem 0;
+  margin-right: 0.5rem;
+}
+
+.prose ol,
+[data-content-text] ol {
+  list-style-type: decimal;
+  padding-right: 1.5rem;
+  margin: 0.75rem 0;
+  margin-right: 0.5rem;
+}
+
+.prose li,
+[data-content-text] li {
+  margin-bottom: 0.5rem;
+  line-height: 1.7;
+}
+
+.prose hr,
+[data-content-text] hr {
+  margin: 1.5rem 0;
+  border: none;
+  border-top: 1px solid #d1d5db;
+}
+
+/* Responsive heading sizes */
+@media (max-width: 768px) {
+  .prose h1,
+  [data-content-text] h1 {
+    font-size: 1.875rem; /* 30px */
+  }
+  
+  .prose h2,
+  [data-content-text] h2 {
+    font-size: 1.5rem; /* 24px */
+  }
+  
+  .prose h3,
+  [data-content-text] h3 {
+    font-size: 1.25rem; /* 20px */
+  }
+  
+  .prose h4,
+  [data-content-text] h4 {
+    font-size: 1.125rem; /* 18px */
+  }
+}
