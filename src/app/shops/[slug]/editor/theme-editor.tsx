@@ -569,13 +569,8 @@ export function ThemeEditor({
   // Save all changes to DB (sections + theme settings)
   const handleSave = async () => {
     setIsSaving(true);
-    console.log('[ThemeEditor] Saving sections:', { 
-      sectionsCount: sections.length, 
-      currentPage,
-      sections: sections.map(s => ({ id: s.id, type: s.type, title: s.title, isActive: s.isActive }))
-    });
     try {
-      // Save sections and theme settings in parallel for speed
+      // Simple parallel save - sections and theme settings
       const savePromises: Promise<Response>[] = [
         fetch(`/api/shops/${slug}/settings/sections`, {
           method: 'PUT',
@@ -584,7 +579,6 @@ export function ThemeEditor({
         }),
       ];
       
-      // Only save theme settings if there are pending changes
       if (Object.keys(pendingThemeSettings).length > 0) {
         savePromises.push(
           fetch(`/api/shops/${slug}/settings/theme`, {
@@ -600,8 +594,7 @@ export function ThemeEditor({
       
       if (allOk) {
         setHasChanges(false);
-        setPendingThemeSettings({}); // Clear pending changes
-        // Refresh the preview iframe to confirm saved state
+        setPendingThemeSettings({});
         setPreviewRefreshKey(prev => prev + 1);
       } else {
         alert('שגיאה בשמירה');
@@ -665,8 +658,9 @@ export function ThemeEditor({
 
   // Add new section - add to local state and inject placeholder in iframe
   const addSection = (type: string, afterSectionId?: string) => {
+    // Use real UUID from the start - no temp IDs, no mapping needed!
     const newSection: Section = {
-      id: `temp-${Date.now()}`,
+      id: crypto.randomUUID(),
       type,
       title: getSectionDefaultTitle(type),
       subtitle: null,

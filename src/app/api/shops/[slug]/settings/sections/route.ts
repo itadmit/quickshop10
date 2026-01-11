@@ -40,84 +40,62 @@ export async function PUT(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
-    console.log('[Sections API] Saving sections:', { page, sectionsCount: sections.length });
+    // Simple upsert logic - client sends real UUIDs
+    const sectionIds = sections.map(s => s.id);
     
-    // Track newly inserted section IDs so we don't delete them
-    const newlyInsertedIds: string[] = [];
-    
-    // Update each section
+    // Upsert each section (insert or update)
     for (const section of sections) {
-      console.log('[Sections API] Processing section:', { id: section.id, type: section.type, isTemp: section.id.startsWith('temp-') });
+      // Try to update first
+      const updated = await db
+        .update(pageSections)
+        .set({
+          title: section.title,
+          subtitle: section.subtitle,
+          content: section.content,
+          settings: section.settings,
+          sortOrder: section.sortOrder,
+          isActive: section.isActive,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(pageSections.id, section.id),
+            eq(pageSections.storeId, store.id)
+          )
+        )
+        .returning({ id: pageSections.id });
       
-      // Check if it's a new section (temp id)
-      if (section.id.startsWith('temp-')) {
-        // Create new section - type is validated by DB enum
-        console.log('[Sections API] Inserting new section:', { type: section.type, page, title: section.title });
-        try {
-          const [inserted] = await db.insert(pageSections).values({
-            storeId: store.id,
-            page: page, // Use the page parameter
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            type: section.type as any, // DB validates against enum
-            title: section.title,
-            subtitle: section.subtitle,
-            content: section.content,
-            settings: section.settings,
-            sortOrder: section.sortOrder,
-            isActive: section.isActive,
-          }).returning({ id: pageSections.id });
-          
-          // Track the new ID so we don't delete it
-          newlyInsertedIds.push(inserted.id);
-          console.log('[Sections API] Section inserted successfully with ID:', inserted.id);
-        } catch (insertError) {
-          console.error('[Sections API] Insert error:', insertError);
-          throw insertError;
-        }
-      } else {
-        // Update existing section
-        await db
-          .update(pageSections)
-          .set({
-            title: section.title,
-            subtitle: section.subtitle,
-            content: section.content,
-            settings: section.settings,
-            sortOrder: section.sortOrder,
-            isActive: section.isActive,
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(pageSections.id, section.id),
-              eq(pageSections.storeId, store.id)
-            )
-          );
+      // If no rows updated, insert new section
+      if (updated.length === 0) {
+        await db.insert(pageSections).values({
+          id: section.id, // Use the UUID from client
+          storeId: store.id,
+          page: page,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          type: section.type as any,
+          title: section.title,
+          subtitle: section.subtitle,
+          content: section.content,
+          settings: section.settings,
+          sortOrder: section.sortOrder,
+          isActive: section.isActive,
+        });
       }
     }
 
     // Delete sections that are no longer in the list
-    const currentSectionIds = sections
-      .filter(s => !s.id.startsWith('temp-'))
-      .map(s => s.id);
-    
-    // Include newly inserted IDs in the keep list
-    const idsToKeep = [...currentSectionIds, ...newlyInsertedIds];
-    console.log('[Sections API] IDs to keep:', idsToKeep);
-
     const existingSections = await db
       .select({ id: pageSections.id })
       .from(pageSections)
       .where(
         and(
           eq(pageSections.storeId, store.id),
-          eq(pageSections.page, page) // Use the page parameter
+          eq(pageSections.page, page)
         )
       );
 
     for (const existing of existingSections) {
-      if (!idsToKeep.includes(existing.id)) {
-        console.log('[Sections API] Deleting section:', existing.id);
+      if (!sectionIds.includes(existing.id)) {
         await db
           .delete(pageSections)
           .where(eq(pageSections.id, existing.id));

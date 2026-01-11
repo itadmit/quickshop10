@@ -2895,18 +2895,22 @@ function ColorField({
   value: string;
   onChange: (value: string) => void;
 }) {
+  // Handle empty, undefined, or 'transparent' values - input type="color" requires valid hex
+  const displayValue = (!value || value === '' || value === 'transparent') ? '#000000' : value;
+  const labelValue = (!value || value === '' || value === 'transparent') ? 'לא נבחר' : value;
+  
   return (
     <div className="flex items-center justify-between">
       <label className="text-sm text-gray-700">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="color"
-          value={value === 'transparent' ? '#ffffff' : value}
+          value={displayValue}
           onChange={(e) => onChange(e.target.value)}
           className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
         />
         <span className="text-xs text-gray-500">
-          {value === 'transparent' ? 'שקוף' : value}
+          {labelValue}
         </span>
       </div>
     </div>
