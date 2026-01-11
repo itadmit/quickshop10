@@ -347,7 +347,12 @@ export function EditorSectionHighlighter() {
           const container = element.querySelector('[data-image-text-container]') as HTMLElement;
           if (container) {
             const isLeft = updates.settings.imagePosition === 'left';
-            container.className = container.className.replace(/md:flex-row(-reverse)?/, isLeft ? 'md:flex-row-reverse' : 'md:flex-row');
+            // For RTL: 'right' = flex-row, 'left' = flex-row-reverse
+            container.style.flexDirection = isLeft ? 'row-reverse' : 'row';
+            // Apply on desktop only (md and up)
+            if (window.innerWidth >= 768) {
+              container.style.flexDirection = isLeft ? 'row-reverse' : 'row';
+            }
           }
         }
         
@@ -355,8 +360,11 @@ export function EditorSectionHighlighter() {
           const imageContainer = element.querySelector('[data-image-container]') as HTMLElement;
           const textContainer = element.querySelector('[data-text-container]') as HTMLElement;
           if (imageContainer && textContainer) {
-            imageContainer.style.flexBasis = updates.settings.imageWidth as string;
-            textContainer.style.flexBasis = `calc(100% - ${updates.settings.imageWidth})`;
+            const width = updates.settings.imageWidth as string;
+            imageContainer.style.flexBasis = width;
+            imageContainer.style.width = width; // Also set width for better cross-browser support
+            textContainer.style.flexBasis = `calc(100% - ${width})`;
+            textContainer.style.width = `calc(100% - ${width})`;
           }
         }
         
