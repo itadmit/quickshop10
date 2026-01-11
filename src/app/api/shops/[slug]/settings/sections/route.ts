@@ -109,6 +109,11 @@ export async function PUT(
     if (page === 'coming_soon') {
       revalidatePath(`/shops/${slug}/coming-soon`);
     }
+    // Revalidate internal pages
+    if (page.startsWith('pages/')) {
+      const pageSlug = page.replace('pages/', '');
+      revalidatePath(`/shops/${slug}/pages/${pageSlug}`);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

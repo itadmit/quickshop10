@@ -17,104 +17,195 @@ import { eq } from 'drizzle-orm';
 // Also used for store reset functionality
 // ============================================
 
-// Default pages configuration
-const DEFAULT_PAGES = [
+// Default pages configuration with multiple sections per page
+interface PageSection {
+  type: SectionType;
+  title: string | null;
+  subtitle: string | null;
+  content: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  sortOrder: number;
+}
+
+interface DefaultPage {
+  title: string;
+  slug: string;
+  seoTitle: string;
+  seoDescription: string;
+  sections: PageSection[];
+}
+
+const DEFAULT_PAGES: DefaultPage[] = [
   {
     title: 'אודות',
     slug: 'about',
     seoTitle: 'אודות | {storeName}',
     seoDescription: 'למדו עוד על {storeName}',
-    content: {
-      text: `<h2>אודות {storeName}</h2>
-<p>ברוכים הבאים לחנות שלנו!</p>
-<p>אנחנו גאים להציע לכם את המוצרים האיכותיים ביותר עם שירות מעולה.</p>
-<p>נשמח לעמוד לשירותכם בכל שאלה.</p>`,
-    },
+    sections: [
+      {
+        type: 'image_text' as SectionType,
+        title: 'הסיפור שלנו',
+        subtitle: null,
+        content: {
+          imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80',
+          text: 'ברוכים הבאים ל{storeName}! אנחנו גאים להציע לכם את המוצרים האיכותיים ביותר עם שירות מעולה ותשומת לב לכל פרט.',
+          buttonText: 'לחנות',
+          buttonLink: '/',
+        },
+        settings: {
+          imagePosition: 'left',
+          imageWidth: '50%',
+          backgroundColor: '#ffffff',
+          textAlign: 'right',
+        },
+        sortOrder: 0,
+      },
+      {
+        type: 'features' as SectionType,
+        title: 'למה לבחור בנו?',
+        subtitle: null,
+        content: {
+          features: [
+            { id: '1', emoji: '✨', title: 'איכות מעולה', description: 'מוצרים נבחרים בקפידה' },
+            { id: '2', emoji: '🚚', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+            { id: '3', emoji: '💬', title: 'שירות לקוחות', description: 'תמיד זמינים לעזור' },
+          ],
+        },
+        settings: {
+          columns: 3,
+          iconStyle: 'emoji',
+          backgroundColor: '#f9fafb',
+          textAlign: 'center',
+        },
+        sortOrder: 1,
+      },
+    ],
   },
   {
     title: 'צור קשר',
     slug: 'contact',
     seoTitle: 'צור קשר | {storeName}',
     seoDescription: 'צרו איתנו קשר - {storeName}',
-    content: {
-      text: `<h2>צור קשר</h2>
-<p>נשמח לשמוע מכם!</p>
-<p><strong>אימייל:</strong> contact@example.com</p>
-<p><strong>טלפון:</strong> 03-1234567</p>
-<p><strong>שעות פעילות:</strong> ימים א'-ה' 9:00-18:00</p>`,
-    },
+    sections: [
+      {
+        type: 'text_block' as SectionType,
+        title: 'צור קשר',
+        subtitle: 'נשמח לשמוע מכם',
+        content: {
+          text: '<p><strong>אימייל:</strong> contact@example.com</p><p><strong>טלפון:</strong> 03-1234567</p><p><strong>שעות פעילות:</strong> ימים א\'-ה\' 9:00-18:00</p>',
+        },
+        settings: {
+          maxWidth: 'lg',
+          textAlign: 'center',
+          paddingY: 'large',
+        },
+        sortOrder: 0,
+      },
+    ],
   },
   {
     title: 'משלוחים',
     slug: 'shipping',
     seoTitle: 'מדיניות משלוחים | {storeName}',
     seoDescription: 'מידע על משלוחים ומשלוח חינם',
-    content: {
-      text: `<h2>מדיניות משלוחים</h2>
-<h3>זמני משלוח</h3>
-<p>משלוחים מגיעים תוך 3-5 ימי עסקים.</p>
-<h3>עלויות משלוח</h3>
-<p>משלוח רגיל: ₪30</p>
-<p>משלוח מהיר (1-2 ימי עסקים): ₪50</p>
-<h3>משלוח חינם</h3>
-<p>בהזמנות מעל ₪300 - משלוח חינם!</p>`,
-    },
+    sections: [
+      {
+        type: 'text_block' as SectionType,
+        title: 'מדיניות משלוחים',
+        subtitle: 'כל מה שצריך לדעת על המשלוחים שלנו',
+        content: {
+          text: '<h3>זמני משלוח</h3><p>משלוחים מגיעים תוך 3-5 ימי עסקים.</p><h3>עלויות משלוח</h3><p>משלוח רגיל: ₪30</p><p>משלוח מהיר (1-2 ימי עסקים): ₪50</p><h3>משלוח חינם</h3><p>בהזמנות מעל ₪300 - משלוח חינם!</p>',
+        },
+        settings: {
+          maxWidth: 'lg',
+          textAlign: 'right',
+          paddingY: 'large',
+        },
+        sortOrder: 0,
+      },
+      {
+        type: 'features' as SectionType,
+        title: null,
+        subtitle: null,
+        content: {
+          features: [
+            { id: '1', emoji: '📦', title: 'אריזה מוקפדת', description: 'כל מוצר נארז בקפידה' },
+            { id: '2', emoji: '🚚', title: 'משלוח לכל הארץ', description: 'מגיעים לכל מקום' },
+            { id: '3', emoji: '🎁', title: 'משלוח חינם', description: 'בהזמנות מעל ₪300' },
+          ],
+        },
+        settings: {
+          columns: 3,
+          iconStyle: 'emoji',
+          backgroundColor: '#f9fafb',
+          textAlign: 'center',
+        },
+        sortOrder: 1,
+      },
+    ],
   },
   {
     title: 'מדיניות הנגשה',
     slug: 'accessibility',
     seoTitle: 'הצהרת נגישות | {storeName}',
     seoDescription: 'מידע על נגישות האתר',
-    content: {
-      text: `<h2>הצהרת נגישות</h2>
-<p>אנו מחויבים להנגשת האתר לכלל האוכלוסייה, לרבות אנשים עם מוגבלויות.</p>
-<p>האתר תוכנן ונבנה בהתאם להנחיות הנגישות WCAG 2.1 ברמה AA.</p>
-<h3>פעולות שננקטו</h3>
-<ul>
-<li>התאמה לקוראי מסך</li>
-<li>ניגודיות צבעים מותאמת</li>
-<li>תמיכה בניווט מקלדת</li>
-<li>טקסט חלופי לתמונות</li>
-</ul>
-<p>לכל שאלה או בעיה בנגישות, אנא צרו קשר.</p>`,
-    },
+    sections: [
+      {
+        type: 'text_block' as SectionType,
+        title: 'הצהרת נגישות',
+        subtitle: 'אנו מחויבים להנגשת האתר לכלל האוכלוסייה',
+        content: {
+          text: '<p>האתר תוכנן ונבנה בהתאם להנחיות הנגישות WCAG 2.1 ברמה AA.</p><h3>פעולות שננקטו</h3><ul><li>התאמה לקוראי מסך</li><li>ניגודיות צבעים מותאמת</li><li>תמיכה בניווט מקלדת</li><li>טקסט חלופי לתמונות</li></ul><p>לכל שאלה או בעיה בנגישות, אנא צרו קשר.</p>',
+        },
+        settings: {
+          maxWidth: 'lg',
+          textAlign: 'right',
+          paddingY: 'large',
+        },
+        sortOrder: 0,
+      },
+    ],
   },
   {
     title: 'מדיניות פרטיות',
     slug: 'privacy',
     seoTitle: 'מדיניות פרטיות | {storeName}',
     seoDescription: 'מידע על איסוף ושימוש בנתונים',
-    content: {
-      text: `<h2>מדיניות פרטיות</h2>
-<p>אנו מכבדים את פרטיותכם ומחויבים להגן על המידע האישי שלכם.</p>
-<h3>איזה מידע אנו אוספים?</h3>
-<p>שם, כתובת אימייל, כתובת למשלוח, ופרטי תשלום לצורך ביצוע הזמנות.</p>
-<h3>כיצד אנו משתמשים במידע?</h3>
-<p>המידע משמש לעיבוד הזמנות, שירות לקוחות, ושיפור חווית הקנייה.</p>
-<h3>אבטחת מידע</h3>
-<p>אנו משתמשים בטכנולוגיות הצפנה מתקדמות להגנה על המידע שלכם.</p>`,
-    },
+    sections: [
+      {
+        type: 'text_block' as SectionType,
+        title: 'מדיניות פרטיות',
+        subtitle: 'אנו מכבדים את פרטיותכם ומחויבים להגן על המידע האישי שלכם',
+        content: {
+          text: '<h3>איזה מידע אנו אוספים?</h3><p>שם, כתובת אימייל, כתובת למשלוח, ופרטי תשלום לצורך ביצוע הזמנות.</p><h3>כיצד אנו משתמשים במידע?</h3><p>המידע משמש לעיבוד הזמנות, שירות לקוחות, ושיפור חווית הקנייה.</p><h3>אבטחת מידע</h3><p>אנו משתמשים בטכנולוגיות הצפנה מתקדמות להגנה על המידע שלכם.</p>',
+        },
+        settings: {
+          maxWidth: 'lg',
+          textAlign: 'right',
+          paddingY: 'large',
+        },
+        sortOrder: 0,
+      },
+    ],
   },
 ];
 
 /**
  * Create default pages for a new store
- * Creates both the pages records and their initial text_block sections
+ * Creates both the pages records and their sections
  */
 export async function createDefaultPages(storeId: string, storeName: string) {
   const createdPages: Array<{ id: string; slug: string; title: string }> = [];
 
   for (const pageData of DEFAULT_PAGES) {
     // Replace {storeName} placeholder
-    const title = pageData.title;
     const seoTitle = pageData.seoTitle.replace('{storeName}', storeName);
     const seoDescription = pageData.seoDescription.replace('{storeName}', storeName);
-    const text = pageData.content.text.replace(/{storeName}/g, storeName);
 
     // Create page record
     const [page] = await db.insert(pages).values({
       storeId,
-      title,
+      title: pageData.title,
       slug: pageData.slug,
       isPublished: true, // Published by default
       seoTitle,
@@ -123,23 +214,33 @@ export async function createDefaultPages(storeId: string, storeName: string) {
 
     createdPages.push({ id: page.id, slug: page.slug, title: page.title });
 
-    // Create page section (text_block)
+    // Create page sections
     const pageIdentifier = `pages/${pageData.slug}`;
-    await db.insert(pageSections).values({
-      storeId,
-      page: pageIdentifier,
-      type: 'text_block',
-      title: null,
-      subtitle: null,
-      content: { text },
-      settings: {
-        maxWidth: 'lg',
-        textAlign: 'right',
-        paddingY: 'large',
-      },
-      sortOrder: 0,
-      isActive: true,
-    });
+    
+    for (const section of pageData.sections) {
+      // Replace {storeName} in text content
+      let content = { ...section.content };
+      if (typeof content.text === 'string') {
+        content.text = content.text.replace(/{storeName}/g, storeName);
+      }
+      // Also replace in title if it's a string
+      let sectionTitle = section.title;
+      if (sectionTitle) {
+        sectionTitle = sectionTitle.replace(/{storeName}/g, storeName);
+      }
+      
+      await db.insert(pageSections).values({
+        storeId,
+        page: pageIdentifier,
+        type: section.type,
+        title: sectionTitle,
+        subtitle: section.subtitle,
+        content,
+        settings: section.settings,
+        sortOrder: section.sortOrder,
+        isActive: true,
+      });
+    }
   }
 
   return createdPages;

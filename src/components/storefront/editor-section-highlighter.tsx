@@ -126,6 +126,17 @@ export function EditorSectionHighlighter() {
         }
         
         // =====================================================
+        // TEXT BLOCK LIVE UPDATES
+        // =====================================================
+        if (updates.content?.text !== undefined) {
+          const el = element.querySelector('[data-content-text]') as HTMLElement;
+          if (el) {
+            // Use innerHTML for rich text content
+            el.innerHTML = updates.content.text || '';
+          }
+        }
+        
+        // =====================================================
         // NEWSLETTER LIVE UPDATES
         // =====================================================
         if (updates.content?.placeholder !== undefined) {

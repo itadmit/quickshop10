@@ -62,27 +62,30 @@ export function TextBlockSection({
     >
       <div className={`${maxWidthClass} mx-auto text-${textAlign}`}>
         {/* Title */}
-        {title && (
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-display font-light tracking-wide mb-4">
-            {title}
-          </h2>
-        )}
+        <h2 
+          className="text-2xl md:text-3xl lg:text-4xl font-display font-light tracking-wide mb-4"
+          data-section-title
+          style={{ display: title ? undefined : 'none' }}
+        >
+          {title}
+        </h2>
 
         {/* Subtitle */}
-        {subtitle && (
-          <p className="text-lg md:text-xl opacity-80 mb-6">
-            {subtitle}
-          </p>
-        )}
+        <p 
+          className="text-lg md:text-xl opacity-80 mb-6"
+          data-section-subtitle
+          style={{ display: subtitle ? undefined : 'none' }}
+        >
+          {subtitle}
+        </p>
 
         {/* Rich Text Content */}
-        {content.text && (
-          <div 
-            className="prose prose-lg mx-auto mb-8"
-            style={{ textAlign }}
-            dangerouslySetInnerHTML={{ __html: content.text }}
-          />
-        )}
+        <div 
+          className="prose prose-lg mx-auto mb-8"
+          style={{ textAlign }}
+          data-content-text
+          dangerouslySetInnerHTML={{ __html: content.text || '' }}
+        />
 
         {/* Button */}
         {content.buttonText && content.buttonLink && (

@@ -48,39 +48,6 @@ export default async function PagesManagementPage({
         </Link>
       </div>
 
-      {/* Quick Actions - Link to Builder */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        {[
-          { title: 'אודות', slug: 'about', icon: '📄' },
-          { title: 'צור קשר', slug: 'contact', icon: '📧' },
-          { title: 'משלוחים', slug: 'shipping', icon: '🚚' },
-          { title: 'מדיניות פרטיות', slug: 'privacy', icon: '🔒' },
-        ].map((template) => {
-          const existingPage = storePages.find(p => p.slug === template.slug);
-          const editorUrl = existingPage 
-            ? `/shops/${slug}/editor?page=pages/${template.slug}`
-            : `/shops/${slug}/editor?page=home`; // Fallback if page doesn't exist
-          
-          return (
-            <Link
-              key={template.slug}
-              href={editorUrl}
-              className={`p-3 sm:p-4 rounded-xl border text-center transition-colors ${
-                existingPage 
-                  ? 'border-green-200 bg-green-50 hover:bg-green-100' 
-                  : 'border-gray-200 bg-white hover:bg-gray-50'
-              }`}
-            >
-              <div className="text-xl mb-1">{template.icon}</div>
-              <div className="text-xs sm:text-sm font-medium text-gray-900">{template.title}</div>
-              <div className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                {existingPage ? 'ערוך בבילדר ✓' : 'לא קיים'}
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-
       {/* Pages List */}
       <div className="bg-white rounded-xl border border-gray-200">
         <div className="p-3 sm:p-4 border-b border-gray-100">

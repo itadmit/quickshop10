@@ -80,6 +80,15 @@ export function LivePreview({
     }
   }, [refreshKey]);
 
+  // Navigate to new page when currentPage changes
+  useEffect(() => {
+    if (iframeRef.current) {
+      setIsLoading(true);
+      iframeRef.current.src = getPreviewUrl();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage]);
+
   // Send scroll and highlight command to iframe when selectedSectionId changes
   useEffect(() => {
     if (iframeRef.current?.contentWindow) {
@@ -113,6 +122,12 @@ export function LivePreview({
   // Storefront URL - use special editor preview mode
   // Show different pages based on currentPage
   const getPreviewUrl = () => {
+    // Handle internal pages (pages/about, pages/privacy, etc.)
+    if (currentPage.startsWith('pages/')) {
+      const pageSlug = currentPage.replace('pages/', '');
+      return `/shops/${storeSlug}/pages/${pageSlug}?preview=true&t=${refreshKey}`;
+    }
+    
     switch (currentPage) {
       case 'coming_soon':
         return `/shops/${storeSlug}/coming-soon?preview=true&t=${refreshKey}`;
@@ -163,7 +178,14 @@ export function LivePreview({
                 <circle cx="12" cy="10" r="3" />
               </svg>
               <span className="text-xs text-gray-600 truncate flex-1">
-                {customDomain || `my-quickshop.com/shops/${storeSlug}`}
+                {customDomain 
+                  ? currentPage.startsWith('pages/') 
+                    ? `${customDomain}/pages/${currentPage.replace('pages/', '')}`
+                    : customDomain
+                  : currentPage.startsWith('pages/')
+                    ? `my-quickshop.com/shops/${storeSlug}/pages/${currentPage.replace('pages/', '')}`
+                    : `my-quickshop.com/shops/${storeSlug}`
+                }
               </span>
               {/* Refresh Button */}
               <button 
