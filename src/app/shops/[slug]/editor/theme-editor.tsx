@@ -658,7 +658,7 @@ export function ThemeEditor({
     URL.revokeObjectURL(url);
   };
 
-  // Add new section
+  // Add new section - add to local state and inject placeholder in iframe
   const addSection = (type: string, afterSectionId?: string) => {
     const newSection: Section = {
       id: `temp-${Date.now()}`,
@@ -671,35 +671,78 @@ export function ThemeEditor({
       isActive: true,
     };
 
+    let newSections: Section[];
     if (afterSectionId) {
       const index = sections.findIndex(s => s.id === afterSectionId);
-      const newSections = [...sections];
+      newSections = [...sections];
       newSections.splice(index + 1, 0, newSection);
-      setSections(newSections.map((s, i) => ({ ...s, sortOrder: i })));
+      newSections = newSections.map((s, i) => ({ ...s, sortOrder: i }));
     } else {
-      setSections([...sections, newSection]);
+      newSections = [...sections, newSection];
     }
     
+    setSections(newSections);
     setSelectedSectionId(newSection.id);
     setHasChanges(true);
+    
+    // Send message to iframe to inject a placeholder for the new section
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'SECTION_ADD',
+        sectionId: newSection.id,
+        sectionType: type,
+        title: newSection.title,
+        subtitle: newSection.subtitle,
+        content: newSection.content, // Include default content for better placeholder
+        afterSectionId,
+      }, '*');
+      
+      // Scroll to the new section after a short delay
+      setTimeout(() => {
+        if (iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage({
+            type: 'SCROLL_TO_SECTION',
+            sectionId: newSection.id,
+          }, '*');
+        }
+      }, 100);
+    }
   };
 
-  // Remove section
+  // Remove section - update local state and hide in iframe
   const removeSection = (sectionId: string) => {
-    setSections(prev => prev.filter(s => s.id !== sectionId));
+    const newSections = sections.filter(s => s.id !== sectionId);
+    setSections(newSections);
     if (selectedSectionId === sectionId) {
-      setSelectedSectionId(sections[0]?.id || null);
+      setSelectedSectionId(newSections[0]?.id || null);
     }
     setHasChanges(true);
+    
+    // Send message to iframe to hide/remove the section
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'SECTION_REMOVE',
+        sectionId,
+      }, '*');
+    }
   };
 
-  // Reorder sections
+  // Reorder sections - update local state (iframe will refresh on save)
   const reorderSections = (fromIndex: number, toIndex: number) => {
     const newSections = [...sections];
     const [removed] = newSections.splice(fromIndex, 1);
     newSections.splice(toIndex, 0, removed);
-    setSections(newSections.map((s, i) => ({ ...s, sortOrder: i })));
+    const orderedSections = newSections.map((s, i) => ({ ...s, sortOrder: i }));
+    setSections(orderedSections);
     setHasChanges(true);
+    
+    // Send message to iframe to reorder sections visually
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'SECTION_REORDER',
+        orderedIds: orderedSections.map(s => s.id),
+      }, '*');
+    }
   };
 
   return (
@@ -1247,12 +1290,84 @@ function getSectionDefaultTitle(type: string): string {
 
 function getSectionDefaultContent(type: string): Record<string, unknown> {
   const defaults: Record<string, Record<string, unknown>> = {
-    hero: { imageUrl: '', buttonText: 'לחנות', buttonLink: '/products' },
-    categories: {},
+    hero: { 
+      imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1920',
+      buttonText: 'לחנות', 
+      buttonLink: '/products' 
+    },
+    banner: {
+      imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920',
+      buttonText: 'גלה עוד',
+      buttonLink: '/products'
+    },
+    banner_small: {
+      imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1920',
+      buttonText: 'קנה עכשיו',
+      buttonLink: '/products'
+    },
+    categories: { limit: 6 },
     products: { type: 'all', limit: 8 },
-    newsletter: { placeholder: 'כתובת אימייל', buttonText: 'הרשמה' },
-    video_banner: { videoUrl: '', imageUrl: '' },
-    split_banner: { items: [] },
+    newsletter: { 
+      placeholder: 'כתובת אימייל', 
+      buttonText: 'הרשמה',
+      description: 'הירשמו לניוזלטר שלנו וקבלו עדכונים על מבצעים והנחות בלעדיות'
+    },
+    video_banner: { 
+      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
+      imageUrl: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=1920'
+    },
+    split_banner: { 
+      items: [
+        { title: 'קטגוריה 1', imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800', link: '/products' },
+        { title: 'קטגוריה 2', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800', link: '/products' }
+      ] 
+    },
+    text_block: {
+      text: '<p>זהו טקסט לדוגמה. ניתן לערוך אותו לפי הצורך ולהוסיף תוכן מותאם אישית לעסק שלכם.</p>'
+    },
+    image_text: {
+      imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800',
+      text: '<p>זהו טקסט לדוגמה שמופיע לצד התמונה. ניתן לערוך אותו ולהתאים לתוכן שלכם.</p>',
+      buttonText: 'קרא עוד',
+      buttonLink: '#'
+    },
+    gallery: {
+      images: [
+        { url: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', alt: 'תמונה 1' },
+        { url: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600', alt: 'תמונה 2' },
+        { url: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600', alt: 'תמונה 3' },
+        { url: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=600', alt: 'תמונה 4' }
+      ]
+    },
+    features: {
+      items: [
+        { icon: 'truck', title: 'משלוח חינם', description: 'משלוח חינם בהזמנה מעל 200₪' },
+        { icon: 'shield', title: 'תשלום מאובטח', description: 'כל התשלומים מאובטחים ומוצפנים' },
+        { icon: 'refresh', title: 'החזרה קלה', description: '14 ימי החזרה ללא שאלות' }
+      ]
+    },
+    reviews: {
+      items: [
+        { name: 'לקוח מרוצה', rating: 5, text: 'שירות מעולה ומוצרים איכותיים!', date: new Date().toISOString() }
+      ]
+    },
+    faq: {
+      items: [
+        { question: 'מהם זמני המשלוח?', answer: 'משלוחים מגיעים תוך 3-5 ימי עסקים.' },
+        { question: 'מהי מדיניות ההחזרות?', answer: 'ניתן להחזיר מוצרים תוך 14 יום מרגע הקבלה.' }
+      ]
+    },
+    brands: {
+      images: []
+    },
+    contact: {
+      email: 'info@example.com',
+      phone: '03-1234567',
+      address: 'רחוב הדוגמה 1, תל אביב'
+    },
+    custom: {
+      html: '<div class="text-center p-8"><p>תוכן מותאם אישית</p></div>'
+    }
   };
   return defaults[type] || {};
 }

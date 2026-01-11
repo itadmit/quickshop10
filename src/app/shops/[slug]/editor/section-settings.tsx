@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import { MediaPickerModal, type MediaItem } from '@/components/admin/media-picker-modal';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 
 // ============================================
 // Section Settings - Right Panel (Shopify Style) - עברית
@@ -1531,11 +1532,12 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
         />
       </SettingsGroup>
       <SettingsGroup title="טקסט">
-        <TextAreaField
+        <RichTextEditor
           label="תוכן"
           value={(section.content.text as string) || ''}
           onChange={(v) => updateContent('text', v)}
           placeholder="הזן טקסט..."
+          minHeight={150}
         />
         <SelectField
           label="יישור טקסט"
@@ -1761,11 +1763,12 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
   return (
     <>
       <SettingsGroup title="תוכן">
-        <TextAreaField
+        <RichTextEditor
           label="טקסט"
           value={(section.content.text as string) || ''}
           onChange={(v) => updateContent('text', v)}
           placeholder="הזן טקסט..."
+          minHeight={200}
         />
       </SettingsGroup>
       <SettingsGroup title="כפתור">
@@ -2012,11 +2015,12 @@ function HeroPremiumContentSettings({ section, onUpdate, storeInfo }: { section:
           onChange={(v) => updateContent('headlineAccent', v)}
           placeholder="יוקרתית וטבעית"
         />
-        <TextAreaField
+        <RichTextEditor
           label="תיאור"
           value={(section.content.description as string) || ''}
           onChange={(v) => updateContent('description', v)}
           placeholder="גלי את סדרות הטיפוח המתקדמות שלנו..."
+          minHeight={100}
         />
       </SettingsGroup>
       <SettingsGroup title="כפתור ראשי">

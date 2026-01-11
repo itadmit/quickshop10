@@ -7,6 +7,7 @@ import { Category, Product } from '@/lib/db/schema';
 import { createProduct, updateProduct, ProductFormData } from '@/lib/actions/products';
 import { MediaUploader, UploadedMedia } from '@/components/admin/media-uploader';
 import { CategoryPicker, type CategoryNode } from '@/components/admin/category-picker';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 
 // ProductImage type - compatible with UploadedMedia
 interface ProductImage {
@@ -634,15 +635,12 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  תיאור מלא
-                </label>
-                <textarea
+                <RichTextEditor
+                  label="תיאור מלא"
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={setDescription}
                   placeholder="תיאור מפורט של המוצר..."
-                  rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900/10 focus:border-gray-400 outline-none transition-colors resize-none"
+                  minHeight={180}
                 />
               </div>
             </div>

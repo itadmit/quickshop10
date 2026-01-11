@@ -1,6 +1,22 @@
 'use client';
 
 import { useState } from 'react';
+import { 
+  Image, 
+  Video, 
+  LayoutGrid, 
+  FileText, 
+  Sparkles, 
+  HelpCircle, 
+  Tag, 
+  ShoppingBag, 
+  Star, 
+  Images, 
+  Building2, 
+  Mail, 
+  Code,
+  Megaphone
+} from 'lucide-react';
 
 // ============================================
 // Section Tree - Left Panel (Shopify Style) - עברית
@@ -32,27 +48,30 @@ const PAGE_LABELS: Record<string, string> = {
   coming_soon: 'Coming Soon',
 };
 
-const sectionTypes = [
+// Icon component type for section types
+type SectionIconComponent = React.ComponentType<{ className?: string }>;
+
+const sectionTypes: Array<{ type: string; label: string; icon: SectionIconComponent; category: string }> = [
   // באנרים
-  { type: 'hero', label: 'באנר ראשי', icon: '🖼️', category: 'באנרים' },
-  { type: 'video_banner', label: 'באנר וידאו', icon: '🎬', category: 'באנרים' },
-  { type: 'split_banner', label: 'באנר מפוצל', icon: '📷', category: 'באנרים' },
-  { type: 'banner_small', label: 'באנר קטן', icon: '📢', category: 'באנרים' },
+  { type: 'hero', label: 'באנר ראשי', icon: Image, category: 'באנרים' },
+  { type: 'video_banner', label: 'באנר וידאו', icon: Video, category: 'באנרים' },
+  { type: 'split_banner', label: 'באנר מפוצל', icon: LayoutGrid, category: 'באנרים' },
+  { type: 'banner_small', label: 'באנר קטן', icon: Megaphone, category: 'באנרים' },
   // תוכן
-  { type: 'image_text', label: 'תמונה + טקסט', icon: '🖼️', category: 'תוכן' },
-  { type: 'text_block', label: 'בלוק טקסט', icon: '📝', category: 'תוכן' },
-  { type: 'features', label: 'יתרונות', icon: '✨', category: 'תוכן' },
-  { type: 'faq', label: 'שאלות נפוצות', icon: '❓', category: 'תוכן' },
+  { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },
+  { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
+  { type: 'features', label: 'יתרונות', icon: Sparkles, category: 'תוכן' },
+  { type: 'faq', label: 'שאלות נפוצות', icon: HelpCircle, category: 'תוכן' },
   // קטלוג
-  { type: 'categories', label: 'קטגוריות', icon: '📑', category: 'קטלוג' },
-  { type: 'products', label: 'מוצרים', icon: '🛍️', category: 'קטלוג' },
+  { type: 'categories', label: 'קטגוריות', icon: Tag, category: 'קטלוג' },
+  { type: 'products', label: 'מוצרים', icon: ShoppingBag, category: 'קטלוג' },
   // סושיאל והמלצות
-  { type: 'reviews', label: 'ביקורות', icon: '⭐', category: 'סושיאל' },
-  { type: 'gallery', label: 'גלריה', icon: '🖼️', category: 'סושיאל' },
-  { type: 'logos', label: 'לוגואים', icon: '🏢', category: 'סושיאל' },
+  { type: 'reviews', label: 'ביקורות', icon: Star, category: 'סושיאל' },
+  { type: 'gallery', label: 'גלריה', icon: Images, category: 'סושיאל' },
+  { type: 'logos', label: 'לוגואים', icon: Building2, category: 'סושיאל' },
   // אחר
-  { type: 'newsletter', label: 'ניוזלטר', icon: '✉️', category: 'אחר' },
-  { type: 'custom', label: 'מותאם אישית', icon: '⚙️', category: 'אחר' },
+  { type: 'newsletter', label: 'ניוזלטר', icon: Mail, category: 'אחר' },
+  { type: 'custom', label: 'מותאם אישית', icon: Code, category: 'אחר' },
 ];
 
 export function SectionTree({
@@ -488,7 +507,7 @@ function AddSectionButton({ onClick, small }: { onClick: () => void; small?: boo
   );
 }
 
-// Add Section Floating Panel (Shopify-style)
+// Add Section Popover (attached to sidebar)
 function AddSectionModal({
   onClose,
   onAdd,
@@ -523,26 +542,26 @@ function AddSectionModal({
 
   return (
     <>
-      {/* Backdrop - subtle */}
+      {/* Invisible click-outside backdrop */}
       <div 
-        className="fixed inset-0 bg-black/20 z-40" 
+        className="fixed inset-0 z-40" 
         onClick={onClose}
       />
       
-      {/* Floating Panel - positioned to the left of sidebar */}
+      {/* Popover Panel - attached to sidebar, below header */}
       <div 
-        className="fixed right-[340px] top-[80px] bottom-[80px] w-[320px] bg-white rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden border border-gray-200"
+        className="fixed right-[240px] top-[56px] bottom-0 w-[320px] bg-white shadow-xl z-50 flex flex-col border-l border-gray-200"
         dir="rtl"
       >
         {/* Header */}
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-900">הוסף סקשן</h3>
+        <div className="p-3 border-b border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-medium text-gray-900 text-sm">הוסף סקשן</h3>
             <button 
               onClick={onClose} 
-              className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1 hover:bg-gray-100 rounded transition-colors"
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
               </svg>
             </button>
@@ -551,13 +570,13 @@ function AddSectionModal({
           {/* Search */}
           <div className="relative">
             <svg 
-              width="16" 
-              height="16" 
+              width="14" 
+              height="14" 
               viewBox="0 0 24 24" 
               fill="none" 
               stroke="currentColor" 
               strokeWidth="2"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
             >
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -567,18 +586,18 @@ function AddSectionModal({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="חיפוש סקשנים..."
-              className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full pr-8 pl-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400"
             />
           </div>
         </div>
 
         {/* Category Tabs */}
-        <div className="px-4 py-2 border-b border-gray-100 flex gap-1 overflow-x-auto scrollbar-hide">
+        <div className="px-3 py-2 border-b border-gray-100 flex gap-1 overflow-x-auto scrollbar-hide">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === category
                   ? 'bg-gray-900 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -590,23 +609,23 @@ function AddSectionModal({
         </div>
 
         {/* Sections List */}
-        <div className="flex-1 overflow-y-auto p-3">
+        <div className="flex-1 overflow-y-auto p-2">
           {filteredSections.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-3 text-gray-300">
+            <div className="text-center py-6 text-gray-500">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-2 text-gray-300">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
-              <p className="text-sm">לא נמצאו סקשנים</p>
+              <p className="text-xs">לא נמצאו סקשנים</p>
             </div>
           ) : selectedCategory === 'all' ? (
             // Grouped view when "all" is selected
             Object.entries(groupedSections).map(([category, sections]) => (
-              <div key={category} className="mb-4">
-                <div className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2 px-1">
+              <div key={category} className="mb-3">
+                <div className="text-xs font-medium text-gray-400 mb-1.5 px-1">
                   {category}
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {sections.map((section) => (
                     <SectionTypeButton
                       key={section.type}
@@ -619,7 +638,7 @@ function AddSectionModal({
             ))
           ) : (
             // Flat list when specific category is selected
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {filteredSections.map((section) => (
                 <SectionTypeButton
                   key={section.type}
@@ -640,30 +659,32 @@ function SectionTypeButton({
   section,
   onAdd,
 }: {
-  section: { type: string; label: string; icon: string };
+  section: { type: string; label: string; icon: SectionIconComponent };
   onAdd: (type: string) => void;
 }) {
+  const IconComponent = section.icon;
+  
   return (
     <button
       onClick={() => onAdd(section.type)}
-      className="w-full flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-blue-500 hover:bg-blue-50 transition-all text-right group"
+      className="w-full flex items-center gap-2.5 p-2 rounded-lg border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all text-right group"
     >
-      <div className="w-10 h-10 rounded-lg bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center text-lg transition-colors">
-        {section.icon}
+      <div className="w-8 h-8 rounded bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
+        <IconComponent className="w-4 h-4 text-gray-500" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700 truncate">
+        <div className="text-sm text-gray-700 group-hover:text-gray-900 truncate">
           {section.label}
         </div>
       </div>
       <svg 
-        width="16" 
-        height="16" 
+        width="14" 
+        height="14" 
         viewBox="0 0 24 24" 
         fill="none" 
         stroke="currentColor" 
         strokeWidth="2"
-        className="text-gray-300 group-hover:text-blue-500 transition-colors"
+        className="text-gray-300 group-hover:text-gray-500 transition-colors"
       >
         <path d="M12 5v14M5 12h14" />
       </svg>

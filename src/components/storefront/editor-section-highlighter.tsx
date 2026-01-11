@@ -47,8 +47,16 @@ export function EditorSectionHighlighter() {
       }
       if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
         const { sectionId, updates } = event.data;
+        console.log('[EditorHighlighter] SECTION_CONTENT_UPDATE received:', { sectionId, updates });
         const element = document.querySelector(`[data-section-id="${sectionId}"]`);
-        if (!element) return;
+        if (!element) {
+          console.warn('[EditorHighlighter] Element not found for sectionId:', sectionId);
+          // List all section IDs in DOM for debugging
+          const allSections = document.querySelectorAll('[data-section-id]');
+          console.log('[EditorHighlighter] Available section IDs:', Array.from(allSections).map(el => el.getAttribute('data-section-id')));
+          return;
+        }
+        console.log('[EditorHighlighter] Element found:', element);
 
         // =====================================================
         // BASIC TITLE/SUBTITLE UPDATES
@@ -145,9 +153,20 @@ export function EditorSectionHighlighter() {
         }
         
         // =====================================================
-        // BACKGROUND IMAGE UPDATES
+        // IMAGE UPDATES (for image_text and similar sections)
         // =====================================================
         if (updates.content?.imageUrl !== undefined) {
+          // Regular image element (image_text section)
+          const imgEl = element.querySelector('[data-content-image]') as HTMLImageElement;
+          if (imgEl) {
+            imgEl.src = updates.content.imageUrl || '';
+            imgEl.classList.toggle('hidden', !updates.content.imageUrl);
+            // Show/hide placeholder
+            const placeholder = element.querySelector('[data-image-placeholder]') as HTMLElement;
+            if (placeholder) {
+              placeholder.classList.toggle('hidden', !!updates.content.imageUrl);
+            }
+          }
           // Desktop background image
           const bgDesktop = element.querySelector('[data-bg-desktop]') as HTMLElement;
           if (bgDesktop) {
@@ -159,6 +178,17 @@ export function EditorSectionHighlighter() {
           const fallback = element.querySelector('[data-bg-fallback]') as HTMLElement;
           if (fallback) {
             fallback.style.display = updates.content.imageUrl ? 'none' : 'block';
+          }
+        }
+        
+        // =====================================================
+        // BUTTON LINK UPDATES
+        // =====================================================
+        if (updates.content?.buttonLink !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLAnchorElement;
+          if (btnEl) {
+            btnEl.href = updates.content.buttonLink || '#';
+            btnEl.classList.toggle('hidden', !updates.content.buttonLink || !btnEl.textContent);
           }
         }
         if (updates.content?.mobileImageUrl !== undefined) {
@@ -561,6 +591,260 @@ export function EditorSectionHighlighter() {
             bottomGradient.style.display = updates.settings.showGradient ? '' : 'none';
           }
         }
+      }
+      
+      // =====================================================
+      // SECTION_ADD - Inject placeholder for new section
+      // =====================================================
+      if (event.data?.type === 'SECTION_ADD') {
+        const { sectionId, sectionType, title, subtitle, afterSectionId, content } = event.data;
+        
+        // Create placeholder element with all data- attributes for live updates
+        const placeholder = document.createElement('section');
+        placeholder.dataset.sectionId = sectionId;
+        placeholder.dataset.sectionType = sectionType;
+        placeholder.dataset.previewPlaceholder = 'true';
+        
+        // Generate type-specific placeholder HTML
+        let html = '';
+        switch (sectionType) {
+          case 'image_text':
+            placeholder.className = 'py-0';
+            html = `
+              <div class="flex flex-col md:flex-row min-h-[400px]">
+                <div class="w-full md:w-1/2 relative overflow-hidden" style="min-height: 300px;" data-image-container>
+                  <img src="${content?.imageUrl || ''}" alt="" class="w-full h-full object-cover absolute inset-0 ${content?.imageUrl ? '' : 'hidden'}" data-content-image />
+                  <div class="w-full h-full bg-gray-100 flex items-center justify-center ${content?.imageUrl ? 'hidden' : ''}" data-image-placeholder>
+                    <svg class="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                </div>
+                <div class="w-full md:w-1/2 flex items-center p-8 md:p-12 lg:p-16">
+                  <div class="max-w-lg mx-auto text-right">
+                    <h2 class="text-2xl md:text-3xl lg:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
+                    <p class="text-lg text-gray-600 mb-4 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
+                    <div class="text-gray-600 leading-relaxed mb-6 prose prose-sm" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
+                    <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border border-black text-black hover:bg-black hover:text-white transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" data-section-button>${content?.buttonText || ''}</a>
+                  </div>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'text_block':
+            placeholder.className = 'py-16 bg-white';
+            html = `
+              <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                  <h2 class="text-2xl md:text-3xl lg:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
+                  <p class="text-lg text-gray-600 mb-6 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
+                  <div class="prose prose-lg mx-auto" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'hero':
+          case 'banner':
+            placeholder.className = 'relative min-h-[60vh] flex items-center justify-center';
+            html = `
+              <div class="absolute inset-0 bg-gray-200" data-bg-desktop style="background-size: cover; background-position: center; ${content?.imageUrl ? `background-image: url('${content.imageUrl}')` : ''}">
+                <div class="absolute inset-0 bg-black/30"></div>
+              </div>
+              <div class="relative z-10 text-center text-white px-4">
+                <h2 class="text-4xl md:text-5xl lg:text-6xl font-light tracking-wide mb-4" data-section-title>${title || 'כותרת הבאנר'}</h2>
+                <p class="text-xl md:text-2xl mb-8 opacity-90" data-section-subtitle>${subtitle || 'תת כותרת'}</p>
+                <a href="${content?.buttonLink || '/products'}" class="inline-block px-8 py-3 bg-white text-black hover:bg-black hover:text-white transition-colors text-sm tracking-wider uppercase" data-section-button>${content?.buttonText || 'לחנות'}</a>
+              </div>
+            `;
+            break;
+          
+          case 'newsletter':
+            placeholder.className = 'py-16 bg-gray-50';
+            html = `
+              <div class="container mx-auto px-4 text-center">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide mb-4" data-section-title>${title || 'הירשמו לניוזלטר'}</h2>
+                <p class="text-gray-600 mb-6 max-w-xl mx-auto" data-section-subtitle>${subtitle || 'קבלו עדכונים על מבצעים והנחות בלעדיות'}</p>
+                <div class="flex gap-2 max-w-md mx-auto">
+                  <input type="email" placeholder="${content?.placeholder || 'כתובת אימייל'}" class="flex-1 px-4 py-3 border border-gray-300 rounded" data-content-placeholder />
+                  <button class="px-6 py-3 bg-black text-white hover:bg-gray-800 transition-colors" data-section-button>${content?.buttonText || 'הרשמה'}</button>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'features':
+            placeholder.className = 'py-16 bg-white';
+            html = `
+              <div class="container mx-auto px-4">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-12 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div class="text-center p-6">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                    </div>
+                    <h3 class="font-medium mb-2">משלוח חינם</h3>
+                    <p class="text-gray-600 text-sm">בהזמנה מעל 200₪</p>
+                  </div>
+                  <div class="text-center p-6">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                    </div>
+                    <h3 class="font-medium mb-2">תשלום מאובטח</h3>
+                    <p class="text-gray-600 text-sm">SSL מאובטח</p>
+                  </div>
+                  <div class="text-center p-6">
+                    <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                      <svg class="w-8 h-8 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </div>
+                    <h3 class="font-medium mb-2">החזרה קלה</h3>
+                    <p class="text-gray-600 text-sm">14 ימי החזרה</p>
+                  </div>
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'products':
+            placeholder.className = 'py-16 bg-white';
+            html = `
+              <div class="container mx-auto px-4">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'המוצרים שלנו'}</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" data-products-grid>
+                  ${[1,2,3,4].map(() => `
+                    <div class="group">
+                      <div class="aspect-square bg-gray-100 rounded mb-3 flex items-center justify-center">
+                        <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p class="text-sm text-gray-600">שם מוצר</p>
+                      <p class="font-medium">₪99</p>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'categories':
+            placeholder.className = 'py-16 bg-white';
+            html = `
+              <div class="container mx-auto px-4">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'קטגוריות'}</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  ${[1,2,3,4].map(() => `
+                    <div class="aspect-square bg-gray-100 rounded flex items-center justify-center">
+                      <span class="text-gray-400">קטגוריה</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+          
+          case 'gallery':
+            placeholder.className = 'py-16 bg-white';
+            html = `
+              <div class="container mx-auto px-4">
+                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'גלריה'}</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  ${[1,2,3,4].map(() => `
+                    <div class="aspect-square bg-gray-100 rounded flex items-center justify-center">
+                      <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+          
+          default:
+            // Generic placeholder for unknown types
+            placeholder.className = 'py-16 bg-gradient-to-b from-gray-50 to-white border-2 border-dashed border-blue-300';
+            html = `
+              <div class="container mx-auto px-4">
+                <div class="text-center max-w-3xl mx-auto">
+                  <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3" data-section-title>${title || ''}</h2>
+                  <p class="text-lg text-gray-600 mb-6 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
+                  <div class="prose prose-lg mx-auto mb-6" data-content-text>${content?.text || ''}</div>
+                  <div class="flex items-center justify-center gap-3 py-8 bg-gray-100/50 rounded-xl border border-gray-200">
+                    <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <div class="text-right">
+                      <span class="block text-lg font-medium text-gray-700">${title || sectionType}</span>
+                      <span class="text-sm text-gray-400">שמור כדי לראות את הסקשן המלא</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+        }
+        
+        placeholder.innerHTML = html;
+        
+        // Find where to insert
+        if (afterSectionId) {
+          const afterEl = document.querySelector(`[data-section-id="${afterSectionId}"]`);
+          if (afterEl) {
+            afterEl.insertAdjacentElement('afterend', placeholder);
+          } else {
+            const main = document.querySelector('main') || document.body;
+            main.appendChild(placeholder);
+          }
+        } else {
+          const allSections = document.querySelectorAll('[data-section-id]');
+          const lastSection = allSections[allSections.length - 1];
+          if (lastSection) {
+            lastSection.insertAdjacentElement('afterend', placeholder);
+          } else {
+            const main = document.querySelector('main') || document.body;
+            main.appendChild(placeholder);
+          }
+        }
+        
+        // Scroll to the new section
+        setTimeout(() => {
+          placeholder.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 100);
+      }
+      
+      // =====================================================
+      // SECTION_REMOVE - Hide/remove section from preview
+      // =====================================================
+      if (event.data?.type === 'SECTION_REMOVE') {
+        const { sectionId } = event.data;
+        const element = document.querySelector(`[data-section-id="${sectionId}"]`);
+        if (element) {
+          // Add fade out animation then remove
+          (element as HTMLElement).style.transition = 'opacity 0.3s, transform 0.3s';
+          (element as HTMLElement).style.opacity = '0';
+          (element as HTMLElement).style.transform = 'scale(0.95)';
+          setTimeout(() => element.remove(), 300);
+        }
+      }
+      
+      // =====================================================
+      // SECTION_REORDER - Visually reorder sections
+      // =====================================================
+      if (event.data?.type === 'SECTION_REORDER') {
+        const { orderedIds } = event.data as { orderedIds: string[] };
+        const main = document.querySelector('main') || document.body;
+        
+        // Get all sections and their parent
+        const sections = orderedIds.map(id => 
+          document.querySelector(`[data-section-id="${id}"]`)
+        ).filter(Boolean) as HTMLElement[];
+        
+        // Reorder by re-appending in new order
+        const container = sections[0]?.parentElement || main;
+        sections.forEach(section => {
+          container.appendChild(section);
+        });
       }
     };
 
