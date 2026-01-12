@@ -214,11 +214,14 @@ export function LiveGallerySection({
   const currentMainImage = images.length > 0 ? images[selectedImageIndex]?.url || mainImage : mainImage;
   
   // Determine container classes based on thumbnail position
+  // RTL: 'right' means thumbnails on right side of screen (end), 'left' means left side (start)
   const getContainerClasses = () => {
-    if (thumbnailsPosition === 'left') {
+    if (thumbnailsPosition === 'right') {
+      // Thumbnails on right = flex-row-reverse in RTL (thumbnails first, then main image)
       return 'lg:flex lg:flex-row-reverse lg:gap-4';
     }
-    if (thumbnailsPosition === 'right') {
+    if (thumbnailsPosition === 'left') {
+      // Thumbnails on left = regular flex in RTL (main image first, then thumbnails)
       return 'lg:flex lg:gap-4';
     }
     return '';
@@ -257,17 +260,34 @@ export function LiveGallerySection({
   // Both carousel and single now work the same - main image + thumbnails
   return (
     <div className={`space-y-4 ${getContainerClasses()}`}>
-      {/* Main Image with Navigation */}
+      {/* Main Image with Slide Animation */}
       <div 
         className={`relative ${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
         title={enableZoom ? 'לחץ להגדלה' : undefined}
       >
-        <ProductImageComponent 
-          src={currentMainImage}
-          alt={productName}
-          className="w-full h-full object-cover"
-          loading="eager"
-        />
+        {/* Sliding images container */}
+        <div 
+          className="flex transition-transform duration-300 ease-out h-full"
+          style={{ 
+            width: `${images.length * 100}%`,
+            transform: `translateX(${selectedImageIndex * (100 / images.length)}%)` 
+          }}
+        >
+          {images.map((img, i) => (
+            <div 
+              key={img.id} 
+              className="h-full flex-shrink-0"
+              style={{ width: `${100 / images.length}%` }}
+            >
+              <ProductImageComponent 
+                src={img.url}
+                alt={`${productName} ${i + 1}`}
+                className="w-full h-full object-cover"
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+            </div>
+          ))}
+        </div>
         
         {/* Navigation Arrows */}
         {showArrows && images.length > 1 && (
@@ -275,8 +295,7 @@ export function LiveGallerySection({
             <button
               type="button"
               onClick={goToPrevious}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
-              style={{ opacity: 1 }}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10"
               aria-label="תמונה קודמת"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -286,8 +305,7 @@ export function LiveGallerySection({
             <button
               type="button"
               onClick={goToNext}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
-              style={{ opacity: 1 }}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10"
               aria-label="תמונה הבאה"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -299,7 +317,7 @@ export function LiveGallerySection({
         
         {/* Mobile Dots Indicator */}
         {showDotsOnMobile && images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 lg:hidden">
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 lg:hidden z-10">
             {images.map((_, i) => (
               <button
                 key={i}

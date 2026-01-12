@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface ProductImageProps {
   src: string | null | undefined;
@@ -15,6 +15,16 @@ const PLACEHOLDER_SVG = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 export function ProductImage({ src, alt, className = '', loading = 'lazy' }: ProductImageProps) {
   const [imgSrc, setImgSrc] = useState(src || PLACEHOLDER_SVG);
   const [hasError, setHasError] = useState(false);
+
+  // Update imgSrc when src prop changes
+  useEffect(() => {
+    if (src) {
+      setImgSrc(src);
+      setHasError(false);
+    } else {
+      setImgSrc(PLACEHOLDER_SVG);
+    }
+  }, [src]);
 
   const handleError = () => {
     if (!hasError) {
