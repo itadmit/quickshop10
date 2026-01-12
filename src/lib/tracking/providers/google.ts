@@ -41,22 +41,23 @@ export function initGoogleAnalytics(measurementId: string): void {
   // Initialize dataLayer
   window.dataLayer = window.dataLayer || [];
   
-  function gtag(...args: unknown[]) {
-    window.dataLayer!.push(args);
-  }
+  // IMPORTANT: gtag must push arguments, not an array
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  window.gtag = function() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer!.push(arguments);
+  };
   
-  window.gtag = gtag;
-  gtag('js', new Date());
-  gtag('config', measurementId, {
-    send_page_view: false, // We'll send manually for more control
+  window.gtag('js', new Date());
+  window.gtag('config', measurementId, {
+    send_page_view: true, // Let GA4 handle page views automatically
     cookie_flags: 'SameSite=None;Secure',
   });
 
-  // Load script with defer
+  // Load script FIRST (before calling gtag)
   const script = document.createElement('script');
   script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
   script.async = true;
-  script.defer = true;
   document.head.appendChild(script);
 }
 
