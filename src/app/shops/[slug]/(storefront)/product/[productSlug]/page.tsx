@@ -22,6 +22,7 @@ import {
   LiveSectionVisibility,
   LiveRelatedProducts,
   LiveInventoryDisplay,
+  LiveDescriptionSection,
 } from '@/components/storefront/product-page-preview';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import Link from 'next/link';
@@ -184,6 +185,38 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       letterSpacing: settings.letterSpacing ? `${settings.letterSpacing}${settings.letterSpacingUnit || 'px'}` : undefined,
       lineHeight: settings.lineHeight || undefined,
     };
+  };
+
+  // Generate CSS for responsive typography (mobile support without JS)
+  const generateResponsiveCSS = () => {
+    const typography = pageSettings.typography;
+    if (!typography) return '';
+    
+    const rules: string[] = [];
+    
+    // Title
+    if (typography.title?.fontSizeMobile) {
+      rules.push(`.pp-title { font-size: ${typography.title.fontSizeMobile}${typography.title.fontSizeMobileUnit || 'px'} !important; }`);
+    }
+    // Price
+    if (typography.price?.fontSizeMobile) {
+      rules.push(`.pp-price { font-size: ${typography.price.fontSizeMobile}${typography.price.fontSizeMobileUnit || 'px'} !important; }`);
+    }
+    // Compare Price
+    if (typography.comparePrice?.fontSizeMobile) {
+      rules.push(`.pp-compare-price { font-size: ${typography.comparePrice.fontSizeMobile}${typography.comparePrice.fontSizeMobileUnit || 'px'} !important; }`);
+    }
+    // Inventory
+    if (typography.inventory?.fontSizeMobile) {
+      rules.push(`.pp-inventory { font-size: ${typography.inventory.fontSizeMobile}${typography.inventory.fontSizeMobileUnit || 'px'} !important; }`);
+    }
+    // Description
+    if (typography.description?.fontSizeMobile) {
+      rules.push(`.pp-description { font-size: ${typography.description.fontSizeMobile}${typography.description.fontSizeMobileUnit || 'px'} !important; }`);
+    }
+    
+    if (rules.length === 0) return '';
+    return `@media (max-width: 768px) { ${rules.join(' ')} }`;
   };
 
   // Get gallery aspect ratio class
@@ -390,8 +423,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   };
 
   // Page content - conditionally wrapped for preview mode
+  const responsiveCSS = generateResponsiveCSS();
+  
   const pageContent = (
     <div className="min-h-screen bg-white">
+      {/* Responsive typography CSS for mobile (Server-side, zero JS) */}
+      {responsiveCSS && <style dangerouslySetInnerHTML={{ __html: responsiveCSS }} />}
+      
       {/* Scroll to top on page load */}
       <ScrollToTop />
       
@@ -435,10 +473,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   data-section-name="מידע מוצר"
                 >
                   {/* Badges - מעל שם המוצר - רק אם יש תוכן */}
-                  {((compareDiscount && compareDiscount > 0) || discountLabels.length > 0 || product.isFeatured) && (
+                  {((compareDiscount && compareDiscount > 0 && pageSettings.price?.showDiscount && 
+                    (pageSettings.price?.discountStyle === 'badge' || pageSettings.price?.discountStyle === 'both')) || 
+                    discountLabels.length > 0 || product.isFeatured) && (
                   <div className="flex flex-wrap gap-3 mb-6">
                     {/* Compare Price Discount Badge (BLACK) - הנחת מחיר השוואה בלבד */}
-                    {compareDiscount && compareDiscount > 0 && (
+                    {compareDiscount && compareDiscount > 0 && pageSettings.price?.showDiscount && 
+                     (pageSettings.price?.discountStyle === 'badge' || pageSettings.price?.discountStyle === 'both') && (
                       <span className="text-[10px] tracking-[0.15em] uppercase bg-black text-white px-3 py-1.5">
                         -{compareDiscount}%
                       </span>
@@ -467,7 +508,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                     </LiveTitleWrapper>
                   ) : (
                     <h1 
-                      className="font-display tracking-[0.05em] mb-4"
+                      className="pp-title font-display tracking-[0.05em] mb-4"
                       style={getTypographyStyle(pageSettings.typography?.title)}
                     >
                       {product.name}
@@ -518,7 +559,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         <div className="flex flex-wrap items-center gap-4 mb-8">
                           {/* Final Price */}
                           <span 
-                            className="font-display"
+                            className="pp-price font-display"
                             style={getTypographyStyle(pageSettings.typography?.price)}
                           >
                             {format(finalPrice)}
@@ -527,7 +568,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                           {/* Original Price (crossed out) */}
                           {pageSettings.price?.showComparePrice && hasDiscount && (
                             <span 
-                              className="line-through"
+                              className="pp-compare-price line-through"
                               style={getTypographyStyle(pageSettings.typography?.comparePrice)}
                             >
                               {format(originalPrice)}
@@ -598,7 +639,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   {/* Description - inside info column */}
                   {isSectionVisible('description') && product.description && (
                     <div className="mb-8">
-                      {pageSettings.description?.showAsAccordion ? (
+                      {isPreviewMode ? (
+                        <LiveDescriptionSection
+                          description={decodeHtmlEntities(product.description)}
+                          initialShowAsAccordion={pageSettings.description?.showAsAccordion ?? false}
+                          initialTypography={pageSettings.typography?.description}
+                        />
+                      ) : pageSettings.description?.showAsAccordion ? (
                         <details className="group border-b border-gray-200">
                           <summary className="flex items-center justify-between py-4 cursor-pointer list-none">
                             <span className="text-[11px] tracking-[0.2em] uppercase text-black">תיאור</span>
@@ -612,7 +659,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                             </svg>
                           </summary>
                           <div className="pb-4">
-                            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                            <p 
+                              className="pp-description leading-relaxed whitespace-pre-line"
+                              style={getTypographyStyle(pageSettings.typography?.description)}
+                            >
                               {decodeHtmlEntities(product.description)}
                             </p>
                           </div>
@@ -620,7 +670,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       ) : (
                         <>
                           <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
-                          <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                          <p 
+                            className="pp-description leading-relaxed whitespace-pre-line"
+                            style={getTypographyStyle(pageSettings.typography?.description)}
+                          >
                             {decodeHtmlEntities(product.description)}
                           </p>
                         </>

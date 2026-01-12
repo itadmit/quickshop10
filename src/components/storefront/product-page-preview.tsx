@@ -12,6 +12,20 @@ import { createContext, useContext, useState, useEffect, type ReactNode, Childre
 import type { ProductPageSettings, ProductFeature, TypographySettings } from '@/lib/product-page-settings';
 import { defaultProductPageSettings, featureIcons, defaultTypography } from '@/lib/product-page-settings';
 
+// Hook to detect mobile viewport
+function useIsMobile(breakpoint: number = 768) {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+  
+  return isMobile;
+}
+
 // Helper to convert TypographySettings to CSS styles
 function getTypographyStyle(settings: TypographySettings | undefined, isMobile: boolean = false): React.CSSProperties {
   if (!settings) return {};
@@ -557,12 +571,13 @@ interface LiveTitleWrapperProps {
 
 export function LiveTitleWrapper({ children, initialTypography }: LiveTitleWrapperProps) {
   const { settings, isPreview } = useProductPagePreview();
+  const isMobile = useIsMobile();
   
   const typography = isPreview 
     ? settings.typography?.title || defaultTypography.title
     : initialTypography || defaultTypography.title;
   
-  const style = getTypographyStyle(typography);
+  const style = getTypographyStyle(typography, isMobile);
   
   return (
     <h1 
@@ -590,6 +605,7 @@ interface LivePriceWrapperProps {
 
 export function LivePriceWrapper({ price, comparePrice, discount, initialTypography, initialPriceSettings }: LivePriceWrapperProps) {
   const { settings, isPreview } = useProductPagePreview();
+  const isMobile = useIsMobile();
   
   const priceTypography = isPreview 
     ? settings.typography?.price || defaultTypography.price
@@ -605,8 +621,8 @@ export function LivePriceWrapper({ price, comparePrice, discount, initialTypogra
   
   const hasDiscount = comparePrice && discount;
   
-  const priceStyle = getTypographyStyle(priceTypography);
-  const comparePriceStyle = getTypographyStyle(comparePriceTypography);
+  const priceStyle = getTypographyStyle(priceTypography, isMobile);
+  const comparePriceStyle = getTypographyStyle(comparePriceTypography, isMobile);
   
   return (
     <div className="flex items-center gap-4 mb-8">
@@ -640,6 +656,7 @@ export function LiveInventoryDisplay({
   initialTypography
 }: LiveInventoryDisplayProps) {
   const { settings, isPreview } = useProductPagePreview();
+  const isMobile = useIsMobile();
   
   const displayStyle = isPreview ? settings.inventory?.displayStyle : initialSettings.displayStyle;
   const lowStockThreshold = isPreview ? settings.inventory?.lowStockThreshold : initialSettings.lowStockThreshold;
@@ -648,7 +665,7 @@ export function LiveInventoryDisplay({
     ? settings.typography?.inventory || defaultTypography.inventory
     : initialTypography || defaultTypography.inventory;
   
-  const baseStyle = getTypographyStyle(typography);
+  const baseStyle = getTypographyStyle(typography, isMobile);
   
   // Don't show anything if hidden
   if (displayStyle === 'hidden') return null;
@@ -701,6 +718,66 @@ export function LiveInventoryDisplay({
     <p className="text-center mb-8" style={{ ...baseStyle, color: '#16A34A' }}>
       במלאי
     </p>
+  );
+}
+
+/**
+ * LiveDescriptionSection - Description with live accordion toggle
+ */
+interface LiveDescriptionSectionProps {
+  description: string;
+  initialShowAsAccordion: boolean;
+  initialTypography?: TypographySettings;
+}
+
+export function LiveDescriptionSection({ 
+  description, 
+  initialShowAsAccordion,
+  initialTypography
+}: LiveDescriptionSectionProps) {
+  const { settings, isPreview } = useProductPagePreview();
+  const isMobile = useIsMobile();
+  
+  const showAsAccordion = isPreview 
+    ? settings.description?.showAsAccordion ?? false
+    : initialShowAsAccordion;
+    
+  const typography = isPreview 
+    ? settings.typography?.description || defaultTypography.description
+    : initialTypography || defaultTypography.description;
+  
+  const style = getTypographyStyle(typography, isMobile);
+  
+  if (showAsAccordion) {
+    return (
+      <details className="group border-b border-gray-200">
+        <summary className="flex items-center justify-between py-4 cursor-pointer list-none">
+          <span className="text-[11px] tracking-[0.2em] uppercase text-black">תיאור</span>
+          <svg 
+            className="w-4 h-4 transition-transform group-open:rotate-180" 
+            fill="none" 
+            viewBox="0 0 24 24" 
+            stroke="currentColor"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </summary>
+        <div className="pb-4">
+          <p className="leading-relaxed whitespace-pre-line" style={style}>
+            {description}
+          </p>
+        </div>
+      </details>
+    );
+  }
+  
+  return (
+    <>
+      <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
+      <p className="leading-relaxed whitespace-pre-line" style={style}>
+        {description}
+      </p>
+    </>
   );
 }
 
