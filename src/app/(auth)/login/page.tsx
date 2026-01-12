@@ -4,17 +4,17 @@ import { Suspense, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
-import { useRecaptcha } from '@/components/recaptcha-provider';
+import { RecaptchaCheckbox } from '@/components/recaptcha-checkbox';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { executeRecaptcha } = useRecaptcha();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const error = searchParams.get('error');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState('');
   const [errorMsg, setErrorMsg] = useState(error === 'CredentialsSignin' ? 'אימייל או סיסמה שגויים' : '');
   const [isPending, startTransition] = useTransition();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -28,11 +28,13 @@ function LoginForm() {
       return;
     }
 
+    if (!recaptchaToken) {
+      setErrorMsg('אנא אמת שאתה לא רובוט');
+      return;
+    }
+
     startTransition(async () => {
       try {
-        // Get reCAPTCHA token
-        const recaptchaToken = await executeRecaptcha('login');
-        
         const result = await signIn('credentials', {
           email,
           password,
@@ -50,6 +52,20 @@ function LoginForm() {
         setErrorMsg('אירעה שגיאה באימות. אנא נסה שוב.');
       }
     });
+  };
+
+  const handleRecaptchaVerify = (token: string) => {
+    setRecaptchaToken(token);
+    setErrorMsg(''); // Clear any previous error
+  };
+
+  const handleRecaptchaExpire = () => {
+    setRecaptchaToken('');
+  };
+
+  const handleRecaptchaError = () => {
+    setRecaptchaToken('');
+    setErrorMsg('שגיאה באימות reCAPTCHA. אנא נסה שוב.');
   };
 
   const handleGoogleLogin = () => {
@@ -156,6 +172,12 @@ function LoginForm() {
               required
             />
           </div>
+
+          <RecaptchaCheckbox
+            onVerify={handleRecaptchaVerify}
+            onExpire={handleRecaptchaExpire}
+            onError={handleRecaptchaError}
+          />
 
           <button
             type="submit"

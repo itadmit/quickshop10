@@ -7,7 +7,7 @@ import { ArrowRight, Store, User, Calendar, Clock, CreditCard, ShoppingCart, Dol
 import { StoreEditForm } from './store-edit-form';
 import { OwnerPasswordForm } from './owner-password-form';
 import { CustomPricingForm } from './custom-pricing-form';
-import { getPlatformSetting } from '@/lib/billing/platform-settings';
+import { getSetting } from '@/lib/billing/platform-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,8 +48,8 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
   });
 
   // Get default pricing from platform settings
-  const defaultBrandingPrice = await getPlatformSetting('subscription_branding_price', 299);
-  const defaultQuickshopPrice = await getPlatformSetting('subscription_quickshop_price', 399);
+  const defaultBrandingPrice = await getSetting('subscription_branding_price');
+  const defaultQuickshopPrice = await getSetting('subscription_quickshop_price');
   const defaultPrice = subscription?.plan === 'branding' ? defaultBrandingPrice : defaultQuickshopPrice;
 
   // Get order stats

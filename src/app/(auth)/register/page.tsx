@@ -4,16 +4,16 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
-import { useRecaptcha } from '@/components/recaptcha-provider';
+import { RecaptchaCheckbox } from '@/components/recaptcha-checkbox';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { executeRecaptcha, isReady } = useRecaptcha();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [storeName, setStoreName] = useState('');
+  const [recaptchaToken, setRecaptchaToken] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,6 +23,11 @@ export default function RegisterPage() {
 
     if (!name || !email || !password || !storeName) {
       setErrorMsg('אנא מלא את כל השדות');
+      return;
+    }
+
+    if (!recaptchaToken) {
+      setErrorMsg('אנא אמת שאתה לא רובוט');
       return;
     }
 
@@ -48,9 +53,6 @@ export default function RegisterPage() {
     setIsSubmitting(true);
     
     try {
-      // Get reCAPTCHA token
-      const recaptchaToken = await executeRecaptcha('register');
-      
       // Store registration data securely in sessionStorage (not in URL!)
       sessionStorage.setItem('registerData', JSON.stringify({
         name,
@@ -66,6 +68,21 @@ export default function RegisterPage() {
       setErrorMsg('אירעה שגיאה באימות. אנא נסה שוב.');
       setIsSubmitting(false);
     }
+  };
+
+  const handleRecaptchaVerify = (token: string) => {
+    setRecaptchaToken(token);
+    setErrorMsg(''); // Clear any previous error
+  };
+
+  const handleRecaptchaExpire = () => {
+    setRecaptchaToken('');
+    setErrorMsg('אימות reCAPTCHA פג תוקף. אנא אמת שוב.');
+  };
+
+  const handleRecaptchaError = () => {
+    setRecaptchaToken('');
+    setErrorMsg('שגיאה באימות reCAPTCHA. אנא נסה שוב.');
   };
 
   const handleGoogleLogin = () => {
@@ -206,6 +223,12 @@ export default function RegisterPage() {
                 רק אותיות אנגליות, מספרים, רווחים, מקפים (-) ותווים תחתונים (_)
               </p>
             </div>
+
+            <RecaptchaCheckbox
+              onVerify={handleRecaptchaVerify}
+              onExpire={handleRecaptchaExpire}
+              onError={handleRecaptchaError}
+            />
 
             <button
               type="submit"
