@@ -338,7 +338,10 @@ function calculateBuyXGetY(
   const discountedItems = getQty * timesApplied;
   
   // מחשבים את ההנחה לפי הפריטים הזולים ביותר
-  const sortedItems = [...matchingItems].sort((a, b) => a.price - b.price);
+  // מסננים פריטים עם מחיר 0 (מתנות מקופונים אחרים) כי אין מה לתת עליהם הנחה
+  const sortedItems = [...matchingItems]
+    .filter(item => item.price > 0)
+    .sort((a, b) => a.price - b.price);
   
   let itemsToDiscount = discountedItems;
   let amount = 0;
