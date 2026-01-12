@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const body = await request.json();
 
     // Validate provider type
-    const validProviders: PaymentProviderType[] = ['payplus', 'placard', 'quick_payments'];
+    const validProviders: PaymentProviderType[] = ['payplus', 'pelecard', 'quick_payments'];
     if (!validProviders.includes(provider)) {
       return NextResponse.json({ error: 'Invalid provider', success: false }, { status: 400 });
     }

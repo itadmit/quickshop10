@@ -4,7 +4,7 @@
  */
 
 // Provider identifiers
-export type PaymentProviderType = 'payplus' | 'placard' | 'quick_payments';
+export type PaymentProviderType = 'payplus' | 'pelecard' | 'quick_payments';
 
 // Transaction types
 export type TransactionType = 'charge' | 'refund' | 'void' | 'authorization';
@@ -191,6 +191,12 @@ export interface PaymentProviderCredentials {
   terminalUid?: string;
   cashierUid?: string;
   paymentPageUid?: string;
+  
+  // Pelecard specific
+  terminal?: string;
+  user?: string;
+  password?: string;
+  shopNumber?: string;
   
   // Generic fields for other providers
   merchantId?: string;

@@ -121,7 +121,7 @@ export function PaymentProvidersManager({
                   <div className={`
                     w-12 h-12 rounded-lg flex items-center justify-center text-lg font-bold
                     ${providerInfo.type === 'payplus' ? 'bg-purple-100 text-purple-600' : ''}
-                    ${providerInfo.type === 'placard' ? 'bg-orange-100 text-orange-600' : ''}
+                    ${providerInfo.type === 'pelecard' ? 'bg-orange-100 text-orange-600' : ''}
                     ${providerInfo.type === 'quick_payments' ? 'bg-blue-100 text-blue-600' : ''}
                   `}>
                     {providerInfo.name.charAt(0)}

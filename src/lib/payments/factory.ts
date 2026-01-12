@@ -15,6 +15,7 @@ import type {
   IPaymentProvider,
 } from './types';
 import { PayPlusProvider } from './providers/payplus';
+import { PelecardProvider } from './providers/pelecard';
 
 // Re-export from provider-info for convenience
 export { PROVIDER_INFO, getAvailableProviders, getProviderInfo } from './provider-info';
@@ -22,7 +23,7 @@ export { PROVIDER_INFO, getAvailableProviders, getProviderInfo } from './provide
 // Provider registry - lazy loaded to avoid crypto issues in client
 const providerRegistry: Record<PaymentProviderType, new () => IPaymentProvider> = {
   payplus: PayPlusProvider,
-  placard: PayPlusProvider, // TODO: Implement PlacardProvider
+  pelecard: PelecardProvider,
   quick_payments: PayPlusProvider, // TODO: Implement QuickPaymentsProvider
 };
 

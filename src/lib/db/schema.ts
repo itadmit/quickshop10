@@ -2009,7 +2009,7 @@ export const returnRequestsRelations = relations(returnRequests, ({ one }) => ({
 
 // Payment provider enum
 export const paymentProviderEnum = pgEnum('payment_provider', [
-  'payplus', 'placard', 'quick_payments'
+  'payplus', 'pelecard', 'quick_payments'
 ]);
 
 // Payment transaction type enum

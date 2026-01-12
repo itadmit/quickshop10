@@ -27,23 +27,25 @@ export const PROVIDER_INFO: Record<PaymentProviderType, PaymentProviderInfo> = {
       { key: 'paymentPageUid', label: 'Payment Page UID', labelHe: 'מזהה עמוד תשלום', type: 'text', required: true },
     ],
   },
-  placard: {
-    type: 'placard',
-    name: 'Placard',
+  pelecard: {
+    type: 'pelecard',
+    name: 'Pelecard',
     nameHe: 'פלאקארד',
-    description: 'Israeli payment gateway',
-    descriptionHe: 'שער תשלומים ישראלי',
+    description: 'Israeli payment gateway with iframe/redirect integration',
+    descriptionHe: 'שער תשלומים ישראלי עם תמיכה בדף תשלום ייעודי',
     supportedFeatures: {
       creditCard: true,
       bit: true,
       applePay: false,
-      googlePay: false,
+      googlePay: true, // Google Pay on mobile with NFC
       paypal: false,
       recurring: true,
     },
     requiredCredentials: [
-      { key: 'merchantId', label: 'Merchant ID', labelHe: 'מזהה סוחר', type: 'text', required: true },
-      { key: 'apiKey', label: 'API Key', labelHe: 'מפתח API', type: 'password', required: true },
+      { key: 'terminal', label: 'Terminal Number', labelHe: 'מספר טרמינל', type: 'text', required: true },
+      { key: 'user', label: 'Username', labelHe: 'שם משתמש', type: 'text', required: true },
+      { key: 'password', label: 'Password', labelHe: 'סיסמה', type: 'password', required: true },
+      { key: 'shopNumber', label: 'Shop Number', labelHe: 'מספר חנות (ברירת מחדל: 001)', type: 'text', required: false },
     ],
   },
   quick_payments: {
