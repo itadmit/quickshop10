@@ -7,6 +7,28 @@ import type { ShippingProviderInfo, ShippingProviderType } from './types';
 
 // Provider info for UI
 export const SHIPPING_PROVIDER_INFO: Record<ShippingProviderType, ShippingProviderInfo> = {
+  focus: {
+    type: 'focus',
+    name: 'Focus Delivery',
+    nameHe: 'פוקוס משלוחים',
+    description: 'Israeli delivery service using Run ERP system',
+    descriptionHe: 'שירות משלוחים ישראלי עם מערכת Run ERP',
+    website: 'https://focusdelivery.co.il',
+    supportedFeatures: {
+      tracking: true,
+      labels: true,
+      pickupPoints: true,
+      cod: true,
+      returns: true,
+      scheduling: true,
+    },
+    requiredCredentials: [
+      { key: 'customerNumber', label: 'Customer Number', labelHe: 'מספר לקוח', type: 'text', required: true },
+      { key: 'token', label: 'API Token', labelHe: 'טוקן API', type: 'password', required: false },
+      { key: 'shipmentType', label: 'Shipment Type Code', labelHe: 'קוד סוג משלוח', type: 'text', required: true },
+      { key: 'cargoType', label: 'Cargo Type Code', labelHe: 'קוד סוג מטען', type: 'text', required: true },
+    ],
+  },
   cheetah: {
     type: 'cheetah',
     name: 'Cheetah',

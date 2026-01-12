@@ -13,16 +13,18 @@ import type {
   ShippingProviderConfig, 
   IShippingProvider,
 } from './types';
-// Import providers here as we add them
+// Import providers
+import { FocusProvider } from './providers/focus';
+import { ManualShippingProvider } from './providers/manual';
 // import { CheetahProvider } from './providers/cheetah';
 // import { HfdProvider } from './providers/hfd';
-import { ManualShippingProvider } from './providers/manual';
 
 // Re-export from provider-info for convenience
 export { SHIPPING_PROVIDER_INFO, getAvailableShippingProviders, getShippingProviderInfo } from './provider-info';
 
 // Provider registry
 const providerRegistry: Partial<Record<ShippingProviderType, new () => IShippingProvider>> = {
+  focus: FocusProvider,
   manual: ManualShippingProvider,
   // cheetah: CheetahProvider,
   // hfd: HfdProvider,

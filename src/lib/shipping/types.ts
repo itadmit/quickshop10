@@ -7,7 +7,7 @@
  */
 
 // Provider identifiers
-export type ShippingProviderType = 'cheetah' | 'hfd' | 'boxit' | 'baldar' | 'manual';
+export type ShippingProviderType = 'focus' | 'cheetah' | 'hfd' | 'boxit' | 'baldar' | 'manual';
 
 // Shipment status
 export type ShipmentStatus = 
