@@ -121,8 +121,18 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Generate order reference
+    // Generate order reference for internal tracking
     const orderReference = `QS-${nanoid(10)}`;
+    
+    // Generate numeric order number BEFORE creating successUrl
+    // So the URL contains the actual order number
+    const currentCounter = store.orderCounter ?? 1000;
+    const orderNumber = String(currentCounter);
+    
+    // Increment the store's order counter immediately
+    await db.update(stores)
+      .set({ orderCounter: currentCounter + 1 })
+      .where(eq(stores.id, store.id));
     
     // Build URLs - use custom domain if store has one, otherwise use platform URL
     const platformUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
@@ -141,7 +151,8 @@ export async function POST(request: NextRequest) {
       storePath = `/shops/${body.storeSlug}`;
     }
     
-    const successUrl = `${customerFacingUrl}${storePath}/checkout/thank-you?ref=${orderReference}`;
+    // Use orderNumber (numeric) in URL for reliable lookup
+    const successUrl = `${customerFacingUrl}${storePath}/checkout/thank-you?ref=${orderNumber}`;
     const failureUrl = `${customerFacingUrl}${storePath}/checkout?error=payment_failed`;
     const cancelUrl = `${customerFacingUrl}${storePath}/checkout`;
     
@@ -372,16 +383,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate numeric order number
-    const currentCounter = store.orderCounter ?? 1000;
-    const orderNumber = String(currentCounter);
-    
-    // Increment the store's order counter
-    await db.update(stores)
-      .set({ orderCounter: currentCounter + 1 })
-      .where(eq(stores.id, store.id));
-
-    // Calculate totals
+    // Calculate totals (orderNumber already generated above)
     const subtotal = cartItemsForOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shippingCost = body.shipping?.cost || 0;
     const discountAmount = body.discountAmount || 0;
