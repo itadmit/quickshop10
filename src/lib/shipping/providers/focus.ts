@@ -190,13 +190,13 @@ export class FocusProvider extends BaseShippingProvider {
     // Build the 42 parameters for WS Simple
     // P1-P42 according to Run ERP documentation
     const params: (string | number | null)[] = [
-      credentials.customerNumber,        // P1: Customer number
+      credentials.customerNumber || '',  // P1: Customer number
       'מסירה',                           // P2: Delivery type (מסירה for delivery)
-      credentials.shipmentType || 1,     // P3: Shipment type code
+      credentials.shipmentType || '1',   // P3: Shipment type code
       '',                                 // P4: Shipment stage (leave blank)
       sender.name,                        // P5: Ordered by name
       '',                                 // P6: Leave blank
-      credentials.cargoType || 1,        // P7: Shipped cargo type
+      credentials.cargoType || '1',      // P7: Shipped cargo type
       '',                                 // P8: Returned cargo type (for returns)
       '',                                 // P9: Number of returned packages
       '',                                 // P10: Leave blank
