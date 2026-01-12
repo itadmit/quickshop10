@@ -18,6 +18,7 @@ interface MenuItem {
   title: string;
   linkType: 'url' | 'page' | 'category' | 'product';
   resolvedUrl?: string;
+  imageUrl?: string | null;
   children?: MenuItem[];
 }
 
@@ -28,6 +29,9 @@ interface MobileMenuProps {
   basePath: string;
   storeName: string;
   logoUrl?: string | null;
+  showMobileImages?: boolean; // Show images in mobile menu
+  mobileImageStyle?: 'fullRow' | 'square'; // Image display style
+  bgColor?: string; // Sidebar background color
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
@@ -52,7 +56,10 @@ export function MobileMenu({
   navigationMode = 'menu', 
   basePath, 
   storeName, 
-  logoUrl 
+  logoUrl,
+  showMobileImages = false,
+  mobileImageStyle = 'square',
+  bgColor = '#f9fafb'
 }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
@@ -119,11 +126,11 @@ export function MobileMenu({
       
       {/* Sidebar - Opens from right side (RTL) - Full height with smooth animation */}
       <div 
-        className={`fixed top-0 right-0 bottom-0 w-full max-w-[320px] bg-white shadow-2xl z-[9999] flex flex-col transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
+        className={`fixed top-0 right-0 bottom-0 w-full max-w-[320px] shadow-2xl z-[9999] flex flex-col transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         dir="rtl"
-        style={{ height: '100dvh' }}
+        style={{ height: '100dvh', backgroundColor: bgColor }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-white shrink-0">
@@ -263,24 +270,68 @@ export function MobileMenu({
                     )}
                   </div>
                   
-                  {/* Child items */}
+                  {/* Child items - with optional images */}
                   {hasChildren && (
                     <ul 
                       className={`bg-gray-50 overflow-hidden transition-all duration-200 ${
-                        isExpanded ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+                        isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
                       }`}
                     >
                       {item.children!.map((child) => {
                         const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';
+                        const hasImage = showMobileImages && child.imageUrl;
+                        
                         return (
                           <li key={child.id}>
-                            <Link
-                              href={childHref}
-                              onClick={closeMenu}
-                              className="block pr-10 pl-6 py-3 text-sm text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
-                            >
-                              {child.title}
-                            </Link>
+                            {hasImage && mobileImageStyle === 'fullRow' ? (
+                              // Full row image style - full width with overlay text
+                              <Link
+                                href={childHref}
+                                onClick={closeMenu}
+                                className="block relative h-20 overflow-hidden mx-3 my-2 rounded-lg"
+                              >
+                                <Image
+                                  src={child.imageUrl!}
+                                  alt={child.title}
+                                  fill
+                                  className="object-cover"
+                                  sizes="300px"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-l from-black/60 to-transparent" />
+                                <span className="absolute bottom-3 right-4 text-white text-sm font-medium drop-shadow-lg">
+                                  {child.title}
+                                </span>
+                              </Link>
+                            ) : hasImage && mobileImageStyle === 'square' ? (
+                              // Square image style - small image with text next to it
+                              <Link
+                                href={childHref}
+                                onClick={closeMenu}
+                                className="flex items-center gap-4 pr-6 pl-6 py-3 hover:bg-gray-100 transition-colors"
+                              >
+                                <div className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                                  <Image
+                                    src={child.imageUrl!}
+                                    alt={child.title}
+                                    fill
+                                    className="object-cover"
+                                    sizes="56px"
+                                  />
+                                </div>
+                                <span className="text-sm text-gray-700 font-medium">
+                                  {child.title}
+                                </span>
+                              </Link>
+                            ) : (
+                              // Regular text style
+                              <Link
+                                href={childHref}
+                                onClick={closeMenu}
+                                className="block pr-10 pl-6 py-3 text-sm text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
+                              >
+                                {child.title}
+                              </Link>
+                            )}
                           </li>
                         );
                       })}

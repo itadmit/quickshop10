@@ -586,6 +586,7 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
       customerName: orders.customerName,
       customerEmail: orders.customerEmail,
       shipmentError: orders.shipmentError,
+      utmSource: orders.utmSource, // For traffic source filtering
       customer: {
         id: customers.id,
         firstName: customers.firstName,
@@ -611,6 +612,7 @@ export const getOrderFilterOptions = cache(async (storeId: string) => {
       shippingMethod: orders.shippingMethod,
       shippingAddress: orders.shippingAddress,
       paymentMethod: orders.paymentMethod,
+      utmSource: orders.utmSource,
     })
     .from(orders)
     .where(eq(orders.storeId, storeId));
@@ -630,7 +632,11 @@ export const getOrderFilterOptions = cache(async (storeId: string) => {
       .filter((c): c is string => !!c)
   )].sort();
   
-  return { shippingMethods, paymentMethods, cities };
+  const trafficSources = [...new Set(
+    allOrders.map(o => o.utmSource).filter((s): s is string => !!s)
+  )].sort();
+  
+  return { shippingMethods, paymentMethods, cities, trafficSources };
 });
 
 // Get order items count and category data for filtering

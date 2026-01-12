@@ -71,7 +71,7 @@ async function getRealtimeData(storeId: string) {
       .from(orders)
       .where(eq(orders.storeId, storeId))
       .orderBy(desc(orders.createdAt))
-      .limit(10),
+      .limit(5),
   ]);
 
   return {

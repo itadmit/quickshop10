@@ -464,6 +464,83 @@ export const getLandingPages = cache(async (
   }));
 });
 
+// UTM Campaign Stats - for traffic report
+export const getUtmStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  // Get UTM Medium stats
+  const mediumResult = await db
+    .select({
+      utmMedium: sql<string>`COALESCE(${analyticsEvents.utmMedium}, 'direct')`,
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to)
+    ))
+    .groupBy(sql`COALESCE(${analyticsEvents.utmMedium}, 'direct')`)
+    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .limit(10);
+
+  // Get UTM Campaign stats
+  const campaignResult = await db
+    .select({
+      utmCampaign: analyticsEvents.utmCampaign,
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to),
+      sql`${analyticsEvents.utmCampaign} IS NOT NULL`
+    ))
+    .groupBy(analyticsEvents.utmCampaign)
+    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .limit(10);
+
+  // Get UTM Content stats
+  const contentResult = await db
+    .select({
+      utmContent: analyticsEvents.utmContent,
+      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to),
+      sql`${analyticsEvents.utmContent} IS NOT NULL`
+    ))
+    .groupBy(analyticsEvents.utmContent)
+    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .limit(10);
+
+  return {
+    byMedium: mediumResult.map(r => ({
+      medium: String(r.utmMedium),
+      sessions: Number(r.sessions),
+    })),
+    byCampaign: campaignResult.map(r => ({
+      campaign: r.utmCampaign || 'unknown',
+      sessions: Number(r.sessions),
+    })),
+    byContent: contentResult.map(r => ({
+      content: r.utmContent || 'unknown',
+      sessions: Number(r.sessions),
+    })),
+  };
+});
+
 // ============ CUSTOMER REPORTS ============
 
 export const getCustomerSegments = cache(async (storeId: string) => {

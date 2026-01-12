@@ -280,7 +280,7 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
             </button>
             
             <p className="text-center text-sm text-gray-500 mt-2">
-              + 0.5% עמלה על כל עסקה (כולל מע&quot;מ)
+              + 0.5% עמלה על כל עסקה (לא כולל מע&quot;מ)
             </p>
           </div>
         </div>

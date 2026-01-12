@@ -100,6 +100,9 @@ export const analyticsEventTypeEnum = pgEnum('analytics_event_type', [
 
 export const deviceTypeEnum = pgEnum('device_type', ['desktop', 'mobile', 'tablet']);
 
+// Product media type (image or video)
+export const mediaTypeEnum = pgEnum('media_type', ['image', 'video']);
+
 export const giftCardStatusEnum = pgEnum('gift_card_status', ['active', 'used', 'expired', 'cancelled']);
 
 export const refundStatusEnum = pgEnum('refund_status', ['pending', 'approved', 'rejected', 'completed']);
@@ -121,7 +124,7 @@ export const pluginSubscriptionStatusEnum = pgEnum('plugin_subscription_status',
 ]);
 
 // Popup system enums
-export const popupTypeEnum = pgEnum('popup_type', ['image', 'text', 'form']);
+export const popupTypeEnum = pgEnum('popup_type', ['image', 'text', 'form', 'combined']);
 export const popupTriggerEnum = pgEnum('popup_trigger', ['on_load', 'exit_intent', 'scroll', 'time_delay']);
 export const popupPositionEnum = pgEnum('popup_position', ['center', 'bottom_right', 'bottom_left', 'full_screen']);
 export const popupFrequencyEnum = pgEnum('popup_frequency', ['once', 'once_per_session', 'always', 'every_x_days']);
@@ -476,6 +479,10 @@ export const productImages = pgTable('product_images', {
   alt: varchar('alt', { length: 255 }),
   sortOrder: integer('sort_order').default(0),
   isPrimary: boolean('is_primary').default(false).notNull(),
+  // Video support
+  mediaType: mediaTypeEnum('media_type').default('image').notNull(),
+  thumbnailUrl: varchar('thumbnail_url', { length: 500 }), // For video poster (first frame)
+  duration: integer('duration'), // Video duration in seconds
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_product_images_product').on(table.productId),
@@ -818,6 +825,9 @@ export const orders = pgTable('orders', {
   
   // Influencer tracking
   influencerId: uuid('influencer_id').references(() => influencers.id, { onDelete: 'set null' }),
+  
+  // Traffic source tracking (UTM)
+  utmSource: varchar('utm_source', { length: 100 }), // google, facebook, instagram, etc.
   
   // Notes
   note: text('note'),

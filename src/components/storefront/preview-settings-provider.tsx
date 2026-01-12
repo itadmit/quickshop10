@@ -21,6 +21,11 @@ interface ThemeSettings {
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
   headerNavigationMode?: 'menu' | 'categories';
+  // Mobile menu settings
+  mobileMenuShowImages?: boolean;
+  mobileMenuImageStyle?: 'fullRow' | 'square';
+  mobileMenuBgColor?: string;
+  megaMenuBgColor?: string;
   // Logo & Favicon
   logoUrl?: string;
   faviconUrl?: string;

@@ -1,14 +1,17 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { db } from '@/lib/db';
-import { influencers, discounts, automaticDiscounts } from '@/lib/db/schema';
-import { eq, desc, sql, and } from 'drizzle-orm';
+import { influencers, discounts, automaticDiscounts, influencerSales } from '@/lib/db/schema';
+import { eq, desc, sql, and, gte, lte, inArray } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { InfluencerButtons } from './influencer-buttons';
 import { CopyLoginLinkButton } from './copy-login-link-button';
+import { DateRangePicker } from '@/components/admin/date-range-picker';
+import { parseDateRange } from '@/components/admin/report-header';
 
 interface InfluencersPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ period?: string; from?: string; to?: string }>;
 }
 
 function formatCurrency(amount: string | number | null): string {
@@ -16,13 +19,17 @@ function formatCurrency(amount: string | number | null): string {
   return new Intl.NumberFormat('he-IL', { style: 'currency', currency: 'ILS' }).format(num);
 }
 
-export default async function InfluencersPage({ params }: InfluencersPageProps) {
+export default async function InfluencersPage({ params, searchParams }: InfluencersPageProps) {
   const { slug } = await params;
+  const { period, from, to } = await searchParams;
   const store = await getStoreBySlug(slug);
   
   if (!store) {
     notFound();
   }
+
+  // Parse date range from URL params (defaults to 30 days)
+  const { startDate, endDate, periodLabel } = parseDateRange({ period, from, to });
 
   // Fetch influencers with their linked discounts
   const storeInfluencers = await db
@@ -53,6 +60,44 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
     .where(eq(influencers.storeId, store.id))
     .orderBy(desc(influencers.createdAt));
 
+  // Fetch sales data for the selected period for each influencer
+  const influencerIds = storeInfluencers.map(i => i.id);
+  
+  // Get period-specific sales data
+  const periodSalesData = influencerIds.length > 0 ? await db
+    .select({
+      influencerId: influencerSales.influencerId,
+      totalSales: sql<string>`COALESCE(SUM(${influencerSales.orderTotal}), 0)`,
+      totalCommission: sql<string>`COALESCE(SUM(${influencerSales.commissionAmount}), 0)`,
+      totalOrders: sql<number>`COUNT(*)::int`,
+    })
+    .from(influencerSales)
+    .where(and(
+      inArray(influencerSales.influencerId, influencerIds),
+      gte(influencerSales.createdAt, startDate),
+      lte(influencerSales.createdAt, endDate)
+    ))
+    .groupBy(influencerSales.influencerId) : [];
+
+  // Create a map for quick lookup
+  const periodSalesMap = new Map(periodSalesData.map(s => [s.influencerId, s]));
+
+  // Combine influencer data with period-specific sales
+  const influencersWithPeriodData = storeInfluencers.map(inf => {
+    const periodData = periodSalesMap.get(inf.id);
+    return {
+      ...inf,
+      periodSales: periodData?.totalSales || '0',
+      periodCommission: periodData?.totalCommission || '0',
+      periodOrders: periodData?.totalOrders || 0,
+    };
+  });
+
+  // Calculate period totals
+  const periodTotalSales = influencersWithPeriodData.reduce((sum, i) => sum + Number(i.periodSales || 0), 0);
+  const periodTotalCommission = influencersWithPeriodData.reduce((sum, i) => sum + Number(i.periodCommission || 0), 0);
+  const periodTotalOrders = influencersWithPeriodData.reduce((sum, i) => sum + (i.periodOrders || 0), 0);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -62,6 +107,7 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
           <p className="text-gray-500 text-sm mt-1">ניהול משפיענים ושותפים שיווקיים</p>
         </div>
         <div className="flex items-center gap-3">
+          <DateRangePicker />
           <CopyLoginLinkButton slug={slug} />
           <Link
             href={`/shops/${slug}/admin/influencers/new`}
@@ -75,49 +121,53 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Period Stats - filtered by date range */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <p className="text-sm text-gray-500 mb-1">סה"כ משפיענים</p>
           <p className="text-2xl font-bold text-gray-900">{storeInfluencers.length}</p>
+          <p className="text-xs text-gray-400 mt-1">{storeInfluencers.filter(i => i.isActive).length} פעילים</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">משפיענים פעילים</p>
-          <p className="text-2xl font-bold text-green-600">{storeInfluencers.filter(i => i.isActive).length}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">סה"כ מכירות</p>
+          <p className="text-sm text-gray-500 mb-1">מכירות בתקופה</p>
           <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(storeInfluencers.reduce((sum, i) => sum + Number(i.totalSales || 0), 0))}
+            {formatCurrency(periodTotalSales)}
           </p>
+          <p className="text-xs text-gray-400 mt-1">{periodLabel}</p>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">סה"כ עמלות</p>
+          <p className="text-sm text-gray-500 mb-1">הזמנות בתקופה</p>
+          <p className="text-2xl font-bold text-blue-600">{periodTotalOrders}</p>
+          <p className="text-xs text-gray-400 mt-1">{periodLabel}</p>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <p className="text-sm text-gray-500 mb-1">עמלות בתקופה</p>
           <p className="text-2xl font-bold text-purple-600">
-            {formatCurrency(storeInfluencers.reduce((sum, i) => sum + Number(i.totalCommission || 0), 0))}
+            {formatCurrency(periodTotalCommission)}
           </p>
+          <p className="text-xs text-gray-400 mt-1">{periodLabel}</p>
         </div>
       </div>
 
       {/* Influencers Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        {storeInfluencers.length > 0 ? (
+        {influencersWithPeriodData.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px]">
+            <table className="w-full min-w-[1000px]">
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase border-b border-gray-200">
                 <tr>
                   <th className="px-5 py-3 text-right font-medium">משפיען</th>
                   <th className="px-5 py-3 text-right font-medium">קופון</th>
                   <th className="px-5 py-3 text-right font-medium">עמלה</th>
-                  <th className="px-5 py-3 text-right font-medium">מכירות</th>
-                  <th className="px-5 py-3 text-right font-medium">הזמנות</th>
-                  <th className="px-5 py-3 text-right font-medium">הגדרות נראות</th>
+                  <th className="px-5 py-3 text-right font-medium">מכירות בתקופה</th>
+                  <th className="px-5 py-3 text-right font-medium">הזמנות בתקופה</th>
+                  <th className="px-5 py-3 text-right font-medium">סה"כ מכירות</th>
                   <th className="px-5 py-3 text-right font-medium">סטטוס</th>
                   <th className="px-5 py-3 text-right font-medium">פעולות</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {storeInfluencers.map((influencer) => (
+                {influencersWithPeriodData.map((influencer) => (
                   <tr key={influencer.id} className="hover:bg-gray-50">
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -156,27 +206,16 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
                         <span className="text-gray-400 text-sm">לא מוגדר</span>
                       )}
                     </td>
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-gray-900">{formatCurrency(influencer.periodSales)}</p>
+                      <p className="text-xs text-purple-600">{formatCurrency(influencer.periodCommission)} עמלה</p>
+                    </td>
                     <td className="px-5 py-4 font-medium">
-                      {formatCurrency(influencer.totalSales)}
+                      {influencer.periodOrders}
                     </td>
                     <td className="px-5 py-4">
-                      {influencer.totalOrders}
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {influencer.showCommission && (
-                          <span className="px-1.5 py-0.5 text-[10px] bg-green-100 text-green-700 rounded">עמלות</span>
-                        )}
-                        {influencer.showCustomerNames && (
-                          <span className="px-1.5 py-0.5 text-[10px] bg-blue-100 text-blue-700 rounded">שמות</span>
-                        )}
-                        {influencer.showOrderDetails && (
-                          <span className="px-1.5 py-0.5 text-[10px] bg-purple-100 text-purple-700 rounded">פרטים</span>
-                        )}
-                        {!influencer.showCommission && !influencer.showCustomerNames && !influencer.showOrderDetails && (
-                          <span className="text-gray-400 text-xs">הכל מוסתר</span>
-                        )}
-                      </div>
+                      <p className="text-sm text-gray-500">{formatCurrency(influencer.totalSales)}</p>
+                      <p className="text-xs text-gray-400">{influencer.totalOrders} הזמנות</p>
                     </td>
                     <td className="px-5 py-4">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -206,7 +245,7 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : storeInfluencers.length === 0 ? (
           <div className="p-12 text-center">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -223,10 +262,10 @@ export default async function InfluencersPage({ params }: InfluencersPageProps) 
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
-              משפיען חדש
-            </Link>
+            משפיען חדש
+          </Link>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Help Card */}

@@ -4,6 +4,7 @@ import { MobileMenu } from './mobile-menu';
 import { CartButton } from './cart-button';
 import { UserButton } from './user-button';
 import { SearchButton } from './search-button';
+import { MegaMenuDropdown } from './mega-menu-dropdown';
 
 interface Category {
   id: string;
@@ -52,6 +53,11 @@ interface ShopHeaderProps {
   showCart?: boolean;
   showAccount?: boolean;
   isSticky?: boolean;
+  // Mobile menu settings
+  mobileMenuShowImages?: boolean;
+  mobileMenuImageStyle?: 'fullRow' | 'square';
+  mobileMenuBgColor?: string;
+  megaMenuBgColor?: string;
 }
 
 // Server Component - no 'use client' needed
@@ -71,6 +77,10 @@ export function ShopHeader({
   showCart = true,
   showAccount = true,
   isSticky = true,
+  mobileMenuShowImages = false,
+  mobileMenuImageStyle = 'square',
+  mobileMenuBgColor = '#f9fafb',
+  megaMenuBgColor = '#f9fafb',
 }: ShopHeaderProps) {
   // Organize categories into parent/child structure (for categories mode)
   const parentCategories = categories.filter(c => !c.parentId);
@@ -165,69 +175,13 @@ export function ShopHeader({
             
             {/* Mega Menu - full width dropdown with columns and images */}
             {hasChildren && (hasMegaMenu || hasGrandchildren) && (
-              <div className="fixed left-0 right-0 top-[64px] sm:top-[80px] pt-0 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
-                <div className="bg-white border-t border-b border-gray-200 shadow-lg">
-                  <div className="max-w-[1800px] mx-auto px-6 lg:px-12 py-8">
-                    <div className="flex gap-12" dir="rtl">
-                      {/* Menu columns */}
-                      <div className="flex-1 flex flex-wrap gap-8">
-                        {item.children!.map((child) => {
-                          const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';
-                          const grandchildren = child.children || [];
-                          
-                          return (
-                            <div key={child.id} className="min-w-[160px] group/col">
-                              <Link
-                                href={childHref}
-                                className="block text-sm font-semibold text-gray-900 mb-3 hover:text-black transition-colors pb-2 border-b border-gray-100"
-                              >
-                                {child.title}
-                              </Link>
-                              {grandchildren.length > 0 && (
-                                <div className="space-y-2">
-                                  {grandchildren.map((grandchild) => {
-                                    const grandchildHref = grandchild.resolvedUrl?.startsWith('/') ? `${basePath}${grandchild.resolvedUrl}` : grandchild.resolvedUrl || '#';
-                                    return (
-                                      <Link
-                                        key={grandchild.id}
-                                        href={grandchildHref}
-                                        className="block text-xs text-gray-500 hover:text-black transition-colors"
-                                      >
-                                        {grandchild.title}
-                                      </Link>
-                                    );
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                      
-                      {/* Image section - shows first child's image or parent's image */}
-                      {(item.imageUrl || item.children!.find(c => c.imageUrl)?.imageUrl) && (
-                        <div className="w-[280px] flex-shrink-0">
-                          <div className="relative w-full aspect-[4/3] bg-gray-100 overflow-hidden rounded">
-                            {/* Priority: parent image, then first child with image */}
-                            {(() => {
-                              const imgUrl = item.imageUrl || item.children!.find(c => c.imageUrl)?.imageUrl;
-                              return imgUrl ? (
-                                <Image
-                                  src={imgUrl}
-                                  alt={item.title}
-                                  fill
-                                  className="object-cover"
-                                  sizes="280px"
-                                />
-                              ) : null;
-                            })()}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+              <>
+                {/* Invisible bridge to keep hover active when moving to dropdown */}
+                <div className="absolute top-full left-0 right-0 h-[40px]" />
+                <div className="fixed left-0 right-0 top-[64px] sm:top-[80px] pt-0 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
+                  <MegaMenuDropdown item={item} basePath={basePath} bgColor={megaMenuBgColor} />
                 </div>
-              </div>
+              </>
             )}
             
             {/* Simple dropdown for items without images/grandchildren */}
@@ -312,7 +266,10 @@ export function ShopHeader({
                 navigationMode={navigationMode}
                 basePath={basePath} 
                 storeName={storeName} 
-                logoUrl={logoUrl} 
+                logoUrl={logoUrl}
+                showMobileImages={mobileMenuShowImages}
+                mobileImageStyle={mobileMenuImageStyle}
+                bgColor={mobileMenuBgColor}
               />
               <Logo />
             </div>
@@ -350,7 +307,10 @@ export function ShopHeader({
                 navigationMode={navigationMode}
                 basePath={basePath} 
                 storeName={storeName} 
-                logoUrl={logoUrl} 
+                logoUrl={logoUrl}
+                showMobileImages={mobileMenuShowImages}
+                mobileImageStyle={mobileMenuImageStyle}
+                bgColor={mobileMenuBgColor}
               />
             </div>
           </div>
@@ -374,7 +334,10 @@ export function ShopHeader({
               navigationMode={navigationMode}
               basePath={basePath} 
               storeName={storeName} 
-              logoUrl={logoUrl} 
+              logoUrl={logoUrl}
+              showMobileImages={mobileMenuShowImages}
+              mobileImageStyle={mobileMenuImageStyle}
+              bgColor={mobileMenuBgColor}
             />
             {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
           </div>

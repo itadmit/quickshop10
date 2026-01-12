@@ -140,6 +140,17 @@ export function ShippingZonesManager({
     hours: '',
   });
 
+  // Edit method form state
+  const [editMethodData, setEditMethodData] = useState<{
+    id: string;
+    zoneId: string;
+    name: string;
+    type: 'flat_rate' | 'free' | 'weight_based' | 'price_based' | 'local_pickup';
+    price: number;
+    estimatedDays: string;
+    minOrderAmount: number | undefined;
+  } | null>(null);
+
   // ============================================
   // Zone Actions
   // ============================================
@@ -225,6 +236,67 @@ export function ShippingZonesManager({
           ? { ...z, methods: z.methods.map(m => m.id === methodId ? { ...m, isActive } : m) }
           : z
       ));
+      router.refresh();
+    });
+  };
+
+  const handleStartEditMethod = (method: ShippingMethod) => {
+    setEditMethodData({
+      id: method.id,
+      zoneId: method.zoneId,
+      name: method.name,
+      type: method.type,
+      price: parseFloat(method.price) || 0,
+      estimatedDays: method.estimatedDays || '',
+      minOrderAmount: method.conditions?.minOrderAmount,
+    });
+    setEditingMethod(method.id);
+  };
+
+  const handleCancelEditMethod = () => {
+    setEditMethodData(null);
+    setEditingMethod(null);
+  };
+
+  const handleSaveEditMethod = async () => {
+    if (!editMethodData || !editMethodData.name.trim()) return;
+    
+    startTransition(async () => {
+      const conditions: ShippingMethodConditions = {};
+      if (editMethodData.type === 'free' && editMethodData.minOrderAmount) {
+        conditions.minOrderAmount = editMethodData.minOrderAmount;
+      }
+      
+      await updateShippingMethod(editMethodData.id, {
+        name: editMethodData.name,
+        type: editMethodData.type,
+        price: editMethodData.type === 'free' ? 0 : editMethodData.price,
+        estimatedDays: editMethodData.estimatedDays || undefined,
+        conditions,
+      });
+      
+      setZones(zones.map(z => 
+        z.id === editMethodData.zoneId 
+          ? { 
+              ...z, 
+              methods: z.methods.map(m => 
+                m.id === editMethodData.id 
+                  ? { 
+                      ...m, 
+                      name: editMethodData.name,
+                      type: editMethodData.type,
+                      price: String(editMethodData.type === 'free' ? 0 : editMethodData.price),
+                      estimatedDays: editMethodData.estimatedDays || null,
+                      conditions: conditions.minOrderAmount ? conditions : null,
+                    }
+                  : m
+              ) 
+            }
+          : z
+      ));
+      
+      setEditMethodData(null);
+      setEditingMethod(null);
       router.refresh();
     });
   };
@@ -480,68 +552,163 @@ export function ShippingZonesManager({
                   </div>
                 ) : (
                   zone.methods.map(method => (
-                    <div 
-                      key={method.id} 
-                      className={`p-4 flex items-center justify-between ${!method.isActive ? 'opacity-50' : ''}`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                          {method.type === 'free' ? (
-                            <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                            </svg>
-                          ) : method.type === 'local_pickup' ? (
-                            <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                            </svg>
+                    editingMethod === method.id && editMethodData ? (
+                      // Edit Form
+                      <div key={method.id} className="p-4 bg-yellow-50 border-b border-yellow-100">
+                        <h4 className="font-medium mb-3 text-yellow-800">עריכת שיטת משלוח</h4>
+                        <div className="grid md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <label className="block text-sm mb-1">שם</label>
+                            <input
+                              type="text"
+                              value={editMethodData.name}
+                              onChange={e => setEditMethodData({ ...editMethodData, name: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              placeholder="משלוח רגיל"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm mb-1">סוג</label>
+                            <select
+                              value={editMethodData.type}
+                              onChange={e => setEditMethodData({ ...editMethodData, type: e.target.value as typeof editMethodData.type })}
+                              className="w-full px-3 py-2 border rounded-lg"
+                            >
+                              {METHOD_TYPES.map(type => (
+                                <option key={type.value} value={type.value}>
+                                  {type.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {editMethodData.type !== 'free' && editMethodData.type !== 'local_pickup' && (
+                            <div>
+                              <label className="block text-sm mb-1">מחיר (₪)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={editMethodData.price}
+                                onChange={e => setEditMethodData({ ...editMethodData, price: parseFloat(e.target.value) || 0 })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                              />
+                            </div>
                           )}
-                        </div>
-                        <div>
-                          <div className="font-medium">{method.name}</div>
-                          <div className="text-sm text-gray-500 flex items-center gap-2">
-                            {method.type === 'free' ? (
-                              <span className="text-green-600 font-medium">חינם</span>
-                            ) : method.type === 'local_pickup' ? (
-                              <span className="text-blue-600">איסוף עצמי</span>
-                            ) : (
-                              <span>₪{parseFloat(method.price).toFixed(2)}</span>
-                            )}
-                            {method.conditions?.minOrderAmount && (
-                              <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
-                                מעל ₪{method.conditions.minOrderAmount}
-                              </span>
-                            )}
-                            {method.estimatedDays && (
-                              <span className="text-gray-400">• {method.estimatedDays}</span>
-                            )}
+                          {editMethodData.type === 'free' && (
+                            <div>
+                              <label className="block text-sm mb-1">מעל סכום (₪)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={editMethodData.minOrderAmount || ''}
+                                onChange={e => setEditMethodData({ ...editMethodData, minOrderAmount: parseFloat(e.target.value) || undefined })}
+                                className="w-full px-3 py-2 border rounded-lg"
+                                placeholder="ללא מינימום"
+                              />
+                            </div>
+                          )}
+                          <div>
+                            <label className="block text-sm mb-1">זמן משוער</label>
+                            <input
+                              type="text"
+                              value={editMethodData.estimatedDays}
+                              onChange={e => setEditMethodData({ ...editMethodData, estimatedDays: e.target.value })}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              placeholder="3-5 ימי עסקים"
+                            />
                           </div>
                         </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleSaveEditMethod}
+                            disabled={isPending || !editMethodData.name.trim()}
+                            className="px-4 py-2 bg-black text-white text-sm rounded-lg hover:bg-gray-800 disabled:opacity-50"
+                          >
+                            שמור
+                          </button>
+                          <button
+                            onClick={handleCancelEditMethod}
+                            className="px-4 py-2 text-gray-600 text-sm rounded-lg hover:bg-gray-100"
+                          >
+                            ביטול
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={method.isActive}
-                            onChange={e => handleToggleMethod(zone.id, method.id, e.target.checked)}
-                            className="sr-only peer"
-                          />
-                          <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
-                        </label>
-                        <button
-                          onClick={() => handleDeleteMethod(zone.id, method.id)}
-                          className="text-gray-400 hover:text-red-600"
-                        >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                    ) : (
+                      // Display Mode
+                      <div 
+                        key={method.id} 
+                        className={`p-4 flex items-center justify-between ${!method.isActive ? 'opacity-50' : ''}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                            {method.type === 'free' ? (
+                              <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                              </svg>
+                            ) : method.type === 'local_pickup' ? (
+                              <svg className="w-4 h-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <div className="font-medium">{method.name}</div>
+                            <div className="text-sm text-gray-500 flex items-center gap-2">
+                              {method.type === 'free' ? (
+                                <span className="text-green-600 font-medium">חינם</span>
+                              ) : method.type === 'local_pickup' ? (
+                                <span className="text-blue-600">איסוף עצמי</span>
+                              ) : (
+                                <span>₪{parseFloat(method.price).toFixed(2)}</span>
+                              )}
+                              {method.conditions?.minOrderAmount && (
+                                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">
+                                  מעל ₪{method.conditions.minOrderAmount}
+                                </span>
+                              )}
+                              {method.estimatedDays && (
+                                <span className="text-gray-400">• {method.estimatedDays}</span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleStartEditMethod(method)}
+                            className="text-gray-400 hover:text-blue-600"
+                            title="ערוך"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={method.isActive}
+                              onChange={e => handleToggleMethod(zone.id, method.id, e.target.checked)}
+                              className="sr-only peer"
+                            />
+                            <div className="w-10 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-green-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
+                          </label>
+                          <button
+                            onClick={() => handleDeleteMethod(zone.id, method.id)}
+                            className="text-gray-400 hover:text-red-600"
+                            title="מחק"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )
                   ))
                 )}
               </div>

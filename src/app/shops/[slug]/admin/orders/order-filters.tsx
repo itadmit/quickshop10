@@ -19,6 +19,7 @@ interface OrderFiltersProps {
   shippingMethods: string[];
   paymentMethods: string[];
   cities: string[];
+  trafficSources: string[];
 }
 
 // Filter definitions
@@ -48,7 +49,8 @@ export function OrderFilters({
   couponCodes, 
   shippingMethods, 
   paymentMethods, 
-  cities 
+  cities,
+  trafficSources 
 }: OrderFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -69,6 +71,7 @@ export function OrderFilters({
     city: searchParams.get('city') || '',
     financialStatus: searchParams.get('financialStatus') || '',
     fulfillmentStatus: searchParams.get('fulfillmentStatus') || '',
+    trafficSource: searchParams.get('trafficSource') || '',
   };
   
   // Count active filters
@@ -183,6 +186,8 @@ export function OrderFilters({
         return currentFilters.city;
       case 'couponCode':
         return currentFilters.couponCode;
+      case 'trafficSource':
+        return currentFilters.trafficSource;
       default:
         return '';
     }
@@ -214,6 +219,7 @@ export function OrderFilters({
               { id: 'shippingMethod', label: 'שיטת משלוח', show: shippingMethods.length > 0 },
               { id: 'paymentMethod', label: 'אמצעי תשלום', show: paymentMethods.length > 0 },
               { id: 'city', label: 'יעד (עיר)', show: cities.length > 0 },
+              { id: 'trafficSource', label: 'מקור תנועה', show: true },
               { id: 'category', label: 'קטגוריה', show: categories.length > 0 },
               { id: 'coupon', label: 'קופון', show: couponCodes.length > 0 },
             ]
@@ -417,6 +423,39 @@ export function OrderFilters({
           </div>
         );
         
+      case 'trafficSource':
+        return (
+          <div className="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+            <div className="p-2 border-b border-gray-100">
+              <input
+                type="text"
+                placeholder="חיפוש מקור..."
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="max-h-48 overflow-y-auto py-1">
+              {/* Show all known sources even if store has no orders with them yet */}
+              {['google', 'facebook', 'instagram', 'tiktok', 'email', 'direct', ...trafficSources]
+                .filter((s, i, arr) => arr.indexOf(s) === i) // unique
+                .filter(s => s.toLowerCase().includes(searchText.toLowerCase()))
+                .sort()
+                .map(source => (
+                  <button
+                    key={source}
+                    onClick={() => applyFilter('trafficSource', source)}
+                    className={`w-full px-4 py-2 text-sm text-right hover:bg-gray-50 cursor-pointer ${
+                      currentFilters.trafficSource === source ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                    }`}
+                  >
+                    {source}
+                  </button>
+                ))}
+            </div>
+          </div>
+        );
+        
       case 'category':
         return (
           <div className="absolute top-full right-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
@@ -511,6 +550,9 @@ export function OrderFilters({
     }
     if (currentFilters.couponCode) {
       filters.push({ key: 'coupon', label: getFilterLabel('couponCode'), clearKey: 'couponCode' });
+    }
+    if (currentFilters.trafficSource) {
+      filters.push({ key: 'trafficSource', label: getFilterLabel('trafficSource'), clearKey: 'trafficSource' });
     }
     
     return filters;

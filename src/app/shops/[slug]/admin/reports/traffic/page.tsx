@@ -5,7 +5,8 @@ import {
   getTrafficSources,
   getDeviceStats,
   getLandingPages,
-  getConversionFunnel
+  getConversionFunnel,
+  getUtmStats
 } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 import {
@@ -283,11 +284,12 @@ async function TrafficContent({
   customRange?: { from: Date; to: Date };
 }) {
   // Parallel data fetching
-  const [sources, devices, landingPages, funnel] = await Promise.all([
+  const [sources, devices, landingPages, funnel, utmStats] = await Promise.all([
     getTrafficSources(storeId, period, customRange),
     getDeviceStats(storeId, period, customRange),
     getLandingPages(storeId, period, 10, customRange),
     getConversionFunnel(storeId, period, customRange),
+    getUtmStats(storeId, period, customRange),
   ]);
 
   // Calculate totals
@@ -321,8 +323,69 @@ async function TrafficContent({
 
       {/* Traffic Sources */}
       <div className="bg-white border border-gray-200 p-6 mb-8">
-        <h2 className="font-medium mb-4">מקורות תנועה</h2>
+        <h2 className="font-medium mb-4">מקורות תנועה (UTM Source)</h2>
         <TrafficSourcesTable sources={sources} />
+      </div>
+
+      {/* UTM Stats Section */}
+      <div className="bg-white border border-gray-200 p-6 mb-8">
+        <h2 className="font-medium mb-4">פרמטרי UTM</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* UTM Medium */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-600 mb-3">UTM Medium</h3>
+            {utmStats.byMedium.length > 0 ? (
+              <div className="space-y-2">
+                {utmStats.byMedium.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700">{item.medium}</span>
+                    <span className="font-medium">{formatNumber(item.sessions)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">אין נתונים</p>
+            )}
+          </div>
+          
+          {/* UTM Campaign */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-600 mb-3">UTM Campaign</h3>
+            {utmStats.byCampaign.length > 0 ? (
+              <div className="space-y-2">
+                {utmStats.byCampaign.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 truncate max-w-[150px]" title={item.campaign}>
+                      {item.campaign}
+                    </span>
+                    <span className="font-medium">{formatNumber(item.sessions)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">אין נתונים</p>
+            )}
+          </div>
+          
+          {/* UTM Content */}
+          <div>
+            <h3 className="text-sm font-medium text-gray-600 mb-3">UTM Content</h3>
+            {utmStats.byContent.length > 0 ? (
+              <div className="space-y-2">
+                {utmStats.byContent.map((item, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700 truncate max-w-[150px]" title={item.content}>
+                      {item.content}
+                    </span>
+                    <span className="font-medium">{formatNumber(item.sessions)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-sm">אין נתונים</p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Two columns */}

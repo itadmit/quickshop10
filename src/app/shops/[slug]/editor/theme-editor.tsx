@@ -46,6 +46,11 @@ interface ThemeSettings {
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
+  // Mobile menu settings
+  mobileMenuShowImages?: boolean;
+  mobileMenuImageStyle?: 'fullRow' | 'square';
+  mobileMenuBgColor?: string;
+  megaMenuBgColor?: string;
   // Logo & Favicon (direct store fields)
   logoUrl?: string;
   faviconUrl?: string;

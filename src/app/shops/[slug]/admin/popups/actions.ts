@@ -42,7 +42,7 @@ export interface PopupStyle {
 
 export interface PopupFormData {
   name: string;
-  type: 'image' | 'text' | 'form';
+  type: 'image' | 'text' | 'form' | 'combined';
   isActive: boolean;
   trigger: 'on_load' | 'exit_intent' | 'scroll' | 'time_delay';
   triggerValue?: number;

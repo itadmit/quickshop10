@@ -36,7 +36,7 @@ interface PopupStyle {
 interface PopupData {
   id: string;
   name: string;
-  type: 'image' | 'text' | 'form';
+  type: 'image' | 'text' | 'form' | 'combined';
   trigger: 'on_load' | 'exit_intent' | 'scroll' | 'time_delay';
   triggerValue: number;
   position: 'center' | 'bottom_right' | 'bottom_left' | 'full_screen';

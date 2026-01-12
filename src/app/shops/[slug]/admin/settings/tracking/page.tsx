@@ -24,7 +24,7 @@ export default async function TrackingSettingsPage({ params }: TrackingSettingsP
 
   return (
     <SettingsWrapper storeSlug={slug} activeTab="tracking">
-      <TrackingSettingsForm storeId={store.id} settings={settings} />
+      <TrackingSettingsForm storeId={store.id} storeSlug={slug} settings={settings} />
     </SettingsWrapper>
   );
 }

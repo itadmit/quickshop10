@@ -20,6 +20,9 @@ interface ProductImage {
   size?: number;
   width?: number;
   height?: number;
+  // Video support
+  mediaType?: 'image' | 'video';
+  thumbnailUrl?: string;
 }
 
 interface ProductOption {
@@ -526,6 +529,8 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
         url: img.url,
         alt: img.filename || name || '',
         isPrimary: img.isPrimary ?? false,
+        mediaType: img.mediaType || 'image',
+        thumbnailUrl: img.thumbnailUrl,
       })),
     };
 
@@ -646,10 +651,10 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
             </div>
           </div>
 
-          {/* Images */}
+          {/* Images & Videos */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100">
-              <h2 className="text-sm font-semibold text-gray-900">תמונות</h2>
+              <h2 className="text-sm font-semibold text-gray-900">תמונות וסרטונים</h2>
             </div>
             <div className="p-4">
               <MediaUploader
@@ -662,9 +667,10 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                 storeSlug={storeSlug}
                 showPrimary={true}
                 aspectRatio="1:1"
-                placeholder="גרור תמונות או לחץ לבחירה"
+                allowVideo={true}
+                placeholder="גרור תמונות/סרטונים או לחץ לבחירה"
               />
-              <p className="text-xs text-gray-400 mt-3">גרור תמונות לשינוי סדר. התמונה הראשית תופיע בכרטיס המוצר.</p>
+              <p className="text-xs text-gray-400 mt-3">גרור לשינוי סדר. התמונה/סרטון הראשי יופיע בכרטיס המוצר. סרטונים עד 20MB.</p>
             </div>
           </div>
 

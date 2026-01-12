@@ -511,6 +511,73 @@ export function isCloudinaryConfigured(): boolean {
   return Boolean(cloudinaryConfig.cloudName && cloudinaryConfig.uploadPreset);
 }
 
+// =============================================
+// 🎥 VIDEO THUMBNAIL GENERATION (DYNAMIC)
+// =============================================
+
+/**
+ * Generate thumbnail URL from video URL
+ * Cloudinary automatically extracts first frame as image
+ * 
+ * Example:
+ * Video:     https://res.cloudinary.com/xxx/video/upload/v123/folder/file.mp4
+ * Thumbnail: https://res.cloudinary.com/xxx/video/upload/so_0,f_jpg,q_auto/v123/folder/file.mp4
+ * 
+ * @param videoUrl - Full Cloudinary video URL
+ * @param options - Transformation options
+ */
+export function getVideoThumbnailUrl(
+  videoUrl: string,
+  options: {
+    width?: number;
+    height?: number;
+    startOffset?: number; // Frame to capture (default: 0 = first frame)
+  } = {}
+): string {
+  if (!videoUrl || !isCloudinaryUrl(videoUrl)) {
+    return videoUrl; // Return as-is if not Cloudinary
+  }
+
+  // Build transformation string
+  const transforms: string[] = [];
+  transforms.push(`so_${options.startOffset || 0}`); // Start offset (frame)
+  transforms.push('f_jpg'); // Output as JPEG
+  transforms.push('q_auto'); // Auto quality
+  
+  if (options.width) transforms.push(`w_${options.width}`);
+  if (options.height) transforms.push(`h_${options.height}`);
+  
+  const transformString = transforms.join(',');
+  
+  // Insert transformation into URL
+  // Pattern: /video/upload/v123/... -> /video/upload/TRANSFORMS/v123/...
+  return videoUrl.replace(
+    /\/video\/upload\//,
+    `/video/upload/${transformString}/`
+  );
+}
+
+/**
+ * Check if a URL is a video based on extension or resource type
+ */
+export function isVideoUrl(url: string): boolean {
+  if (!url) return false;
+  
+  // Check by extension
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'];
+  const lowerUrl = url.toLowerCase();
+  if (videoExtensions.some(ext => lowerUrl.includes(ext))) {
+    return true;
+  }
+  
+  // Check Cloudinary video resource type
+  if (url.includes('/video/upload/')) {
+    return true;
+  }
+  
+  return false;
+}
+
 /**
  * Get CDN status and stats (for debugging)
  */

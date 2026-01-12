@@ -57,6 +57,21 @@ export function MenuEditor({
     parentId: null,
   });
 
+  // State for editing existing item
+  const [editItem, setEditItem] = useState<{
+    title: string;
+    linkType: 'url' | 'page' | 'category';
+    linkUrl: string;
+    linkResourceId: string;
+    imageUrl: string;
+  }>({
+    title: '',
+    linkType: 'category',
+    linkUrl: '',
+    linkResourceId: '',
+    imageUrl: '',
+  });
+
   // Get top-level items and children map
   const topLevelItems = items.filter(i => !i.parentId);
   const childrenMap = new Map<string, MenuItem[]>();
@@ -121,6 +136,63 @@ export function MenuEditor({
       await deleteMenuItem(itemId, slug);
       router.refresh();
     });
+  };
+
+  const handleStartEdit = (item: MenuItem) => {
+    setEditingId(item.id);
+    setEditItem({
+      title: item.title,
+      linkType: item.linkType as 'url' | 'page' | 'category',
+      linkUrl: item.linkUrl || '',
+      linkResourceId: item.linkResourceId || '',
+      imageUrl: item.imageUrl || '',
+    });
+    setShowAddForm(false);
+    setAddingSubTo(null);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingId) return;
+    setError(null);
+
+    if (!editItem.title.trim()) {
+      setError('יש להזין כותרת');
+      return;
+    }
+
+    if (editItem.linkType === 'url' && !editItem.linkUrl.trim()) {
+      setError('יש להזין כתובת URL');
+      return;
+    }
+
+    if ((editItem.linkType === 'page' || editItem.linkType === 'category') && !editItem.linkResourceId) {
+      setError('יש לבחור עמוד או קטגוריה');
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await updateMenuItem(editingId, slug, {
+        title: editItem.title,
+        linkType: editItem.linkType,
+        linkUrl: editItem.linkType === 'url' ? editItem.linkUrl : null,
+        linkResourceId: editItem.linkType !== 'url' ? editItem.linkResourceId : null,
+        imageUrl: editItem.imageUrl || null,
+      });
+
+      if (result.success) {
+        setEditingId(null);
+        setEditItem({ title: '', linkType: 'category', linkUrl: '', linkResourceId: '', imageUrl: '' });
+        router.refresh();
+      } else {
+        setError(result.error || 'שגיאה בעדכון פריט');
+      }
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditItem({ title: '', linkType: 'category', linkUrl: '', linkResourceId: '', imageUrl: '' });
+    setError(null);
   };
 
   const handleMoveUp = (item: MenuItem, siblings: MenuItem[]) => {
@@ -302,13 +374,14 @@ export function MenuEditor({
             </span>
           )}
 
-          {/* Add sub-item button - only for top level */}
-          {level === 0 && (
+          {/* Add sub-item button - for level 0 and 1 (allows 3 levels) */}
+          {level < 2 && (
             <button
               onClick={() => {
                 setAddingSubTo(isAddingSubHere ? null : item.id);
                 setNewItem(prev => ({ ...prev, parentId: item.id }));
                 setShowAddForm(false);
+                setEditingId(null);
               }}
               disabled={isPending}
               className="p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
@@ -319,6 +392,18 @@ export function MenuEditor({
               </svg>
             </button>
           )}
+
+          {/* Edit button */}
+          <button
+            onClick={() => handleStartEdit(item)}
+            disabled={isPending}
+            className="p-2 text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
+            title="ערוך פריט"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M10.5 1.5l2 2-8 8H2.5v-2l8-8z" />
+            </svg>
+          </button>
           
           {/* Delete button */}
               <button
@@ -331,6 +416,121 @@ export function MenuEditor({
                 </svg>
               </button>
             </div>
+
+        {/* Edit form */}
+        {editingId === item.id && (
+          <div className={`mt-2 border border-blue-200 bg-blue-50/50 rounded-lg p-4 space-y-3 ${level > 0 ? 'mr-6 border-r-2 border-r-blue-200' : ''}`}>
+            <p className="text-xs text-blue-600 font-medium">עריכת פריט</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">כותרת</label>
+                <input
+                  type="text"
+                  value={editItem.title || ''}
+                  onChange={(e) => setEditItem(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">סוג</label>
+                <select
+                  value={editItem.linkType || 'category'}
+                  onChange={(e) => setEditItem(prev => ({ 
+                    ...prev, 
+                    linkType: e.target.value as 'url' | 'page' | 'category',
+                    linkUrl: '',
+                    linkResourceId: '',
+                  }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                >
+                  <option value="category">קטגוריה</option>
+                  <option value="page">עמוד</option>
+                  <option value="url">קישור חיצוני</option>
+                </select>
+              </div>
+            </div>
+
+            {editItem.linkType === 'url' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">כתובת URL</label>
+                <input
+                  type="url"
+                  value={editItem.linkUrl || ''}
+                  onChange={(e) => setEditItem(prev => ({ ...prev, linkUrl: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                  placeholder="https://example.com"
+                  dir="ltr"
+                />
+              </div>
+            )}
+
+            {editItem.linkType === 'page' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">בחר עמוד</label>
+                <select
+                  value={editItem.linkResourceId || ''}
+                  onChange={(e) => setEditItem(prev => ({ ...prev, linkResourceId: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                >
+                  <option value="">בחר עמוד...</option>
+                  {availablePages.map((page) => (
+                    <option key={page.id} value={page.id}>{page.title}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {editItem.linkType === 'category' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">בחר קטגוריה</label>
+                <select
+                  value={editItem.linkResourceId || ''}
+                  onChange={(e) => setEditItem(prev => ({ ...prev, linkResourceId: e.target.value }))}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                >
+                  <option value="">בחר קטגוריה...</option>
+                  {availableCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Image URL for mega menu */}
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1">תמונה למגה מניו (אופציונלי)</label>
+              <input
+                type="url"
+                value={editItem.imageUrl || ''}
+                onChange={(e) => setEditItem(prev => ({ ...prev, imageUrl: e.target.value }))}
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5"
+                placeholder="https://example.com/image.jpg"
+                dir="ltr"
+              />
+              <p className="text-[10px] text-gray-500 mt-1">תמונה תוצג בתפריט הגדול בעת hover</p>
+            </div>
+
+            {error && (
+              <p className="text-xs text-red-600">{error}</p>
+            )}
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveEdit}
+                disabled={isPending}
+                className="px-4 py-2 text-sm bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              >
+                {isPending ? '...' : 'שמור'}
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Sub-item add form */}
         {isAddingSubHere && (

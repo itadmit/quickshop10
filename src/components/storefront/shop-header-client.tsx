@@ -8,6 +8,7 @@ import { CartButton } from '@/components/cart-button';
 import { UserButton } from '@/components/user-button';
 import { SearchButton } from '@/components/search-button';
 import { usePreviewSettings } from './preview-settings-provider';
+import { MegaMenuDropdown } from '@/components/mega-menu-dropdown';
 
 /**
  * Shop Header Client Component
@@ -113,6 +114,7 @@ interface MenuItem {
   title: string;
   linkType: 'url' | 'page' | 'category' | 'product';
   resolvedUrl?: string;
+  imageUrl?: string | null;
   children?: MenuItem[];
 }
 
@@ -142,6 +144,10 @@ interface ShopHeaderClientProps {
   defaultShowSearch?: boolean;
   defaultShowCart?: boolean;
   defaultShowAccount?: boolean;
+  defaultMobileMenuShowImages?: boolean;
+  defaultMobileMenuImageStyle?: 'fullRow' | 'square';
+  defaultMobileMenuBgColor?: string;
+  defaultMegaMenuBgColor?: string;
 }
 
 export function ShopHeaderClient({ 
@@ -159,12 +165,22 @@ export function ShopHeaderClient({
   defaultShowSearch = true,
   defaultShowCart = true,
   defaultShowAccount = true,
+  defaultMobileMenuShowImages = false,
+  defaultMobileMenuImageStyle = 'square',
+  defaultMobileMenuBgColor = '#f9fafb',
+  defaultMegaMenuBgColor = '#f9fafb',
 }: ShopHeaderClientProps) {
   const { settings, isPreviewMode } = usePreviewSettings();
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
   
   // Get settings from preview or use defaults
   const layout = isPreviewMode && settings.headerLayout ? settings.headerLayout : defaultLayout;
+  
+  // Mobile menu settings
+  const mobileMenuShowImages = isPreviewMode && settings.mobileMenuShowImages !== undefined ? settings.mobileMenuShowImages : defaultMobileMenuShowImages;
+  const mobileMenuImageStyle = isPreviewMode && settings.mobileMenuImageStyle ? settings.mobileMenuImageStyle : defaultMobileMenuImageStyle;
+  const mobileMenuBgColor = isPreviewMode && settings.mobileMenuBgColor ? settings.mobileMenuBgColor : defaultMobileMenuBgColor;
+  const megaMenuBgColor = isPreviewMode && settings.megaMenuBgColor ? settings.megaMenuBgColor : defaultMegaMenuBgColor;
   const isSticky = isPreviewMode ? (settings.headerSticky ?? defaultSticky) : defaultSticky;
   const isTransparent = isPreviewMode ? (settings.headerTransparent ?? defaultTransparent) : defaultTransparent;
   const showSearch = isPreviewMode ? (settings.headerShowSearch ?? defaultShowSearch) : defaultShowSearch;
@@ -262,22 +278,38 @@ export function ShopHeaderClient({
         const hasChildren = item.children && item.children.length > 0;
         const href = item.resolvedUrl?.startsWith('/') ? `${basePath}${item.resolvedUrl}` : item.resolvedUrl || '#';
         
+        // Check if any child has an image or grandchildren for mega menu style
+        const hasMegaMenu = hasChildren && item.children!.some(c => c.imageUrl);
+        const hasGrandchildren = hasChildren && item.children!.some(c => c.children && c.children.length > 0);
+        
         return (
-          <div key={item.id} className="relative group">
+          <div key={item.id} className="relative group/nav">
             <Link
               href={href}
               className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hover:text-black transition-colors duration-300 flex items-center gap-1"
             >
               {item.title}
               {hasChildren && (
-                <svg className="w-3 h-3 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-3 h-3 opacity-50 group-hover/nav:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               )}
             </Link>
             
-            {hasChildren && (
-              <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            {/* Mega Menu - full width dropdown with columns and images */}
+            {hasChildren && (hasMegaMenu || hasGrandchildren) && (
+              <>
+                {/* Invisible bridge to keep hover active when moving to dropdown */}
+                <div className="absolute top-full left-0 right-0 h-[40px]" />
+                <div className="fixed left-0 right-0 top-[64px] sm:top-[80px] pt-0 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
+                  <MegaMenuDropdown item={item} basePath={basePath} bgColor={megaMenuBgColor} />
+                </div>
+              </>
+            )}
+            
+            {/* Simple dropdown for items without images/grandchildren */}
+            {hasChildren && !hasMegaMenu && !hasGrandchildren && (
+              <div className="absolute top-full right-0 pt-2 opacity-0 invisible group-hover/nav:opacity-100 group-hover/nav:visible transition-all duration-200 z-50">
                 <div className="bg-white border border-gray-100 shadow-lg min-w-[180px]">
                   {item.children!.map((child) => {
                     const childHref = child.resolvedUrl?.startsWith('/') ? `${basePath}${child.resolvedUrl}` : child.resolvedUrl || '#';
@@ -378,7 +410,10 @@ export function ShopHeaderClient({
                   navigationMode={effectiveNavigationMode}
                   basePath={basePath} 
                   storeName={storeName} 
-                  logoUrl={logoUrl} 
+                  logoUrl={logoUrl}
+                  showMobileImages={mobileMenuShowImages}
+                  mobileImageStyle={mobileMenuImageStyle}
+                  bgColor={mobileMenuBgColor}
                 />
                 <Logo />
               </div>
@@ -415,7 +450,10 @@ export function ShopHeaderClient({
                   navigationMode={effectiveNavigationMode}
                   basePath={basePath} 
                   storeName={storeName} 
-                  logoUrl={logoUrl} 
+                  logoUrl={logoUrl}
+                  showMobileImages={mobileMenuShowImages}
+                  mobileImageStyle={mobileMenuImageStyle}
+                  bgColor={mobileMenuBgColor}
                 />
               </div>
             </div>
@@ -442,7 +480,10 @@ export function ShopHeaderClient({
                 navigationMode={effectiveNavigationMode}
                 basePath={basePath} 
                 storeName={storeName} 
-                logoUrl={logoUrl} 
+                logoUrl={logoUrl}
+                showMobileImages={mobileMenuShowImages}
+                mobileImageStyle={mobileMenuImageStyle}
+                bgColor={mobileMenuBgColor}
               />
               {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
             </div>

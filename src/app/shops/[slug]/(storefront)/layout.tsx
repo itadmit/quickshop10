@@ -267,6 +267,10 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       showCart={Boolean(storeSettings.headerShowCart ?? true)}
       showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
       isSticky={Boolean(storeSettings.headerSticky ?? true)}
+      mobileMenuShowImages={Boolean(storeSettings.mobileMenuShowImages ?? false)}
+      mobileMenuImageStyle={(storeSettings.mobileMenuImageStyle as 'fullRow' | 'square') ?? 'square'}
+      mobileMenuBgColor={(storeSettings.mobileMenuBgColor as string) ?? '#f9fafb'}
+      megaMenuBgColor={(storeSettings.megaMenuBgColor as string) ?? '#f9fafb'}
     />
   );
 

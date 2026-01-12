@@ -4,10 +4,16 @@ import { useState, useRef, useCallback } from 'react';
 import {
   validateFile,
   formatFileSize,
+  getVideoThumbnailUrl,
+  isVideoUrl,
   ALLOWED_IMAGE_TYPES,
+  ALLOWED_VIDEO_TYPES,
   MAX_FILE_SIZE,
   CloudinaryUploadResult,
 } from '@/lib/cloudinary';
+
+// Combined types for media uploader (images + videos)
+export const ALLOWED_MEDIA_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES];
 import { MediaPickerModal, MediaItem } from './media-picker-modal';
 
 // ===== Server Upload (WebP conversion + signed upload) =====
@@ -71,6 +77,10 @@ export interface UploadedMedia {
   width?: number;
   height?: number;
   isPrimary?: boolean;
+  // Video support
+  mediaType?: 'image' | 'video';
+  thumbnailUrl?: string; // Video poster (first frame)
+  duration?: number; // Video duration in seconds
 }
 
 export interface MediaUploaderProps {
@@ -96,8 +106,10 @@ export interface MediaUploaderProps {
   compact?: boolean;
   /** Disabled state */
   disabled?: boolean;
-  /** Accepted file types */
+  /** Accepted file types (default: images only, use ALLOWED_MEDIA_TYPES for images+video) */
   accept?: string;
+  /** Allow video uploads (max 20MB, generates thumbnail automatically) */
+  allowVideo?: boolean;
   /** Custom placeholder text */
   placeholder?: string;
   /** Class name for outer container */
@@ -127,10 +139,13 @@ export function MediaUploader({
   aspectRatio = '1:1',
   compact = false,
   disabled = false,
-  accept = ALLOWED_IMAGE_TYPES.join(','),
+  accept,
+  allowVideo = false,
   placeholder,
   className = '',
 }: MediaUploaderProps) {
+  // Determine accepted file types
+  const acceptedTypes = accept || (allowVideo ? ALLOWED_MEDIA_TYPES.join(',') : ALLOWED_IMAGE_TYPES.join(','));
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState<FileWithProgress[]>([]);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
@@ -185,7 +200,7 @@ export function MediaUploader({
     for (const file of filesToUpload) {
       const validation = validateFile(file, {
         maxSize: MAX_FILE_SIZE,
-        allowedTypes: accept.split(','),
+        allowedTypes: acceptedTypes.split(','),
       });
 
       if (!validation.valid) {
@@ -229,6 +244,9 @@ export function MediaUploader({
         );
 
         // Collect uploaded media (include mediaId for DB deletion)
+        // Detect if video based on resource_type from Cloudinary
+        const isVideo = result.resource_type === 'video';
+        
         const newMedia: UploadedMedia = {
           id: result.public_id,
           url: result.secure_url,
@@ -239,6 +257,9 @@ export function MediaUploader({
           width: result.width,
           height: result.height,
           isPrimary: (value.length === 0 && uploadedMedia.length === 0) && showPrimary,
+          // Video support
+          mediaType: isVideo ? 'video' : 'image',
+          thumbnailUrl: isVideo ? result.thumbnail_url : undefined,
         };
 
         uploadedMedia.push(newMedia);
@@ -263,7 +284,7 @@ export function MediaUploader({
     setTimeout(() => {
       setUploading(prev => prev.filter(u => u.status !== 'success'));
     }, 1000);
-  }, [disabled, maxFiles, value, multiple, accept, folder, showPrimary, onChange]);
+  }, [disabled, maxFiles, value, multiple, acceptedTypes, folder, showPrimary, onChange, storeId]);
 
   // Drag and drop handlers
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -394,13 +415,27 @@ export function MediaUploader({
             ${isDragOver ? 'border-blue-500 ring-2 ring-blue-200 scale-105' : 'border-gray-200 hover:border-gray-300'}`}
           style={{ paddingBottom: '100%' }}
         >
+          {/* Show thumbnail for videos, image otherwise */}
           <img
-            src={media.url}
+            src={(media.mediaType === 'video' || isVideoUrl(media.url)) 
+              ? (media.thumbnailUrl || getVideoThumbnailUrl(media.url)) 
+              : media.url}
             alt={media.filename || ''}
             className="absolute inset-0 w-full h-full object-cover"
             loading="lazy"
             draggable={false}
           />
+          
+          {/* Video play indicator */}
+          {(media.mediaType === 'video' || isVideoUrl(media.url)) && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-12 h-12 rounded-full bg-black/60 flex items-center justify-center">
+                <svg className="w-5 h-5 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </div>
+            </div>
+          )}
           
           {/* Drop indicator overlay */}
           {isDragOver && (
@@ -565,7 +600,7 @@ export function MediaUploader({
             ref={fileInputRef}
             type="file"
             multiple={multiple}
-            accept={accept}
+            accept={acceptedTypes}
             onChange={(e) => e.target.files && handleFiles(e.target.files)}
             className="hidden"
             disabled={disabled}

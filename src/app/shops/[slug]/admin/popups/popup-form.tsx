@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { createPopup, updatePopup, type PopupFormData, type PopupContent, type PopupStyle } from './actions';
 import type { Popup } from '@/lib/db/schema';
+import { FileText, Image, ClipboardList, LayoutTemplate } from 'lucide-react';
 
 interface PopupFormProps {
   storeId: string;
@@ -36,7 +37,7 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
 
   // Form state
   const [name, setName] = useState(popup?.name || '');
-  const [type, setType] = useState<'image' | 'text' | 'form'>(popup?.type || 'text');
+  const [type, setType] = useState<'image' | 'text' | 'form' | 'combined'>(popup?.type || 'text');
   const [isActive, setIsActive] = useState(popup?.isActive || false);
   const [trigger, setTrigger] = useState<'on_load' | 'exit_intent' | 'scroll' | 'time_delay'>(popup?.trigger || 'time_delay');
   const [triggerValue, setTriggerValue] = useState(popup?.triggerValue || 3);
@@ -198,26 +199,30 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
                       {/* Type */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">סוג פופאפ</label>
-                        <div className="grid grid-cols-3 gap-3">
+                        <div className="grid grid-cols-4 gap-3">
                           {[
-                            { value: 'text', label: 'טקסט', icon: '📝' },
-                            { value: 'image', label: 'תמונה', icon: '🖼️' },
-                            { value: 'form', label: 'טופס', icon: '📋' },
-                          ].map(t => (
-                            <button
-                              key={t.value}
-                              type="button"
-                              onClick={() => setType(t.value as typeof type)}
-                              className={`p-4 border rounded-lg text-center transition-colors ${
-                                type === t.value
-                                  ? 'border-gray-900 bg-gray-50'
-                                  : 'border-gray-200 hover:border-gray-300'
-                              }`}
-                            >
-                              <div className="text-2xl mb-1">{t.icon}</div>
-                              <div className="text-sm font-medium">{t.label}</div>
-                            </button>
-                          ))}
+                            { value: 'combined', label: 'משולב', icon: LayoutTemplate, desc: 'תמונה + טקסט + טופס' },
+                            { value: 'text', label: 'טקסט', icon: FileText, desc: 'כותרת וכפתור' },
+                            { value: 'image', label: 'תמונה', icon: Image, desc: 'באנר תמונה' },
+                            { value: 'form', label: 'טופס', icon: ClipboardList, desc: 'איסוף מידע' },
+                          ].map(t => {
+                            const Icon = t.icon;
+                            return (
+                              <button
+                                key={t.value}
+                                type="button"
+                                onClick={() => setType(t.value as typeof type)}
+                                className={`p-4 border rounded-lg text-center transition-colors ${
+                                  type === t.value
+                                    ? 'border-gray-900 bg-gray-50'
+                                    : 'border-gray-200 hover:border-gray-300'
+                                }`}
+                              >
+                                <Icon className="w-6 h-6 mx-auto mb-2 text-gray-600" />
+                                <div className="text-sm font-medium">{t.label}</div>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 
@@ -364,6 +369,125 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
                               placeholder="תודה! נשלח אליכם קוד הנחה בקרוב"
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                             />
+                          </div>
+                        </>
+                      )}
+
+                      {/* Combined: Text + Image + Form */}
+                      {type === 'combined' && (
+                        <>
+                          {/* Image Section */}
+                          <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                            <h4 className="text-sm font-medium text-blue-800 mb-3 flex items-center gap-2">
+                              <Image className="w-4 h-4" />
+                              תמונה
+                            </h4>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">כתובת תמונה (URL)</label>
+                              <input
+                                type="text"
+                                value={content.imageUrl || ''}
+                                onChange={(e) => updateContent('imageUrl', e.target.value)}
+                                placeholder="https://..."
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                              />
+                              <p className="text-xs text-gray-500 mt-1">העלו תמונה למדיה והדביקו את הקישור</p>
+                            </div>
+                            {content.imageUrl && (
+                              <div className="relative mt-3 aspect-video bg-gray-100 rounded-lg overflow-hidden max-w-xs">
+                                <img
+                                  src={content.imageUrl}
+                                  alt="Preview"
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Text Section */}
+                          <div className="p-4 bg-green-50 rounded-lg border border-green-100">
+                            <h4 className="text-sm font-medium text-green-800 mb-3 flex items-center gap-2">
+                              <FileText className="w-4 h-4" />
+                              טקסט
+                            </h4>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">כותרת</label>
+                                <input
+                                  type="text"
+                                  value={content.title || ''}
+                                  onChange={(e) => updateContent('title', e.target.value)}
+                                  placeholder="10% הנחה לרכישה הראשונה שלך באתר"
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">תיאור</label>
+                                <textarea
+                                  value={content.body || ''}
+                                  onChange={(e) => updateContent('body', e.target.value)}
+                                  rows={3}
+                                  placeholder="אנחנו מזמינים אותך להצטרף למועדון הלקוחות שלנו. נעדכן על קולקציות חדשות, מבצעים מיוחדים וניחוחות מדהימים!"
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Form Section */}
+                          <div className="p-4 bg-purple-50 rounded-lg border border-purple-100">
+                            <h4 className="text-sm font-medium text-purple-800 mb-3 flex items-center gap-2">
+                              <ClipboardList className="w-4 h-4" />
+                              טופס
+                            </h4>
+                            <div className="space-y-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">שדות טופס</label>
+                                <div className="space-y-2">
+                                  {(content.fields || [
+                                    { name: 'firstName', type: 'text', placeholder: 'שם פרטי *', required: true },
+                                    { name: 'email', type: 'email', placeholder: 'דואר אלקטרוני *', required: true },
+                                    { name: 'phone', type: 'phone', placeholder: 'טלפון נייד', required: false },
+                                  ]).map((field, index) => (
+                                    <div key={index} className="flex items-center gap-2 p-3 bg-white rounded-lg border">
+                                      <span className="text-sm font-medium flex-1">{field.placeholder || field.name}</span>
+                                      <span className="text-xs text-gray-500">{field.type}</span>
+                                      {field.required && <span className="text-xs text-red-500">חובה</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  id="consent"
+                                  className="w-4 h-4 rounded border-gray-300"
+                                  defaultChecked
+                                  disabled
+                                />
+                                <label htmlFor="consent" className="text-sm text-gray-600">מאשר/ת קבלת דיוור כפי שרשום בתקנון</label>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">טקסט כפתור</label>
+                                <input
+                                  type="text"
+                                  value={content.buttonText || ''}
+                                  onChange={(e) => updateContent('buttonText', e.target.value)}
+                                  placeholder="רוצה להצטרף למועדון"
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">הודעת הצלחה</label>
+                                <input
+                                  type="text"
+                                  value={content.successMessage || ''}
+                                  onChange={(e) => updateContent('successMessage', e.target.value)}
+                                  placeholder="תודה! קוד ההנחה נשלח אליך למייל"
+                                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                                />
+                              </div>
+                            </div>
                           </div>
                         </>
                       )}

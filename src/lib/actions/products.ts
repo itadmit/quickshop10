@@ -182,8 +182,14 @@ export interface ProductFormData {
   // Custom Fields (metafields)
   metadata?: Record<string, unknown>;
   
-  // Images (URLs for now)
-  images?: { url: string; alt?: string; isPrimary: boolean }[];
+  // Images & Videos
+  images?: { 
+    url: string; 
+    alt?: string; 
+    isPrimary: boolean;
+    mediaType?: 'image' | 'video';
+    thumbnailUrl?: string;
+  }[];
 }
 
 // ============ CREATE PRODUCT ============
@@ -237,7 +243,7 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
       );
     }
 
-    // Add images if provided
+    // Add images/videos if provided
     if (data.images && data.images.length > 0) {
       await db.insert(productImages).values(
         data.images.map((img, index) => ({
@@ -246,6 +252,8 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
           alt: img.alt || data.name,
           isPrimary: img.isPrimary || index === 0,
           sortOrder: index,
+          mediaType: img.mediaType || 'image',
+          thumbnailUrl: img.thumbnailUrl || null,
         }))
       );
     }
@@ -378,7 +386,7 @@ export async function updateProduct(
       );
     }
 
-    // Update images - delete existing and re-add
+    // Update images/videos - delete existing and re-add
     if (data.images !== undefined) {
       await db.delete(productImages).where(eq(productImages.productId, productId));
       
@@ -390,6 +398,8 @@ export async function updateProduct(
             alt: img.alt || data.name,
             isPrimary: img.isPrimary || index === 0,
             sortOrder: index,
+            mediaType: img.mediaType || 'image',
+            thumbnailUrl: img.thumbnailUrl || null,
           }))
         );
       }

@@ -45,10 +45,13 @@ function formatDate(): string {
   });
 }
 
-function getRevenueByDay(orders: { createdAt: Date | null; total: string }[], days = 14) {
+function getRevenueByDay(orders: { createdAt: Date | null; total: string; financialStatus: string | null }[], days = 14) {
   const data: Array<{ date: string; revenue: number; orders: number }> = [];
   const now = new Date();
   now.setHours(23, 59, 59, 999);
+  
+  // Only include paid orders in revenue calculations
+  const paidOrders = orders.filter(o => o.financialStatus === 'paid');
   
   for (let i = days - 1; i >= 0; i--) {
     const dayStart = new Date(now);
@@ -58,7 +61,7 @@ function getRevenueByDay(orders: { createdAt: Date | null; total: string }[], da
     const dayEnd = new Date(dayStart);
     dayEnd.setHours(23, 59, 59, 999);
     
-    const dayOrders = orders.filter(order => {
+    const dayOrders = paidOrders.filter(order => {
       if (!order.createdAt) return false;
       const date = new Date(order.createdAt);
       return date >= dayStart && date <= dayEnd;
@@ -351,23 +354,30 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
     getStoreProducts(store.id),
   ]);
 
-  // Calculate today's metrics
+  // Calculate today's metrics - only count PAID orders
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
   const todayOrders = orders.filter(o => {
     if (!o.createdAt) return false;
+    // Only count paid orders
+    if (o.financialStatus !== 'paid') return false;
     return new Date(o.createdAt) >= today;
   });
   const todaySales = todayOrders.reduce((sum, o) => sum + Number(o.total), 0);
   const todayOrdersCount = todayOrders.length;
   
-  // Calculate monthly metrics
+  // Calculate monthly metrics - only count PAID orders
   const thisMonth = new Date();
   thisMonth.setDate(1);
   thisMonth.setHours(0, 0, 0, 0);
   
-  const monthlyOrders = orders.filter(o => new Date(o.createdAt!) >= thisMonth);
+  const monthlyOrders = orders.filter(o => {
+    if (!o.createdAt) return false;
+    // Only count paid orders
+    if (o.financialStatus !== 'paid') return false;
+    return new Date(o.createdAt) >= thisMonth;
+  });
   const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + Number(o.total), 0);
   
   const pendingOrders = orders.filter(o => 

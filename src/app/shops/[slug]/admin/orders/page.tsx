@@ -36,6 +36,7 @@ interface OrdersPageProps {
     city?: string;
     financialStatus?: string;
     fulfillmentStatus?: string;
+    trafficSource?: string;
   }>;
 }
 
@@ -50,6 +51,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     shippingMethod, paymentMethod, city,
     financialStatus: filterFinancialStatus, 
     fulfillmentStatus: filterFulfillmentStatus,
+    trafficSource,
   } = await searchParams;
   
   const store = await getStoreBySlug(slug);
@@ -198,6 +200,11 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     filteredOrders = filteredOrders.filter(o => o.fulfillmentStatus === filterFulfillmentStatus);
   }
   
+  // Advanced filters - traffic source
+  if (trafficSource) {
+    filteredOrders = filteredOrders.filter(o => o.utmSource === trafficSource);
+  }
+  
   // Pagination
   const perPage = 20;
   const currentPage = parseInt(page || '1', 10);
@@ -233,7 +240,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const hasNonDefaultDateFilter = period && period !== '30d'; // User explicitly changed from default
   const hasAdvancedFilters = itemCountMin || itemCountMax || categoryId || couponCode || 
     totalMin || totalMax || dateFrom || dateTo || shippingMethod || paymentMethod || city ||
-    filterFinancialStatus || filterFulfillmentStatus || hasNonDefaultDateFilter || from || to;
+    filterFinancialStatus || filterFulfillmentStatus || trafficSource || hasNonDefaultDateFilter || from || to;
 
   return (
     <div className="space-y-6">
@@ -257,6 +264,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
         shippingMethods={filterOptions.shippingMethods}
         paymentMethods={filterOptions.paymentMethods}
         cities={filterOptions.cities}
+        trafficSources={filterOptions.trafficSources}
       />
 
       <OrdersDataTable

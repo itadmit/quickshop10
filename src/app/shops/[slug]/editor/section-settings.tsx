@@ -40,6 +40,12 @@ interface ThemeSettings {
   headerShowAccount?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
   
+  // Mobile menu settings
+  mobileMenuShowImages?: boolean;
+  mobileMenuImageStyle?: 'fullRow' | 'square'; // fullRow = full width with overlay text, square = small square image with text
+  mobileMenuBgColor?: string; // Mobile sidebar background color
+  megaMenuBgColor?: string; // Mega menu dropdown background color
+  
   // Logo & Favicon (direct store fields, not in settings jsonb)
   logoUrl?: string;
   faviconUrl?: string;
@@ -217,6 +223,68 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                 </label>
               </div>
             </div>
+          </SettingsGroup>
+
+          {/* Mobile Menu Settings */}
+          <SettingsGroup title="תפריט מובייל">
+            <SwitchField
+              label="הצג תמונות במובייל"
+              description="הצג תמונות לצד פריטי התפריט במובייל"
+              value={settings.mobileMenuShowImages ?? false}
+              onChange={(v) => updateSettings({ mobileMenuShowImages: v })}
+            />
+            
+            {settings.mobileMenuShowImages && (
+              <div className="space-y-3 mt-3">
+                <p className="text-xs text-gray-500">סגנון תמונות</p>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                    borderColor: (settings.mobileMenuImageStyle || 'square') === 'square' ? '#000' : '#e5e7eb',
+                    backgroundColor: (settings.mobileMenuImageStyle || 'square') === 'square' ? '#f9fafb' : 'transparent'
+                  }}>
+                    <input
+                      type="radio"
+                      name="mobileImageStyle"
+                      checked={(settings.mobileMenuImageStyle || 'square') === 'square'}
+                      onChange={() => updateSettings({ mobileMenuImageStyle: 'square' })}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">תמונה ריבועית</p>
+                      <p className="text-xs text-gray-500">תמונה קטנה עם כיתוב לידה</p>
+                    </div>
+                  </label>
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                    borderColor: settings.mobileMenuImageStyle === 'fullRow' ? '#000' : '#e5e7eb',
+                    backgroundColor: settings.mobileMenuImageStyle === 'fullRow' ? '#f9fafb' : 'transparent'
+                  }}>
+                    <input
+                      type="radio"
+                      name="mobileImageStyle"
+                      checked={settings.mobileMenuImageStyle === 'fullRow'}
+                      onChange={() => updateSettings({ mobileMenuImageStyle: 'fullRow' })}
+                      className="w-4 h-4"
+                    />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">תמונה ברוחב מלא</p>
+                      <p className="text-xs text-gray-500">תמונה על כל השורה עם כיתוב עליה</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+            )}
+            
+            <ColorField
+              label="צבע רקע תפריט מובייל"
+              value={settings.mobileMenuBgColor || '#f9fafb'}
+              onChange={(v) => updateSettings({ mobileMenuBgColor: v })}
+            />
+            
+            <ColorField
+              label="צבע רקע מגה מניו"
+              value={settings.megaMenuBgColor || '#f9fafb'}
+              onChange={(v) => updateSettings({ megaMenuBgColor: v })}
+            />
           </SettingsGroup>
           
           {/* Header Options */}

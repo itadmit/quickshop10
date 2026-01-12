@@ -11,6 +11,8 @@
 import { createContext, useContext, useState, useEffect, type ReactNode, Children, useMemo } from 'react';
 import type { ProductPageSettings, ProductFeature, TypographySettings } from '@/lib/product-page-settings';
 import { defaultProductPageSettings, featureIcons, defaultTypography } from '@/lib/product-page-settings';
+import { VideoPlayer } from './video-player';
+import { isVideoUrl, getVideoThumbnailUrl } from '@/lib/cloudinary';
 
 // Hook to detect mobile viewport
 function useIsMobile(breakpoint: number = 768) {
@@ -211,11 +213,17 @@ export function useLiveProductPageSettings() {
 
 /**
  * LiveGallerySection - Full gallery with live updates for ALL gallery settings
+ * Supports both images and videos (videos show poster + play button)
  */
 interface LiveGallerySectionProps {
   mainImage: string;
   productName: string;
-  images: Array<{ id: string; url: string }>;
+  images: Array<{ 
+    id: string; 
+    url: string;
+    mediaType?: 'image' | 'video';
+    thumbnailUrl?: string | null;
+  }>;
   initialSettings: {
     layout: string;
     thumbnailsPosition: string;
@@ -340,23 +348,37 @@ export function LiveGallerySection({
   // Check if thumbnails hidden on mobile only
   const hideThumbnailsOnMobile = thumbnailsPositionMobile === 'hidden';
   
-  // Grid layout - show ALL images stacked vertically (one below another)
+  // Grid layout - show ALL images/videos stacked vertically (one below another)
   if (layout === 'grid' && images.length > 1) {
     return (
       <div className="flex flex-col gap-4">
-        {images.map((img, i) => (
-          <div 
-            key={img.id} 
-            className={`${aspectClass} bg-gray-50 overflow-hidden ${enableZoom ? 'cursor-zoom-in' : ''}`}
-          >
-            <ProductImageComponent 
-              src={img.url}
-              alt={`${productName} ${i + 1}`}
-              className="w-full h-full object-cover"
-              loading={i === 0 ? 'eager' : 'lazy'}
-            />
-          </div>
-        ))}
+        {images.map((img, i) => {
+          const isCurrentVideo = img.mediaType === 'video' || isVideoUrl(img.url);
+          return (
+            <div 
+              key={img.id} 
+              className={`${aspectClass} bg-gray-50 overflow-hidden ${!isCurrentVideo && enableZoom ? 'cursor-zoom-in' : ''}`}
+              onClick={!isCurrentVideo && enableZoom ? () => setIsZoomOpen(true) : undefined}
+            >
+              {isCurrentVideo ? (
+                <VideoPlayer
+                  src={img.url}
+                  poster={img.thumbnailUrl || getVideoThumbnailUrl(img.url)}
+                  alt={`${productName} - וידאו`}
+                  className="w-full h-full"
+                  aspectRatio=""
+                />
+              ) : (
+                <ProductImageComponent 
+                  src={img.url}
+                  alt={`${productName} ${i + 1}`}
+                  className="w-full h-full object-cover"
+                loading={i === 0 ? 'eager' : 'lazy'}
+              />
+              )}
+            </div>
+          );
+        })}
       </div>
     );
   }
@@ -367,8 +389,7 @@ export function LiveGallerySection({
     <div className={`space-y-4 ${getContainerClasses()}`}>
       {/* Main Image with Slide Animation */}
       <div 
-        className={`relative ${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
-        title={enableZoom ? 'לחץ להגדלה' : undefined}
+        className={`relative ${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''}`}
       >
         {/* Sliding images container with touch support */}
         <div 
@@ -377,25 +398,41 @@ export function LiveGallerySection({
             width: `${images.length * 100}%`,
             transform: `translateX(${selectedImageIndex * (100 / images.length)}%)` 
           }}
-          onClick={enableZoom ? () => setIsZoomOpen(true) : undefined}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
         >
-          {images.map((img, i) => (
-            <div 
-              key={img.id} 
-              className="h-full flex-shrink-0"
-              style={{ width: `${100 / images.length}%` }}
-            >
-              <ProductImageComponent 
-                src={img.url}
-                alt={`${productName} ${i + 1}`}
-                className="w-full h-full object-cover"
-                loading={i === 0 ? 'eager' : 'lazy'}
-              />
-            </div>
-          ))}
+          {images.map((img, i) => {
+            const isCurrentVideo = img.mediaType === 'video' || isVideoUrl(img.url);
+            return (
+              <div 
+                key={img.id} 
+                className={`h-full flex-shrink-0 ${!isCurrentVideo && enableZoom ? 'cursor-zoom-in' : ''}`}
+                style={{ width: `${100 / images.length}%` }}
+                onClick={!isCurrentVideo && enableZoom ? () => setIsZoomOpen(true) : undefined}
+                title={!isCurrentVideo && enableZoom ? 'לחץ להגדלה' : undefined}
+              >
+                {isCurrentVideo ? (
+                  // Video with click-to-play (lazy loaded)
+                  <VideoPlayer
+                    src={img.url}
+                    poster={img.thumbnailUrl || getVideoThumbnailUrl(img.url)}
+                    alt={`${productName} - וידאו`}
+                    className="w-full h-full"
+                    aspectRatio=""
+                  />
+                ) : (
+                  // Regular image
+                  <ProductImageComponent 
+                    src={img.url}
+                    alt={`${productName} ${i + 1}`}
+                    className="w-full h-full object-cover"
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
         
         {/* Navigation Arrows */}
@@ -404,7 +441,7 @@ export function LiveGallerySection({
             <button
               type="button"
               onClick={goToPrevious}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10 cursor-pointer"
               aria-label="תמונה קודמת"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -414,7 +451,7 @@ export function LiveGallerySection({
             <button
               type="button"
               onClick={goToNext}
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all z-10 cursor-pointer"
               aria-label="תמונה הבאה"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -445,24 +482,39 @@ export function LiveGallerySection({
       {/* Thumbnails - shown when more than 1 image and not hidden */}
       {showThumbnails() && (
         <div className={`${getThumbnailClasses()} ${hideThumbnailsOnMobile ? 'hidden lg:flex' : ''}`}>
-          {images.map((img, i) => (
-            <button
-              key={img.id}
-              type="button"
-              onClick={() => setSelectedImageIndex(i)}
-              className={`flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 bg-gray-50 overflow-hidden transition-all ${
-                i === selectedImageIndex 
-                  ? 'ring-2 ring-gray-400 ring-offset-2 opacity-100' 
-                  : 'opacity-60 hover:opacity-100'
-              }`}
-            >
-              <ProductImageComponent 
-                src={img.url}
-                alt={`${productName} ${i + 1}`}
-                className="w-full h-full object-cover"
-              />
-            </button>
-          ))}
+          {images.map((img, i) => {
+            const isVideo = img.mediaType === 'video' || isVideoUrl(img.url);
+            const thumbnailSrc = isVideo ? (img.thumbnailUrl || getVideoThumbnailUrl(img.url)) : img.url;
+            
+            return (
+              <button
+                key={img.id}
+                type="button"
+                onClick={() => setSelectedImageIndex(i)}
+                className={`relative flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 bg-gray-50 overflow-hidden transition-all ${
+                  i === selectedImageIndex 
+                    ? 'ring-2 ring-gray-400 ring-offset-2 opacity-100' 
+                    : 'opacity-60 hover:opacity-100'
+                }`}
+              >
+                <ProductImageComponent 
+                  src={thumbnailSrc}
+                  alt={`${productName} ${i + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                {/* Video indicator on thumbnail */}
+                {isVideo && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-6 h-6 rounded-full bg-black/60 flex items-center justify-center">
+                      <svg className="w-3 h-3 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
       
@@ -490,7 +542,7 @@ export function LiveGallerySection({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer"
                 aria-label="תמונה קודמת"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -500,7 +552,7 @@ export function LiveGallerySection({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); goToNext(); }}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors cursor-pointer"
                 aria-label="תמונה הבאה"
               >
                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
