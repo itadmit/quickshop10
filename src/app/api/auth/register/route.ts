@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (recaptchaToken) {
       const verification = await verifyRecaptcha(recaptchaToken);
       if (!verification.success) {
-        console.warn('reCAPTCHA verification failed:', verification.error, 'Score:', verification.score);
+        console.warn('reCAPTCHA verification failed:', verification.error);
         return NextResponse.json(
           { success: false, error: 'אימות נכשל. אנא נסה שוב.' },
           { status: 400 }
