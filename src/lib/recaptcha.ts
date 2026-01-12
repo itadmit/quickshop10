@@ -1,28 +1,23 @@
 /**
- * Server-side reCAPTCHA verification
+ * Server-side reCAPTCHA v2 verification
  */
 
 interface RecaptchaVerifyResponse {
   success: boolean;
-  score?: number;
-  action?: string;
   challenge_ts?: string;
   hostname?: string;
   'error-codes'?: string[];
 }
 
 /**
- * Verify reCAPTCHA token on the server
- * @param token - The token from client-side reCAPTCHA
- * @param expectedAction - The expected action name
- * @param minScore - Minimum acceptable score (0.0 - 1.0), default 0.5
- * @returns boolean indicating if verification passed
+ * Verify reCAPTCHA v2 token on the server
+ * 
+ * @param token - The token from client-side reCAPTCHA checkbox
+ * @returns object indicating if verification passed
  */
 export async function verifyRecaptcha(
-  token: string,
-  expectedAction: string,
-  minScore: number = 0.5
-): Promise<{ success: boolean; score?: number; error?: string }> {
+  token: string
+): Promise<{ success: boolean; error?: string }> {
   const secretKey = process.env.RECAPTCHA_SECRET_KEY;
 
   if (!secretKey) {
@@ -46,30 +41,14 @@ export async function verifyRecaptcha(
     const data: RecaptchaVerifyResponse = await response.json();
 
     if (!data.success) {
+      console.error('reCAPTCHA verification failed:', data['error-codes']);
       return {
         success: false,
         error: `reCAPTCHA verification failed: ${data['error-codes']?.join(', ')}`,
       };
     }
 
-    // Check action matches
-    if (data.action !== expectedAction) {
-      return {
-        success: false,
-        error: `Action mismatch: expected ${expectedAction}, got ${data.action}`,
-      };
-    }
-
-    // Check score threshold
-    if (data.score !== undefined && data.score < minScore) {
-      return {
-        success: false,
-        score: data.score,
-        error: `Score too low: ${data.score} (minimum: ${minScore})`,
-      };
-    }
-
-    return { success: true, score: data.score };
+    return { success: true };
   } catch (error) {
     console.error('reCAPTCHA verification error:', error);
     return { success: false, error: 'Verification request failed' };

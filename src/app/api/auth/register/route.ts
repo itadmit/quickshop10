@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // Verify reCAPTCHA token if provided
     if (recaptchaToken) {
-      const verification = await verifyRecaptcha(recaptchaToken, 'register', 0.5);
+      const verification = await verifyRecaptcha(recaptchaToken);
       if (!verification.success) {
         console.warn('reCAPTCHA verification failed:', verification.error, 'Score:', verification.score);
         return NextResponse.json(

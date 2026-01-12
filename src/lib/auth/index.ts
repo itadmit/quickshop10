@@ -222,11 +222,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const password = credentials.password as string;
         const recaptchaToken = credentials.recaptchaToken as string | undefined;
 
-        // Verify reCAPTCHA if token provided
+        // Verify reCAPTCHA v2 if token provided
         if (recaptchaToken) {
-          const verification = await verifyRecaptcha(recaptchaToken, 'login', 0.3);
+          const verification = await verifyRecaptcha(recaptchaToken);
           if (!verification.success) {
-            console.warn('Login reCAPTCHA failed:', verification.error, 'Score:', verification.score);
+            console.warn('Login reCAPTCHA failed:', verification.error);
             throw new Error('אימות נכשל. אנא נסה שוב.');
           }
         }

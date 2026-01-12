@@ -65,6 +65,7 @@ interface PelecardGetTransactionRequest {
   user: string;
   password: string;
   TransactionId: string;
+  [key: string]: string | undefined;
 }
 
 interface PelecardGetTransactionResponse {
