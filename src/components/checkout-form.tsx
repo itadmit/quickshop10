@@ -1641,20 +1641,6 @@ export function CheckoutForm({
                           value: city.cityName,
                           label: city.cityName,
                         }))}
-                        defaultOptions={[
-                          { value: 'תל אביב יפו', label: 'תל אביב יפו' },
-                          { value: 'ירושלים', label: 'ירושלים' },
-                          { value: 'חיפה', label: 'חיפה' },
-                          { value: 'ראשון לציון', label: 'ראשון לציון' },
-                          { value: 'פתח תקווה', label: 'פתח תקווה' },
-                          { value: 'אשדוד', label: 'אשדוד' },
-                          { value: 'נתניה', label: 'נתניה' },
-                          { value: 'באר שבע', label: 'באר שבע' },
-                          { value: 'בני ברק', label: 'בני ברק' },
-                          { value: 'רמת גן', label: 'רמת גן' },
-                          { value: 'הרצליה', label: 'הרצליה' },
-                          { value: 'כפר סבא', label: 'כפר סבא' },
-                        ]}
                         loading={citySearch.loading}
                         placeholder="לחץ לבחירת עיר..."
                         inputClassName="border-gray-200 focus:border-black"
