@@ -4,10 +4,12 @@ import { Suspense, useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import { useRecaptcha } from '@/components/recaptcha-provider';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { executeRecaptcha } = useRecaptcha();
   const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
   const error = searchParams.get('error');
   
@@ -27,17 +29,25 @@ function LoginForm() {
     }
 
     startTransition(async () => {
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
+      try {
+        // Get reCAPTCHA token
+        const recaptchaToken = await executeRecaptcha('login');
+        
+        const result = await signIn('credentials', {
+          email,
+          password,
+          recaptchaToken,
+          redirect: false,
+        });
 
-      if (result?.error) {
-        setErrorMsg('אימייל או סיסמה שגויים');
-      } else {
-        router.push(callbackUrl);
-        router.refresh();
+        if (result?.error) {
+          setErrorMsg('אימייל או סיסמה שגויים');
+        } else {
+          router.push(callbackUrl);
+          router.refresh();
+        }
+      } catch (error) {
+        setErrorMsg('אירעה שגיאה באימות. אנא נסה שוב.');
       }
     });
   };

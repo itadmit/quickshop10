@@ -86,3 +86,4 @@ CREATE INDEX IF NOT EXISTS "idx_shipping_methods_zone" ON "shipping_methods" ("z
 --> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "idx_pickup_locations_store" ON "pickup_locations" ("store_id");
 
+

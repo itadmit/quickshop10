@@ -15,3 +15,4 @@ export default async function LoyaltyProgramPluginPage({ params }: Props) {
   redirect(`/shops/${slug}/admin/loyalty`);
 }
 
+

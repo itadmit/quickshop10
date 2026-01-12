@@ -7,3 +7,4 @@ export { LoyaltyTransactionsList } from './loyalty-transactions-list';
 // Client Components
 export { LoyaltyCheckoutWidget } from './loyalty-checkout-widget';
 
+

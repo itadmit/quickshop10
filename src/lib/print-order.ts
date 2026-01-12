@@ -30,3 +30,4 @@ export function printOrder(storeSlug: string, orderId: string) {
   printOrders(storeSlug, [orderId]);
 }
 
+

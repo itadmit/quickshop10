@@ -4,9 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
+import { useRecaptcha } from '@/components/recaptcha-provider';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { executeRecaptcha, isReady } = useRecaptcha();
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -45,16 +47,25 @@ export default function RegisterPage() {
 
     setIsSubmitting(true);
     
-    // Store registration data securely in sessionStorage (not in URL!)
-    sessionStorage.setItem('registerData', JSON.stringify({
-      name,
-      email,
-      password,
-      storeName,
-    }));
-    
-    // Navigate to setup page without sensitive data in URL
-    router.push('/setup');
+    try {
+      // Get reCAPTCHA token
+      const recaptchaToken = await executeRecaptcha('register');
+      
+      // Store registration data securely in sessionStorage (not in URL!)
+      sessionStorage.setItem('registerData', JSON.stringify({
+        name,
+        email,
+        password,
+        storeName,
+        recaptchaToken,
+      }));
+      
+      // Navigate to setup page without sensitive data in URL
+      router.push('/setup');
+    } catch (error) {
+      setErrorMsg('אירעה שגיאה באימות. אנא נסה שוב.');
+      setIsSubmitting(false);
+    }
   };
 
   const handleGoogleLogin = () => {

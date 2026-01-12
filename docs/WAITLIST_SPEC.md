@@ -542,3 +542,4 @@ async function updateInventory(itemId, inventory, isVariant) {
 **גרסה:** 1.0.0  
 **מפתח:** QuickShop Team
 
+

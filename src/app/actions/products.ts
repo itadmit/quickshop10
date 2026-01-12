@@ -43,3 +43,4 @@ export async function getProductsByIds(productIds: string[]) {
   return productsWithImages;
 }
 
+

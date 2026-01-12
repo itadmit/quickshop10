@@ -17,6 +17,7 @@ interface RegisterData {
   email: string;
   password: string;
   storeName: string;
+  recaptchaToken?: string;
 }
 
 export default function SetupPage() {

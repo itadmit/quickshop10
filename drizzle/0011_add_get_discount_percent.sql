@@ -7,3 +7,4 @@ ALTER TABLE "discounts" ADD COLUMN IF NOT EXISTS "get_discount_percent" integer 
 -- Add to automatic_discounts table
 ALTER TABLE "automatic_discounts" ADD COLUMN IF NOT EXISTS "get_discount_percent" integer DEFAULT 100;
 
+

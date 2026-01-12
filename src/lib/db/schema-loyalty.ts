@@ -290,3 +290,4 @@ export type NewLoyaltyTransaction = typeof loyaltyTransactions.$inferInsert;
 export type LoyaltyTierProduct = typeof loyaltyTierProducts.$inferSelect;
 export type NewLoyaltyTierProduct = typeof loyaltyTierProducts.$inferInsert;
 
+

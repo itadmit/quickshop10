@@ -177,3 +177,4 @@ export function WaitlistDataTable({ entries, storeSlug, basePath }: WaitlistData
   );
 }
 
+

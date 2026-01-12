@@ -41,3 +41,4 @@ export function getStockStatusText(
   return { text: 'במלאי', color: 'green' };
 }
 
+

@@ -9,3 +9,4 @@ ALTER TABLE "influencers" ADD COLUMN "show_commission" boolean DEFAULT true NOT 
 ALTER TABLE "influencers" ADD COLUMN "show_customer_names" boolean DEFAULT true NOT NULL;
 ALTER TABLE "influencers" ADD COLUMN "show_order_details" boolean DEFAULT true NOT NULL;
 
+

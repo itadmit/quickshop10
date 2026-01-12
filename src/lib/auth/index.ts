@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { users, sessions, accounts, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import { verifyRecaptcha, checkRateLimit } from '@/lib/recaptcha';
 
 // Custom Drizzle Adapter
 const DrizzleAdapter = {
@@ -210,6 +211,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        recaptchaToken: { label: 'reCAPTCHA Token', type: 'text' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -218,6 +220,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         const email = (credentials.email as string).toLowerCase().trim();
         const password = credentials.password as string;
+        const recaptchaToken = credentials.recaptchaToken as string | undefined;
+
+        // Verify reCAPTCHA if token provided
+        if (recaptchaToken) {
+          const verification = await verifyRecaptcha(recaptchaToken, 'login', 0.3);
+          if (!verification.success) {
+            console.warn('Login reCAPTCHA failed:', verification.error, 'Score:', verification.score);
+            throw new Error('אימות נכשל. אנא נסה שוב.');
+          }
+        }
+
+        // Rate limiting by email (10 attempts per 15 minutes)
+        const rateLimit = checkRateLimit(`login:${email}`, 10, 15 * 60 * 1000);
+        if (!rateLimit.allowed) {
+          throw new Error('יותר מדי ניסיונות התחברות. נסה שוב מאוחר יותר.');
+        }
 
         const [user] = await db
           .select()

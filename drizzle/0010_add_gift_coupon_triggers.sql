@@ -8,3 +8,4 @@ ALTER TABLE "discounts" ADD COLUMN IF NOT EXISTS "minimum_quantity" integer;
 -- When any of these coupon codes is applied, this gift product coupon is automatically activated
 ALTER TABLE "discounts" ADD COLUMN IF NOT EXISTS "trigger_coupon_codes" jsonb DEFAULT '[]';
 
+

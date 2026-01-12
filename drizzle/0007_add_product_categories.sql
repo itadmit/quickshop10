@@ -16,3 +16,4 @@ INSERT INTO "product_categories" ("product_id", "category_id")
 SELECT "id", "category_id" FROM "products" WHERE "category_id" IS NOT NULL
 ON CONFLICT DO NOTHING;
 
+

@@ -107,3 +107,4 @@ export function LoyaltyTransactionsList({ transactions }: LoyaltyTransactionsLis
   );
 }
 
+
