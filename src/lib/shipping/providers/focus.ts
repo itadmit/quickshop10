@@ -212,7 +212,7 @@ export class FocusProvider extends BaseShippingProvider {
       recipient.phone,                    // P20: Primary phone
       '',                                 // P21: Additional phone
       request.orderNumber,                // P22: Your reference number
-      pkg.quantity || 1,                  // P23: Number of packages
+      ('quantity' in pkg ? pkg.quantity : 1) || 1,  // P23: Number of packages
       recipient.notes || '',              // P24: Address remarks
       request.notes || '',                // P25: Additional remarks
       '',                                 // P26: Second reference
