@@ -184,10 +184,22 @@ async function createShipmentForOrder(
     const response = await provider.createShipment(request);
     
     if (!response.success) {
-      console.error(`Auto-send: Failed to create shipment - ${response.errorMessage}`);
+      const errorMessage = response.errorMessage || 'Failed to create shipment';
+      console.error(`Auto-send: Failed to create shipment - ${errorMessage}`);
+      
+      // Save error to order for visibility in admin
+      await db
+        .update(orders)
+        .set({
+          shipmentError: errorMessage,
+          shipmentErrorAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(orders.id, order.id));
+      
       return {
         success: false,
-        error: response.errorMessage || 'Failed to create shipment',
+        error: errorMessage,
       };
     }
     
@@ -207,6 +219,17 @@ async function createShipmentForOrder(
       estimatedDelivery: response.estimatedDelivery,
       providerResponse: response.providerResponse,
     }).returning();
+    
+    // Update order fulfillment status to 'fulfilled' and clear any previous error
+    await db
+      .update(orders)
+      .set({
+        fulfillmentStatus: 'fulfilled',
+        shipmentError: null,
+        shipmentErrorAt: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, order.id));
     
     console.log(`Auto-send: Shipment created successfully - ${response.trackingNumber}`);
     

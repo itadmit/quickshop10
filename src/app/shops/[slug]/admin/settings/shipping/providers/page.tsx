@@ -5,6 +5,7 @@ import { shippingProviders } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { getAvailableShippingProviders } from '@/lib/shipping/provider-info';
 import { ShippingProvidersManager } from './providers-manager';
+import { TrackingPageLink } from './tracking-page-link';
 import { SettingsWrapper } from '@/components/admin/settings-wrapper';
 import Link from 'next/link';
 import { ArrowRight, Truck } from 'lucide-react';
@@ -59,6 +60,9 @@ export default async function ShippingProvidersPage({ params }: ShippingProvider
             </p>
           </div>
         </div>
+
+        {/* Tracking Page Link - Client Component for copy functionality */}
+        <TrackingPageLink storeSlug={slug} />
 
         {/* Provider Manager - Client Component for interactivity */}
         <ShippingProvidersManager 

@@ -4,8 +4,8 @@ import { getCurrentCustomer } from '@/lib/customer-auth';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { orders, orderItems } from '@/lib/db/schema';
-import { eq, desc, sql } from 'drizzle-orm';
+import { orders, orderItems, shipments } from '@/lib/db/schema';
+import { eq, desc, sql, inArray } from 'drizzle-orm';
 
 export const metadata = {
   title: 'ההזמנות שלי',
@@ -40,14 +40,29 @@ export default async function CustomerOrdersPage({ params }: OrdersPageProps) {
     .where(eq(orders.customerId, customer.id))
     .orderBy(desc(orders.createdAt));
   
-  // Get item counts for each order
+  // Get item counts and shipments for each order
+  const orderIds = customerOrders.map(o => o.id);
+  
+  // Batch fetch shipments for all orders
+  const allShipments = orderIds.length > 0
+    ? await db.select().from(shipments).where(inArray(shipments.orderId, orderIds))
+    : [];
+  
   const ordersWithCounts = await Promise.all(
     customerOrders.map(async (order) => {
       const items = await db
         .select({ count: sql<number>`count(*)` })
         .from(orderItems)
         .where(eq(orderItems.orderId, order.id));
-      return { ...order, itemsCount: Number(items[0]?.count || 0) };
+      
+      // Find shipment for this order
+      const orderShipment = allShipments.find(s => s.orderId === order.id);
+      
+      return { 
+        ...order, 
+        itemsCount: Number(items[0]?.count || 0),
+        shipment: orderShipment || null,
+      };
     })
   );
 
@@ -113,41 +128,60 @@ export default async function CustomerOrdersPage({ params }: OrdersPageProps) {
             {ordersWithCounts.map((order) => {
               const status = statusLabels[order.status] || statusLabels.pending;
               return (
-                <Link
+                <div
                   key={order.id}
-                  href={`${basePath}/account/orders/${order.orderNumber}`}
-                  className="block bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors"
+                  className="bg-white border border-gray-200 rounded-lg p-6 hover:border-gray-300 transition-colors"
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="font-medium text-lg">הזמנה #{order.orderNumber}</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {new Date(order.createdAt).toLocaleDateString('he-IL', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric',
-                        })}
-                      </p>
+                  <Link href={`${basePath}/account/orders/${order.orderNumber}`} className="block">
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-medium text-lg">הזמנה #{order.orderNumber}</h3>
+                        <p className="text-sm text-gray-500 mt-1">
+                          {new Date(order.createdAt).toLocaleDateString('he-IL', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                      <span className={`text-xs px-3 py-1.5 rounded-full ${status.color}`}>
+                        {status.label}
+                      </span>
                     </div>
-                    <span className={`text-xs px-3 py-1.5 rounded-full ${status.color}`}>
-                      {status.label}
-                    </span>
-                  </div>
+                    
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                      <div className="text-sm text-gray-500">
+                        {order.itemsCount} פריטים
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="font-medium text-lg">
+                          ₪{Number(order.total).toFixed(2)}
+                        </span>
+                        <span className="text-sm text-gray-400">
+                          צפה בפרטים ←
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
                   
-                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                    <div className="text-sm text-gray-500">
-                      {order.itemsCount} פריטים
+                  {/* Track Shipment Button */}
+                  {order.shipment && order.shipment.trackingNumber && (
+                    <div className="pt-4 border-t border-gray-100 mt-4">
+                      <Link
+                        href={`${basePath}/track?order=${order.orderNumber}`}
+                        className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <rect x="1" y="3" width="15" height="13" rx="2"/>
+                          <path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/>
+                          <circle cx="5.5" cy="18.5" r="2.5"/>
+                          <circle cx="18.5" cy="18.5" r="2.5"/>
+                        </svg>
+                        עקוב אחרי המשלוח
+                      </Link>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="font-medium text-lg">
-                        ₪{Number(order.total).toFixed(2)}
-                      </span>
-                      <span className="text-sm text-gray-400">
-                        צפה בפרטים ←
-                      </span>
-                    </div>
-                  </div>
-                </Link>
+                  )}
+                </div>
               );
             })}
           </div>

@@ -4,8 +4,8 @@ import { getCurrentCustomer } from '@/lib/customer-auth';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { orders, orderItems } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { orders, orderItems, shipments } from '@/lib/db/schema';
+import { eq, and, desc } from 'drizzle-orm';
 
 export const metadata = {
   title: 'פרטי הזמנה',
@@ -49,11 +49,11 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
     notFound();
   }
 
-  // Fetch order items
-  const items = await db
-    .select()
-    .from(orderItems)
-    .where(eq(orderItems.orderId, order.id));
+  // Fetch order items and shipment in parallel
+  const [items, [shipment]] = await Promise.all([
+    db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
+    db.select().from(shipments).where(eq(shipments.orderId, order.id)).orderBy(desc(shipments.createdAt)).limit(1),
+  ]);
 
   const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
     pending: { label: 'ממתין לאישור', color: 'bg-amber-100 text-amber-700', icon: '⏳' },
@@ -288,6 +288,47 @@ export default async function CustomerOrderDetailPage({ params }: OrderDetailPag
                   <span>₪{Number(order.total).toFixed(2)}</span>
                 </div>
               </div>
+
+              {/* Shipment Tracking */}
+              {shipment && shipment.trackingNumber && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h3 className="text-sm font-medium mb-3">מעקב משלוח</h3>
+                  <div className="p-4 bg-blue-50 rounded-lg space-y-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="1.5">
+                          <rect x="1" y="3" width="15" height="13" rx="2"/>
+                          <path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/>
+                          <circle cx="5.5" cy="18.5" r="2.5"/>
+                          <circle cx="18.5" cy="18.5" r="2.5"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">מספר מעקב</p>
+                        <p className="font-mono font-medium text-sm" dir="ltr">{shipment.trackingNumber}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">סטטוס:</span>
+                      <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                        {shipment.status === 'created' ? 'נוצר' :
+                         shipment.status === 'in_transit' ? 'בדרך' :
+                         shipment.status === 'delivered' ? 'נמסר' : shipment.status}
+                      </span>
+                    </div>
+                    <Link
+                      href={`${basePath}/track?order=${order.orderNumber}`}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                      </svg>
+                      עקוב אחרי המשלוח
+                    </Link>
+                  </div>
+                </div>
+              )}
 
               {/* Order Timeline */}
               <div className="mt-6 pt-6 border-t border-gray-100">

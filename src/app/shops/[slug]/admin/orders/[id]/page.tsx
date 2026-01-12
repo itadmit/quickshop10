@@ -1,5 +1,5 @@
 import { getStoreBySlug, getOrderDetails } from '@/lib/db/queries';
-import { markOrderAsRead } from '@/lib/actions/orders';
+import { markOrderAsRead, getOrderShipment } from '@/lib/actions/orders';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/admin/ui';
@@ -68,6 +68,9 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
   // Use order alias for cleaner code
   const order = orderData;
 
+  // Get existing shipment info (for label printing)
+  const shipment = await getOrderShipment(id);
+
   const shippingAddress = order.shippingAddress as {
     firstName?: string;
     lastName?: string;
@@ -118,6 +121,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
           fulfillmentStatus={order.fulfillmentStatus!}
           financialStatus={order.financialStatus!}
           status={order.status!}
+          shipment={shipment}
         />
       </div>
 
@@ -388,11 +392,92 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
         {/* Right Column - Customer & Shipping */}
         <div className="col-span-4 space-y-4">
+          {/* Shipment Error Alert */}
+          {order.shipmentError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 flex items-start gap-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="8" x2="12" y2="12"/>
+                  <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-red-800">שגיאת שליחה אוטומטית</h3>
+                  <p className="text-sm text-red-700 mt-1">{order.shipmentError}</p>
+                  {order.shipmentErrorAt && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {new Date(order.shipmentErrorAt).toLocaleDateString('he-IL', { 
+                        day: 'numeric', 
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Shipment Info */}
+          {shipment && (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-green-500">
+                  <rect x="1" y="3" width="15" height="13" rx="2"/>
+                  <path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/>
+                  <circle cx="5.5" cy="18.5" r="2.5"/>
+                  <circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+                <h3 className="text-sm font-semibold text-gray-900">משלוח</h3>
+              </div>
+              <div className="px-4 py-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">מספר מעקב</span>
+                  <span className="text-sm font-mono font-medium text-gray-900 select-all">
+                    {shipment.trackingNumber}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">ספק</span>
+                  <span className="text-sm text-gray-700">{shipment.provider}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">סטטוס</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                    {shipment.status === 'created' ? 'נוצר' : 
+                     shipment.status === 'in_transit' ? 'בדרך' :
+                     shipment.status === 'delivered' ? 'נמסר' : shipment.status}
+                  </span>
+                </div>
+                {/* Generate correct label URL for Focus (ship_print_ws endpoint) */}
+                {shipment.trackingNumber && (
+                  <a
+                    href={shipment.provider === 'focus' 
+                      ? `https://focusdelivery.co.il/RunCom.Server/Request.aspx?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${shipment.trackingNumber},-A,-A,-A,-A,-A,-A,-N,-A${order.orderNumber}`
+                      : shipment.labelUrl || '#'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M6 9V2h12v7"/>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                      <rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                    הדפס תווית
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Notes */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">הערות</h3>
-              <button className="text-xs font-medium text-gray-500 hover:text-gray-700">
+              <button className="text-xs font-medium text-gray-500 hover:text-gray-700 cursor-pointer">
                 ערוך
               </button>
             </div>

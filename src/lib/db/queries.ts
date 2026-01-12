@@ -1,5 +1,5 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, pageSections, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons } from './schema';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons } from './schema';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
@@ -585,6 +585,7 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
       archivedAt: orders.archivedAt,
       customerName: orders.customerName,
       customerEmail: orders.customerEmail,
+      shipmentError: orders.shipmentError,
       customer: {
         id: customers.id,
         firstName: customers.firstName,

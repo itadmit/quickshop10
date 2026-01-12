@@ -778,6 +778,11 @@ export const orders = pgTable('orders', {
   status: orderStatusEnum('status').default('pending').notNull(),
   financialStatus: financialStatusEnum('financial_status').default('pending').notNull(),
   fulfillmentStatus: fulfillmentStatusEnum('fulfillment_status').default('unfulfilled').notNull(),
+  
+  // Shipment error tracking (for auto-send failures)
+  shipmentError: text('shipment_error'),
+  shipmentErrorAt: timestamp('shipment_error_at'),
+  
   subtotal: decimal('subtotal', { precision: 10, scale: 2 }).notNull(),
   discountCode: varchar('discount_code', { length: 50 }),
   discountAmount: decimal('discount_amount', { precision: 10, scale: 2 }).default('0'),

@@ -24,8 +24,8 @@ export const SHIPPING_PROVIDER_INFO: Record<ShippingProviderType, ShippingProvid
     },
     requiredCredentials: [
       { key: 'customerNumber', label: 'Customer Number', labelHe: 'מספר לקוח', type: 'text', required: true, placeholder: 'מספר שקיבלת מפוקוס' },
-      { key: 'shipmentType', label: 'Shipment Type Code', labelHe: 'קוד סוג משלוח', type: 'text', required: false, placeholder: 'ברירת מחדל: 1', defaultValue: '1' },
-      { key: 'cargoType', label: 'Cargo Type Code', labelHe: 'קוד סוג מטען', type: 'text', required: false, placeholder: 'ברירת מחדל: 1', defaultValue: '1' },
+      { key: 'shipmentType', label: 'Shipment Type Code', labelHe: 'קוד סוג משלוח', type: 'text', required: false, placeholder: 'ברירת מחדל: 100', defaultValue: '100' },
+      { key: 'cargoType', label: 'Cargo Type Code', labelHe: 'קוד סוג מטען', type: 'text', required: false, placeholder: 'ברירת מחדל: 100', defaultValue: '100' },
       { key: 'token', label: 'API Token', labelHe: 'טוקן API (אופציונלי)', type: 'password', required: false, placeholder: 'רק אם פוקוס דרשו' },
     ],
   },

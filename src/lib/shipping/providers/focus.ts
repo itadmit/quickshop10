@@ -61,6 +61,8 @@ export class FocusProvider extends BaseShippingProvider {
   ): Promise<T> {
     const url = `${this.getApiUrl()}?${endpoint}`;
     
+    console.log('[Focus] Full Request URL:', url);
+    
     const requestHeaders: Record<string, string> = {
       ...headers,
     };
@@ -71,49 +73,143 @@ export class FocusProvider extends BaseShippingProvider {
       requestHeaders['Authorization'] = `Bearer ${token}`;
     }
     
-    this.log('Request URL', url);
-    
     const response = await fetch(url, {
       method: 'GET', // Run ERP uses GET for all requests
       headers: requestHeaders,
     });
     
+    console.log('[Focus] Response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`Focus API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('[Focus] API Error response:', errorText);
+      throw new Error(`Focus API error: ${response.status} - ${errorText}`);
     }
     
-    const text = await response.text();
-    this.log('Response', text);
+    // Get response as buffer first to handle encoding properly
+    const buffer = await response.arrayBuffer();
+    // Try to decode as UTF-8 first, then as Windows-1255 (Hebrew encoding)
+    let text: string;
+    try {
+      text = new TextDecoder('utf-8').decode(buffer);
+      // Check if it looks like encoding issues (gibberish)
+      if (text.includes('�')) {
+        // Try Windows-1255 (Hebrew Windows encoding)
+        text = new TextDecoder('windows-1255').decode(buffer);
+      }
+    } catch {
+      text = new TextDecoder('windows-1255').decode(buffer);
+    }
     
-    // Parse XML response
-    return this.parseXmlResponse(text) as T;
+    console.log('[Focus] Raw Response:', text);
+    
+    // Check if response is XML or plain text
+    if (text.startsWith('<?xml') || text.startsWith('<')) {
+      // Parse XML response
+      return this.parseXmlResponse(text) as T;
+    } else {
+      // Parse text response (format: code,message|errorCode)
+      return this.parseTextResponse(text) as T;
+    }
   }
   
+  /**
+   * Parse plain text response from Run ERP
+   * Format: code,message|errorCode or shipmentNumber,randomNumber
+   */
+  private parseTextResponse(text: string): Record<string, string> {
+    const result: Record<string, string> = {};
+    
+    console.log('[Focus] Parsing text response:', text);
+    
+    // Check for error format: 0,error message|errorCode
+    if (text.startsWith('0,') || text.startsWith('-')) {
+      result.error = 'true';
+      
+      // Extract message (between first comma and pipe)
+      const pipeIndex = text.indexOf('|');
+      if (pipeIndex > 0) {
+        result.message = text.substring(2, pipeIndex).trim();
+        result.errorCode = text.substring(pipeIndex + 1).trim();
+      } else {
+        result.message = text.substring(2).trim();
+      }
+      
+      console.log('[Focus] Text response - Error:', result.message, 'Code:', result.errorCode);
+    } else {
+      // Success format: shipmentNumber,randomNumber or just shipmentNumber
+      const parts = text.split(',');
+      if (parts.length >= 1 && parts[0].trim()) {
+        result.ship_create_num = parts[0].trim();
+        if (parts.length >= 2) {
+          result.ship_num_rand = parts[1].trim();
+        }
+        console.log('[Focus] Text response - Shipment:', result.ship_create_num, 'Random:', result.ship_num_rand);
+      }
+    }
+    
+    return result;
+  }
+
   /**
    * Parse XML response from Run ERP
    */
   private parseXmlResponse(xml: string): Record<string, string> {
     const result: Record<string, string> = {};
     
-    // Simple XML parsing for key tags
+    // Simple XML parsing for key tags - including common variations
     const tags = [
       'ship_create_num', 'ship_num_rand', 'status', 'message',
       'shgiya_yn', 'mishloah', 'random', 'status_desc',
-      'status_code', 'status_date', 'status_time'
+      'status_code', 'status_date', 'status_time',
+      // Error fields
+      'ship_create_error', 'ship_create_error_code',
+      // Additional possible tag names
+      'error', 'err', 'msg', 'shipment_num', 'tracking_num',
+      'barcode', 'shipcreate', 'ship_num', 'num', 'customer_number'
     ];
     
     for (const tag of tags) {
-      const match = xml.match(new RegExp(`<${tag}>\\s*(?:<!\\[CDATA\\[)?([^<\\]]*?)(?:\\]\\]>)?\\s*</${tag}>`, 'i'));
+      // Try multiple patterns for tag matching
+      // Pattern 1: Standard XML
+      let match = xml.match(new RegExp(`<${tag}[^>]*>([^<]*)</${tag}>`, 'i'));
+      if (!match) {
+        // Pattern 2: With CDATA
+        match = xml.match(new RegExp(`<${tag}[^>]*>\\s*<!\\[CDATA\\[([^\\]]*?)\\]\\]>\\s*</${tag}>`, 'i'));
+      }
+      if (!match) {
+        // Pattern 3: Self-closing or empty
+        match = xml.match(new RegExp(`<${tag}[^>]*/>`, 'i'));
+        if (match) {
+          result[tag] = '';
+          continue;
+        }
+      }
       if (match) {
-        result[tag] = match[1].trim();
+        result[tag] = match[1]?.trim() || '';
       }
     }
     
-    // Check for error
-    if (xml.includes('<shgiya_yn>y</shgiya_yn>') || xml.includes('<status>ERROR</status>')) {
-      result.error = 'true';
+    // Also try to extract any tag that contains "num" or "shipment"
+    const numMatch = xml.match(/<([^>]*(?:num|shipment|mishloah)[^>]*)>([^<]+)<\/\1>/gi);
+    if (numMatch) {
+      console.log('[Focus] Found number-related tags:', numMatch);
     }
     
+    // Check for error
+    if (xml.includes('<shgiya_yn>y</shgiya_yn>') || 
+        xml.includes('<shgiya_yn>Y</shgiya_yn>') ||
+        xml.includes('<status>ERROR</status>') ||
+        xml.includes('<error>')) {
+      result.error = 'true';
+      // Try to extract error message
+      const msgMatch = xml.match(/<(?:message|msg|error)>([^<]+)<\/(?:message|msg|error)>/i);
+      if (msgMatch) {
+        result.message = msgMatch[1];
+      }
+    }
+    
+    console.log('[Focus] Parsed response:', result);
     return result;
   }
   
@@ -161,12 +257,82 @@ export class FocusProvider extends BaseShippingProvider {
   
   /**
    * Build URL arguments for Run ERP
+   * According to RUN API documentation, each parameter has a FIXED type prefix
+   * based on its POSITION, not based on the actual value!
+   * 
+   * Format from docs:
+   * ARGUMENTS=-N<p1>,-A<p2>,-N<p3>,-N<p4>,-A<p5>,-A<p6>,-N<p7>,-N<p8>,-N<p9>,-N<p10>,
+   *           -A<p11>,-A<p12>,-A<p13>,-A<p14>,-A<p15>,-A<p16>,-A<p17>,-A<p18>,-A<p19>,
+   *           -A<p20>,-A<p21>,-A<p22>,-A<p23>,-A<p24>,-A<p25>,-A<p26>,-A<p27>,-A<p28>,
+   *           -N<p29>,-N<p30>,-N<p31>,-A<p32>,-A<p33>,-N<p34>,-N<p35>,-A<p36>,-A<p37>,
+   *           -A<p38>,-N<p39>,-N<p40>,-N<p41>,-N<p42>
    */
   private buildArguments(params: (string | number | null)[]): string {
+    // Type prefixes by position (0-indexed = P1, P2, etc.)
+    // N = Numeric, A = Alphanumeric (string)
+    const typeByPosition: ('N' | 'A')[] = [
+      'N',  // P1: Customer number
+      'A',  // P2: מסירה/איסוף
+      'N',  // P3: Shipment type
+      'N',  // P4: Shipment stage
+      'A',  // P5: Ordered by name
+      'A',  // P6: (blank)
+      'N',  // P7: Shipped cargo type
+      'N',  // P8: Returned cargo type
+      'N',  // P9: Number of returned packages
+      'N',  // P10: (blank)
+      'A',  // P11: Consignee's name
+      'A',  // P12: City code
+      'A',  // P13: City name
+      'A',  // P14: Street code
+      'A',  // P15: Street name
+      'A',  // P16: Building No
+      'A',  // P17: Entrance No
+      'A',  // P18: Floor No
+      'A',  // P19: Apartment No
+      'A',  // P20: Primary phone
+      'A',  // P21: Additional phone
+      'A',  // P22: Reference number
+      'A',  // P23: Number of packages (docs show -A even though it's numeric)
+      'A',  // P24: Address remarks
+      'A',  // P25: Additional remarks
+      'A',  // P26: Second reference
+      'A',  // P27: Pickup date
+      'A',  // P28: Pickup time
+      'N',  // P29: (blank)
+      'N',  // P30: Payment type code
+      'N',  // P31: Sum to collect
+      'A',  // P32: Collection date
+      'A',  // P33: Collection notes
+      'N',  // P34: Source pickup point
+      'N',  // P35: Destination pickup point
+      'A',  // P36: Response type (XML)
+      'A',  // P37: Auto pickup assignment
+      'A',  // P38: Consignee email
+      'N',  // P39: Weight
+      'N',  // P40: Width
+      'N',  // P41: Height
+      'N',  // P42: Length
+    ];
+    
     return params.map((p, i) => {
-      const isNumeric = typeof p === 'number' || (typeof p === 'string' && /^\d+$/.test(p));
-      const prefix = isNumeric ? '-N' : '-A';
-      const value = p === null || p === undefined ? '' : String(p);
+      const prefix = `-${typeByPosition[i] || 'A'}`;
+      let value = p === null || p === undefined || p === '' ? '' : String(p);
+      
+      // According to RUN API docs: "There cannot be commas and & characters in the text of a parameter"
+      // Replace commas with spaces and & with "and"
+      value = value.replace(/,/g, ' ').replace(/&/g, ' ');
+      
+      // Also remove any pipe characters that might break the response parsing
+      value = value.replace(/\|/g, ' ');
+      
+      // Normalize Israeli phone numbers: remove +972 prefix and add leading 0
+      if (value.startsWith('+972')) {
+        value = '0' + value.substring(4);
+      } else if (value.startsWith('972')) {
+        value = '0' + value.substring(3);
+      }
+      
       return `${prefix}${value}`;
     }).join(',');
   }
@@ -182,16 +348,21 @@ export class FocusProvider extends BaseShippingProvider {
     const recipient = request.recipient;
     const pkg = request.package || this.getDefaultPackage();
     
+    // Debug log - always show for shipment creation
+    console.log('[Focus] Creating shipment for order:', request.orderNumber);
+    console.log('[Focus] Sender:', sender);
+    console.log('[Focus] Recipient:', recipient);
+    
     // Build the 42 parameters for WS Simple
     // P1-P42 according to Run ERP documentation
     const params: (string | number | null)[] = [
       credentials.customerNumber || '',  // P1: Customer number
       'מסירה',                           // P2: Delivery type (מסירה for delivery)
-      credentials.shipmentType || '1',   // P3: Shipment type code
+      credentials.shipmentType && credentials.shipmentType !== '1' ? credentials.shipmentType : '100', // P3: Shipment type code (default: 100)
       '',                                 // P4: Shipment stage (leave blank)
       sender.name,                        // P5: Ordered by name
       '',                                 // P6: Leave blank
-      credentials.cargoType || '1',      // P7: Shipped cargo type
+      credentials.cargoType && credentials.cargoType !== '1' ? credentials.cargoType : '100', // P7: Shipped cargo type (default: 100)
       '',                                 // P8: Returned cargo type (for returns)
       '',                                 // P9: Number of returned packages
       '',                                 // P10: Leave blank
@@ -231,15 +402,22 @@ export class FocusProvider extends BaseShippingProvider {
     
     try {
       const args = this.buildArguments(params);
-      const endpoint = `APPNAME=run&PRGNAME=ship_create_anonymous&ARGUMENTS=${args}`;
+      // URL encode the arguments (especially for Hebrew text like מסירה)
+      const encodedArgs = encodeURIComponent(args);
+      const endpoint = `APPNAME=run&PRGNAME=ship_create_anonymous&ARGUMENTS=${encodedArgs}`;
       
+      console.log('[Focus] Calling API with args:', args);
       const response = await this.makeRequest<Record<string, string>>(endpoint, 'GET');
+      console.log('[Focus] API Response:', JSON.stringify(response, null, 2));
       
-      if (response.error || response.shgiya_yn === 'y') {
+      if (response.error || response.shgiya_yn === 'y' || response.shgiya_yn === 'Y') {
+        const errorMsg = response.message || 'שגיאה ביצירת משלוח';
+        const errorCode = response.errorCode || 'CREATE_FAILED';
+        console.error(`[Focus] API Error: ${errorMsg} (Code: ${errorCode})`);
         return {
           success: false,
-          errorCode: 'CREATE_FAILED',
-          errorMessage: response.message || 'שגיאה ביצירת משלוח',
+          errorCode,
+          errorMessage: errorMsg,
           providerResponse: response,
         };
       }
@@ -247,7 +425,19 @@ export class FocusProvider extends BaseShippingProvider {
       const shipmentNumber = response.ship_create_num;
       const randomNumber = response.ship_num_rand;
       
-      if (!shipmentNumber) {
+      // Check for error in response
+      if (response.ship_create_error) {
+        console.error(`[Focus] Shipment creation error: ${response.ship_create_error} (Code: ${response.ship_create_error_code})`);
+        return {
+          success: false,
+          errorCode: response.ship_create_error_code || 'CREATE_ERROR',
+          errorMessage: response.ship_create_error,
+          providerResponse: response,
+        };
+      }
+      
+      // Check if shipment number is valid (not empty and not 0)
+      if (!shipmentNumber || shipmentNumber === '0') {
         return {
           success: false,
           errorCode: 'NO_SHIPMENT_NUMBER',
@@ -256,8 +446,10 @@ export class FocusProvider extends BaseShippingProvider {
         };
       }
       
-      // Generate label URL (PDF)
-      const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=print_label&ARGUMENTS=-A${shipmentNumber},-APDF`;
+      // Generate label URL using ship_print_ws (Web Service endpoint)
+      // Format: PRGNAME=ship_print_ws&ARGUMENTS=-N{shipmentId},-A,-A,-A,-A,-A,-A,-N,-A{referenceNumber}
+      // This returns PDF content directly without requiring portal login
+      const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${shipmentNumber},-A,-A,-A,-A,-A,-A,-N,-A${request.orderNumber || ''}`;
       
       return {
         success: true,
@@ -367,14 +559,15 @@ export class FocusProvider extends BaseShippingProvider {
   }
   
   /**
-   * Get shipping label
+   * Get shipping label using ship_print_ws (Web Service)
+   * Returns PDF content directly without requiring portal login
    */
-  async getLabel(providerShipmentId: string): Promise<LabelResponse> {
+  async getLabel(providerShipmentId: string, referenceNumber?: string): Promise<LabelResponse> {
     this.ensureConfigured();
     
     try {
-      // Direct URL to PDF label
-      const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=print_label&ARGUMENTS=-A${providerShipmentId},-APDF`;
+      // Use ship_print_ws endpoint which returns PDF directly
+      const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${providerShipmentId},-A,-A,-A,-A,-A,-A,-N,-A${referenceNumber || ''}`;
       
       return {
         success: true,
