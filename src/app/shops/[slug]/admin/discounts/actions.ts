@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { discounts, influencers } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 type DiscountType = 
@@ -106,13 +106,26 @@ export async function createCoupon(storeId: string, data: CouponData) {
       activatesCouponCodes: data.activatesCouponCodes || [],
     }).returning();
 
-    // Link to influencer if specified
+    // Link to influencer if specified - add to discountIds array
     if (data.influencerId && newCoupon) {
+      // Get current influencer to preserve existing discountIds
+      const [currentInfluencer] = await db
+        .select({ discountIds: influencers.discountIds })
+        .from(influencers)
+        .where(eq(influencers.id, data.influencerId))
+        .limit(1);
+
+      const currentIds = (currentInfluencer?.discountIds as string[]) || [];
+      const updatedIds = currentIds.includes(newCoupon.id) 
+        ? currentIds 
+        : [...currentIds, newCoupon.id];
+
       await db
         .update(influencers)
         .set({ 
-          discountId: newCoupon.id,
-          couponCode: normalizedCode,
+          discountId: updatedIds[0] || null, // backwards compatibility
+          discountIds: updatedIds,
+          couponCode: normalizedCode, // keep last coupon code for backwards compatibility
         })
         .where(eq(influencers.id, data.influencerId));
     }
@@ -166,19 +179,46 @@ export async function updateCoupon(couponId: string, data: CouponData) {
       })
       .where(eq(discounts.id, couponId));
 
-    // Clear old influencer link
-    await db
-      .update(influencers)
-      .set({ discountId: null, couponCode: null })
-      .where(eq(influencers.discountId, couponId));
+    // Find influencers who currently have this coupon in their discountIds
+    const influencersWithCoupon = await db
+      .select({ id: influencers.id, discountIds: influencers.discountIds })
+      .from(influencers)
+      .where(sql`${influencers.discountIds}::jsonb @> ${JSON.stringify([couponId])}::jsonb`);
 
-    // Link to new influencer if specified
+    // Remove coupon from old influencers (except the new one if same)
+    for (const inf of influencersWithCoupon) {
+      if (inf.id !== data.influencerId) {
+        const currentIds = (inf.discountIds as string[]) || [];
+        const updatedIds = currentIds.filter(id => id !== couponId);
+        await db
+          .update(influencers)
+          .set({ 
+            discountIds: updatedIds,
+            discountId: updatedIds[0] || null, // backwards compatibility
+          })
+          .where(eq(influencers.id, inf.id));
+      }
+    }
+
+    // Link to new influencer if specified - add to discountIds array
     if (data.influencerId) {
+      const [currentInfluencer] = await db
+        .select({ discountIds: influencers.discountIds })
+        .from(influencers)
+        .where(eq(influencers.id, data.influencerId))
+        .limit(1);
+
+      const currentIds = (currentInfluencer?.discountIds as string[]) || [];
+      const updatedIds = currentIds.includes(couponId) 
+        ? currentIds 
+        : [...currentIds, couponId];
+
       await db
         .update(influencers)
         .set({ 
-          discountId: couponId,
-          couponCode: normalizedCode,
+          discountId: updatedIds[0] || null, // backwards compatibility
+          discountIds: updatedIds,
+          couponCode: normalizedCode, // keep last coupon code for backwards compatibility
         })
         .where(eq(influencers.id, data.influencerId));
     }

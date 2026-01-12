@@ -307,20 +307,28 @@ async function updateDiscountUsage(
     .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
     .where(and(eq(discounts.storeId, storeId), eq(discounts.code, discountCode)));
   
-  // Check if coupon is linked to influencer
+  // Get discount ID first
+  const [discount] = await db
+    .select({ id: discounts.id })
+    .from(discounts)
+    .where(and(eq(discounts.storeId, storeId), eq(discounts.code, discountCode)))
+    .limit(1);
+
+  if (!discount) return;
+
+  // Check if coupon is linked to influencer (check discountIds array)
   const [result] = await db
     .select({
       influencerId: influencers.id,
       commissionType: influencers.commissionType,
       commissionValue: influencers.commissionValue,
     })
-    .from(discounts)
-    .innerJoin(influencers, eq(influencers.discountId, discounts.id))
+    .from(influencers)
     .where(
       and(
-        eq(discounts.storeId, storeId),
-        eq(discounts.code, discountCode),
-        eq(influencers.isActive, true)
+        eq(influencers.storeId, storeId),
+        eq(influencers.isActive, true),
+        sql`${influencers.discountIds}::jsonb @> ${JSON.stringify([discount.id])}::jsonb`
       )
     )
     .limit(1);
