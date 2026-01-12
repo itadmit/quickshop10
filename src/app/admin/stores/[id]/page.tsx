@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { ArrowRight, Store, User, Calendar, Clock, CreditCard, ShoppingCart, DollarSign, ExternalLink, Mail, Globe, Settings } from 'lucide-react';
 import { StoreEditForm } from './store-edit-form';
 import { OwnerPasswordForm } from './owner-password-form';
+import { CustomPricingForm } from './custom-pricing-form';
+import { getPlatformSetting } from '@/lib/billing/platform-settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +46,11 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
   const subscription = await db.query.storeSubscriptions.findFirst({
     where: eq(storeSubscriptions.storeId, store.id),
   });
+
+  // Get default pricing from platform settings
+  const defaultBrandingPrice = await getPlatformSetting('subscription_branding_price', 299);
+  const defaultQuickshopPrice = await getPlatformSetting('subscription_quickshop_price', 399);
+  const defaultPrice = subscription?.plan === 'branding' ? defaultBrandingPrice : defaultQuickshopPrice;
 
   // Get order stats
   const [orderStats] = await db
@@ -314,6 +321,16 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
             isActive: store.isActive,
             customDomain: store.customDomain,
           }} />
+
+          {/* Custom Pricing */}
+          {subscription && subscription.plan !== 'trial' && subscription.plan !== 'free' && (
+            <CustomPricingForm
+              storeId={store.id}
+              currentPrice={subscription.customMonthlyPrice}
+              defaultPrice={defaultPrice}
+              planName={planInfo.name}
+            />
+          )}
 
           {/* Owner Password Change */}
           <OwnerPasswordForm 

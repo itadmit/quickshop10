@@ -3037,6 +3037,9 @@ export const storeSubscriptions = pgTable('store_subscriptions', {
   billingAddress: jsonb('billing_address'),
   vatNumber: varchar('vat_number', { length: 50 }), // ח.פ / ע.מ
   
+  // Custom pricing
+  customMonthlyPrice: decimal('custom_monthly_price', { precision: 10, scale: 2 }), // מחיר חודשי מותאם אישית (אופציונלי)
+  
   // Metadata
   cancelledAt: timestamp('cancelled_at'),
   cancellationReason: text('cancellation_reason'),

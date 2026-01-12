@@ -433,16 +433,45 @@ export function calculateSubscriptionPrice(plan: 'branding' | 'quickshop'): {
 
 /**
  * Calculate subscription price with VAT (async version - reads from DB)
+ * Supports custom pricing per store
  */
-export async function calculateSubscriptionPriceAsync(plan: 'branding' | 'quickshop'): Promise<{
+export async function calculateSubscriptionPriceAsync(
+  plan: 'branding' | 'quickshop',
+  storeId?: string
+): Promise<{
   basePrice: number;
   vatAmount: number;
   totalPrice: number;
 }> {
-  const pricing = await getSubscriptionPricing();
-  const feeRates = await getFeeRates();
+  let basePrice: number;
   
-  const basePrice = plan === 'branding' ? pricing.branding : pricing.quickshop;
+  // If storeId provided, check for custom pricing first
+  if (storeId) {
+    const { db } = await import('@/lib/db');
+    const { storeSubscriptions } = await import('@/lib/db/schema');
+    const { eq } = await import('drizzle-orm');
+    
+    const subscription = await db
+      .select({ customMonthlyPrice: storeSubscriptions.customMonthlyPrice })
+      .from(storeSubscriptions)
+      .where(eq(storeSubscriptions.storeId, storeId))
+      .then(rows => rows[0]);
+    
+    // Use custom price if set
+    if (subscription?.customMonthlyPrice) {
+      basePrice = parseFloat(subscription.customMonthlyPrice);
+    } else {
+      // Use default pricing from DB
+      const pricing = await getSubscriptionPricing();
+      basePrice = plan === 'branding' ? pricing.branding : pricing.quickshop;
+    }
+  } else {
+    // No storeId - use default pricing
+    const pricing = await getSubscriptionPricing();
+    basePrice = plan === 'branding' ? pricing.branding : pricing.quickshop;
+  }
+  
+  const feeRates = await getFeeRates();
   const vatAmount = Math.round(basePrice * feeRates.vatRate * 100) / 100;
   const totalPrice = basePrice + vatAmount;
   

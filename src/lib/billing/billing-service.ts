@@ -198,8 +198,8 @@ export async function createSubscriptionInvoice(
   payplusInvoiceNumber: string | null,
   payplusInvoiceUrl: string | null
 ): Promise<string> {
-  // Use async version to get prices from DB
-  const pricing = await calculateSubscriptionPriceAsync(plan);
+  // Use async version to get prices from DB (with custom pricing support)
+  const pricing = await calculateSubscriptionPriceAsync(plan, storeId);
   const invoiceNumber = await generateInvoiceNumber();
   const planNameHe = plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
   const now = new Date();
@@ -560,8 +560,8 @@ export async function renewSubscription(storeId: string): Promise<{
   }
 
   const plan = subscription.plan as 'branding' | 'quickshop';
-  // Use async version to get prices from DB
-  const pricing = await calculateSubscriptionPriceAsync(plan);
+  // Use async version to get prices from DB (with custom pricing support)
+  const pricing = await calculateSubscriptionPriceAsync(plan, storeId);
   const planNameHe = plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
 
   // Charge with token
