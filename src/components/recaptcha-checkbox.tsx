@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRecaptcha } from './recaptcha-provider';
 
 interface RecaptchaCheckboxProps {
@@ -20,10 +20,18 @@ export function RecaptchaCheckbox({
 }: RecaptchaCheckboxProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { isReady, recaptchaRef } = useRecaptcha();
+  const [isRendered, setIsRendered] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   useEffect(() => {
-    if (!isReady || !containerRef.current || !siteKey || !window.grecaptcha) {
+    // Only render once
+    if (isRendered || !isReady || !containerRef.current || !siteKey || !window.grecaptcha) {
+      return;
+    }
+
+    // Check if container already has content (already rendered)
+    if (containerRef.current.children.length > 0) {
+      setIsRendered(true);
       return;
     }
 
@@ -46,10 +54,11 @@ export function RecaptchaCheckbox({
 
       // Store widget ID in ref for later use
       recaptchaRef.current = widgetId;
+      setIsRendered(true);
     } catch (error) {
       console.error('Failed to render reCAPTCHA:', error);
     }
-  }, [isReady, siteKey, size, theme, onVerify, onExpire, onError, recaptchaRef]);
+  }, [isReady, isRendered, siteKey, size, theme, onVerify, onExpire, onError, recaptchaRef]);
 
   if (!siteKey) {
     return null;
