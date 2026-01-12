@@ -1819,7 +1819,7 @@ export function CheckoutForm({
                                 />
                                 <div>
                                   <div className="font-medium flex items-center gap-2">
-                                    {option.isPickup ? '📍' : '📦'} {option.name}
+                                    {option.name}
                                     {option.isFree && !option.isPickup && (
                                       <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">חינם</span>
                                     )}
