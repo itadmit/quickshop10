@@ -2074,11 +2074,20 @@ export function CheckoutForm({
                 quantity: item.quantity,
               }))}
               onTriggeredGiftCoupons={(giftCoupons) => {
-                // הוספת קופוני מתנה שמופעלים אוטומטית
+                // הוספת קופוני מתנה שמופעלים אוטומטית (legacy - trigger_coupon_codes)
                 for (const gc of giftCoupons) {
                   // וידוא שלא כבר מופעל
                   if (!appliedCoupons.some(c => c.id === gc.id)) {
                     addCoupon(gc);
+                  }
+                }
+              }}
+              onActivatedCoupons={(activatedCoupons) => {
+                // הוספת קופונים שמופעלים על ידי קופון משולב (activates_coupon_codes)
+                for (const ac of activatedCoupons) {
+                  // וידוא שלא כבר מופעל
+                  if (!appliedCoupons.some(c => c.id === ac.id)) {
+                    addCoupon(ac);
                   }
                 }
               }}
