@@ -85,7 +85,7 @@ export function RecaptchaCheckbox({
   return (
     <>
       <Script
-        src="https://www.google.com/recaptcha/api.js?render=explicit"
+        src="https://www.google.com/recaptcha/api.js?render=explicit&hl=iw"
         onLoad={handleScriptLoad}
         strategy="afterInteractive"
       />
