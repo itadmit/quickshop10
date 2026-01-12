@@ -173,15 +173,16 @@ export function PaymentProvidersManager({
                         onClick={() => handleToggleActive(configured)}
                         disabled={isLoading === configured.id}
                         className={`
-                          relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                          relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0
                           ${isActive ? 'bg-green-500' : 'bg-gray-200'}
                           ${isLoading === configured.id ? 'opacity-50 cursor-not-allowed' : ''}
                         `}
+                        dir="ltr"
                       >
                         <span
                           className={`
-                            inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                            ${isActive ? 'translate-x-1' : 'translate-x-6'}
+                            inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform
+                            ${isActive ? 'translate-x-6' : 'translate-x-1'}
                           `}
                         />
                       </button>
