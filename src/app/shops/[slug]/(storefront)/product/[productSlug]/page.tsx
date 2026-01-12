@@ -171,17 +171,19 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // Helper to check if section is visible
   const isSectionVisible = (type: string) => visibleSections.some(s => s.type === type);
 
-  // Get CSS classes for title
-  const getTitleClasses = (settings: ProductPageSettings['title']) => {
-    const sizes = { small: 'text-2xl md:text-3xl', medium: 'text-3xl md:text-4xl', large: 'text-4xl md:text-5xl' };
-    const weights = { light: 'font-light', normal: 'font-normal', bold: 'font-bold' };
-    return `font-display ${sizes[settings.fontSize]} ${weights[settings.fontWeight]} tracking-[0.05em] mb-4`;
-  };
-
-  // Get CSS classes for price
-  const getPriceClasses = (settings: ProductPageSettings['price']) => {
-    const sizes = { small: 'text-lg', medium: 'text-2xl', large: 'text-3xl' };
-    return `${sizes[settings.fontSize]} font-display`;
+  // Helper to convert typography settings to inline styles (for SSR - no JS!)
+  const getTypographyStyle = (settings: ProductPageSettings['typography'][keyof ProductPageSettings['typography']]): React.CSSProperties => {
+    if (!settings) return {};
+    const fontWeightMap: Record<string, number> = { light: 300, normal: 400, medium: 500, bold: 700, extrabold: 800 };
+    return {
+      color: settings.color,
+      fontFamily: settings.fontFamily === 'default' ? undefined : settings.fontFamily,
+      fontSize: settings.fontSize ? `${settings.fontSize}${settings.fontSizeUnit || 'px'}` : undefined,
+      fontWeight: settings.fontWeight ? fontWeightMap[settings.fontWeight] : undefined,
+      textTransform: settings.textTransform === 'none' ? undefined : settings.textTransform,
+      letterSpacing: settings.letterSpacing ? `${settings.letterSpacing}${settings.letterSpacingUnit || 'px'}` : undefined,
+      lineHeight: settings.lineHeight || undefined,
+    };
   };
 
   // Get gallery aspect ratio class
@@ -266,10 +268,33 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             data-section-id={sectionId}
             data-section-name={sectionName}
           >
-            <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
-            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-              {decodeHtmlEntities(product.description)}
-            </p>
+            {pageSettings.description?.showAsAccordion ? (
+              <details className="group border-b border-gray-200">
+                <summary className="flex items-center justify-between py-4 cursor-pointer list-none">
+                  <span className="text-[11px] tracking-[0.2em] uppercase text-black">תיאור</span>
+                  <svg 
+                    className="w-4 h-4 transition-transform group-open:rotate-180" 
+                    fill="none" 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="pb-4">
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                    {decodeHtmlEntities(product.description)}
+                  </p>
+                </div>
+              </details>
+            ) : (
+              <>
+                <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
+                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                  {decodeHtmlEntities(product.description)}
+                </p>
+              </>
+            )}
           </div>
         );
 
@@ -383,7 +408,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       {(isSectionVisible('gallery') || isSectionVisible('info')) && (
         <section className="py-12 px-6">
           <div className="max-w-7xl mx-auto">
-            <div className={`grid lg:grid-cols-2 gap-12 lg:gap-20 ${
+            <div className={`grid lg:grid-cols-2 gap-12 lg:gap-20 items-start ${
               pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:flex-row-reverse' : ''
             }`}>
               {/* Gallery - Use LiveGallerySection in preview mode for ALL gallery settings */}
@@ -406,11 +431,11 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               {/* Product Info */}
               {isSectionVisible('info') && (
                 <div 
-                  className="lg:sticky lg:top-24"
                   data-section-id="pp-info"
                   data-section-name="מידע מוצר"
                 >
-                  {/* Badges - מעל שם המוצר */}
+                  {/* Badges - מעל שם המוצר - רק אם יש תוכן */}
+                  {((compareDiscount && compareDiscount > 0) || discountLabels.length > 0 || product.isFeatured) && (
                   <div className="flex flex-wrap gap-3 mb-6">
                     {/* Compare Price Discount Badge (BLACK) - הנחת מחיר השוואה בלבד */}
                     {compareDiscount && compareDiscount > 0 && (
@@ -433,14 +458,18 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                       </span>
                     )}
                   </div>
+                  )}
 
                   {/* Title - Use LiveTitleWrapper in preview mode for real-time styling */}
                   {isPreviewMode ? (
-                    <LiveTitleWrapper initialSettings={pageSettings.title}>
+                    <LiveTitleWrapper initialTypography={pageSettings.typography?.title}>
                       {product.name}
                     </LiveTitleWrapper>
                   ) : (
-                    <h1 className={getTitleClasses(pageSettings.title)}>
+                    <h1 
+                      className="font-display tracking-[0.05em] mb-4"
+                      style={getTypographyStyle(pageSettings.typography?.title)}
+                    >
                       {product.name}
                     </h1>
                   )}
@@ -479,21 +508,35 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                           price={format(finalPrice)}
                           comparePrice={hasDiscount ? format(originalPrice) : null}
                           discount={discount}
-                          initialSettings={pageSettings.price}
+                          initialTypography={{
+                            price: pageSettings.typography?.price,
+                            comparePrice: pageSettings.typography?.comparePrice,
+                          }}
+                          initialPriceSettings={pageSettings.price}
                         />
                       ) : (
                         <div className="flex flex-wrap items-center gap-4 mb-8">
                           {/* Final Price */}
-                          <span className={getPriceClasses(pageSettings.price)}>{format(finalPrice)}</span>
+                          <span 
+                            className="font-display"
+                            style={getTypographyStyle(pageSettings.typography?.price)}
+                          >
+                            {format(finalPrice)}
+                          </span>
                           
                           {/* Original Price (crossed out) */}
-                          {pageSettings.price.showComparePrice && hasDiscount && (
-                            <span className="text-lg text-gray-400 line-through">{format(originalPrice)}</span>
+                          {pageSettings.price?.showComparePrice && hasDiscount && (
+                            <span 
+                              className="line-through"
+                              style={getTypographyStyle(pageSettings.typography?.comparePrice)}
+                            >
+                              {format(originalPrice)}
+                            </span>
                           )}
                           
                           {/* Total Discount Percentage - הנחה כוללת */}
-                          {pageSettings.price.showDiscount && hasDiscount && 
-                           (pageSettings.price.discountStyle === 'text' || pageSettings.price.discountStyle === 'both') && (
+                          {pageSettings.price?.showDiscount && hasDiscount && 
+                           (pageSettings.price?.discountStyle === 'text' || pageSettings.price?.discountStyle === 'both') && (
                             <span className="text-sm text-green-600 font-medium">הנחה כוללת: -{discount}%</span>
                           )}
                         </div>
@@ -544,6 +587,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         trackInventory={product.trackInventory}
                         allowBackorder={product.allowBackorder}
                         initialSettings={pageSettings.inventory || { displayStyle: 'count', lowStockThreshold: 5 }}
+                        initialTypography={pageSettings.typography?.inventory}
                       />
                     </>
                   )}
@@ -554,10 +598,33 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   {/* Description - inside info column */}
                   {isSectionVisible('description') && product.description && (
                     <div className="mb-8">
-                      <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
-                      <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                        {decodeHtmlEntities(product.description)}
-                      </p>
+                      {pageSettings.description?.showAsAccordion ? (
+                        <details className="group border-b border-gray-200">
+                          <summary className="flex items-center justify-between py-4 cursor-pointer list-none">
+                            <span className="text-[11px] tracking-[0.2em] uppercase text-black">תיאור</span>
+                            <svg 
+                              className="w-4 h-4 transition-transform group-open:rotate-180" 
+                              fill="none" 
+                              viewBox="0 0 24 24" 
+                              stroke="currentColor"
+                            >
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </summary>
+                          <div className="pb-4">
+                            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                              {decodeHtmlEntities(product.description)}
+                            </p>
+                          </div>
+                        </details>
+                      ) : (
+                        <>
+                          <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
+                          <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                            {decodeHtmlEntities(product.description)}
+                          </p>
+                        </>
+                      )}
                     </div>
                   )}
 

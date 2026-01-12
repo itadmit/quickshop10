@@ -5056,6 +5056,7 @@ function HeaderLayoutPreview({ layout, isSelected }: { layout: HeaderLayout; isS
 
 import { 
   defaultProductPageSettings, 
+  defaultTypography,
   type ProductPageSettings, 
   type ProductPageSection,
   type ProductFeature,
@@ -5253,6 +5254,18 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
                   gallery: { ...productSettings.gallery, showDotsOnMobile: v } 
                 })}
               />
+              
+              <SelectField
+                label="תמונות ממוזערות במובייל"
+                value={productSettings.gallery.thumbnailsPositionMobile ?? 'bottom'}
+                options={[
+                  { value: 'bottom', label: 'הצג למטה' },
+                  { value: 'hidden', label: 'הסתר במובייל' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, thumbnailsPositionMobile: v as 'bottom' | 'hidden' } 
+                })}
+              />
             </SettingsGroup>
           </div>
         )}
@@ -5315,51 +5328,39 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
         {/* Style Tab */}
         {activeTab === 'style' && (
           <div className="space-y-4">
-            <SettingsGroup title="כותרת מוצר">
-              <SelectField
-                label="גודל פונט"
-                value={productSettings.title.fontSize}
-                options={[
-                  { value: 'small', label: 'קטן' },
-                  { value: 'medium', label: 'בינוני' },
-                  { value: 'large', label: 'גדול' },
-                ]}
+            <SettingsGroup title="טיפוגרפיה">
+              <TypographyPopover
+                label="כותרת מוצר"
+                value={{ ...defaultTypography.title, ...productSettings.typography?.title }}
                 onChange={(v) => updateProductSettings({ 
-                  title: { ...productSettings.title, fontSize: v as ProductPageSettings['title']['fontSize'] } 
+                  typography: { ...productSettings.typography, title: v } 
                 })}
+                defaultColor={defaultTypography.title.color || '#000000'}
               />
               
-              <SelectField
-                label="משקל פונט"
-                value={productSettings.title.fontWeight}
-                options={[
-                  { value: 'light', label: 'דק' },
-                  { value: 'normal', label: 'רגיל' },
-                  { value: 'bold', label: 'עבה' },
-                ]}
+              <TypographyPopover
+                label="מחיר"
+                value={{ ...defaultTypography.price, ...productSettings.typography?.price }}
                 onChange={(v) => updateProductSettings({ 
-                  title: { ...productSettings.title, fontWeight: v as ProductPageSettings['title']['fontWeight'] } 
+                  typography: { ...productSettings.typography, price: v } 
                 })}
+                defaultColor={defaultTypography.price.color || '#000000'}
+              />
+              
+              <TypographyPopover
+                label="מחיר השוואה"
+                value={{ ...defaultTypography.comparePrice, ...productSettings.typography?.comparePrice }}
+                onChange={(v) => updateProductSettings({ 
+                  typography: { ...productSettings.typography, comparePrice: v } 
+                })}
+                defaultColor={defaultTypography.comparePrice.color || '#9CA3AF'}
               />
             </SettingsGroup>
             
-            <SettingsGroup title="מחיר">
-              <SelectField
-                label="גודל פונט"
-                value={productSettings.price.fontSize}
-                options={[
-                  { value: 'small', label: 'קטן' },
-                  { value: 'medium', label: 'בינוני' },
-                  { value: 'large', label: 'גדול' },
-                ]}
-                onChange={(v) => updateProductSettings({ 
-                  price: { ...productSettings.price, fontSize: v as ProductPageSettings['price']['fontSize'] } 
-                })}
-              />
-              
+            <SettingsGroup title="הגדרות מחיר">
               <SwitchField
                 label="הצג מחיר השוואה"
-                value={productSettings.price.showComparePrice}
+                value={productSettings.price?.showComparePrice ?? true}
                 onChange={(v) => updateProductSettings({ 
                   price: { ...productSettings.price, showComparePrice: v } 
                 })}
@@ -5367,23 +5368,23 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
               
               <SwitchField
                 label="הצג אחוז הנחה"
-                value={productSettings.price.showDiscount}
+                value={productSettings.price?.showDiscount ?? true}
                 onChange={(v) => updateProductSettings({ 
                   price: { ...productSettings.price, showDiscount: v } 
                 })}
               />
               
-              {productSettings.price.showDiscount && (
+              {productSettings.price?.showDiscount && (
                 <SelectField
                   label="סגנון הנחה"
-                  value={productSettings.price.discountStyle}
+                  value={productSettings.price?.discountStyle || 'badge'}
                   options={[
                     { value: 'badge', label: 'תג' },
                     { value: 'text', label: 'טקסט' },
                     { value: 'both', label: 'שניהם' },
                   ]}
                   onChange={(v) => updateProductSettings({ 
-                    price: { ...productSettings.price, discountStyle: v as ProductPageSettings['price']['discountStyle'] } 
+                    price: { ...productSettings.price, discountStyle: v as 'badge' | 'text' | 'both' } 
                   })}
                 />
               )}
@@ -5587,6 +5588,18 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
                   gallery: { ...productSettings.gallery, showDotsOnMobile: v } 
                 })}
               />
+              
+              <SelectField
+                label="תמונות ממוזערות במובייל"
+                value={productSettings.gallery.thumbnailsPositionMobile ?? 'bottom'}
+                options={[
+                  { value: 'bottom', label: 'הצג למטה' },
+                  { value: 'hidden', label: 'הסתר במובייל' },
+                ]}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, thumbnailsPositionMobile: v as 'bottom' | 'hidden' } 
+                })}
+              />
             </SettingsGroup>
           </>
         )}
@@ -5594,51 +5607,66 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
         {/* Info Section (Title & Price) */}
         {sectionType === 'pp-info' && (
           <>
-            <SettingsGroup title="כותרת מוצר">
-              <SelectField
-                label="גודל פונט"
-                value={productSettings.title.fontSize}
-                options={[
-                  { value: 'small', label: 'קטן' },
-                  { value: 'medium', label: 'בינוני' },
-                  { value: 'large', label: 'גדול' },
-                ]}
+            <SettingsGroup title="טיפוגרפיה">
+              <TypographyPopover
+                label="כותרת מוצר"
+                value={{ ...defaultTypography.title, ...productSettings.typography?.title }}
                 onChange={(v) => updateProductSettings({ 
-                  title: { ...productSettings.title, fontSize: v as ProductPageSettings['title']['fontSize'] } 
+                  typography: { ...productSettings.typography, title: v } 
                 })}
+                defaultColor={defaultTypography.title.color || '#000000'}
               />
               
-              <SelectField
-                label="משקל פונט"
-                value={productSettings.title.fontWeight}
-                options={[
-                  { value: 'light', label: 'דק' },
-                  { value: 'normal', label: 'רגיל' },
-                  { value: 'bold', label: 'מודגש' },
-                ]}
+              <TypographyPopover
+                label="מחיר"
+                value={{ ...defaultTypography.price, ...productSettings.typography?.price }}
                 onChange={(v) => updateProductSettings({ 
-                  title: { ...productSettings.title, fontWeight: v as ProductPageSettings['title']['fontWeight'] } 
+                  typography: { ...productSettings.typography, price: v } 
                 })}
+                defaultColor={defaultTypography.price.color || '#000000'}
+              />
+              
+              <TypographyPopover
+                label="מחיר השוואה"
+                value={{ ...defaultTypography.comparePrice, ...productSettings.typography?.comparePrice }}
+                onChange={(v) => updateProductSettings({ 
+                  typography: { ...productSettings.typography, comparePrice: v } 
+                })}
+                defaultColor={defaultTypography.comparePrice.color || '#9CA3AF'}
+              />
+              
+              <TypographyPopover
+                label="כפתור הוסף לעגלה"
+                value={{ ...defaultTypography.button, ...productSettings.typography?.button }}
+                onChange={(v) => updateProductSettings({ 
+                  typography: { ...productSettings.typography, button: v } 
+                })}
+                defaultColor={defaultTypography.button.color || '#FFFFFF'}
+              />
+              
+              <TypographyPopover
+                label="תצוגת מלאי"
+                value={{ ...defaultTypography.inventory, ...productSettings.typography?.inventory }}
+                onChange={(v) => updateProductSettings({ 
+                  typography: { ...productSettings.typography, inventory: v } 
+                })}
+                defaultColor={defaultTypography.inventory.color || '#6B7280'}
+              />
+              
+              <TypographyPopover
+                label="תיאור מוצר"
+                value={{ ...defaultTypography.description, ...productSettings.typography?.description }}
+                onChange={(v) => updateProductSettings({ 
+                  typography: { ...productSettings.typography, description: v } 
+                })}
+                defaultColor={defaultTypography.description.color || '#4B5563'}
               />
             </SettingsGroup>
             
-            <SettingsGroup title="מחיר">
-              <SelectField
-                label="גודל פונט"
-                value={productSettings.price.fontSize}
-                options={[
-                  { value: 'small', label: 'קטן' },
-                  { value: 'medium', label: 'בינוני' },
-                  { value: 'large', label: 'גדול' },
-                ]}
-                onChange={(v) => updateProductSettings({ 
-                  price: { ...productSettings.price, fontSize: v as ProductPageSettings['price']['fontSize'] } 
-                })}
-              />
-              
+            <SettingsGroup title="הגדרות מחיר">
               <SwitchField
                 label="הצג מחיר השוואה"
-                value={productSettings.price.showComparePrice}
+                value={productSettings.price?.showComparePrice ?? true}
                 onChange={(v) => updateProductSettings({ 
                   price: { ...productSettings.price, showComparePrice: v } 
                 })}
@@ -5646,23 +5674,23 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
               
               <SwitchField
                 label="הצג הנחה"
-                value={productSettings.price.showDiscount}
+                value={productSettings.price?.showDiscount ?? true}
                 onChange={(v) => updateProductSettings({ 
                   price: { ...productSettings.price, showDiscount: v } 
                 })}
               />
               
-              {productSettings.price.showDiscount && (
+              {productSettings.price?.showDiscount && (
                 <SelectField
                   label="סגנון הנחה"
-                  value={productSettings.price.discountStyle}
+                  value={productSettings.price?.discountStyle || 'badge'}
                   options={[
                     { value: 'badge', label: 'תג' },
                     { value: 'text', label: 'טקסט' },
                     { value: 'both', label: 'שניהם' },
                   ]}
                   onChange={(v) => updateProductSettings({ 
-                    price: { ...productSettings.price, discountStyle: v as ProductPageSettings['price']['discountStyle'] } 
+                    price: { ...productSettings.price, discountStyle: v as 'badge' | 'text' | 'both' } 
                   })}
                 />
               )}
@@ -5679,7 +5707,10 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
                   { value: 'hidden', label: 'להסתיר' },
                 ]}
                 onChange={(v) => updateProductSettings({ 
-                  inventory: { ...(productSettings.inventory || { displayStyle: 'count', lowStockThreshold: 5 }), displayStyle: v as 'in_stock' | 'count' | 'low_stock' | 'hidden' } 
+                  inventory: { 
+                    displayStyle: v as 'in_stock' | 'count' | 'low_stock' | 'hidden',
+                    lowStockThreshold: productSettings.inventory?.lowStockThreshold || 5
+                  } 
                 })}
               />
               
@@ -5690,10 +5721,23 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
                   min={2}
                   max={10}
                   onChange={(v) => updateProductSettings({ 
-                    inventory: { ...(productSettings.inventory || { displayStyle: 'low_stock', lowStockThreshold: 5 }), lowStockThreshold: v } 
+                    inventory: { 
+                      displayStyle: 'low_stock',
+                      lowStockThreshold: v
+                    } 
                   })}
                 />
               )}
+            </SettingsGroup>
+            
+            <SettingsGroup title="תיאור">
+              <SwitchField
+                label="הצג תיאור באקורדיון"
+                value={productSettings.description?.showAsAccordion ?? false}
+                onChange={(v) => updateProductSettings({ 
+                  description: { showAsAccordion: v } 
+                })}
+              />
             </SettingsGroup>
           </>
         )}

@@ -8,9 +8,38 @@
  * In production, the product page uses Server Components with zero JS
  */
 
-import { createContext, useContext, useState, useEffect, type ReactNode, Children } from 'react';
-import type { ProductPageSettings, ProductFeature } from '@/lib/product-page-settings';
-import { defaultProductPageSettings, featureIcons } from '@/lib/product-page-settings';
+import { createContext, useContext, useState, useEffect, type ReactNode, Children, useMemo } from 'react';
+import type { ProductPageSettings, ProductFeature, TypographySettings } from '@/lib/product-page-settings';
+import { defaultProductPageSettings, featureIcons, defaultTypography } from '@/lib/product-page-settings';
+
+// Helper to convert TypographySettings to CSS styles
+function getTypographyStyle(settings: TypographySettings | undefined, isMobile: boolean = false): React.CSSProperties {
+  if (!settings) return {};
+  
+  const fontSize = isMobile && settings.fontSizeMobile 
+    ? `${settings.fontSizeMobile}${settings.fontSizeMobileUnit || 'px'}`
+    : settings.fontSize 
+      ? `${settings.fontSize}${settings.fontSizeUnit || 'px'}`
+      : undefined;
+  
+  const fontWeightMap: Record<string, number> = {
+    light: 300,
+    normal: 400,
+    medium: 500,
+    bold: 700,
+    extrabold: 800,
+  };
+  
+  return {
+    color: settings.color,
+    fontFamily: settings.fontFamily === 'default' ? undefined : settings.fontFamily,
+    fontSize,
+    fontWeight: settings.fontWeight ? fontWeightMap[settings.fontWeight] : undefined,
+    textTransform: settings.textTransform === 'none' ? undefined : settings.textTransform,
+    letterSpacing: settings.letterSpacing ? `${settings.letterSpacing}${settings.letterSpacingUnit || 'px'}` : undefined,
+    lineHeight: settings.lineHeight ? settings.lineHeight : undefined,
+  };
+}
 
 interface ProductPagePreviewContextType {
   settings: ProductPageSettings;
@@ -54,14 +83,24 @@ export function ProductPagePreviewProvider({
           if (newSettings.gallery) {
             merged.gallery = { ...prev.gallery, ...newSettings.gallery };
           }
-          if (newSettings.title) {
-            merged.title = { ...prev.title, ...newSettings.title };
+          if (newSettings.typography) {
+            merged.typography = {
+              title: { ...prev.typography.title, ...newSettings.typography.title },
+              price: { ...prev.typography.price, ...newSettings.typography.price },
+              comparePrice: { ...prev.typography.comparePrice, ...newSettings.typography.comparePrice },
+              button: { ...prev.typography.button, ...newSettings.typography.button },
+              inventory: { ...prev.typography.inventory, ...newSettings.typography.inventory },
+              description: { ...prev.typography.description, ...newSettings.typography.description },
+            };
           }
           if (newSettings.price) {
             merged.price = { ...prev.price, ...newSettings.price };
           }
           if (newSettings.inventory) {
             merged.inventory = { ...prev.inventory, ...newSettings.inventory };
+          }
+          if (newSettings.description) {
+            merged.description = { ...prev.description, ...newSettings.description };
           }
           if (newSettings.features) {
             merged.features = newSettings.features;
@@ -166,6 +205,7 @@ interface LiveGallerySectionProps {
   initialSettings: {
     layout: string;
     thumbnailsPosition: string;
+    thumbnailsPositionMobile?: string;
     aspectRatio: string;
     enableZoom: boolean;
     showArrows?: boolean;
@@ -183,6 +223,37 @@ export function LiveGallerySection({
 }: LiveGallerySectionProps) {
   const { settings, isPreview } = useProductPagePreview();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isZoomOpen, setIsZoomOpen] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  
+  // Minimum swipe distance to trigger navigation (in pixels)
+  const minSwipeDistance = 50;
+  
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+  
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+  
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && images.length > 1) {
+      // RTL: swipe left = previous
+      goToPrevious();
+    }
+    if (isRightSwipe && images.length > 1) {
+      // RTL: swipe right = next
+      goToNext();
+    }
+  };
   
   const aspectRatioClasses: Record<string, string> = {
     '1:1': 'aspect-square',
@@ -194,6 +265,7 @@ export function LiveGallerySection({
   // Use live settings in preview mode
   const layout = isPreview ? settings.gallery.layout : initialSettings.layout;
   const thumbnailsPosition = isPreview ? settings.gallery.thumbnailsPosition : initialSettings.thumbnailsPosition;
+  const thumbnailsPositionMobile = isPreview ? (settings.gallery.thumbnailsPositionMobile ?? 'bottom') : (initialSettings.thumbnailsPositionMobile ?? 'bottom');
   const aspectRatio = isPreview ? settings.gallery.aspectRatio : initialSettings.aspectRatio;
   const enableZoom = isPreview ? settings.gallery.enableZoom : initialSettings.enableZoom;
   const showArrows = isPreview ? (settings.gallery.showArrows ?? true) : (initialSettings.showArrows ?? true);
@@ -214,26 +286,45 @@ export function LiveGallerySection({
   const currentMainImage = images.length > 0 ? images[selectedImageIndex]?.url || mainImage : mainImage;
   
   // Determine container classes based on thumbnail position
-  // RTL: 'right' means thumbnails on right side of screen (end), 'left' means left side (start)
+  // Mobile: always stacked (thumbnails below or hidden)
+  // Desktop: respect thumbnailsPosition setting
   const getContainerClasses = () => {
+    // Desktop only - mobile is always stacked
     if (thumbnailsPosition === 'right') {
-      // Thumbnails on right = flex-row-reverse in RTL (thumbnails first, then main image)
       return 'lg:flex lg:flex-row-reverse lg:gap-4';
     }
     if (thumbnailsPosition === 'left') {
-      // Thumbnails on left = regular flex in RTL (main image first, then thumbnails)
       return 'lg:flex lg:gap-4';
     }
     return '';
   };
   
   // Determine thumbnail container classes
+  // Mobile: horizontal scroll (bottom) or hidden
+  // Desktop: vertical if left/right, horizontal if bottom
   const getThumbnailClasses = () => {
+    // Mobile: always horizontal scroll, with padding for ring-offset
+    const mobileClass = 'flex gap-3 overflow-x-auto p-1';
+    
+    // Desktop: vertical if left/right
     if (thumbnailsPosition === 'left' || thumbnailsPosition === 'right') {
-      return 'flex flex-col gap-2 w-20 lg:w-24';
+      return `${mobileClass} lg:flex-col lg:gap-3 lg:w-24 lg:overflow-x-visible lg:overflow-y-auto`;
     }
-    return 'flex gap-2 overflow-x-auto pb-2';
+    
+    return mobileClass;
   };
+  
+  // Check if thumbnails should be visible
+  const showThumbnails = () => {
+    // Hidden on all screens
+    if (thumbnailsPosition === 'hidden') return false;
+    // More than 1 image required
+    if (images.length <= 1) return false;
+    return true;
+  };
+  
+  // Check if thumbnails hidden on mobile only
+  const hideThumbnailsOnMobile = thumbnailsPositionMobile === 'hidden';
   
   // Grid layout - show ALL images stacked vertically (one below another)
   if (layout === 'grid' && images.length > 1) {
@@ -265,13 +356,17 @@ export function LiveGallerySection({
         className={`relative ${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
         title={enableZoom ? 'לחץ להגדלה' : undefined}
       >
-        {/* Sliding images container */}
+        {/* Sliding images container with touch support */}
         <div 
-          className="flex transition-transform duration-300 ease-out h-full"
+          className="flex transition-transform duration-300 ease-out h-full touch-pan-y"
           style={{ 
             width: `${images.length * 100}%`,
             transform: `translateX(${selectedImageIndex * (100 / images.length)}%)` 
           }}
+          onClick={enableZoom ? () => setIsZoomOpen(true) : undefined}
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
         >
           {images.map((img, i) => (
             <div 
@@ -334,8 +429,8 @@ export function LiveGallerySection({
       </div>
       
       {/* Thumbnails - shown when more than 1 image and not hidden */}
-      {thumbnailsPosition !== 'hidden' && images.length > 1 && (
-        <div className={getThumbnailClasses()}>
+      {showThumbnails() && (
+        <div className={`${getThumbnailClasses()} ${hideThumbnailsOnMobile ? 'hidden lg:flex' : ''}`}>
           {images.map((img, i) => (
             <button
               key={img.id}
@@ -343,7 +438,7 @@ export function LiveGallerySection({
               onClick={() => setSelectedImageIndex(i)}
               className={`flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 bg-gray-50 overflow-hidden transition-all ${
                 i === selectedImageIndex 
-                  ? 'ring-2 ring-black opacity-100' 
+                  ? 'ring-2 ring-gray-400 ring-offset-2 opacity-100' 
                   : 'opacity-60 hover:opacity-100'
               }`}
             >
@@ -354,6 +449,71 @@ export function LiveGallerySection({
               />
             </button>
           ))}
+        </div>
+      )}
+      
+      {/* Zoom Modal */}
+      {isZoomOpen && enableZoom && (
+        <div 
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          onClick={() => setIsZoomOpen(false)}
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={() => setIsZoomOpen(false)}
+            className="absolute top-4 left-4 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors z-10"
+            aria-label="סגור"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          
+          {/* Navigation arrows in modal */}
+          {images.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); goToPrevious(); }}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+                aria-label="תמונה קודמת"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); goToNext(); }}
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+                aria-label="תמונה הבאה"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            </>
+          )}
+          
+          {/* Zoomed image */}
+          <div 
+            className="max-w-[90vw] max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={images[selectedImageIndex]?.url || mainImage}
+              alt={productName}
+              className="max-w-full max-h-[90vh] object-contain"
+            />
+          </div>
+          
+          {/* Image counter */}
+          {images.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/80 text-sm">
+              {selectedImageIndex + 1} / {images.length}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -388,68 +548,71 @@ export function LiveGalleryWrapper({ children, initialAspectRatio }: LiveGallery
 }
 
 /**
- * LiveTitleWrapper - Wrapper for product title with live styling
+ * LiveTitleWrapper - Wrapper for product title with live typography styling
  */
 interface LiveTitleWrapperProps {
   children: ReactNode;
-  initialSettings: { fontSize: string; fontWeight: string };
+  initialTypography?: TypographySettings;
 }
 
-export function LiveTitleWrapper({ children, initialSettings }: LiveTitleWrapperProps) {
+export function LiveTitleWrapper({ children, initialTypography }: LiveTitleWrapperProps) {
   const { settings, isPreview } = useProductPagePreview();
   
-  const sizes: Record<string, string> = { 
-    small: 'text-2xl md:text-3xl', 
-    medium: 'text-3xl md:text-4xl', 
-    large: 'text-4xl md:text-5xl' 
-  };
-  const weights: Record<string, string> = { 
-    light: 'font-light', 
-    normal: 'font-normal', 
-    bold: 'font-bold' 
-  };
+  const typography = isPreview 
+    ? settings.typography?.title || defaultTypography.title
+    : initialTypography || defaultTypography.title;
   
-  const fontSize = isPreview ? settings.title.fontSize : initialSettings.fontSize;
-  const fontWeight = isPreview ? settings.title.fontWeight : initialSettings.fontWeight;
+  const style = getTypographyStyle(typography);
   
   return (
-    <h1 className={`font-display ${sizes[fontSize] || sizes.large} ${weights[fontWeight] || weights.light} tracking-[0.05em] mb-4`}>
+    <h1 
+      className="font-display tracking-[0.05em] mb-4"
+      style={style}
+    >
       {children}
     </h1>
   );
 }
 
 /**
- * LivePriceWrapper - Wrapper for price with live styling
+ * LivePriceWrapper - Wrapper for price with live typography styling
  */
 interface LivePriceWrapperProps {
   price: string;
   comparePrice?: string | null;
   discount?: number | null;
-  initialSettings: { fontSize: string; showComparePrice: boolean; showDiscount: boolean; discountStyle: string };
+  initialTypography?: {
+    price?: TypographySettings;
+    comparePrice?: TypographySettings;
+  };
+  initialPriceSettings?: { showComparePrice: boolean; showDiscount: boolean; discountStyle: string };
 }
 
-export function LivePriceWrapper({ price, comparePrice, discount, initialSettings }: LivePriceWrapperProps) {
+export function LivePriceWrapper({ price, comparePrice, discount, initialTypography, initialPriceSettings }: LivePriceWrapperProps) {
   const { settings, isPreview } = useProductPagePreview();
   
-  const sizes: Record<string, string> = { 
-    small: 'text-lg', 
-    medium: 'text-2xl', 
-    large: 'text-3xl' 
-  };
+  const priceTypography = isPreview 
+    ? settings.typography?.price || defaultTypography.price
+    : initialTypography?.price || defaultTypography.price;
   
-  const fontSize = isPreview ? settings.price.fontSize : initialSettings.fontSize;
-  const showComparePrice = isPreview ? settings.price.showComparePrice : initialSettings.showComparePrice;
-  const showDiscount = isPreview ? settings.price.showDiscount : initialSettings.showDiscount;
-  const discountStyle = isPreview ? settings.price.discountStyle : initialSettings.discountStyle;
+  const comparePriceTypography = isPreview 
+    ? settings.typography?.comparePrice || defaultTypography.comparePrice
+    : initialTypography?.comparePrice || defaultTypography.comparePrice;
+  
+  const showComparePrice = isPreview ? settings.price?.showComparePrice : initialPriceSettings?.showComparePrice ?? true;
+  const showDiscount = isPreview ? settings.price?.showDiscount : initialPriceSettings?.showDiscount ?? true;
+  const discountStyle = isPreview ? settings.price?.discountStyle : initialPriceSettings?.discountStyle ?? 'badge';
   
   const hasDiscount = comparePrice && discount;
   
+  const priceStyle = getTypographyStyle(priceTypography);
+  const comparePriceStyle = getTypographyStyle(comparePriceTypography);
+  
   return (
     <div className="flex items-center gap-4 mb-8">
-      <span className={`${sizes[fontSize] || sizes.medium} font-display`}>{price}</span>
+      <span className="font-display" style={priceStyle}>{price}</span>
       {showComparePrice && hasDiscount && (
-        <span className="text-lg text-gray-400 line-through">{comparePrice}</span>
+        <span className="line-through" style={comparePriceStyle}>{comparePrice}</span>
       )}
       {showDiscount && hasDiscount && (discountStyle === 'text' || discountStyle === 'both') && (
         <span className="text-sm text-red-500">-{discount}%</span>
@@ -459,25 +622,33 @@ export function LivePriceWrapper({ price, comparePrice, discount, initialSetting
 }
 
 /**
- * LiveInventoryDisplay - Live preview of inventory status
+ * LiveInventoryDisplay - Live preview of inventory status with typography
  */
 interface LiveInventoryDisplayProps {
   inventory: number | null;
   trackInventory: boolean;
   allowBackorder: boolean;
   initialSettings: { displayStyle: string; lowStockThreshold: number };
+  initialTypography?: TypographySettings;
 }
 
 export function LiveInventoryDisplay({ 
   inventory, 
   trackInventory, 
   allowBackorder,
-  initialSettings 
+  initialSettings,
+  initialTypography
 }: LiveInventoryDisplayProps) {
   const { settings, isPreview } = useProductPagePreview();
   
   const displayStyle = isPreview ? settings.inventory?.displayStyle : initialSettings.displayStyle;
   const lowStockThreshold = isPreview ? settings.inventory?.lowStockThreshold : initialSettings.lowStockThreshold;
+  
+  const typography = isPreview 
+    ? settings.typography?.inventory || defaultTypography.inventory
+    : initialTypography || defaultTypography.inventory;
+  
+  const baseStyle = getTypographyStyle(typography);
   
   // Don't show anything if hidden
   if (displayStyle === 'hidden') return null;
@@ -487,7 +658,7 @@ export function LiveInventoryDisplay({
   
   if (isOutOfStock) {
     return (
-      <p className="text-sm text-red-500 text-center mb-8">
+      <p className="text-center mb-8" style={{ ...baseStyle, color: '#EF4444' }}>
         אזל מהמלאי
       </p>
     );
@@ -496,7 +667,7 @@ export function LiveInventoryDisplay({
   // Display based on style
   if (displayStyle === 'in_stock') {
     return (
-      <p className="text-sm text-green-600 text-center mb-8">
+      <p className="text-center mb-8" style={{ ...baseStyle, color: '#16A34A' }}>
         במלאי
       </p>
     );
@@ -504,7 +675,7 @@ export function LiveInventoryDisplay({
   
   if (displayStyle === 'count' && trackInventory && inventory !== null && inventory > 0) {
     return (
-      <p className="text-sm text-gray-500 text-center mb-8">
+      <p className="text-center mb-8" style={baseStyle}>
         {inventory} יחידות במלאי
       </p>
     );
@@ -513,13 +684,13 @@ export function LiveInventoryDisplay({
   if (displayStyle === 'low_stock' && trackInventory && inventory !== null) {
     if (inventory <= (lowStockThreshold || 5)) {
       return (
-        <p className="text-sm text-orange-500 text-center mb-8">
+        <p className="text-center mb-8" style={{ ...baseStyle, color: '#F97316' }}>
           נותרו יחידות אחרונות!
         </p>
       );
     }
     return (
-      <p className="text-sm text-green-600 text-center mb-8">
+      <p className="text-center mb-8" style={{ ...baseStyle, color: '#16A34A' }}>
         במלאי
       </p>
     );
@@ -527,7 +698,7 @@ export function LiveInventoryDisplay({
   
   // Default - in stock
   return (
-    <p className="text-sm text-green-600 text-center mb-8">
+    <p className="text-center mb-8" style={{ ...baseStyle, color: '#16A34A' }}>
       במלאי
     </p>
   );

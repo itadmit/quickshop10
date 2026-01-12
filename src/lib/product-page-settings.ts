@@ -17,6 +17,32 @@ export interface ProductPageSection {
   sortOrder: number;
 }
 
+// Typography settings for each text element
+export interface TypographySettings {
+  color?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  fontSizeUnit?: 'px' | 'rem';
+  fontSizeMobile?: number;
+  fontSizeMobileUnit?: 'px' | 'rem';
+  fontWeight?: 'light' | 'normal' | 'medium' | 'bold' | 'extrabold';
+  textTransform?: 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+  letterSpacing?: number;
+  letterSpacingUnit?: 'px' | 'rem';
+  lineHeight?: number;
+  lineHeightUnit?: 'px' | 'rem';
+}
+
+// Default typography for each element type
+export const defaultTypography: Record<string, TypographySettings> = {
+  title: { fontSize: 32, fontSizeUnit: 'px', fontSizeMobile: 24, fontSizeMobileUnit: 'px', fontWeight: 'light', color: '#000000' },
+  price: { fontSize: 24, fontSizeUnit: 'px', fontSizeMobile: 20, fontSizeMobileUnit: 'px', fontWeight: 'normal', color: '#000000' },
+  comparePrice: { fontSize: 18, fontSizeUnit: 'px', fontSizeMobile: 16, fontSizeMobileUnit: 'px', fontWeight: 'normal', color: '#9CA3AF' },
+  button: { fontSize: 16, fontSizeUnit: 'px', fontSizeMobile: 14, fontSizeMobileUnit: 'px', fontWeight: 'medium', color: '#FFFFFF' },
+  inventory: { fontSize: 14, fontSizeUnit: 'px', fontSizeMobile: 12, fontSizeMobileUnit: 'px', fontWeight: 'normal', color: '#6B7280' },
+  description: { fontSize: 16, fontSizeUnit: 'px', fontSizeMobile: 14, fontSizeMobileUnit: 'px', fontWeight: 'normal', color: '#4B5563', lineHeight: 1.6 },
+};
+
 export interface ProductPageSettings {
   // Section visibility and order
   sections: ProductPageSection[];
@@ -25,20 +51,25 @@ export interface ProductPageSettings {
   gallery: {
     layout: 'single' | 'grid' | 'carousel';
     thumbnailsPosition: 'bottom' | 'right' | 'left' | 'hidden';
+    thumbnailsPositionMobile: 'bottom' | 'hidden'; // מיקום תמונות במובייל
     aspectRatio: '1:1' | '3:4' | '4:3' | '16:9';
     enableZoom: boolean;
     showArrows: boolean; // הצג חצים לניווט
     showDotsOnMobile: boolean; // הצג נקודות במובייל
   };
   
-  // Title & Price settings
-  title: {
-    fontSize: 'small' | 'medium' | 'large';
-    fontWeight: 'light' | 'normal' | 'bold';
+  // Typography settings for all text elements
+  typography: {
+    title: TypographySettings;
+    price: TypographySettings;
+    comparePrice: TypographySettings;
+    button: TypographySettings;
+    inventory: TypographySettings;
+    description: TypographySettings;
   };
   
+  // Price display settings
   price: {
-    fontSize: 'small' | 'medium' | 'large';
     showComparePrice: boolean;
     showDiscount: boolean;
     discountStyle: 'badge' | 'text' | 'both';
@@ -48,6 +79,11 @@ export interface ProductPageSettings {
   inventory: {
     displayStyle: 'in_stock' | 'count' | 'low_stock' | 'hidden';
     lowStockThreshold: number; // Show "נותרו יחידות אחרונות" when stock is below this
+  };
+  
+  // Description settings
+  description: {
+    showAsAccordion: boolean; // הצג תיאור באקורדיון
   };
   
   // Features (editable content!)
@@ -67,6 +103,12 @@ export interface ProductPageSettings {
     showRating: boolean;
     showCount: boolean;
   };
+  
+  // Legacy support - will be migrated
+  title?: {
+    fontSize: 'small' | 'medium' | 'large';
+    fontWeight: 'light' | 'normal' | 'bold';
+  };
 }
 
 // Default settings
@@ -84,19 +126,23 @@ export const defaultProductPageSettings: ProductPageSettings = {
   gallery: {
     layout: 'carousel', // ברירת מחדל: קרוסלה עם תמונות ממוזערות
     thumbnailsPosition: 'bottom',
+    thumbnailsPositionMobile: 'bottom', // במובייל תמיד למטה
     aspectRatio: '3:4',
     enableZoom: true,
     showArrows: true, // ברירת מחדל: פעיל
     showDotsOnMobile: false, // ברירת מחדל: מכובה
   },
   
-  title: {
-    fontSize: 'large',
-    fontWeight: 'light',
+  typography: {
+    title: { ...defaultTypography.title },
+    price: { ...defaultTypography.price },
+    comparePrice: { ...defaultTypography.comparePrice },
+    button: { ...defaultTypography.button },
+    inventory: { ...defaultTypography.inventory },
+    description: { ...defaultTypography.description },
   },
   
   price: {
-    fontSize: 'medium',
     showComparePrice: true,
     showDiscount: true,
     discountStyle: 'badge',
@@ -105,6 +151,10 @@ export const defaultProductPageSettings: ProductPageSettings = {
   inventory: {
     displayStyle: 'count',
     lowStockThreshold: 5,
+  },
+  
+  description: {
+    showAsAccordion: false, // ברירת מחדל: תיאור רגיל, לא באקורדיון
   },
   
   features: [
@@ -141,9 +191,17 @@ export function getProductPageSettings(storeSettings: Record<string, unknown>): 
     ...saved,
     sections: saved.sections || defaultProductPageSettings.sections,
     gallery: { ...defaultProductPageSettings.gallery, ...saved.gallery },
-    title: { ...defaultProductPageSettings.title, ...saved.title },
+    typography: {
+      title: { ...defaultProductPageSettings.typography.title, ...saved.typography?.title },
+      price: { ...defaultProductPageSettings.typography.price, ...saved.typography?.price },
+      comparePrice: { ...defaultProductPageSettings.typography.comparePrice, ...saved.typography?.comparePrice },
+      button: { ...defaultProductPageSettings.typography.button, ...saved.typography?.button },
+      inventory: { ...defaultProductPageSettings.typography.inventory, ...saved.typography?.inventory },
+      description: { ...defaultProductPageSettings.typography.description, ...saved.typography?.description },
+    },
     price: { ...defaultProductPageSettings.price, ...saved.price },
     inventory: { ...defaultProductPageSettings.inventory, ...saved.inventory },
+    description: { ...defaultProductPageSettings.description, ...saved.description },
     features: saved.features || defaultProductPageSettings.features,
     related: { ...defaultProductPageSettings.related, ...saved.related },
     reviews: { ...defaultProductPageSettings.reviews, ...saved.reviews },
