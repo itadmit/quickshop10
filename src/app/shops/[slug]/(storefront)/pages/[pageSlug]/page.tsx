@@ -1,4 +1,4 @@
-import { getStoreBySlug, getCategoriesByStore, getPageSectionsCached, getProductsByStore, getFeaturedProducts, getProductsByCategory, getProductsByIds, getFooterMenuItems } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByStore, getFeaturedProducts, getProductsByCategory, getProductsByIds, getFooterMenuItems } from '@/lib/db/queries';
 import { db } from '@/lib/db';
 import { pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -97,8 +97,12 @@ export default async function InternalPage({ params }: InternalPageProps) {
   const pageIdentifier = `pages/${decodedPageSlug}`;
 
   // Parallel data fetching - maximum speed! ⚡
+  // In preview mode: use non-cached query to always get latest data
+  // In production: use cached version for performance
   const [sections, categories, featuredProducts, allProducts, footerMenuItems] = await Promise.all([
-    getPageSectionsCached(store.id, pageIdentifier),
+    isPreviewMode 
+      ? getPageSections(store.id, pageIdentifier) 
+      : getPageSectionsCached(store.id, pageIdentifier),
     getCategoriesByStore(store.id),
     getFeaturedProducts(store.id, 4),
     getProductsByStore(store.id, 12),

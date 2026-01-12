@@ -145,7 +145,7 @@ export async function POST(
     // Revalidate caches
     revalidatePath(`/shops/${slug}/editor`);
     revalidatePath(`/shops/${slug}/pages/${pageSlug}`);
-    revalidateTag('sections'); // Important: invalidate sections cache
+    revalidateTag('sections', { expire: 0 }); // Important: invalidate sections cache immediately
 
     return NextResponse.json({ 
       success: true, 
