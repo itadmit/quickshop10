@@ -15,7 +15,8 @@ import {
   Building2, 
   Mail, 
   Code,
-  Megaphone
+  Megaphone,
+  Phone
 } from 'lucide-react';
 
 // ============================================
@@ -71,6 +72,7 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   { type: 'logos', label: 'לוגואים', icon: Building2, category: 'סושיאל' },
   // אחר
   { type: 'newsletter', label: 'ניוזלטר', icon: Mail, category: 'אחר' },
+  { type: 'contact', label: 'יצירת קשר', icon: Phone, category: 'אחר' },
   { type: 'custom', label: 'מותאם אישית', icon: Code, category: 'אחר' },
 ];
 

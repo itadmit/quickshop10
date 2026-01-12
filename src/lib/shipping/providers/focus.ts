@@ -50,12 +50,7 @@ export class FocusProvider extends BaseShippingProvider {
     if (!credentials.customerNumber) {
       throw new Error('Focus: מספר לקוח חסר');
     }
-    if (!credentials.shipmentType) {
-      throw new Error('Focus: קוד סוג משלוח חסר');
-    }
-    if (!credentials.cargoType) {
-      throw new Error('Focus: קוד סוג מטען חסר');
-    }
+    // shipmentType and cargoType have defaults of '1' if not provided
   }
   
   protected async makeRequest<T>(

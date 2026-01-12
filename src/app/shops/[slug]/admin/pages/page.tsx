@@ -37,15 +37,26 @@ export default async function PagesManagementPage({
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">עמודים</h1>
           <p className="text-gray-500 text-xs sm:text-sm mt-1">ניהול עמודי תוכן סטטיים</p>
         </div>
-        <Link
-          href={`/shops/${slug}/editor?page=home`}
-          className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-900 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-        >
-          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-          </svg>
-          פתח בעורך
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/shops/${slug}/admin/pages/new`}
+            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            עמוד חדש
+          </Link>
+          <Link
+            href={`/shops/${slug}/editor?page=home`}
+            className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-gray-900 text-white text-xs sm:text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            פתח בעורך
+          </Link>
+        </div>
       </div>
 
       {/* Pages List */}
@@ -61,16 +72,27 @@ export default async function PagesManagementPage({
               <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
             </svg>
             <p className="text-sm">אין עמודים עדיין</p>
-            <p className="text-xs sm:text-sm mt-1">עמודי ברירת מחדל נוצרים אוטומטית עם החנות</p>
-            <Link
-              href={`/shops/${slug}/admin/settings/advanced`}
-              className="inline-flex items-center gap-2 mt-4 text-sm text-blue-600 hover:text-blue-700"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              איפוס החנות ליצירת עמודי ברירת מחדל
-            </Link>
+            <p className="text-xs sm:text-sm mt-1">צרו עמוד חדש או אפסו את החנות ליצירת עמודי ברירת מחדל</p>
+            <div className="flex items-center justify-center gap-3 mt-4">
+              <Link
+                href={`/shops/${slug}/admin/pages/new`}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+                צור עמוד חדש
+              </Link>
+              <Link
+                href={`/shops/${slug}/admin/settings/advanced`}
+                className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                איפוס החנות
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

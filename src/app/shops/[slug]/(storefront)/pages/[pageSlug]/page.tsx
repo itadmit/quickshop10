@@ -22,6 +22,7 @@ import {
   QuoteBannerSection,
   HeroPremiumSection,
   FeaturedItemsSection,
+  ContactSection,
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
@@ -569,6 +570,45 @@ export default async function InternalPage({ params }: InternalPageProps) {
             }}
             basePath={basePath}
             sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'contact':
+        sectionElement = (
+          <ContactSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as {
+              email?: string;
+              phone?: string;
+              address?: string;
+              hours?: string;
+              showForm?: boolean;
+              formAction?: string;
+              submitButtonText?: string;
+              socialLinks?: Array<{
+                type: 'facebook' | 'instagram' | 'twitter' | 'whatsapp' | 'telegram';
+                url: string;
+              }>;
+              text?: string;
+            }}
+            settings={settings as {
+              layout?: 'simple' | 'split' | 'form-only' | 'info-only';
+              maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+              textAlign?: 'right' | 'center' | 'left';
+              backgroundColor?: string;
+              textColor?: string;
+              paddingY?: 'small' | 'medium' | 'large';
+              titleColor?: string;
+              titleSize?: 'sm' | 'md' | 'lg' | 'xl';
+              titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+              buttonTextColor?: string;
+              buttonBackgroundColor?: string;
+            }}
+            basePath={basePath}
+            sectionId={section.id}
+            storeSlug={slug}
           />
         );
         break;

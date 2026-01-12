@@ -467,7 +467,7 @@ export async function calculateSubscriptionPriceAsync(
     }
   } else {
     // No storeId - use default pricing
-    const pricing = await getSubscriptionPricing();
+  const pricing = await getSubscriptionPricing();
     basePrice = plan === 'branding' ? pricing.branding : pricing.quickshop;
   }
   

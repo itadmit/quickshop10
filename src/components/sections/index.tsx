@@ -20,3 +20,4 @@ export { SeriesGridSection } from './series-grid-section';
 export { QuoteBannerSection } from './quote-banner-section';
 export { HeroPremiumSection } from './hero-premium-section';
 export { FeaturedItemsSection } from './featured-items-section';
+export { ContactSection } from './contact-section';

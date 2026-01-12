@@ -322,10 +322,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               </details>
             ) : (
               <>
-                <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                  {decodeHtmlEntities(product.description)}
-                </p>
+            <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
+            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+              {decodeHtmlEntities(product.description)}
+            </p>
               </>
             )}
           </div>
@@ -456,13 +456,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   data-section-name="גלריית תמונות"
                 >
                   {/* Always use LiveGallerySection for interactive navigation (arrows, dots, thumbnails) */}
-                  <LiveGallerySection
-                    mainImage={mainImage || ''}
-                    productName={product.name}
-                    images={product.images}
-                    initialSettings={pageSettings.gallery}
-                    ProductImageComponent={ProductImage}
-                  />
+                    <LiveGallerySection
+                      mainImage={mainImage || ''}
+                      productName={product.name}
+                      images={product.images}
+                      initialSettings={pageSettings.gallery}
+                      ProductImageComponent={ProductImage}
+                    />
                 </div>
               )}
 
@@ -669,13 +669,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         </details>
                       ) : (
                         <>
-                          <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
+                      <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
                           <p 
                             className="pp-description leading-relaxed whitespace-pre-line"
                             style={getTypographyStyle(pageSettings.typography?.description)}
                           >
-                            {decodeHtmlEntities(product.description)}
-                          </p>
+                        {decodeHtmlEntities(product.description)}
+                      </p>
                         </>
                       )}
                     </div>

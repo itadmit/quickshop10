@@ -363,7 +363,7 @@ export function LiveGallerySection({
   
   // Carousel layout (default) OR Single - main image with clickable thumbnails
   // Both carousel and single now work the same - main image + thumbnails
-  return (
+    return (
     <div className={`space-y-4 ${getContainerClasses()}`}>
       {/* Main Image with Slide Animation */}
       <div 

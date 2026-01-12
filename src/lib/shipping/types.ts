@@ -244,6 +244,8 @@ export interface ShippingProviderInfo {
     labelHe: string;
     type: 'text' | 'password';
     required: boolean;
+    placeholder?: string;
+    defaultValue?: string;
   }[];
 }
 

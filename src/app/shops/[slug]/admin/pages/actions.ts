@@ -44,7 +44,7 @@ export async function createPage(
     }).returning();
 
     revalidatePath(`/shops/${storeSlug}/admin/pages`);
-    return { success: true, pageId: newPage.id };
+    return { success: true, pageId: newPage.id, pageSlug: newPage.slug };
   } catch (error) {
     console.error('Error creating page:', error);
     return { success: false, error: 'שגיאה ביצירת העמוד' };

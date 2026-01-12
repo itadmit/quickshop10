@@ -88,15 +88,20 @@ const DEFAULT_PAGES: DefaultPage[] = [
     seoDescription: 'צרו איתנו קשר - {storeName}',
     sections: [
       {
-        type: 'text_block' as SectionType,
+        type: 'contact' as SectionType,
         title: 'צור קשר',
         subtitle: 'נשמח לשמוע מכם',
         content: {
-          text: '<p><strong>אימייל:</strong> contact@example.com</p><p><strong>טלפון:</strong> 03-1234567</p><p><strong>שעות פעילות:</strong> ימים א\'-ה\' 9:00-18:00</p>',
+          email: 'contact@example.com',
+          phone: '03-1234567',
+          hours: "ימים א'-ה' 9:00-18:00",
+          showForm: true,
+          submitButtonText: 'שליחה',
         },
         settings: {
-          maxWidth: 'lg',
-          textAlign: 'center',
+          layout: 'split',
+          maxWidth: 'xl',
+          textAlign: 'right',
           paddingY: 'large',
         },
         sortOrder: 0,

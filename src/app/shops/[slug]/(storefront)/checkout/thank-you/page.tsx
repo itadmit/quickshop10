@@ -33,6 +33,7 @@ import { emitOrderCreated, emitLowStock } from '@/lib/events';
 import { ProductImage } from '@/components/product-image';
 import { formatPrice } from '@/lib/format-price';
 import { addPointsFromOrder } from '@/lib/actions/loyalty';
+import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
@@ -554,6 +555,17 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               pendingPayment.discountCode || undefined
             );
             
+            // Auto-send shipment if configured (non-blocking)
+            autoSendShipmentOnPayment(store.id, updatedOrder.id)
+              .then(result => {
+                if (result.success) {
+                  console.log(`Thank you page: Auto-sent shipment for order ${updatedOrder.orderNumber}, tracking: ${result.trackingNumber}`);
+                } else if (result.error !== 'Auto-send is disabled' && result.error !== 'No default shipping provider') {
+                  console.error(`Thank you page: Failed to auto-send shipment: ${result.error}`);
+                }
+              })
+              .catch(err => console.error('Thank you page: Auto-send error:', err));
+            
             // Check for low stock
             Promise.all(
               cartItems.map(async (item) => {
@@ -950,6 +962,17 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           newOrder.customerName || search.customer_name || undefined,
           pendingPayment.discountCode || undefined
         );
+        
+        // Auto-send shipment if configured (non-blocking)
+        autoSendShipmentOnPayment(store.id, newOrder.id)
+          .then(result => {
+            if (result.success) {
+              console.log(`Thank you page (legacy): Auto-sent shipment for order ${orderNumber}, tracking: ${result.trackingNumber}`);
+            } else if (result.error !== 'Auto-send is disabled' && result.error !== 'No default shipping provider') {
+              console.error(`Thank you page (legacy): Failed to auto-send shipment: ${result.error}`);
+            }
+          })
+          .catch(err => console.error('Thank you page (legacy): Auto-send error:', err));
         
         // Check for low stock and emit events (non-blocking, fire-and-forget)
         Promise.all(

@@ -8,7 +8,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       refetchInterval={0} // Don't poll for session
       refetchOnWindowFocus={false} // Don't refetch on window focus
     >
-      {children}
+        {children}
     </SessionProvider>
   );
 }

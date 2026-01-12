@@ -79,6 +79,7 @@ export const sectionTypeEnum = pgEnum('section_type', [
   'text_block',     // בלוק טקסט עשיר
   'logos',          // לוגואים של מותגים/שותפים
   'faq',            // שאלות נפוצות
+  'contact',        // טופס יצירת קשר
   // Argania Premium sections
   'hero_slider',    // סליידר הירו עם scroll-snap
   'hero_premium',   // הירו פרימיום עם גרדיאנט
@@ -272,6 +273,34 @@ export const pages = pgTable('pages', {
   uniqueIndex('idx_pages_store_slug').on(table.storeId, table.slug),
   index('idx_pages_store').on(table.storeId),
 ]);
+
+// ============ PAGE TEMPLATES ============
+// Custom page templates - like Shopify's page templates
+// Users can create templates from the editor and reuse them
+
+export const pageTemplates = pgTable('page_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  name: varchar('name', { length: 100 }).notNull(), // "צור קשר", "אודות", "FAQ"
+  description: varchar('description', { length: 255 }),
+  // Sections are stored as JSON - same format as page_sections
+  sections: jsonb('sections').default([]).notNull(),
+  // Preview thumbnail (optional)
+  thumbnailUrl: text('thumbnail_url'),
+  // Sorting for display
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_page_templates_store').on(table.storeId),
+]);
+
+export const pageTemplatesRelations = relations(pageTemplates, ({ one }) => ({
+  store: one(stores, {
+    fields: [pageTemplates.storeId],
+    references: [stores.id],
+  }),
+}));
 
 // ============ NAVIGATION MENUS ============
 

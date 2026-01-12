@@ -27,11 +27,14 @@ export function PageForm({ storeId, slug, pageId, initialData }: PageFormProps) 
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     slug: initialData?.slug || '',
-    content: initialData?.content || '',
+    content: initialData?.content || '', // Content will be edited in visual editor
     isPublished: initialData?.isPublished || false,
     seoTitle: initialData?.seoTitle || '',
     seoDescription: initialData?.seoDescription || '',
   });
+
+  // For new pages, go directly to editor after creation
+  const isNewPage = !pageId;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,8 +56,9 @@ export function PageForm({ storeId, slug, pageId, initialData }: PageFormProps) 
         : await createPage(storeId, slug, formData);
 
       if (result.success) {
-        if (!pageId && 'pageId' in result) {
-          router.push(`/shops/${slug}/admin/pages/${result.pageId}`);
+        if (!pageId && 'pageSlug' in result && result.pageSlug) {
+          // New page created - go to visual editor
+          router.push(`/shops/${slug}/editor?page=pages/${result.pageSlug}`);
         } else {
           router.refresh();
         }
@@ -123,23 +127,41 @@ export function PageForm({ storeId, slug, pageId, initialData }: PageFormProps) 
         </div>
       </div>
 
-      {/* Content */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          תוכן
-        </label>
-        <textarea
-          value={formData.content}
-          onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-          rows={15}
-          className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 font-mono text-sm"
-          placeholder="<h2>כותרת</h2>&#10;<p>תוכן העמוד...</p>"
-          dir="ltr"
-        />
-        <p className="text-xs text-gray-500 mt-1">
-          ניתן להשתמש ב-HTML לעיצוב התוכן
-        </p>
-      </div>
+      {/* Content - Only show for existing pages */}
+      {pageId && (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            תוכן
+          </label>
+          <textarea
+            value={formData.content}
+            onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
+            rows={15}
+            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/5 font-mono text-sm"
+            placeholder="<h2>כותרת</h2>&#10;<p>תוכן העמוד...</p>"
+            dir="ltr"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            ניתן להשתמש ב-HTML לעיצוב התוכן
+          </p>
+        </div>
+      )}
+
+      {/* Info for new pages */}
+      {!pageId && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex gap-3">
+            <div className="text-blue-500">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-sm text-blue-700">
+              לאחר יצירת העמוד, תועברו לעורך הויזואלי להוספת תוכן וסקשנים.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* SEO Settings */}
       <div>

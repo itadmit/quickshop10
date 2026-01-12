@@ -1283,6 +1283,7 @@ function getSectionDefaultTitle(type: string): string {
     newsletter: 'ניוזלטר',
     video_banner: 'באנר וידאו',
     split_banner: 'באנר מפוצל',
+    contact: 'צור קשר',
   };
   return titles[type] || 'סקשן חדש';
 }
@@ -1362,7 +1363,12 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     contact: {
       email: 'info@example.com',
       phone: '03-1234567',
-      address: 'רחוב הדוגמה 1, תל אביב'
+      address: 'רחוב הדוגמה 1, תל אביב',
+      hours: "ימים א'-ה' 9:00-18:00",
+      showForm: true,
+      submitButtonText: 'שליחה',
+      notificationEmail: '', // אימייל לקבלת התראות
+      webhookUrl: '', // כתובת webhook לשליחה
     },
     custom: {
       html: '<div class="text-center p-8"><p>תוכן מותאם אישית</p></div>'
@@ -1379,6 +1385,7 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
     newsletter: { maxWidth: '600px' },
     video_banner: { height: '80vh', overlay: 0.4 },
     split_banner: { height: '60vh' },
+    contact: { layout: 'split', maxWidth: 'xl', textAlign: 'right', paddingY: 'large' },
   };
   return defaults[type] || {};
 }

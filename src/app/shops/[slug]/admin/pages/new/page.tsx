@@ -1,57 +1,15 @@
 import { getStoreBySlug } from '@/lib/db/queries';
+import { db } from '@/lib/db';
+import { pageTemplates } from '@/lib/db/schema';
+import { eq, asc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { PageForm } from '../page-form';
 
-const pageTemplates: Record<string, { title: string; content: string }> = {
-  about: {
-    title: 'אודות',
-    content: `<h2>אודותינו</h2>
-<p>ברוכים הבאים לחנות שלנו!</p>
-<p>אנחנו חנות מקוונת המתמחה באספקת מוצרים איכותיים ללקוחותינו.</p>
-<h3>החזון שלנו</h3>
-<p>להעניק חווית קנייה מעולה עם שירות אישי ומוצרים מהשורה הראשונה.</p>
-<h3>צוות</h3>
-<p>הצוות שלנו מורכב מאנשי מקצוע מנוסים שעומדים לרשותכם בכל שאלה.</p>`,
-  },
-  contact: {
-    title: 'צור קשר',
-    content: `<h2>צור קשר</h2>
-<p>נשמח לשמוע מכם!</p>
-<h3>פרטי התקשרות</h3>
-<p><strong>טלפון:</strong> 03-1234567</p>
-<p><strong>אימייל:</strong> info@example.com</p>
-<p><strong>כתובת:</strong> רחוב הראשי 1, תל אביב</p>
-<h3>שעות פעילות</h3>
-<p>ראשון - חמישי: 09:00 - 18:00</p>
-<p>שישי: 09:00 - 13:00</p>`,
-  },
-  shipping: {
-    title: 'משלוחים והחזרות',
-    content: `<h2>מדיניות משלוחים</h2>
-<h3>אזורי משלוח</h3>
-<p>אנו משלחים לכל רחבי הארץ.</p>
-<h3>זמני אספקה</h3>
-<p><strong>משלוח רגיל:</strong> 3-5 ימי עסקים</p>
-<p><strong>משלוח מהיר:</strong> 1-2 ימי עסקים</p>
-<h3>מדיניות החזרות</h3>
-<p>ניתן להחזיר מוצרים תוך 14 יום מיום הקנייה.</p>
-<p>המוצר חייב להיות באריזתו המקורית וללא סימני שימוש.</p>`,
-  },
-  privacy: {
-    title: 'מדיניות פרטיות',
-    content: `<h2>מדיניות פרטיות</h2>
-<p>אנו מתחייבים לשמור על פרטיותכם.</p>
-<h3>איסוף מידע</h3>
-<p>אנו אוספים מידע הנדרש לביצוע הזמנות ושיפור השירות.</p>
-<h3>שימוש במידע</h3>
-<p>המידע משמש אותנו לעיבוד הזמנות, שירות לקוחות ושיפור חווית המשתמש.</p>
-<h3>אבטחת מידע</h3>
-<p>אנו משתמשים באמצעי אבטחה מתקדמים להגנה על המידע שלכם.</p>
-<h3>יצירת קשר</h3>
-<p>לשאלות בנושא פרטיות, צרו קשר בכתובת: privacy@example.com</p>`,
-  },
-};
+// ============================================
+// New Page - Server Component
+// Loads templates from DB, zero client JS for template selection
+// ============================================
 
 export default async function NewPagePage({
   params,
@@ -61,15 +19,23 @@ export default async function NewPagePage({
   searchParams: Promise<{ template?: string }>;
 }) {
   const { slug } = await params;
-  const { template } = await searchParams;
+  const { template: templateId } = await searchParams;
   const store = await getStoreBySlug(slug);
   
   if (!store) {
     notFound();
   }
 
-  const templateData = template && pageTemplates[template] 
-    ? pageTemplates[template] 
+  // Fetch custom templates from DB (Server Component - no client JS)
+  const templates = await db
+    .select()
+    .from(pageTemplates)
+    .where(eq(pageTemplates.storeId, store.id))
+    .orderBy(asc(pageTemplates.sortOrder));
+
+  // Find selected template if any
+  const selectedTemplate = templateId 
+    ? templates.find(t => t.id === templateId)
     : null;
 
   return (
@@ -79,7 +45,7 @@ export default async function NewPagePage({
         <div>
           <h1 className="text-2xl font-bold text-gray-900">עמוד חדש</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {templateData ? `תבנית: ${templateData.title}` : 'יצירת עמוד תוכן חדש'}
+            {selectedTemplate ? `תבנית: ${selectedTemplate.name}` : 'יצירת עמוד תוכן חדש'}
           </p>
         </div>
         <Link
@@ -90,22 +56,102 @@ export default async function NewPagePage({
         </Link>
       </div>
 
+      {/* Template Selection - Only show if templates exist and none selected */}
+      {templates.length > 0 && !selectedTemplate && (
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <h2 className="font-medium text-gray-900 mb-4">בחרו תבנית (אופציונלי)</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {templates.map((template) => (
+              <Link
+                key={template.id}
+                href={`/shops/${slug}/admin/pages/new?template=${template.id}`}
+                className="group p-4 border border-gray-200 rounded-lg hover:border-gray-900 hover:bg-gray-50 transition-colors text-center"
+              >
+                {/* Template Thumbnail or Placeholder */}
+                <div className="w-full h-24 bg-gray-100 rounded-md mb-3 flex items-center justify-center">
+                  {template.thumbnailUrl ? (
+                    <img 
+                      src={template.thumbnailUrl} 
+                      alt={template.name}
+                      className="w-full h-full object-cover rounded-md"
+                    />
+                  ) : (
+                    <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-sm font-medium text-gray-900 group-hover:text-black">
+                  {template.name}
+                </span>
+                {template.description && (
+                  <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    {template.description}
+                  </p>
+                )}
+              </Link>
+            ))}
+          </div>
+          
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500 text-center">
+              או המשיכו ללא תבנית ליצירת עמוד ריק
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Selected Template Info */}
+      {selectedTemplate && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-900">תבנית: {selectedTemplate.name}</p>
+              <p className="text-xs text-blue-700">
+                {(selectedTemplate.sections as unknown[])?.length || 0} סקשנים יועתקו לעמוד החדש
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/shops/${slug}/admin/pages/new`}
+            className="text-xs text-blue-600 hover:text-blue-800"
+          >
+            בחר תבנית אחרת
+          </Link>
+        </div>
+      )}
+
       {/* Form */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <PageForm 
           storeId={store.id} 
           slug={slug}
-          initialData={templateData ? {
-            title: templateData.title,
-            slug: template!,
-            content: templateData.content,
-            isPublished: false,
-          } : undefined}
         />
       </div>
+
+      {/* Help - Create templates */}
+      {templates.length === 0 && (
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <div className="flex gap-3">
+            <div className="text-gray-400">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-gray-900">טיפ: יצירת תבניות</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                עצבו עמוד בעורך הויזואלי ולחצו על "שמור כתבנית" כדי לשמור אותו לשימוש חוזר.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-
-

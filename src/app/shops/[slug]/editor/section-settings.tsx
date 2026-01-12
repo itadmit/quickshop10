@@ -594,6 +594,9 @@ function ContentSettings({
       {section.type === 'faq' && (
         <FAQContentSettings section={section} onUpdate={onUpdate} />
       )}
+      {section.type === 'contact' && (
+        <ContactContentSettings section={section} onUpdate={onUpdate} />
+      )}
       {/* Argania Premium section types */}
       {section.type === 'hero_premium' && (
         <HeroPremiumContentSettings section={section} onUpdate={onUpdate} storeInfo={storeInfo} />
@@ -1293,6 +1296,117 @@ function DesignSettings({
             onChange={(v) => updateSettings('customCss', v)}
             multiline
             placeholder="color: red; font-size: 20px;"
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // Contact design settings
+  if (section.type === 'contact') {
+    return (
+      <div className="p-4 space-y-6">
+        <SettingsGroup title="פריסה">
+          <SelectField
+            label="סגנון תצוגה"
+            value={(section.settings.layout as string) || 'split'}
+            options={[
+              { value: 'simple', label: 'פשוט' },
+              { value: 'split', label: 'מפוצל (מידע + טופס)' },
+              { value: 'form-only', label: 'טופס בלבד' },
+              { value: 'info-only', label: 'מידע בלבד' },
+            ]}
+            onChange={(v) => updateSettings('layout', v)}
+          />
+          <SelectField
+            label="רוחב מקסימלי"
+            value={(section.settings.maxWidth as string) || 'xl'}
+            options={[
+              { value: 'sm', label: 'קטן' },
+              { value: 'md', label: 'בינוני' },
+              { value: 'lg', label: 'גדול' },
+              { value: 'xl', label: 'ענק' },
+              { value: 'full', label: 'מלא' },
+            ]}
+            onChange={(v) => updateSettings('maxWidth', v)}
+          />
+          <SelectField
+            label="יישור טקסט"
+            value={(section.settings.textAlign as string) || 'right'}
+            options={[
+              { value: 'right', label: 'ימין' },
+              { value: 'center', label: 'מרכז' },
+              { value: 'left', label: 'שמאל' },
+            ]}
+            onChange={(v) => updateSettings('textAlign', v)}
+          />
+          <SelectField
+            label="ריווח אנכי"
+            value={(section.settings.paddingY as string) || 'large'}
+            options={[
+              { value: 'small', label: 'קטן' },
+              { value: 'medium', label: 'בינוני' },
+              { value: 'large', label: 'גדול' },
+            ]}
+            onChange={(v) => updateSettings('paddingY', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="צבעים">
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.backgroundColor as string) || '#f9fafb'}
+            onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.textColor as string) || '#111827'}
+            onChange={(v) => updateSettings('textColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="טיפוגרפיה">
+          <TypographyPopover
+            label="כותרת"
+            value={{
+              color: (section.settings.titleColor as string) || '#111827',
+              fontSize: sizeToPx(section.settings.titleSize, 36),
+              fontWeight: mapWeight(section.settings.titleWeight, 'light'),
+            }}
+            onChange={(typography) => {
+              updateSettings('titleColor', typography.color);
+              updateSettings('titleSize', typography.fontSize);
+              updateSettings('titleWeight', typography.fontWeight);
+            }}
+            defaultColor="#111827"
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="כפתור שליחה">
+          <ColorField
+            label="צבע רקע"
+            value={(section.settings.buttonBackgroundColor as string) || '#000000'}
+            onChange={(v) => updateSettings('buttonBackgroundColor', v)}
+          />
+          <ColorField
+            label="צבע טקסט"
+            value={(section.settings.buttonTextColor as string) || '#ffffff'}
+            onChange={(v) => updateSettings('buttonTextColor', v)}
+          />
+        </SettingsGroup>
+
+        <SettingsGroup title="מתקדם">
+          <TextField
+            label="Class מותאם"
+            value={(section.settings.customClass as string) || ''}
+            onChange={(v) => updateSettings('customClass', v)}
+            placeholder="my-custom-class"
+          />
+          <TextField
+            label="ID מותאם"
+            value={(section.settings.customId as string) || ''}
+            onChange={(v) => updateSettings('customId', v)}
+            placeholder="contact"
           />
         </SettingsGroup>
       </div>
@@ -3728,6 +3842,92 @@ function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate:
             + הוסף שאלה
           </button>
         </div>
+      </SettingsGroup>
+    </>
+  );
+}
+
+// Contact Content Settings
+function ContactContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+  const updateContent = (key: string, value: unknown) => {
+    onUpdate({ content: { ...section.content, [key]: value } });
+  };
+
+  return (
+    <>
+      <SettingsGroup title="פרטי התקשרות">
+        <TextField
+          label="אימייל"
+          value={(section.content.email as string) || ''}
+          onChange={(v) => updateContent('email', v)}
+          placeholder="info@example.com"
+        />
+        <TextField
+          label="טלפון"
+          value={(section.content.phone as string) || ''}
+          onChange={(v) => updateContent('phone', v)}
+          placeholder="03-1234567"
+        />
+        <TextField
+          label="כתובת"
+          value={(section.content.address as string) || ''}
+          onChange={(v) => updateContent('address', v)}
+          placeholder="רחוב הדוגמה 1, תל אביב"
+        />
+        <TextField
+          label="שעות פעילות"
+          value={(section.content.hours as string) || ''}
+          onChange={(v) => updateContent('hours', v)}
+          placeholder="ימים א'-ה' 9:00-18:00"
+        />
+      </SettingsGroup>
+
+      <SettingsGroup title="טופס יצירת קשר">
+        <SwitchField
+          label="הצג טופס"
+          value={(section.content.showForm as boolean) ?? true}
+          onChange={(v) => updateContent('showForm', v)}
+        />
+        {(section.content.showForm as boolean) && (
+          <>
+            <TextField
+              label="טקסט כפתור שליחה"
+              value={(section.content.submitButtonText as string) || 'שליחה'}
+              onChange={(v) => updateContent('submitButtonText', v)}
+            />
+          </>
+        )}
+      </SettingsGroup>
+
+      <SettingsGroup title="התראות">
+        <TextField
+          label="אימייל לקבלת התראות"
+          value={(section.content.notificationEmail as string) || ''}
+          onChange={(v) => updateContent('notificationEmail', v)}
+          placeholder="הזינו אימייל לקבלת פניות (אופציונלי)"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          אם ריק, ישלח לאימייל של החנות
+        </p>
+      </SettingsGroup>
+
+      <SettingsGroup title="אינטגרציות">
+        <TextField
+          label="כתובת Webhook"
+          value={(section.content.webhookUrl as string) || ''}
+          onChange={(v) => updateContent('webhookUrl', v)}
+          placeholder="https://..."
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          לחיבור ל-Zapier, Make או מערכות אחרות
+        </p>
+      </SettingsGroup>
+
+      <SettingsGroup title="טקסט נוסף">
+        <RichTextEditor
+          value={(section.content.text as string) || ''}
+          onChange={(v) => updateContent('text', v)}
+        />
       </SettingsGroup>
     </>
   );

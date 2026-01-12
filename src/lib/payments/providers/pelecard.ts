@@ -326,10 +326,21 @@ export class PelecardProvider extends BasePaymentProvider {
       const response = await this.makeRequest<PelecardInitResponse>('/init', 'POST', body);
       
       if (response.URL) {
+        // Extract transactionId from URL (Pelecard includes it as query parameter)
+        let transactionId = response.transactionID;
+        if (!transactionId) {
+          try {
+            const url = new URL(response.URL);
+            transactionId = url.searchParams.get('transactionId') || undefined;
+          } catch {
+            // URL parsing failed, continue without transactionId
+          }
+        }
+        
         return {
           success: true,
           paymentUrl: response.URL,
-          providerRequestId: response.transactionID,
+          providerRequestId: transactionId,
           providerResponse: response as unknown as Record<string, unknown>,
         };
       }
