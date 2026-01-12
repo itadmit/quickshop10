@@ -51,6 +51,8 @@ interface CouponData {
   // Gift product specific
   minimumQuantity?: number | null;         // מינימום כמות להפעלה
   triggerCouponCodes?: string[];           // קופונים שמפעילים את המתנה
+  // Combo coupon - קופונים שהקופון הזה מפעיל
+  activatesCouponCodes?: string[];
 }
 
 export async function createCoupon(storeId: string, data: CouponData) {
@@ -100,6 +102,8 @@ export async function createCoupon(storeId: string, data: CouponData) {
       // Gift product specific
       minimumQuantity: data.minimumQuantity || null,
       triggerCouponCodes: data.triggerCouponCodes || [],
+      // Combo coupon
+      activatesCouponCodes: data.activatesCouponCodes || [],
     }).returning();
 
     // Link to influencer if specified
@@ -157,6 +161,8 @@ export async function updateCoupon(couponId: string, data: CouponData) {
         // Gift product specific
         minimumQuantity: data.minimumQuantity || null,
         triggerCouponCodes: data.triggerCouponCodes || [],
+        // Combo coupon
+        activatesCouponCodes: data.activatesCouponCodes || [],
       })
       .where(eq(discounts.id, couponId));
 

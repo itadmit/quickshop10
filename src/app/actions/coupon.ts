@@ -15,6 +15,32 @@ type DiscountType =
   | 'spend_x_pay_y'
   | 'gift_card';
 
+// סוג כללי לקופון שמופעל (gift_product או קופון רגיל)
+type ActivatedCoupon = {
+  id: string;
+  code: string;
+  title: string | null;
+  type: DiscountType;
+  value: number;
+  minimumAmount?: number | null;
+  minimumQuantity?: number | null;
+  stackable: boolean;
+  appliesTo: 'all' | 'category' | 'product' | 'member';
+  productIds: string[];
+  categoryIds: string[];
+  excludeProductIds: string[];
+  excludeCategoryIds: string[];
+  giftProductIds?: string[];
+  buyQuantity?: number | null;
+  payAmount?: number | null;
+  getQuantity?: number | null;
+  getDiscountPercent?: number | null;
+  giftSameProduct?: boolean;
+  quantityTiers?: Array<{ minQuantity: number; discountPercent: number }>;
+  spendAmount?: number | null;
+  triggeredByCode: string;
+};
+
 export type CouponResult = {
   success: true;
   coupon: {
@@ -43,24 +69,13 @@ export type CouponResult = {
     // שדות gift_product
     minimumQuantity?: number | null;
     triggerCouponCodes?: string[];
+    // קופונים שהקופון הזה מפעיל
+    activatesCouponCodes?: string[];
   };
-  // קופוני מתנה שמופעלים על ידי הקופון הזה
-  triggeredGiftCoupons?: Array<{
-    id: string;
-    code: string;
-    title: string | null;
-    type: 'gift_product';
-    value: number;
-    giftProductIds: string[];
-    minimumAmount?: number | null;
-    minimumQuantity?: number | null;
-    stackable: boolean;
-    appliesTo: 'all' | 'category' | 'product' | 'member';
-    productIds: string[];
-    categoryIds: string[];
-    excludeProductIds: string[];
-    triggeredByCode: string;
-  }>;
+  // קופוני מתנה שמופעלים על ידי הקופון הזה (legacy - gift_product)
+  triggeredGiftCoupons?: ActivatedCoupon[];
+  // קופונים שהקופון הזה מפעיל (combo coupon - כל סוגי הקופונים)
+  activatedCoupons?: ActivatedCoupon[];
 } | {
   success: false;
   error: string;
@@ -291,7 +306,7 @@ export async function validateCoupon(
     }
   }
 
-  // מציאת קופוני מתנה שמופעלים על ידי הקופון הזה
+  // מציאת קופוני מתנה שמופעלים על ידי הקופון הזה (trigger - הכיוון ההפוך)
   const triggeredGiftCoupons = await db
     .select()
     .from(discounts)
@@ -302,7 +317,7 @@ export async function validateCoupon(
     ));
 
   // סינון קופונים שיש להם triggerCouponCodes שכולל את הקוד הנוכחי
-  const triggeredCoupons = triggeredGiftCoupons.filter(gc => {
+  const triggeredCoupons: ActivatedCoupon[] = triggeredGiftCoupons.filter(gc => {
     const triggerCodes = (gc.triggerCouponCodes as string[]) || [];
     return triggerCodes.some(tc => tc.toUpperCase().trim() === normalizedCode);
   }).map(gc => ({
@@ -315,12 +330,56 @@ export async function validateCoupon(
     minimumAmount: gc.minimumAmount ? Number(gc.minimumAmount) : null,
     minimumQuantity: gc.minimumQuantity || null,
     stackable: gc.stackable ?? true,
-    appliesTo: (gc.appliesTo ?? 'all') as 'all' | 'category' | 'product' | 'member', // חשוב! ברירת מחדל 'all' כדי שהתנאים יתקיימו
+    appliesTo: (gc.appliesTo ?? 'all') as 'all' | 'category' | 'product' | 'member',
     productIds: (gc.productIds as string[]) || [],
     categoryIds: (gc.categoryIds as string[]) || [],
     excludeProductIds: (gc.excludeProductIds as string[]) || [],
-    triggeredByCode: normalizedCode, // שמירת הקופון שהפעיל את המתנה
+    excludeCategoryIds: (gc.excludeCategoryIds as string[]) || [],
+    triggeredByCode: normalizedCode,
   }));
+
+  // מציאת קופונים שהקופון הנוכחי מפעיל (activates - הכיוון הישיר)
+  const activatesCodes = (discount.activatesCouponCodes as string[]) || [];
+  let activatedCoupons: ActivatedCoupon[] = [];
+  
+  if (activatesCodes.length > 0) {
+    // שליפת כל הקופונים שבמערך activatesCouponCodes
+    const allCoupons = await db
+      .select()
+      .from(discounts)
+      .where(and(
+        eq(discounts.storeId, storeId),
+        eq(discounts.isActive, true)
+      ));
+    
+    // סינון הקופונים לפי הקודים ברשימה
+    activatedCoupons = allCoupons
+      .filter(c => activatesCodes.some(code => code.toUpperCase().trim() === c.code.toUpperCase()))
+      .map(c => ({
+        id: c.id,
+        code: c.code,
+        title: c.title,
+        type: c.type as DiscountType,
+        value: Number(c.value),
+        minimumAmount: c.minimumAmount ? Number(c.minimumAmount) : null,
+        minimumQuantity: c.minimumQuantity || null,
+        stackable: c.stackable ?? true,
+        appliesTo: (c.appliesTo ?? 'all') as 'all' | 'category' | 'product' | 'member',
+        productIds: (c.productIds as string[]) || [],
+        categoryIds: (c.categoryIds as string[]) || [],
+        excludeProductIds: (c.excludeProductIds as string[]) || [],
+        excludeCategoryIds: (c.excludeCategoryIds as string[]) || [],
+        giftProductIds: (c.giftProductIds as string[]) || [],
+        buyQuantity: c.buyQuantity || null,
+        payAmount: c.payAmount ? Number(c.payAmount) : null,
+        getQuantity: c.getQuantity || null,
+        getDiscountPercent: c.getDiscountPercent || null,
+        giftSameProduct: c.giftSameProduct ?? true,
+        quantityTiers: (c.quantityTiers as Array<{ minQuantity: number; discountPercent: number }>) || [],
+        spendAmount: c.spendAmount ? Number(c.spendAmount) : null,
+        triggeredByCode: normalizedCode,
+      }));
+  }
 
   return {
     success: true,
@@ -348,8 +407,12 @@ export async function validateCoupon(
       // שדות gift_product
       minimumQuantity: discount.minimumQuantity || null,
       triggerCouponCodes: (discount.triggerCouponCodes as string[]) || [],
+      // קופונים שהקופון מפעיל
+      activatesCouponCodes: (discount.activatesCouponCodes as string[]) || [],
     },
-    // קופוני מתנה שמופעלים
+    // קופוני מתנה שמופעלים (legacy - gift_product עם triggerCouponCodes)
     triggeredGiftCoupons: triggeredCoupons.length > 0 ? triggeredCoupons : undefined,
+    // קופונים שהקופון הזה מפעיל (combo coupon)
+    activatedCoupons: activatedCoupons.length > 0 ? activatedCoupons : undefined,
   };
 }

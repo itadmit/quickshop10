@@ -13,6 +13,7 @@ interface CouponInputProps {
   email?: string;
   cartItems?: Array<{ productId: string; quantity: number }>;
   onTriggeredGiftCoupons?: (coupons: AppliedCoupon[]) => void; // קופוני מתנה שמופעלים אוטומטית
+  onActivatedCoupons?: (coupons: AppliedCoupon[]) => void; // קופונים שמופעלים על ידי קופון משולב
   hasNonStackableAutoDiscount?: boolean; // האם יש הנחה אוטומטית שלא ניתנת לשילוב
   nonStackableAutoDiscountName?: string; // שם ההנחה האוטומטית (לחיווי טוב יותר)
 }
@@ -26,6 +27,7 @@ export function CouponInput({
   email, 
   cartItems, 
   onTriggeredGiftCoupons,
+  onActivatedCoupons,
   hasNonStackableAutoDiscount = false,
   nonStackableAutoDiscountName,
 }: CouponInputProps) {
@@ -71,7 +73,7 @@ export function CouponInput({
         onApply(result.coupon);
         setCouponCode('');
         
-        // טיפול בקופוני מתנה שמופעלים אוטומטית
+        // טיפול בקופוני מתנה שמופעלים אוטומטית (legacy - gift_product עם triggerCouponCodes)
         if (result.triggeredGiftCoupons && result.triggeredGiftCoupons.length > 0 && onTriggeredGiftCoupons) {
           // המרה לפורמט AppliedCoupon
           const giftCoupons: AppliedCoupon[] = result.triggeredGiftCoupons.map(gc => ({
@@ -84,13 +86,41 @@ export function CouponInput({
             minimumQuantity: gc.minimumQuantity,
             stackable: gc.stackable,
             giftProductIds: gc.giftProductIds,
-            appliesTo: gc.appliesTo, // חשוב! לבדיקת תנאים
+            appliesTo: gc.appliesTo,
             productIds: gc.productIds,
             categoryIds: gc.categoryIds,
             excludeProductIds: gc.excludeProductIds,
-            triggeredByCode: gc.triggeredByCode, // שמירת הקופון שהפעיל
+            triggeredByCode: gc.triggeredByCode,
           }));
           onTriggeredGiftCoupons(giftCoupons);
+        }
+        
+        // טיפול בקופונים שמופעלים על ידי קופון משולב (combo coupon)
+        if (result.activatedCoupons && result.activatedCoupons.length > 0 && onActivatedCoupons) {
+          const activatedCoupons: AppliedCoupon[] = result.activatedCoupons.map(ac => ({
+            id: ac.id,
+            code: ac.code,
+            title: ac.title,
+            type: ac.type,
+            value: ac.value,
+            minimumAmount: ac.minimumAmount,
+            minimumQuantity: ac.minimumQuantity,
+            stackable: ac.stackable,
+            appliesTo: ac.appliesTo,
+            productIds: ac.productIds,
+            categoryIds: ac.categoryIds,
+            excludeProductIds: ac.excludeProductIds,
+            excludeCategoryIds: ac.excludeCategoryIds,
+            giftProductIds: ac.giftProductIds,
+            buyQuantity: ac.buyQuantity,
+            payAmount: ac.payAmount,
+            getQuantity: ac.getQuantity,
+            giftSameProduct: ac.giftSameProduct,
+            quantityTiers: ac.quantityTiers,
+            spendAmount: ac.spendAmount,
+            triggeredByCode: ac.triggeredByCode,
+          }));
+          onActivatedCoupons(activatedCoupons);
         }
       } else {
         setCouponError(result.error);

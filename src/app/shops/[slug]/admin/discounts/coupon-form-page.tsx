@@ -112,6 +112,8 @@ interface Coupon {
   // Gift product specific
   minimumQuantity?: number | null;         // מינימום כמות להפעלה
   triggerCouponCodes?: string[];           // קופונים שמפעילים את המתנה
+  // Combo coupon - קופונים שהקופון הזה מפעיל
+  activatesCouponCodes?: string[];
 }
 
 interface Category {
@@ -199,6 +201,8 @@ export function CouponFormPage({
     // Gift product specific fields
     minimumQuantity: coupon?.minimumQuantity?.toString() || '',
     triggerCouponCodes: coupon?.triggerCouponCodes || [],
+    // Combo coupon - קופונים שהקופון הזה מפעיל
+    activatesCouponCodes: coupon?.activatesCouponCodes || [],
   });
 
   // Filtered lists for search
@@ -327,6 +331,8 @@ export function CouponFormPage({
           // Gift product specific
           minimumQuantity: formData.minimumQuantity ? parseInt(formData.minimumQuantity) : null,
           triggerCouponCodes: formData.triggerCouponCodes,
+          // Combo coupon
+          activatesCouponCodes: formData.activatesCouponCodes,
         };
 
         if (mode === 'create') {
@@ -1373,6 +1379,82 @@ export function CouponFormPage({
                 </label>
               </div>
             </div>
+
+            {/* Combo Coupon Card - Activates Other Coupons */}
+            {otherCoupons.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-gray-100">
+                  <Link2 className="w-4 h-4 text-blue-600" />
+                  <h2 className="text-sm font-semibold text-gray-900">
+                    קופון משולב
+                  </h2>
+                </div>
+                
+                <p className="text-xs text-gray-600">
+                  בחר קופונים שיופעלו אוטומטית כשהלקוח מזין את הקופון הזה.
+                </p>
+                
+                {/* Selected Coupons to Activate */}
+                {formData.activatesCouponCodes.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pb-2">
+                    {formData.activatesCouponCodes.map((code, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-600 text-white text-xs rounded-full font-mono"
+                      >
+                        {code}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newCodes = formData.activatesCouponCodes.filter((_, i) => i !== index);
+                            setFormData(prev => ({ ...prev, activatesCouponCodes: newCodes }));
+                          }}
+                          className="hover:bg-white/20 rounded-full p-0.5"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Available Coupons to Activate */}
+                <div className="max-h-40 overflow-y-auto space-y-1 border border-gray-100 rounded-lg p-2">
+                  {otherCoupons.filter(c => 
+                    c.code !== formData.code && 
+                    !formData.activatesCouponCodes.includes(c.code)
+                  ).length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-2">אין קופונים זמינים</p>
+                  ) : (
+                    otherCoupons
+                      .filter(c => c.code !== formData.code && !formData.activatesCouponCodes.includes(c.code))
+                      .map(c => (
+                        <label 
+                          key={c.id} 
+                          className="flex items-center gap-2 p-2 rounded cursor-pointer hover:bg-gray-50 transition-colors text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={false}
+                            onChange={() => {
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                activatesCouponCodes: [...prev.activatesCouponCodes, c.code] 
+                              }));
+                            }}
+                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5"
+                          />
+                          <span className="font-mono text-gray-800">{c.code}</span>
+                          {c.title && <span className="text-gray-400">- {c.title}</span>}
+                        </label>
+                      ))
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
+                  לדוגמה: קופון "YOGEV" יפעיל גם את "MIRAN" + "MARIA"
+                </p>
+              </div>
+            )}
 
             {/* Influencer Card */}
             {influencers.length > 0 && (

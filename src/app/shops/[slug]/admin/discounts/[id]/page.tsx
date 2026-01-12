@@ -54,14 +54,13 @@ export default async function EditCouponPage({ params }: EditCouponPageProps) {
   // Find if this coupon is linked to an influencer
   const linkedInfluencer = storeInfluencers.find(inf => inf.discountId === coupon.id);
 
-  // Fetch other coupons for trigger selection (only non-gift_product coupons, excluding current)
+  // Fetch other coupons for trigger selection and combo coupons (excluding current)
   const otherCoupons = await db
-    .select({ id: discounts.id, code: discounts.code, title: discounts.title })
+    .select({ id: discounts.id, code: discounts.code, title: discounts.title, type: discounts.type })
     .from(discounts)
     .where(and(
       eq(discounts.storeId, store.id),
       eq(discounts.isActive, true),
-      ne(discounts.type, 'gift_product'),
       ne(discounts.id, id) // Exclude current coupon
     ))
     .orderBy(discounts.code);
@@ -99,6 +98,8 @@ export default async function EditCouponPage({ params }: EditCouponPageProps) {
     // Gift product specific
     minimumQuantity: coupon.minimumQuantity,
     triggerCouponCodes: (coupon.triggerCouponCodes as string[]) || [],
+    // Combo coupon
+    activatesCouponCodes: (coupon.activatesCouponCodes as string[]) || [],
   };
 
   return (

@@ -876,6 +876,11 @@ export const discounts = pgTable('discounts', {
   // כאשר מזינים אחד מהקופונים ברשימה, הקופון הזה (מוצר מתנה) מופעל אוטומטית
   triggerCouponCodes: jsonb('trigger_coupon_codes').default([]), // רשימת קודי קופונים שמפעילים את המתנה
   
+  // קופון משולב (combo coupon) - מפעיל קופונים אחרים
+  // כאשר מזינים קופון זה, גם הקופונים ברשימה מופעלים אוטומטית
+  // דוגמה: קופון "yogev" עם activatesCouponCodes: ["miran", "maria", "danit"]
+  activatesCouponCodes: jsonb('activates_coupon_codes').default([]), // רשימת קודי קופונים שהקופון הזה מפעיל
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   uniqueIndex('idx_discounts_store_code').on(table.storeId, table.code),
