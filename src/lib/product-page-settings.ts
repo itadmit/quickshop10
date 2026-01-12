@@ -27,6 +27,8 @@ export interface ProductPageSettings {
     thumbnailsPosition: 'bottom' | 'right' | 'left' | 'hidden';
     aspectRatio: '1:1' | '3:4' | '4:3' | '16:9';
     enableZoom: boolean;
+    showArrows: boolean; // הצג חצים לניווט
+    showDotsOnMobile: boolean; // הצג נקודות במובייל
   };
   
   // Title & Price settings
@@ -80,10 +82,12 @@ export const defaultProductPageSettings: ProductPageSettings = {
   ],
   
   gallery: {
-    layout: 'single',
+    layout: 'carousel', // ברירת מחדל: קרוסלה עם תמונות ממוזערות
     thumbnailsPosition: 'bottom',
     aspectRatio: '3:4',
     enableZoom: true,
+    showArrows: true, // ברירת מחדל: פעיל
+    showDotsOnMobile: false, // ברירת מחדל: מכובה
   },
   
   title: {

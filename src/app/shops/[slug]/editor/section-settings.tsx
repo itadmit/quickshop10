@@ -5193,9 +5193,9 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
                 label="סגנון תצוגה"
                 value={productSettings.gallery.layout}
                 options={[
+                  { value: 'carousel', label: 'קרוסלה (ברירת מחדל)' },
+                  { value: 'grid', label: 'תמונות אחת מתחת לשנייה' },
                   { value: 'single', label: 'תמונה בודדת' },
-                  { value: 'grid', label: 'רשת' },
-                  { value: 'carousel', label: 'קרוסלה' },
                 ]}
                 onChange={(v) => updateProductSettings({ 
                   gallery: { ...productSettings.gallery, layout: v as ProductPageSettings['gallery']['layout'] } 
@@ -5235,6 +5235,22 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
                 value={productSettings.gallery.enableZoom}
                 onChange={(v) => updateProductSettings({ 
                   gallery: { ...productSettings.gallery, enableZoom: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג חצי ניווט"
+                value={productSettings.gallery.showArrows ?? true}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, showArrows: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג נקודות במובייל"
+                value={productSettings.gallery.showDotsOnMobile ?? false}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, showDotsOnMobile: v } 
                 })}
               />
             </SettingsGroup>
@@ -5511,9 +5527,9 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
                 label="סגנון תצוגה"
                 value={productSettings.gallery.layout}
                 options={[
+                  { value: 'carousel', label: 'קרוסלה (ברירת מחדל)' },
+                  { value: 'grid', label: 'תמונות אחת מתחת לשנייה' },
                   { value: 'single', label: 'תמונה בודדת' },
-                  { value: 'grid', label: 'רשת' },
-                  { value: 'carousel', label: 'קרוסלה' },
                 ]}
                 onChange={(v) => updateProductSettings({ 
                   gallery: { ...productSettings.gallery, layout: v as ProductPageSettings['gallery']['layout'] } 
@@ -5553,6 +5569,22 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
                 value={productSettings.gallery.enableZoom}
                 onChange={(v) => updateProductSettings({ 
                   gallery: { ...productSettings.gallery, enableZoom: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג חצי ניווט"
+                value={productSettings.gallery.showArrows ?? true}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, showArrows: v } 
+                })}
+              />
+              
+              <SwitchField
+                label="הצג נקודות במובייל"
+                value={productSettings.gallery.showDotsOnMobile ?? false}
+                onChange={(v) => updateProductSettings({ 
+                  gallery: { ...productSettings.gallery, showDotsOnMobile: v } 
                 })}
               />
             </SettingsGroup>

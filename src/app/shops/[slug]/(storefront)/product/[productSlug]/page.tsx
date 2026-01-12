@@ -392,50 +392,14 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   data-section-id="pp-gallery"
                   data-section-name="גלריית תמונות"
                 >
-                  {isPreviewMode ? (
-                    <LiveGallerySection
-                      mainImage={mainImage || ''}
-                      productName={product.name}
-                      images={product.images}
-                      initialSettings={pageSettings.gallery}
-                      ProductImageComponent={ProductImage}
-                    />
-                  ) : (
-                    <div className={`space-y-4 ${
-                      pageSettings.gallery.thumbnailsPosition === 'right' ? 'lg:order-2' : ''
-                    } ${pageSettings.gallery.thumbnailsPosition === 'left' ? 'lg:order-1 lg:flex lg:flex-row-reverse lg:gap-4' : ''}`}>
-                      {/* Main Image */}
-                      <div className={`${getAspectRatioClass(pageSettings.gallery.aspectRatio)} bg-gray-50 overflow-hidden ${
-                        pageSettings.gallery.thumbnailsPosition === 'left' ? 'flex-1' : ''
-                      }`}>
-                        <ProductImage 
-                          src={mainImage}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          loading="eager"
-                        />
-                      </div>
-                      
-                      {/* Thumbnails */}
-                      {pageSettings.gallery.thumbnailsPosition !== 'hidden' && product.images.length > 1 && (
-                        <div className={`${
-                          pageSettings.gallery.thumbnailsPosition === 'left' 
-                            ? 'flex flex-col gap-4 w-20' 
-                            : 'grid grid-cols-4 gap-4'
-                        }`}>
-                          {product.images.map((img, i) => (
-                            <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-                              <ProductImage 
-                                src={img.url}
-                                alt={`${product.name} ${i + 1}`}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {/* Always use LiveGallerySection for interactive navigation (arrows, dots, thumbnails) */}
+                  <LiveGallerySection
+                    mainImage={mainImage || ''}
+                    productName={product.name}
+                    images={product.images}
+                    initialSettings={pageSettings.gallery}
+                    ProductImageComponent={ProductImage}
+                  />
                 </div>
               )}
 

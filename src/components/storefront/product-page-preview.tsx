@@ -168,6 +168,8 @@ interface LiveGallerySectionProps {
     thumbnailsPosition: string;
     aspectRatio: string;
     enableZoom: boolean;
+    showArrows?: boolean;
+    showDotsOnMobile?: boolean;
   };
   ProductImageComponent: React.ComponentType<{ src: string | undefined; alt: string; className?: string; loading?: 'eager' | 'lazy' }>;
 }
@@ -180,6 +182,7 @@ export function LiveGallerySection({
   ProductImageComponent 
 }: LiveGallerySectionProps) {
   const { settings, isPreview } = useProductPagePreview();
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   const aspectRatioClasses: Record<string, string> = {
     '1:1': 'aspect-square',
@@ -193,8 +196,22 @@ export function LiveGallerySection({
   const thumbnailsPosition = isPreview ? settings.gallery.thumbnailsPosition : initialSettings.thumbnailsPosition;
   const aspectRatio = isPreview ? settings.gallery.aspectRatio : initialSettings.aspectRatio;
   const enableZoom = isPreview ? settings.gallery.enableZoom : initialSettings.enableZoom;
+  const showArrows = isPreview ? (settings.gallery.showArrows ?? true) : (initialSettings.showArrows ?? true);
+  const showDotsOnMobile = isPreview ? (settings.gallery.showDotsOnMobile ?? false) : (initialSettings.showDotsOnMobile ?? false);
   
   const aspectClass = aspectRatioClasses[aspectRatio] || 'aspect-[3/4]';
+  
+  // Navigation functions
+  const goToPrevious = () => {
+    setSelectedImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+  
+  const goToNext = () => {
+    setSelectedImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+  
+  // Get current main image (either selected or first)
+  const currentMainImage = images.length > 0 ? images[selectedImageIndex]?.url || mainImage : mainImage;
   
   // Determine container classes based on thumbnail position
   const getContainerClasses = () => {
@@ -210,15 +227,15 @@ export function LiveGallerySection({
   // Determine thumbnail container classes
   const getThumbnailClasses = () => {
     if (thumbnailsPosition === 'left' || thumbnailsPosition === 'right') {
-      return 'flex flex-col gap-4 w-20';
+      return 'flex flex-col gap-2 w-20 lg:w-24';
     }
-    return 'grid grid-cols-4 gap-4';
+    return 'flex gap-2 overflow-x-auto pb-2';
   };
   
-  // Grid layout - show multiple images in a grid
+  // Grid layout - show ALL images stacked vertically (one below another)
   if (layout === 'grid' && images.length > 1) {
     return (
-      <div className="grid grid-cols-2 gap-4">
+      <div className="flex flex-col gap-4">
         {images.map((img, i) => (
           <div 
             key={img.id} 
@@ -236,56 +253,88 @@ export function LiveGallerySection({
     );
   }
   
-  // Carousel layout - horizontal scroll
-  if (layout === 'carousel' && images.length > 1) {
-    return (
-      <div className="overflow-x-auto">
-        <div className="flex gap-4" style={{ width: `${images.length * 80}%` }}>
+  // Carousel layout (default) OR Single - main image with clickable thumbnails
+  // Both carousel and single now work the same - main image + thumbnails
+  return (
+    <div className={`space-y-4 ${getContainerClasses()}`}>
+      {/* Main Image with Navigation */}
+      <div 
+        className={`relative ${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
+        title={enableZoom ? 'לחץ להגדלה' : undefined}
+      >
+        <ProductImageComponent 
+          src={currentMainImage}
+          alt={productName}
+          className="w-full h-full object-cover"
+          loading="eager"
+        />
+        
+        {/* Navigation Arrows */}
+        {showArrows && images.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={goToPrevious}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+              style={{ opacity: 1 }}
+              aria-label="תמונה קודמת"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={goToNext}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 hover:bg-white rounded-full flex items-center justify-center shadow-md transition-all opacity-0 group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+              style={{ opacity: 1 }}
+              aria-label="תמונה הבאה"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </>
+        )}
+        
+        {/* Mobile Dots Indicator */}
+        {showDotsOnMobile && images.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 lg:hidden">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setSelectedImageIndex(i)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  i === selectedImageIndex ? 'bg-black w-4' : 'bg-black/40'
+                }`}
+                aria-label={`תמונה ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Thumbnails - shown when more than 1 image and not hidden */}
+      {thumbnailsPosition !== 'hidden' && images.length > 1 && (
+        <div className={getThumbnailClasses()}>
           {images.map((img, i) => (
-            <div 
-              key={img.id} 
-              className={`flex-shrink-0 w-[85%] ${aspectClass} bg-gray-50 overflow-hidden ${enableZoom ? 'cursor-zoom-in' : ''}`}
+            <button
+              key={img.id}
+              type="button"
+              onClick={() => setSelectedImageIndex(i)}
+              className={`flex-shrink-0 w-16 h-16 lg:w-20 lg:h-20 bg-gray-50 overflow-hidden transition-all ${
+                i === selectedImageIndex 
+                  ? 'ring-2 ring-black opacity-100' 
+                  : 'opacity-60 hover:opacity-100'
+              }`}
             >
               <ProductImageComponent 
                 src={img.url}
                 alt={`${productName} ${i + 1}`}
                 className="w-full h-full object-cover"
-                loading={i === 0 ? 'eager' : 'lazy'}
               />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-  
-  // Default: Single image with thumbnails
-  return (
-    <div className={`space-y-4 ${getContainerClasses()}`}>
-      {/* Main Image */}
-      <div 
-        className={`${aspectClass} bg-gray-50 overflow-hidden ${(thumbnailsPosition === 'left' || thumbnailsPosition === 'right') ? 'flex-1' : ''} ${enableZoom ? 'cursor-zoom-in' : ''}`}
-        title={enableZoom ? 'לחץ להגדלה' : undefined}
-      >
-        <ProductImageComponent 
-          src={mainImage}
-          alt={productName}
-          className="w-full h-full object-cover"
-          loading="eager"
-        />
-      </div>
-      
-      {/* Thumbnails */}
-      {thumbnailsPosition !== 'hidden' && images.length > 1 && (
-        <div className={getThumbnailClasses()}>
-          {images.map((img, i) => (
-            <div key={img.id} className="aspect-square bg-gray-50 overflow-hidden cursor-pointer opacity-60 hover:opacity-100 transition-opacity">
-              <ProductImageComponent 
-                src={img.url}
-                alt={`${productName} ${i + 1}`}
-                className="w-full h-full object-cover"
-              />
-            </div>
+            </button>
           ))}
         </div>
       )}
