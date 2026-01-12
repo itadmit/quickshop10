@@ -1463,6 +1463,106 @@ export const pickupLocationsRelations = relations(pickupLocations, ({ one }) => 
   }),
 }));
 
+// ============ SHIPPING PROVIDERS (External Integrations) ============
+
+// Shipping provider enum
+export const shippingProviderEnum = pgEnum('shipping_provider', [
+  'cheetah', 'hfd', 'boxit', 'baldar', 'manual'
+]);
+
+// Shipment status enum
+export const shipmentStatusEnum = pgEnum('shipment_status', [
+  'pending', 'created', 'picked_up', 'in_transit', 'out_for_delivery', 
+  'delivered', 'failed', 'returned', 'cancelled'
+]);
+
+// Shipping Providers - ספקי משלוחים מוגדרים לחנות
+export const shippingProviders = pgTable('shipping_providers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  provider: shippingProviderEnum('provider').notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  isDefault: boolean('is_default').default(false).notNull(),
+  displayName: varchar('display_name', { length: 100 }),
+  testMode: boolean('test_mode').default(true).notNull(),
+  credentials: jsonb('credentials').default({}).notNull(), // API keys, secrets (encrypted)
+  settings: jsonb('settings').default({}).notNull(), // Auto-send, default package, sender address
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_shipping_providers_store').on(table.storeId),
+  index('idx_shipping_providers_active').on(table.storeId, table.isActive),
+]);
+
+// Shipments - משלוחים
+export const shipments = pgTable('shipments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'cascade' }).notNull(),
+  provider: shippingProviderEnum('provider').notNull(),
+  
+  // Provider identifiers
+  providerShipmentId: varchar('provider_shipment_id', { length: 100 }),
+  trackingNumber: varchar('tracking_number', { length: 100 }),
+  
+  // Status
+  status: shipmentStatusEnum('status').default('pending').notNull(),
+  statusDescription: text('status_description'),
+  
+  // Label
+  labelUrl: text('label_url'),
+  
+  // Recipient info (snapshot at time of shipment)
+  recipientName: varchar('recipient_name', { length: 255 }),
+  recipientPhone: varchar('recipient_phone', { length: 50 }),
+  recipientAddress: jsonb('recipient_address'), // { street, city, zipCode, etc }
+  
+  // Package info
+  packageWeight: decimal('package_weight', { precision: 6, scale: 2 }),
+  packageDimensions: jsonb('package_dimensions'), // { width, height, length }
+  
+  // Dates
+  estimatedDelivery: timestamp('estimated_delivery'),
+  actualDelivery: timestamp('actual_delivery'),
+  pickedUpAt: timestamp('picked_up_at'),
+  
+  // Tracking events history
+  trackingEvents: jsonb('tracking_events').default([]), // Array of { timestamp, status, description, location }
+  
+  // Provider raw response
+  providerResponse: jsonb('provider_response'),
+  
+  // Notes
+  notes: text('notes'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_shipments_store').on(table.storeId),
+  index('idx_shipments_order').on(table.orderId),
+  index('idx_shipments_tracking').on(table.trackingNumber),
+  index('idx_shipments_status').on(table.storeId, table.status),
+]);
+
+// Relations
+export const shippingProvidersRelations = relations(shippingProviders, ({ one }) => ({
+  store: one(stores, {
+    fields: [shippingProviders.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const shipmentsRelations = relations(shipments, ({ one }) => ({
+  store: one(stores, {
+    fields: [shipments.storeId],
+    references: [stores.id],
+  }),
+  order: one(orders, {
+    fields: [shipments.orderId],
+    references: [orders.id],
+  }),
+}));
+
 // ============ REFUNDS ============
 
 export const refunds = pgTable('refunds', {
@@ -3455,6 +3555,12 @@ export type ShippingMethod = typeof shippingMethods.$inferSelect;
 export type NewShippingMethod = typeof shippingMethods.$inferInsert;
 export type PickupLocation = typeof pickupLocations.$inferSelect;
 export type NewPickupLocation = typeof pickupLocations.$inferInsert;
+
+// Shipping providers types
+export type ShippingProvider = typeof shippingProviders.$inferSelect;
+export type NewShippingProvider = typeof shippingProviders.$inferInsert;
+export type Shipment = typeof shipments.$inferSelect;
+export type NewShipment = typeof shipments.$inferInsert;
 
 // Influencers types
 export type Influencer = typeof influencers.$inferSelect;
