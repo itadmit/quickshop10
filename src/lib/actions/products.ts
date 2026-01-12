@@ -189,6 +189,7 @@ export interface ProductFormData {
     isPrimary: boolean;
     mediaType?: 'image' | 'video';
     thumbnailUrl?: string;
+    displayAsCard?: boolean; // Show video thumbnail in product cards (category/home)
   }[];
 }
 
@@ -254,6 +255,7 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
           sortOrder: index,
           mediaType: img.mediaType || 'image',
           thumbnailUrl: img.thumbnailUrl || null,
+          displayAsCard: img.displayAsCard || false,
         }))
       );
     }
@@ -400,6 +402,7 @@ export async function updateProduct(
             sortOrder: index,
             mediaType: img.mediaType || 'image',
             thumbnailUrl: img.thumbnailUrl || null,
+            displayAsCard: img.displayAsCard || false,
           }))
         );
       }

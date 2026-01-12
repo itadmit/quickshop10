@@ -102,6 +102,21 @@ export type ProductWithImage = Awaited<ReturnType<typeof getProductsByStore>>[nu
 
 // React cache for request deduplication
 export const getProductsByStore = cache(async (storeId: string, limit?: number) => {
+  // Subquery for video card image (displayAsCard = true)
+  // Uses idx_product_images_video_card index for fast lookup
+  const videoCardImage = db
+    .select({
+      productId: productImages.productId,
+      thumbnailUrl: productImages.thumbnailUrl,
+      url: productImages.url,
+    })
+    .from(productImages)
+    .where(and(
+      eq(productImages.displayAsCard, true),
+      eq(productImages.mediaType, 'video')
+    ))
+    .as('video_card');
+
   let query = db
     .select({
       id: products.id,
@@ -118,16 +133,28 @@ export const getProductsByStore = cache(async (storeId: string, limit?: number) 
       categoryId: products.categoryId,
       hasVariants: products.hasVariants,
       image: productImages.url,
+      // Video for card display
+      cardImage: sql<string | null>`COALESCE(${videoCardImage.thumbnailUrl}, ${videoCardImage.url})`,
+      cardVideoUrl: videoCardImage.url,
     })
     .from(products)
     .leftJoin(productImages, and(
       eq(productImages.productId, products.id),
       eq(productImages.isPrimary, true)
     ))
+    .leftJoin(videoCardImage, eq(videoCardImage.productId, products.id))
     .where(and(eq(products.storeId, storeId), eq(products.isActive, true)))
     .orderBy(desc(products.isFeatured), desc(products.createdAt));
 
-  const productsData = limit ? await query.limit(limit) : await query;
+  const rawData = limit ? await query.limit(limit) : await query;
+  
+  // Remove duplicates caused by video card subquery (keep first occurrence)
+  const seen = new Set<string>();
+  const productsData = rawData.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
 
   // Get variant prices for products with variants
   const variantProductIds = productsData.filter(p => p.hasVariants).map(p => p.id);
@@ -153,8 +180,21 @@ export const getProductsByStore = cache(async (storeId: string, limit?: number) 
 });
 
 export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
-  const productsData = await db
+  // Subquery for video card image - uses idx_product_images_video_card index
+  const videoCardImage = db
     .select({
+      productId: productImages.productId,
+      thumbnailUrl: productImages.thumbnailUrl,
+      url: productImages.url,
+    })
+    .from(productImages)
+    .where(and(
+      eq(productImages.displayAsCard, true),
+      eq(productImages.mediaType, 'video')
+    ))
+    .as('video_card_featured');
+
+  const rawData = await db.select({
       id: products.id,
       name: products.name,
       slug: products.slug,
@@ -169,22 +209,34 @@ export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
       categoryId: products.categoryId,
       hasVariants: products.hasVariants,
       image: productImages.url,
+      // Video for card display
+      cardImage: sql<string | null>`COALESCE(${videoCardImage.thumbnailUrl}, ${videoCardImage.url})`,
+      cardVideoUrl: videoCardImage.url,
     })
     .from(products)
     .leftJoin(productImages, and(
       eq(productImages.productId, products.id),
       eq(productImages.isPrimary, true)
     ))
+    .leftJoin(videoCardImage, eq(videoCardImage.productId, products.id))
     .where(and(
       eq(products.storeId, storeId),
       eq(products.isActive, true),
       eq(products.isFeatured, true)
     ))
     .orderBy(desc(products.createdAt))
-    .limit(limit);
+    .limit(limit * 2); // Fetch extra to account for potential duplicates
+  
+  // Remove duplicates caused by video card subquery (keep first occurrence)
+  const seen = new Set<string>();
+  const uniqueProducts = rawData.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  }).slice(0, limit); // Apply limit after deduplication
 
   // Get variant prices for products with variants
-  const variantProductIds = productsData.filter(p => p.hasVariants).map(p => p.id);
+  const variantProductIds = uniqueProducts.filter(p => p.hasVariants).map(p => p.id);
   if (variantProductIds.length > 0) {
     const variantPrices = await db
       .select({
@@ -197,19 +249,34 @@ export const getFeaturedProducts = cache(async (storeId: string, limit = 4) => {
 
     const variantPriceMap = new Map(variantPrices.map(v => [v.productId, v.minPrice]));
 
-    return productsData.map(p => ({
+    return uniqueProducts.map(p => ({
       ...p,
       price: p.hasVariants ? (variantPriceMap.get(p.id) || p.price) : p.price,
     }));
   }
 
-  return productsData;
+  return uniqueProducts;
 });
 
 export const getProductsByCategory = cache(async (storeId: string, categoryId: string) => {
   // Query products that belong to this category via junction table
   // Uses idx_product_categories_category index for fast lookup
   // Single query with JOIN for performance per REQUIREMENTS.md
+  
+  // Subquery for video card image - uses idx_product_images_video_card index
+  const videoCardImage = db
+    .select({
+      productId: productImages.productId,
+      thumbnailUrl: productImages.thumbnailUrl,
+      url: productImages.url,
+    })
+    .from(productImages)
+    .where(and(
+      eq(productImages.displayAsCard, true),
+      eq(productImages.mediaType, 'video')
+    ))
+    .as('video_card_category');
+
   const results = await db
     .select({
       id: products.id,
@@ -225,6 +292,9 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
       hasVariants: products.hasVariants,
       createdAt: products.createdAt,
       image: productImages.url,
+      // Video for card display
+      cardImage: sql<string | null>`COALESCE(${videoCardImage.thumbnailUrl}, ${videoCardImage.url})`,
+      cardVideoUrl: videoCardImage.url,
     })
     .from(products)
     .innerJoin(productCategories, eq(productCategories.productId, products.id))
@@ -232,6 +302,7 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
       eq(productImages.productId, products.id),
       eq(productImages.isPrimary, true)
     ))
+    .leftJoin(videoCardImage, eq(videoCardImage.productId, products.id))
     .where(and(
       eq(products.storeId, storeId),
       eq(productCategories.categoryId, categoryId),
@@ -763,7 +834,7 @@ export type AdminProduct = Awaited<ReturnType<typeof getStoreProductsAdmin>>[num
 
 export const getStoreProductsAdmin = cache(async (storeId: string) => {
   // First get all products with their primary image
-  const productsData = await db
+  const rawData = await db
     .select({
       id: products.id,
       name: products.name,
@@ -779,6 +850,9 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
       categoryId: products.categoryId,
       createdAt: products.createdAt,
       image: productImages.url,
+      // Include media type to handle video thumbnails
+      mediaType: productImages.mediaType,
+      thumbnailUrl: productImages.thumbnailUrl,
     })
     .from(products)
     .leftJoin(productImages, and(
@@ -787,6 +861,18 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
     ))
     .where(eq(products.storeId, storeId))
     .orderBy(desc(products.createdAt));
+
+  // Remove duplicates (can happen if multiple isPrimary images exist)
+  const seen = new Set<string>();
+  const productsData = rawData.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  }).map(p => ({
+    ...p,
+    // Use video thumbnail if primary image is a video
+    image: p.mediaType === 'video' && p.thumbnailUrl ? p.thumbnailUrl : p.image,
+  }));
 
   // Get all product-category associations for this store's products
   const productIds = productsData.map(p => p.id);
@@ -840,8 +926,10 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
   // Combine products with their categories and variant aggregates
   return productsData.map(product => {
     const variantData = product.hasVariants ? variantAggregateMap.get(product.id) : null;
+    // Exclude internal fields (mediaType, thumbnailUrl) from output
+    const { mediaType, thumbnailUrl, ...productData } = product;
     return {
-    ...product,
+    ...productData,
     category: productCategoriesMap.get(product.id)?.[0] || null, // First category for backward compatibility
     categories: productCategoriesMap.get(product.id) || [], // All categories
       // Variant aggregate data

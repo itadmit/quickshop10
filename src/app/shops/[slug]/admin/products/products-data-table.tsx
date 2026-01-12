@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { duplicateProduct, bulkActivateProducts, bulkDeactivateProducts, bulkDeleteProducts } from './actions';
+import { getVideoThumbnailUrl, isVideoUrl } from '@/lib/cloudinary';
 
 // ============================================
 // ProductsDataTable - Client Component
@@ -174,12 +175,18 @@ export function ProductsDataTable({
       key: 'product',
       header: 'מוצר',
       width: '300px',
-      render: (product) => (
+      render: (product) => {
+        // Handle video URLs by converting to thumbnail
+        const imageUrl = product.image && isVideoUrl(product.image) 
+          ? getVideoThumbnailUrl(product.image) 
+          : product.image;
+        
+        return (
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-gray-100 rounded-lg overflow-hidden shrink-0 border border-gray-200">
-            {product.image ? (
+            {imageUrl ? (
               <Image
-                src={product.image}
+                src={imageUrl}
                 alt={product.name}
                 width={40}
                 height={40}
@@ -205,7 +212,8 @@ export function ProductsDataTable({
             </Link>
           </div>
         </div>
-      ),
+      );
+      },
     },
     {
       key: 'category',

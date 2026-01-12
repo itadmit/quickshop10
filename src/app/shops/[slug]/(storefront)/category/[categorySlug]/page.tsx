@@ -204,6 +204,8 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     price={Number(product.price)}
                     comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
                     image={product.image || '/placeholder.svg'}
+                    cardImage={product.cardImage}
+                    cardVideoUrl={product.cardVideoUrl}
                     isFeatured={product.isFeatured}
                     basePath={basePath}
                     showDecimalPrices={showDecimalPrices}

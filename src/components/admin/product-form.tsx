@@ -23,6 +23,7 @@ interface ProductImage {
   // Video support
   mediaType?: 'image' | 'video';
   thumbnailUrl?: string;
+  displayAsCard?: boolean; // Show video thumbnail in product cards
 }
 
 interface ProductOption {
@@ -81,7 +82,16 @@ interface ProductFormProps {
   storeAddons?: StoreAddon[]; // For addon assignment
   storeMetafields?: MetafieldDefinition[]; // For custom fields
   product?: Product & { 
-    images?: { id: string; url: string; alt: string | null; isPrimary: boolean }[];
+    images?: { 
+      id: string; 
+      url: string; 
+      alt: string | null; 
+      isPrimary: boolean;
+      // Video support
+      mediaType?: 'image' | 'video';
+      thumbnailUrl?: string | null;
+      displayAsCard?: boolean;
+    }[];
     options?: ProductOption[];
     variants?: ProductVariant[];
     categoryIds?: string[];
@@ -167,14 +177,18 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
   const [seoTitle, setSeoTitle] = useState(product?.seoTitle || '');
   const [seoDescription, setSeoDescription] = useState(product?.seoDescription || '');
   
-  // Images - converted to UploadedMedia format for MediaUploader
+  // Images - converted to UploadedMedia format for MediaUploader (including video fields)
   const [images, setImages] = useState<UploadedMedia[]>(
     product?.images?.map(img => ({ 
       id: img.id, 
       url: img.url, 
       filename: img.alt || 'image',
       size: 0,
-      isPrimary: img.isPrimary 
+      isPrimary: img.isPrimary,
+      // Video support - preserve these fields
+      mediaType: img.mediaType || 'image',
+      thumbnailUrl: img.thumbnailUrl || undefined,
+      displayAsCard: img.displayAsCard || false,
     })) || []
   );
 
@@ -525,13 +539,21 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
       seoTitle: seoTitle.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       metadata: Object.keys(metadataValues).length > 0 ? metadataValues : undefined,
-      images: images.map(img => ({
-        url: img.url,
-        alt: img.filename || name || '',
-        isPrimary: img.isPrimary ?? false,
-        mediaType: img.mediaType || 'image',
-        thumbnailUrl: img.thumbnailUrl,
-      })),
+      images: images.map(img => {
+        // Detect video from URL if mediaType not set (fallback for media library)
+        const isVideoFile = img.mediaType === 'video' || 
+          img.url.includes('/video/upload/') || 
+          /\.(mp4|webm|mov|avi)$/i.test(img.url);
+        
+        return {
+          url: img.url,
+          alt: img.filename || name || '',
+          isPrimary: img.isPrimary ?? false,
+          mediaType: isVideoFile ? 'video' : 'image',
+          thumbnailUrl: img.thumbnailUrl,
+          displayAsCard: img.displayAsCard || false,
+        };
+      }),
     };
 
     startTransition(async () => {

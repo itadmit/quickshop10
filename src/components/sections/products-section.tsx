@@ -13,6 +13,9 @@ interface Product {
   inventory?: number | null;
   trackInventory?: boolean;
   allowBackorder?: boolean;
+  // Video card fields
+  cardImage?: string | null;
+  cardVideoUrl?: string | null;
 }
 
 // הנחה אוטומטית - תומך במספר הנחות!
@@ -86,6 +89,8 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 price={Number(product.price)}
                 comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
                 image={product.image || '/placeholder.svg'}
+                cardImage={product.cardImage}
+                cardVideoUrl={product.cardVideoUrl}
                 shortDescription={product.shortDescription}
                 isFeatured={product.isFeatured}
                 basePath={basePath}

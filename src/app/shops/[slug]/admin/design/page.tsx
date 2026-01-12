@@ -168,13 +168,13 @@ export default async function DesignPage({ params }: DesignPageProps) {
         </div>
 
         {/* Theme Info */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-white overflow-visible relative z-10">
           <div className="flex items-center gap-4 text-sm text-gray-500">
             <span>נשמר לאחרונה: היום ב-11:08</span>
             <span className="text-gray-300">|</span>
             <span>גרסה 1.0.0</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 relative">
             <ExportThemeButton 
               templateId={currentTemplateId}
               template={templates.find(t => t.id === currentTemplateId)}

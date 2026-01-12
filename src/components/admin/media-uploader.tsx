@@ -81,6 +81,7 @@ export interface UploadedMedia {
   mediaType?: 'image' | 'video';
   thumbnailUrl?: string; // Video poster (first frame)
   duration?: number; // Video duration in seconds
+  displayAsCard?: boolean; // Show video thumbnail in category/home product cards
 }
 
 export interface MediaUploaderProps {
@@ -435,6 +436,28 @@ export function MediaUploader({
                 </svg>
               </div>
             </div>
+          )}
+          
+          {/* Video "Display as Card" checkbox */}
+          {(media.mediaType === 'video' || isVideoUrl(media.url)) && (
+            <label 
+              className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5 px-2 py-1 bg-black/70 rounded text-white text-[10px] cursor-pointer hover:bg-black/80 transition-colors z-10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                checked={media.displayAsCard || false}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  const updated = value.map(m => 
+                    m.id === media.id ? { ...m, displayAsCard: e.target.checked } : m
+                  );
+                  onChange(updated);
+                }}
+                className="w-3 h-3 rounded border-white/50 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+              />
+              <span>הצג בכרטיס</span>
+            </label>
           )}
           
           {/* Drop indicator overlay */}

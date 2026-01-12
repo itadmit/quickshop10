@@ -483,9 +483,12 @@ export const productImages = pgTable('product_images', {
   mediaType: mediaTypeEnum('media_type').default('image').notNull(),
   thumbnailUrl: varchar('thumbnail_url', { length: 500 }), // For video poster (first frame)
   duration: integer('duration'), // Video duration in seconds
+  displayAsCard: boolean('display_as_card').default(false).notNull(), // Show video thumbnail in product cards (category/home)
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_product_images_product').on(table.productId),
+  // Index for fast video card lookup (displayAsCard + mediaType)
+  index('idx_product_images_video_card').on(table.productId, table.displayAsCard, table.mediaType),
 ]);
 
 // ============ PRODUCT OPTIONS & VARIANTS ============

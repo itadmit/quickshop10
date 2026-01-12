@@ -3,6 +3,7 @@ import { AddToCartButton } from './add-to-cart-button';
 import { ProductImage } from './product-image';
 import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
+import { getVideoThumbnailUrl, isVideoUrl } from '@/lib/cloudinary';
 
 interface ProductCardProps {
   id: string;
@@ -11,6 +12,10 @@ interface ProductCardProps {
   price: number;
   comparePrice?: number | null;
   image: string;
+  /** Video thumbnail to display instead of image (when displayAsCard is enabled) */
+  cardImage?: string | null;
+  /** Video URL for autoplay (when displayAsCard is enabled) */
+  cardVideoUrl?: string | null;
   shortDescription?: string | null;
   isFeatured?: boolean;
   basePath?: string; // For multi-tenant: /shops/slug
@@ -36,6 +41,8 @@ export function ProductCard({
   price, 
   comparePrice, 
   image, 
+  cardImage,
+  cardVideoUrl,
   isFeatured,
   basePath = '', // Default to root for backwards compatibility
   showDecimalPrices = false,
@@ -44,6 +51,13 @@ export function ProductCard({
   allowBackorder = false,
   automaticDiscount,
 }: ProductCardProps) {
+  // Use video thumbnail (cardImage) if available, otherwise use regular image
+  // If cardImage is a video URL, generate a thumbnail from it
+  const displayImage = cardImage 
+    ? (isVideoUrl(cardImage) ? getVideoThumbnailUrl(cardImage) : cardImage)
+    : image;
+  // Track if we're showing video content (has video URL for autoplay)
+  const isVideoCard = !!cardVideoUrl;
   // הנחה אוטומטית גוברת על comparePrice
   // 🔑 בודקים שיש הנחה בפועל (discountPercent > 0)
   const hasAutoDiscount = !!automaticDiscount && automaticDiscount.discountPercent > 0;
@@ -60,15 +74,37 @@ export function ProductCard({
 
   return (
     <article className="group animate-slide-up" dir="rtl">
-      {/* Image */}
+      {/* Image or Video */}
       <Link href={productUrl} className="block img-zoom mb-4">
         <div className="aspect-[3/4] bg-gray-50 relative overflow-hidden">
-          <ProductImage 
-            src={image} 
-            alt={name}
-            className={`w-full h-full object-cover ${outOfStock ? 'opacity-60' : ''}`}
-            loading="lazy"
-          />
+          {isVideoCard ? (
+            // Autoplay muted video for video cards
+            <video
+              src={cardVideoUrl}
+              poster={displayImage}
+              autoPlay
+              muted
+              loop
+              playsInline
+              className={`w-full h-full object-cover ${outOfStock ? 'opacity-60' : ''}`}
+            />
+          ) : (
+            <ProductImage 
+              src={displayImage} 
+              alt={name}
+              className={`w-full h-full object-cover ${outOfStock ? 'opacity-60' : ''}`}
+              loading="lazy"
+            />
+          )}
+          
+          {/* Video badge when showing video */}
+          {isVideoCard && (
+            <div className="absolute bottom-3 left-3 px-2 py-1 bg-black/70 rounded text-white text-[10px] font-medium flex items-center gap-1">
+              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/>
+              </svg>
+            </div>
+          )}
           
           {/* Badges */}
           <div className="absolute top-4 right-4 flex flex-col gap-2">

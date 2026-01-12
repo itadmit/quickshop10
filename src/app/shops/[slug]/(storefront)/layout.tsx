@@ -274,6 +274,12 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     />
   );
 
+  // Get custom code from settings (Server-Side injection)
+  const customCss = (storeSettings.customCss as string) || '';
+  const customHeadCode = (storeSettings.customHeadCode as string) || '';
+  const customBodyStartCode = (storeSettings.customBodyStartCode as string) || '';
+  const customBodyEndCode = (storeSettings.customBodyEndCode as string) || '';
+
   return (
     <StoreProvider storeSlug={slug}>
       {/* Template CSS Variables - Server-Side (Zero JS!) */}
@@ -281,7 +287,19 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         :root {
           ${cssVariables}
         }
+        ${customCss}
       ` }} />
+      
+      {/* Custom Head Code - Server-Side injection */}
+      {customHeadCode && (
+        <div dangerouslySetInnerHTML={{ __html: customHeadCode }} />
+      )}
+      
+      {/* Custom Body Start Code - Server-Side injection */}
+      {customBodyStartCode && (
+        <div dangerouslySetInnerHTML={{ __html: customBodyStartCode }} />
+      )}
+      
       <TrackingProvider config={trackingConfig}>
         <StoreSettingsProvider 
           showDecimalPrices={showDecimalPrices} 
@@ -354,6 +372,11 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           )}
         </StoreSettingsProvider>
       </TrackingProvider>
+      
+      {/* Custom Body End Code - Server-Side injection */}
+      {customBodyEndCode && (
+        <div dangerouslySetInnerHTML={{ __html: customBodyEndCode }} />
+      )}
     </StoreProvider>
   );
 }
