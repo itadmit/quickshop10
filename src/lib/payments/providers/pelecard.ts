@@ -46,6 +46,8 @@ interface PelecardInitRequest {
   CustomerName?: string;
   CustomerEmail?: string;
   CustomerPhone?: string;
+  // Index signature for Record<string, unknown> compatibility
+  [key: string]: string | undefined;
 }
 
 interface PelecardInitResponse {
