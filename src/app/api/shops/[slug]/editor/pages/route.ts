@@ -126,13 +126,15 @@ export async function POST(
         page: pageIdentifier,
         type: 'text_block',
         title: title,
-        subtitle: null,
+        subtitle: '',
         content: {
           text: '<p>תוכן העמוד...</p>', // Note: "text" not "body" - matches TextBlockContentSettings
+          buttonText: '', // Empty = hidden button
+          buttonLink: '',
         },
         settings: {
           maxWidth: '800px',
-          textAlign: 'right',
+          textAlign: 'center',
           padding: 'large',
         },
         sortOrder: 0,
