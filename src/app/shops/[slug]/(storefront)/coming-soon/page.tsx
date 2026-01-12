@@ -96,6 +96,7 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
               content={content as { placeholder?: string; buttonText?: string }}
               settings={settings as { maxWidth?: string }}
               sectionId={section.id}
+              storeSlug={slug}
             />
           );
         default:

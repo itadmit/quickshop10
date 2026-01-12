@@ -288,6 +288,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               buttonTextColor?: string;
             }}
             sectionId={section.id}
+            storeSlug={slug}
           />
         );
         break;

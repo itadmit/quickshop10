@@ -373,6 +373,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
               buttonTextColor?: string;
             }}
             sectionId={section.id}
+            storeSlug={slug}
           />
         );
         break;

@@ -1,7 +1,12 @@
 /**
  * NewsletterSection - VIP Newsletter Subscription
- * Clean email subscription form with customizable styling
+ * Server Component wrapper with Client-side form
+ * 
+ * PERFORMANCE: Main section is Server Component (no JS)
+ * Only the form itself is a small client component
  */
+
+import { NewsletterForm } from '@/components/storefront/newsletter-form';
 
 interface NewsletterSectionProps {
   title: string | null;
@@ -33,6 +38,7 @@ interface NewsletterSectionProps {
     customCss?: string;
   };
   sectionId?: string;
+  storeSlug?: string; // Required for form submission
 }
 
 const TITLE_SIZES = {
@@ -55,7 +61,8 @@ export function NewsletterSection({
   subtitle, 
   content, 
   settings,
-  sectionId 
+  sectionId,
+  storeSlug,
 }: NewsletterSectionProps) {
   const bgColor = settings?.backgroundColor || '#f9fafb';
   const titleSize = settings.titleSize || 'md';
@@ -91,26 +98,71 @@ export function NewsletterSection({
           {subtitle || ''}
         </p>
         
-        <div className="flex max-w-md mx-auto">
-          <input 
-            type="email" 
-            placeholder={content.placeholder || 'כתובת אימייל'}
-            className="flex-1 px-6 py-4 text-sm focus:outline-none transition-colors bg-white"
-            style={{ borderColor: settings.inputBorderColor || '#e5e7eb', borderWidth: '1px', borderStyle: 'solid' }}
-            data-content-placeholder
-          />
-          <button 
-            className="px-8 py-4 text-[11px] tracking-[0.15em] uppercase hover:opacity-90 transition-colors cursor-pointer"
-            style={{ 
-              backgroundColor: settings.buttonBackgroundColor || '#000000',
-              color: settings.buttonTextColor || '#ffffff',
-            }}
-            data-section-button
-          >
-            {content.buttonText || 'הרשמה'}
-          </button>
-        </div>
+        {/* Newsletter Form - Client Component for interactivity */}
+        {storeSlug ? (
+          <div className="max-w-md mx-auto">
+            <NewsletterFormStyled
+              storeSlug={storeSlug}
+              placeholder={content.placeholder}
+              buttonText={content.buttonText}
+              buttonBackgroundColor={settings.buttonBackgroundColor}
+              buttonTextColor={settings.buttonTextColor}
+              inputBorderColor={settings.inputBorderColor}
+            />
+          </div>
+        ) : (
+          // Fallback for editor preview (no storeSlug)
+          <div className="flex max-w-md mx-auto">
+            <input 
+              type="email" 
+              placeholder={content.placeholder || 'כתובת אימייל'}
+              className="flex-1 px-6 py-4 text-sm focus:outline-none transition-colors bg-white"
+              style={{ borderColor: settings.inputBorderColor || '#e5e7eb', borderWidth: '1px', borderStyle: 'solid' }}
+              data-content-placeholder
+              readOnly
+            />
+            <button 
+              className="px-8 py-4 text-[11px] tracking-[0.15em] uppercase hover:opacity-90 transition-colors cursor-pointer"
+              style={{ 
+                backgroundColor: settings.buttonBackgroundColor || '#000000',
+                color: settings.buttonTextColor || '#ffffff',
+              }}
+              data-section-button
+              type="button"
+            >
+              {content.buttonText || 'הרשמה'}
+            </button>
+          </div>
+        )}
       </div>
     </section>
+  );
+}
+
+// Styled wrapper for NewsletterForm with section-specific styles
+function NewsletterFormStyled({
+  storeSlug,
+  placeholder,
+  buttonText,
+  buttonBackgroundColor,
+  buttonTextColor,
+  inputBorderColor,
+}: {
+  storeSlug: string;
+  placeholder?: string;
+  buttonText?: string;
+  buttonBackgroundColor?: string;
+  buttonTextColor?: string;
+  inputBorderColor?: string;
+}) {
+  return (
+    <NewsletterForm
+      storeSlug={storeSlug}
+      placeholder={placeholder || 'כתובת אימייל'}
+      buttonText={buttonText || 'הרשמה'}
+      buttonBackgroundColor={buttonBackgroundColor || '#000000'}
+      buttonTextColor={buttonTextColor || '#ffffff'}
+      inputBorderColor={inputBorderColor || '#e5e7eb'}
+    />
   );
 }
