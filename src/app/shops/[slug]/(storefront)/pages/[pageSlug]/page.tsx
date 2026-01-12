@@ -45,6 +45,10 @@ interface InternalPageProps {
 
 export default async function InternalPage({ params }: InternalPageProps) {
   const { slug, pageSlug } = await params;
+  
+  // Decode pageSlug in case of URL encoding issues
+  const decodedPageSlug = decodeURIComponent(pageSlug);
+  
   const store = await getStoreBySlug(slug);
   
   if (!store) {
@@ -71,9 +75,14 @@ export default async function InternalPage({ params }: InternalPageProps) {
   const page = await db.query.pages.findFirst({
     where: and(
       eq(pages.storeId, store.id),
-      eq(pages.slug, pageSlug)
+      eq(pages.slug, decodedPageSlug)
     ),
   });
+
+  // Debug: log for troubleshooting 404 issues
+  if (!page) {
+    console.log(`[InternalPage] Page not found: storeId=${store.id}, slug="${decodedPageSlug}", isPreviewMode=${isPreviewMode}`);
+  }
 
   // Page must exist, and be published (or in preview mode)
   if (!page || (!page.isPublished && !isPreviewMode)) {
@@ -85,7 +94,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
 
   // The page identifier in pageSections is "pages/{slug}"
-  const pageIdentifier = `pages/${pageSlug}`;
+  const pageIdentifier = `pages/${decodedPageSlug}`;
 
   // Parallel data fetching - maximum speed! ⚡
   const [sections, categories, featuredProducts, allProducts, footerMenuItems] = await Promise.all([
@@ -645,6 +654,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
 // Generate metadata for SEO
 export async function generateMetadata({ params }: InternalPageProps) {
   const { slug, pageSlug } = await params;
+  const decodedPageSlug = decodeURIComponent(pageSlug);
   const store = await getStoreBySlug(slug);
   
   if (!store) return {};
@@ -652,7 +662,7 @@ export async function generateMetadata({ params }: InternalPageProps) {
   const page = await db.query.pages.findFirst({
     where: and(
       eq(pages.storeId, store.id),
-      eq(pages.slug, pageSlug)
+      eq(pages.slug, decodedPageSlug)
     ),
   });
   

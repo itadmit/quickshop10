@@ -128,7 +128,7 @@ export async function POST(
         title: title,
         subtitle: null,
         content: {
-          body: '<p>תוכן העמוד...</p>',
+          text: '<p>תוכן העמוד...</p>', // Note: "text" not "body" - matches TextBlockContentSettings
         },
         settings: {
           maxWidth: '800px',
