@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { stores, pages, pageSections } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 // ============================================
 // Editor Pages API
@@ -142,8 +142,10 @@ export async function POST(
       },
     ]);
 
+    // Revalidate caches
     revalidatePath(`/shops/${slug}/editor`);
     revalidatePath(`/shops/${slug}/pages/${pageSlug}`);
+    revalidateTag('sections'); // Important: invalidate sections cache
 
     return NextResponse.json({ 
       success: true, 
