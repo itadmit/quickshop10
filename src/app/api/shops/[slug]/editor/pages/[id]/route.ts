@@ -2,14 +2,16 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pages, pageSections } from '@/lib/db/schema';
+import { stores, pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 
 // ============================================
 // Editor Single Page API
-// Update, delete internal pages
+// NEW ARCHITECTURE: Sections stored as JSON on pages table
+// - Delete page = delete sections automatically (atomic)
+// - Update slug = no separate sections table to update
 // ============================================
 
 // GET - Get single page
@@ -106,7 +108,7 @@ export async function PATCH(
     if (body.seoTitle !== undefined) updateData.seoTitle = body.seoTitle;
     if (body.seoDescription !== undefined) updateData.seoDescription = body.seoDescription;
 
-    // If slug is changing, update pageSections too
+    // Handle slug change - no need to update separate sections table anymore!
     if (body.pageSlug !== undefined && body.pageSlug !== page.slug) {
       // Check for duplicate
       const existing = await db.query.pages.findFirst({
@@ -118,15 +120,6 @@ export async function PATCH(
       }
 
       updateData.slug = body.pageSlug;
-
-      // Update pageSections page identifier
-      const oldIdentifier = `pages/${page.slug}`;
-      const newIdentifier = `pages/${body.pageSlug}`;
-
-      await db
-        .update(pageSections)
-        .set({ page: newIdentifier, updatedAt: new Date() })
-        .where(and(eq(pageSections.storeId, store.id), eq(pageSections.page, oldIdentifier)));
     }
 
     await db.update(pages).set(updateData).where(eq(pages.id, id));
@@ -136,6 +129,7 @@ export async function PATCH(
     if (body.pageSlug && body.pageSlug !== page.slug) {
       revalidatePath(`/shops/${slug}/pages/${body.pageSlug}`);
     }
+    revalidateTag('sections', { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -144,7 +138,7 @@ export async function PATCH(
   }
 }
 
-// DELETE - Delete page and its sections
+// DELETE - Delete page (sections are deleted automatically - stored in same row!)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ slug: string; id: string }> }
@@ -179,17 +173,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    // Delete sections first
-    const pageIdentifier = `pages/${page.slug}`;
-    await db.delete(pageSections).where(
-      and(eq(pageSections.storeId, store.id), eq(pageSections.page, pageIdentifier))
-    );
-
-    // Delete the page
+    // Simply delete the page - sections are stored on the page itself!
+    // No separate table to worry about = atomic operation
     await db.delete(pages).where(eq(pages.id, id));
+    console.log(`[Delete Page] Deleted page "${page.slug}" with all its sections`);
 
+    // Revalidate caches
     revalidatePath(`/shops/${slug}/editor`);
     revalidatePath(`/shops/${slug}/pages/${page.slug}`);
+    revalidateTag('sections', { expire: 0 });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -197,4 +189,3 @@ export async function DELETE(
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
-

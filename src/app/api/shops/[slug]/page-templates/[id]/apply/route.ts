@@ -1,11 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { pageTemplates, pageSections, pages } from '@/lib/db/schema';
+import { pageTemplates, pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
+import { randomUUID } from 'crypto';
 
-// POST /api/shops/[slug]/page-templates/[id]/apply - Apply template to a page
+// ============================================
+// POST /api/shops/[slug]/page-templates/[id]/apply
+// Apply template to a page
+// NEW ARCHITECTURE: Sections stored as JSON on pages table
+// ============================================
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string; id: string }> }
@@ -48,15 +54,6 @@ export async function POST(
       return NextResponse.json({ error: 'Page not found' }, { status: 404 });
     }
 
-    // Delete existing sections for this page
-    const pagePath = `pages/${pageSlug}`;
-    await db
-      .delete(pageSections)
-      .where(and(
-        eq(pageSections.storeId, store.id),
-        eq(pageSections.page, pagePath)
-      ));
-
     // Create new sections from template
     const templateSections = (template.sections as Array<{
       type: string;
@@ -67,33 +64,37 @@ export async function POST(
       sortOrder?: number;
     }>) || [];
 
-    if (templateSections.length > 0) {
-      const newSections = templateSections.map((section, index) => ({
-        storeId: store.id,
-        page: pagePath,
-        type: section.type as 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq' | 'contact' | 'hero_slider' | 'hero_premium' | 'series_grid' | 'quote_banner' | 'featured_items',
-        title: section.title || null,
-        subtitle: section.subtitle || null,
-        content: section.content || {},
-        settings: section.settings || {},
-        sortOrder: section.sortOrder ?? index,
-        isActive: true,
-      }));
+    // Convert template sections to page sections with new UUIDs
+    const newSections = templateSections.map((section, index) => ({
+      id: randomUUID(),
+      type: section.type,
+      title: section.title || null,
+      subtitle: section.subtitle || null,
+      content: section.content || {},
+      settings: section.settings || {},
+      sortOrder: section.sortOrder ?? index,
+      isActive: true,
+    }));
 
-      await db.insert(pageSections).values(newSections);
-    }
+    // Update page with new sections - atomic operation!
+    await db.update(pages)
+      .set({ 
+        sections: newSections,
+        updatedAt: new Date()
+      })
+      .where(eq(pages.id, page.id));
 
     // Revalidate paths
     revalidatePath(`/shops/${slug}/pages/${pageSlug}`);
     revalidatePath(`/shops/${slug}/editor`);
+    revalidateTag('sections', { expire: 0 });
 
     return NextResponse.json({ 
       success: true,
-      sectionsCreated: templateSections.length,
+      sectionsCreated: newSections.length,
     });
   } catch (error) {
     console.error('Error applying page template:', error);
     return NextResponse.json({ error: 'Failed to apply template' }, { status: 500 });
   }
 }
-

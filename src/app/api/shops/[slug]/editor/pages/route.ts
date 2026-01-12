@@ -2,14 +2,17 @@
 
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pages, pageSections } from '@/lib/db/schema';
+import { stores, pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
 import { revalidatePath, revalidateTag } from 'next/cache';
+import { randomUUID } from 'crypto';
 
 // ============================================
 // Editor Pages API
-// Manage internal pages from the theme editor
+// NEW ARCHITECTURE: Sections stored as JSON on pages table
+// - Atomic operations (no sync issues)
+// - Delete page = delete sections automatically
 // ============================================
 
 // GET - List all pages for the editor
@@ -63,7 +66,7 @@ export async function GET(
   }
 }
 
-// POST - Create a new page
+// POST - Create a new page with default sections
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
@@ -109,27 +112,16 @@ export async function POST(
       return NextResponse.json({ error: 'כתובת URL כבר קיימת' }, { status: 400 });
     }
 
-    // Create the page
-    const [newPage] = await db.insert(pages).values({
-      storeId: store.id,
-      title,
-      slug: pageSlug,
-      isPublished: false,
-      template: 'sections', // Using sections-based template
-    }).returning();
-
-    // Create default sections for the page (TextBlock for content)
-    const pageIdentifier = `pages/${pageSlug}`;
-    await db.insert(pageSections).values([
+    // Default section for new pages
+    const defaultSections = [
       {
-        storeId: store.id,
-        page: pageIdentifier,
+        id: randomUUID(),
         type: 'text_block',
         title: title,
         subtitle: '',
         content: {
-          text: '<p>תוכן העמוד...</p>', // Note: "text" not "body" - matches TextBlockContentSettings
-          buttonText: '', // Empty = hidden button
+          text: '<p>תוכן העמוד...</p>',
+          buttonText: '',
           buttonLink: '',
         },
         settings: {
@@ -140,21 +132,30 @@ export async function POST(
         sortOrder: 0,
         isActive: true,
       },
-    ]);
+    ];
+
+    // Create the page WITH sections - atomic operation!
+    const [newPage] = await db.insert(pages).values({
+      storeId: store.id,
+      title,
+      slug: pageSlug,
+      sections: defaultSections, // Sections stored directly on page
+      isPublished: false,
+      template: 'sections',
+    }).returning();
 
     // Revalidate caches
     revalidatePath(`/shops/${slug}/editor`);
     revalidatePath(`/shops/${slug}/pages/${pageSlug}`);
-    revalidateTag('sections', { expire: 0 }); // Important: invalidate sections cache immediately
+    revalidateTag('sections', { expire: 0 });
 
     return NextResponse.json({ 
       success: true, 
       page: newPage,
-      pageIdentifier,
+      pageIdentifier: `pages/${pageSlug}`,
     });
   } catch (error) {
     console.error('Create page error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
-

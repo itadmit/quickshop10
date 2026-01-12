@@ -211,6 +211,9 @@ export const stores = pgTable('stores', {
   settings: jsonb('settings').default({}).notNull(),
   themeSettings: jsonb('theme_settings').default({}).notNull(),
   seoSettings: jsonb('seo_settings').default({}).notNull(),
+  // Page sections stored as JSON (no separate table needed - atomic operations)
+  homeSections: jsonb('home_sections').default([]).notNull(),
+  comingSoonSections: jsonb('coming_soon_sections').default([]).notNull(),
   plan: storePlanEnum('plan').default('free').notNull(),
   planExpiresAt: timestamp('plan_expires_at'),
   orderCounter: integer('order_counter').default(1000).notNull(),
@@ -261,7 +264,9 @@ export const pages = pgTable('pages', {
   storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
   title: varchar('title', { length: 255 }).notNull(),
   slug: varchar('slug', { length: 100 }).notNull(),
-  content: text('content'), // HTML content
+  content: text('content'), // HTML content (legacy)
+  // Sections stored as JSON - atomic operations, no sync issues
+  sections: jsonb('sections').default([]).notNull(),
   template: varchar('template', { length: 50 }).default('default'),
   isPublished: boolean('is_published').default(false).notNull(),
   publishedAt: timestamp('published_at'),

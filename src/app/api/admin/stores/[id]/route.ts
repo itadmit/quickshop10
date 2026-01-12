@@ -9,7 +9,7 @@ import {
   categories,
   productVariants,
   popups,
-  pageSections
+  pages
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -339,14 +339,12 @@ export async function DELETE(
     console.log(`[Store Delete] Found ${popupRecords.length} popups`);
 
     // 5. Get page section images (hero, banners, split banners, etc.)
-    const sectionRecords = await db.select({ content: pageSections.content, type: pageSections.type })
-      .from(pageSections)
-      .where(eq(pageSections.storeId, id));
+    // NEW ARCHITECTURE: Sections stored as JSON on stores and pages tables
     
-    let sectionImagesCount = 0;
-    for (const section of sectionRecords) {
-      const content = section.content as Record<string, unknown> | null;
-      if (!content) continue;
+    // Helper to extract images from section
+    const extractSectionImages = (section: { type: string; content: Record<string, unknown> | null }) => {
+      const content = section.content;
+      if (!content) return;
 
       // Hero and banner sections have imageUrl directly
       if (content.imageUrl && typeof content.imageUrl === 'string') {
@@ -400,7 +398,30 @@ export async function DELETE(
           sectionImagesCount++;
         }
       }
+    };
+
+    let sectionImagesCount = 0;
+    
+    // Get sections from stores table (home, coming_soon)
+    const homeSections = (existingStore.homeSections || []) as Array<{ type: string; content: Record<string, unknown> | null }>;
+    const comingSoonSections = (existingStore.comingSoonSections || []) as Array<{ type: string; content: Record<string, unknown> | null }>;
+    
+    for (const section of [...homeSections, ...comingSoonSections]) {
+      extractSectionImages(section);
     }
+    
+    // Get sections from pages table (internal pages)
+    const pageRecords = await db.select({ sections: pages.sections })
+      .from(pages)
+      .where(eq(pages.storeId, id));
+    
+    for (const page of pageRecords) {
+      const pageSections = (page.sections || []) as Array<{ type: string; content: Record<string, unknown> | null }>;
+      for (const section of pageSections) {
+        extractSectionImages(section);
+      }
+    }
+    
     console.log(`[Store Delete] Found ${sectionImagesCount} page section images`);
 
     // 6. Get store logo and favicon

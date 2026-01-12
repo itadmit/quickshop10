@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { pageTemplates, pageSections, stores } from '@/lib/db/schema';
-import { eq, asc } from 'drizzle-orm';
+import { pageTemplates, stores, pages } from '@/lib/db/schema';
+import { eq, asc, and } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
+
+// ============================================
+// Page Templates API
+// NEW ARCHITECTURE: Reads sections from JSON on pages/stores
+// ============================================
 
 // GET /api/shops/[slug]/page-templates - List all templates for a store
 export async function GET(
@@ -44,7 +49,16 @@ export async function POST(
       return NextResponse.json({ error: 'Template name is required' }, { status: 400 });
     }
 
-    const store = await getStoreBySlug(slug);
+    const [store] = await db
+      .select({ 
+        id: stores.id,
+        homeSections: stores.homeSections,
+        comingSoonSections: stores.comingSoonSections
+      })
+      .from(stores)
+      .where(eq(stores.slug, slug))
+      .limit(1);
+      
     if (!store) {
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
@@ -53,26 +67,53 @@ export async function POST(
     let sectionsData: unknown[] = [];
     
     if (pageSlug) {
-      // Determine page type
-      const page = pageSlug.startsWith('pages/') ? pageSlug : pageSlug;
-      
-      const sections = await db
-        .select()
-        .from(pageSections)
-        .where(eq(pageSections.storeId, store.id))
-        .orderBy(asc(pageSections.sortOrder));
-
-      // Filter sections for the current page
-      sectionsData = sections
-        .filter(s => s.page === page || (page === 'home' && s.page === 'home'))
-        .map(s => ({
-          type: s.type,
-          title: s.title,
-          subtitle: s.subtitle,
-          content: s.content,
-          settings: s.settings,
-          sortOrder: s.sortOrder,
-        }));
+      if (pageSlug.startsWith('pages/')) {
+        // Internal page - get sections from pages table
+        const internalPageSlug = pageSlug.replace('pages/', '');
+        const [page] = await db
+          .select({ sections: pages.sections })
+          .from(pages)
+          .where(and(
+            eq(pages.storeId, store.id),
+            eq(pages.slug, internalPageSlug)
+          ))
+          .limit(1);
+        
+        if (page && Array.isArray(page.sections)) {
+          sectionsData = (page.sections as Array<Record<string, unknown>>).map(s => ({
+            type: s.type,
+            title: s.title,
+            subtitle: s.subtitle,
+            content: s.content,
+            settings: s.settings,
+            sortOrder: s.sortOrder,
+          }));
+        }
+      } else if (pageSlug === 'coming_soon') {
+        // Coming soon page - get from stores table
+        if (Array.isArray(store.comingSoonSections)) {
+          sectionsData = (store.comingSoonSections as Array<Record<string, unknown>>).map(s => ({
+            type: s.type,
+            title: s.title,
+            subtitle: s.subtitle,
+            content: s.content,
+            settings: s.settings,
+            sortOrder: s.sortOrder,
+          }));
+        }
+      } else {
+        // Home page - get from stores table
+        if (Array.isArray(store.homeSections)) {
+          sectionsData = (store.homeSections as Array<Record<string, unknown>>).map(s => ({
+            type: s.type,
+            title: s.title,
+            subtitle: s.subtitle,
+            content: s.content,
+            settings: s.settings,
+            sortOrder: s.sortOrder,
+          }));
+        }
+      }
     }
 
     // Get current max sortOrder
@@ -101,4 +142,3 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to create template' }, { status: 500 });
   }
 }
-

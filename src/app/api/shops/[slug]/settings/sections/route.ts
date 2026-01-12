@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { pageSections, stores } from '@/lib/db/schema';
+import { stores, pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath, revalidateTag } from 'next/cache';
 
 // ============================================
 // API: Update Page Sections
-// PUT /api/shops/[slug]/settings/sections
+// NEW ARCHITECTURE: Sections stored as JSON on pages/stores
+// Much simpler - single atomic update, no sync issues
 // ============================================
 
 interface Section {
@@ -31,7 +32,7 @@ export async function PUT(
 
     // Get store
     const [store] = await db
-      .select()
+      .select({ id: stores.id })
       .from(stores)
       .where(eq(stores.slug, slug))
       .limit(1);
@@ -40,80 +41,48 @@ export async function PUT(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
-    // Simple upsert logic - client sends real UUIDs
-    const sectionIds = sections.map(s => s.id);
-    
-    // Upsert each section (insert or update)
-    for (const section of sections) {
-      // Try to update first
-      const updated = await db
-        .update(pageSections)
-        .set({
-          title: section.title,
-          subtitle: section.subtitle,
-          content: section.content,
-          settings: section.settings,
-          sortOrder: section.sortOrder,
-          isActive: section.isActive,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(pageSections.id, section.id),
-            eq(pageSections.storeId, store.id)
-          )
-        )
-        .returning({ id: pageSections.id });
-      
-      // If no rows updated, insert new section
-      if (updated.length === 0) {
-        await db.insert(pageSections).values({
-          id: section.id, // Use the UUID from client
-          storeId: store.id,
-          page: page,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          type: section.type as any,
-          title: section.title,
-          subtitle: section.subtitle,
-          content: section.content,
-          settings: section.settings,
-          sortOrder: section.sortOrder,
-          isActive: section.isActive,
-        });
-      }
-    }
-
-    // Delete sections that are no longer in the list
-    const existingSections = await db
-      .select({ id: pageSections.id })
-      .from(pageSections)
-      .where(
-        and(
-          eq(pageSections.storeId, store.id),
-          eq(pageSections.page, page)
-        )
-      );
-
-    for (const existing of existingSections) {
-      if (!sectionIds.includes(existing.id)) {
-        await db
-          .delete(pageSections)
-          .where(eq(pageSections.id, existing.id));
-      }
-    }
-
-    // Revalidate cache so the storefront shows updated content
-    // IMPORTANT: revalidateTag invalidates unstable_cache with 'sections' tag!
-    // In Next.js 16, revalidateTag requires a profile - use expire: 0 for immediate invalidation
-    revalidateTag('sections', { expire: 0 });
-    revalidatePath(`/shops/${slug}`);
-    if (page === 'coming_soon') {
-      revalidatePath(`/shops/${slug}/coming-soon`);
-    }
-    // Revalidate internal pages
+    // Internal pages (pages/about, pages/privacy, etc.)
     if (page.startsWith('pages/')) {
       const pageSlug = page.replace('pages/', '');
+      await db.update(pages)
+        .set({ 
+          sections: sections,
+          updatedAt: new Date()
+        })
+        .where(and(
+          eq(pages.storeId, store.id),
+          eq(pages.slug, pageSlug)
+        ));
+      
+      // Revalidate
+      revalidateTag('sections', { expire: 0 });
       revalidatePath(`/shops/${slug}/pages/${pageSlug}`);
+      
+      return NextResponse.json({ success: true });
+    }
+    
+    // System pages (home, coming_soon)
+    if (page === 'coming_soon') {
+      await db.update(stores)
+        .set({ 
+          comingSoonSections: sections,
+          updatedAt: new Date()
+        })
+        .where(eq(stores.id, store.id));
+      
+      revalidateTag('sections', { expire: 0 });
+      revalidatePath(`/shops/${slug}/coming-soon`);
+    } else {
+      // Default to home
+      await db.update(stores)
+        .set({ 
+          homeSections: sections,
+          updatedAt: new Date()
+        })
+        .where(eq(stores.id, store.id));
+      
+      revalidateTag('sections', { expire: 0 });
+      revalidatePath(`/shops/${slug}`);
     }
 
     return NextResponse.json({ success: true });
@@ -138,7 +107,11 @@ export async function GET(
 
     // Get store
     const [store] = await db
-      .select()
+      .select({ 
+        id: stores.id,
+        homeSections: stores.homeSections,
+        comingSoonSections: stores.comingSoonSections
+      })
       .from(stores)
       .where(eq(stores.slug, slug))
       .limit(1);
@@ -147,19 +120,32 @@ export async function GET(
       return NextResponse.json({ error: 'Store not found' }, { status: 404 });
     }
 
-    // Get sections
-    const sections = await db
-      .select()
-      .from(pageSections)
-      .where(
-        and(
-          eq(pageSections.storeId, store.id),
-          eq(pageSections.page, page)
-        )
-      )
-      .orderBy(pageSections.sortOrder);
+    // Internal pages
+    if (page.startsWith('pages/')) {
+      const pageSlug = page.replace('pages/', '');
+      const [pageData] = await db
+        .select({ sections: pages.sections })
+        .from(pages)
+        .where(and(
+          eq(pages.storeId, store.id),
+          eq(pages.slug, pageSlug)
+        ))
+        .limit(1);
+      
+      const sections = (pageData?.sections || []) as Section[];
+      return NextResponse.json({ 
+        sections: sections.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+      });
+    }
 
-    return NextResponse.json({ sections });
+    // System pages
+    const sections = page === 'coming_soon' 
+      ? (store.comingSoonSections || []) as Section[]
+      : (store.homeSections || []) as Section[];
+
+    return NextResponse.json({ 
+      sections: sections.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    });
   } catch (error) {
     console.error('Error fetching sections:', error);
     return NextResponse.json(
@@ -168,4 +154,3 @@ export async function GET(
     );
   }
 }
-

@@ -411,81 +411,151 @@ export async function getProductVariants(productId: string) {
 }
 
 // ============ PAGE SECTIONS ============
+// NEW ARCHITECTURE: Sections stored as JSON on pages/stores tables
+// - home → stores.homeSections
+// - coming_soon → stores.comingSoonSections  
+// - pages/* → pages.sections (internal pages)
+
+// Section type for JSON storage
+export interface PageSection {
+  id: string;
+  type: string;
+  title: string | null;
+  subtitle: string | null;
+  content: Record<string, unknown>;
+  settings: Record<string, unknown>;
+  sortOrder: number;
+  isActive: boolean;
+}
 
 // React cache for request deduplication
-export const getPageSections = cache(async (storeId: string, page: string = 'home') => {
-  return db
-    .select()
-    .from(pageSections)
-    .where(and(
-      eq(pageSections.storeId, storeId),
-      eq(pageSections.page, page),
-      eq(pageSections.isActive, true)
-    ))
-    .orderBy(asc(pageSections.sortOrder));
+export const getPageSections = cache(async (storeId: string, page: string = 'home'): Promise<PageSection[]> => {
+  // Internal pages (pages/about, pages/privacy, etc.)
+  if (page.startsWith('pages/')) {
+    const pageSlug = page.replace('pages/', '');
+    const [pageData] = await db
+      .select({ sections: pages.sections })
+      .from(pages)
+      .where(and(
+        eq(pages.storeId, storeId),
+        eq(pages.slug, pageSlug)
+      ))
+      .limit(1);
+    
+    if (!pageData) return [];
+    const sections = (pageData.sections || []) as PageSection[];
+    return sections
+      .filter(s => s.isActive !== false)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+  }
+  
+  // System pages (home, coming_soon)
+  const [store] = await db
+    .select({ 
+      homeSections: stores.homeSections,
+      comingSoonSections: stores.comingSoonSections 
+    })
+    .from(stores)
+    .where(eq(stores.id, storeId))
+    .limit(1);
+  
+  if (!store) return [];
+  
+  const sections = page === 'coming_soon' 
+    ? (store.comingSoonSections || []) as PageSection[]
+    : (store.homeSections || []) as PageSection[];
+  
+  return sections
+    .filter(s => s.isActive !== false)
+    .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
 });
 
-// Cached across requests for homepage - very important for speed!
+// Cached across requests - very important for speed!
 export const getPageSectionsCached = unstable_cache(
-  async (storeId: string, page: string = 'home') => {
-    return db
-      .select()
-      .from(pageSections)
-      .where(and(
-        eq(pageSections.storeId, storeId),
-        eq(pageSections.page, page),
-        eq(pageSections.isActive, true)
-      ))
-      .orderBy(asc(pageSections.sortOrder));
+  async (storeId: string, page: string = 'home'): Promise<PageSection[]> => {
+    // Internal pages (pages/about, pages/privacy, etc.)
+    if (page.startsWith('pages/')) {
+      const pageSlug = page.replace('pages/', '');
+      const [pageData] = await db
+        .select({ sections: pages.sections })
+        .from(pages)
+        .where(and(
+          eq(pages.storeId, storeId),
+          eq(pages.slug, pageSlug)
+        ))
+        .limit(1);
+      
+      if (!pageData) return [];
+      const sections = (pageData.sections || []) as PageSection[];
+      return sections
+        .filter(s => s.isActive !== false)
+        .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+    }
+    
+    // System pages (home, coming_soon)
+    const [store] = await db
+      .select({ 
+        homeSections: stores.homeSections,
+        comingSoonSections: stores.comingSoonSections 
+      })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    
+    if (!store) return [];
+    
+    const sections = page === 'coming_soon' 
+      ? (store.comingSoonSections || []) as PageSection[]
+      : (store.homeSections || []) as PageSection[];
+    
+    return sections
+      .filter(s => s.isActive !== false)
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   },
   ['page-sections'],
   { revalidate: 300, tags: ['sections'] } // Cache for 5 minutes
 );
 
-// Section type enum values (must match schema.ts sectionTypeEnum)
-type SectionType = 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq' | 'hero_slider' | 'hero_premium' | 'series_grid' | 'quote_banner' | 'featured_items';
-
 // Update page sections (for template application)
+// NEW ARCHITECTURE: Updates JSON field directly - atomic operation
 export async function updatePageSections(
   storeId: string,
   page: string,
-  sections: Array<{
-    id: string;
-    type: string;
-    title: string | null;
-    subtitle: string | null;
-    content: Record<string, unknown>;
-    settings: Record<string, unknown>;
-    sortOrder: number;
-    isActive: boolean;
-  }>
+  sections: PageSection[]
 ) {
-  // Delete existing sections for this page
-  await db.delete(pageSections).where(
-    and(
-      eq(pageSections.storeId, storeId),
-      eq(pageSections.page, page)
-    )
-  );
-
-  // Insert new sections
-  if (sections.length > 0) {
-    await db.insert(pageSections).values(
-      sections.map(section => ({
-        id: section.id,
-        storeId,
-        page,
-        type: section.type as SectionType, // Cast to enum type
-        title: section.title,
-        subtitle: section.subtitle,
-        content: section.content,
-        settings: section.settings,
-        sortOrder: section.sortOrder,
-        isActive: section.isActive,
-      }))
-    );
+  // Internal pages (pages/about, pages/privacy, etc.)
+  if (page.startsWith('pages/')) {
+    const pageSlug = page.replace('pages/', '');
+    await db.update(pages)
+      .set({ 
+        sections: sections,
+        updatedAt: new Date()
+      })
+      .where(and(
+        eq(pages.storeId, storeId),
+        eq(pages.slug, pageSlug)
+      ));
+    return;
   }
-
+  
+  // System pages (home, coming_soon)
+  if (page === 'coming_soon') {
+    await db.update(stores)
+      .set({ 
+        comingSoonSections: sections,
+        updatedAt: new Date()
+      })
+      .where(eq(stores.id, storeId));
+  } else {
+    // Default to home
+    await db.update(stores)
+      .set({ 
+        homeSections: sections,
+        updatedAt: new Date()
+      })
+      .where(eq(stores.id, storeId));
+  }
+  
   // Note: Cache revalidation should be called from Server Actions/Route Handlers
   // The caller is responsible for revalidating if needed
 }

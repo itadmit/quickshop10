@@ -3,12 +3,14 @@ import { getStoreBySlug, getPageSections, getCategoriesByStore } from '@/lib/db/
 import { auth } from '@/lib/auth';
 import { ThemeEditor } from './theme-editor';
 import { db } from '@/lib/db';
-import { pageSections, pages } from '@/lib/db/schema';
+import { pages, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
 
 // ============================================
 // Theme Editor Page - Full Screen (No Admin Layout)
 // Preview uses iframe, so no need to fetch categories/products here
+// NEW ARCHITECTURE: Sections stored as JSON on pages/stores
 // ============================================
 
 interface EditorPageProps {
@@ -85,11 +87,11 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
 
   // For coming_soon page: auto-create default sections if none exist
   // This handles existing stores that don't have coming_soon sections yet
+  // NEW ARCHITECTURE: Updates stores.comingSoonSections JSON
   if (currentPage === 'coming_soon' && sections.length === 0) {
-    await db.insert(pageSections).values([
+    const defaultComingSoonSections = [
       {
-        storeId: store.id,
-        page: 'coming_soon',
+        id: randomUUID(),
         type: 'hero',
         title: 'Coming Soon',
         subtitle: store.name,
@@ -106,8 +108,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
         isActive: true,
       },
       {
-        storeId: store.id,
-        page: 'coming_soon',
+        id: randomUUID(),
         type: 'newsletter',
         title: 'הישארו מעודכנים',
         subtitle: 'אנחנו עובדים על משהו מיוחד. השאירו את האימייל שלכם ונעדכן אתכם כשנפתח.',
@@ -121,7 +122,13 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
         sortOrder: 1,
         isActive: true,
       },
-    ]);
+    ];
+    
+    // Update stores table with coming_soon sections
+    await db.update(stores)
+      .set({ comingSoonSections: defaultComingSoonSections })
+      .where(eq(stores.id, store.id));
+    
     // Refetch after creation
     sections = await getPageSections(store.id, currentPage);
   }

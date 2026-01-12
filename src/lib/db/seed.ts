@@ -922,14 +922,23 @@ async function seed() {
     },
   ];
 
-  for (const section of sectionsData) {
-    await db.insert(schema.pageSections).values({
-      storeId: store.id,
-      ...section,
-      isActive: true,
-    });
-  }
-  console.log(`   ✓ Created ${sectionsData.length} page sections`);
+  // NEW ARCHITECTURE: Store sections as JSON on stores table
+  const homeSections = sectionsData.map((section, index) => ({
+    id: crypto.randomUUID(),
+    type: section.type,
+    title: section.title,
+    subtitle: section.subtitle,
+    content: section.content,
+    settings: section.settings,
+    sortOrder: section.sortOrder ?? index,
+    isActive: true,
+  }));
+  
+  await db.update(schema.stores)
+    .set({ homeSections })
+    .where(eq(schema.stores.id, store.id));
+  
+  console.log(`   ✓ Created ${homeSections.length} home page sections`);
 
   // 14. Create gift cards
   console.log('\n🎁 Creating gift cards...');

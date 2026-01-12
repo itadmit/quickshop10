@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pageSections, contacts } from '@/lib/db/schema';
+import { stores, contacts } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 
 // Contact form submission handler

@@ -1,30 +1,36 @@
 import { db } from '@/lib/db';
 import { 
   pages, 
-  pageSections, 
   menus, 
   menuItems, 
   categories, 
   products, 
   productImages,
   productCategories,
+  stores,
 } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { randomUUID } from 'crypto';
 
 // ============================================
 // Default Pages, Menus & Demo Content for Stores
 // Created automatically when a store is created
-// Also used for store reset functionality
+// NEW ARCHITECTURE: Sections stored as JSON on pages/stores
 // ============================================
 
-// Default pages configuration with multiple sections per page
+// Section types for type safety
+type SectionType = 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq' | 'hero_slider' | 'series_grid' | 'quote_banner' | 'hero_premium' | 'featured_items' | 'contact';
+
+// Section interface for JSON storage
 interface PageSection {
+  id: string;
   type: SectionType;
   title: string | null;
   subtitle: string | null;
   content: Record<string, unknown>;
   settings: Record<string, unknown>;
   sortOrder: number;
+  isActive: boolean;
 }
 
 interface DefaultPage {
@@ -32,7 +38,7 @@ interface DefaultPage {
   slug: string;
   seoTitle: string;
   seoDescription: string;
-  sections: PageSection[];
+  sections: Omit<PageSection, 'id' | 'isActive'>[];
 }
 
 const DEFAULT_PAGES: DefaultPage[] = [
@@ -197,7 +203,7 @@ const DEFAULT_PAGES: DefaultPage[] = [
 
 /**
  * Create default pages for a new store
- * Creates both the pages records and their sections
+ * NEW ARCHITECTURE: Sections stored directly on pages table as JSON
  */
 export async function createDefaultPages(storeId: string, storeName: string) {
   const createdPages: Array<{ id: string; slug: string; title: string }> = [];
@@ -207,36 +213,21 @@ export async function createDefaultPages(storeId: string, storeName: string) {
     const seoTitle = pageData.seoTitle.replace('{storeName}', storeName);
     const seoDescription = pageData.seoDescription.replace('{storeName}', storeName);
 
-    // Create page record
-    const [page] = await db.insert(pages).values({
-      storeId,
-      title: pageData.title,
-      slug: pageData.slug,
-      isPublished: true, // Published by default
-      seoTitle,
-      seoDescription,
-    }).returning();
-
-    createdPages.push({ id: page.id, slug: page.slug, title: page.title });
-
-    // Create page sections
-    const pageIdentifier = `pages/${pageData.slug}`;
-    
-    for (const section of pageData.sections) {
-      // Replace {storeName} in text content
+    // Convert sections to full PageSection format with IDs
+    const sections: PageSection[] = pageData.sections.map(section => {
+      // Replace {storeName} in content
       let content = { ...section.content };
       if (typeof content.text === 'string') {
         content.text = content.text.replace(/{storeName}/g, storeName);
       }
-      // Also replace in title if it's a string
+      
       let sectionTitle = section.title;
       if (sectionTitle) {
         sectionTitle = sectionTitle.replace(/{storeName}/g, storeName);
       }
-      
-      await db.insert(pageSections).values({
-        storeId,
-        page: pageIdentifier,
+
+      return {
+        id: randomUUID(),
         type: section.type,
         title: sectionTitle,
         subtitle: section.subtitle,
@@ -244,8 +235,21 @@ export async function createDefaultPages(storeId: string, storeName: string) {
         settings: section.settings,
         sortOrder: section.sortOrder,
         isActive: true,
-      });
-    }
+      };
+    });
+
+    // Create page record WITH sections - atomic!
+    const [page] = await db.insert(pages).values({
+      storeId,
+      title: pageData.title,
+      slug: pageData.slug,
+      sections, // Sections stored directly on page
+      isPublished: true,
+      seoTitle,
+      seoDescription,
+    }).returning();
+
+    createdPages.push({ id: page.id, slug: page.slug, title: page.title });
   }
 
   return createdPages;
@@ -253,7 +257,6 @@ export async function createDefaultPages(storeId: string, storeName: string) {
 
 /**
  * Create default menus for a new store
- * Creates a footer menu with links to default pages
  */
 export async function createDefaultMenus(storeId: string, createdPages: Array<{ id: string; slug: string; title: string }>) {
   // Create footer menu
@@ -297,15 +300,10 @@ export async function createDefaultMenus(storeId: string, createdPages: Array<{ 
 
 /**
  * Initialize default content for a new store
- * Call this after store creation
  */
 export async function initializeStoreDefaults(storeId: string, storeName: string) {
-  // Create default pages
   const createdPages = await createDefaultPages(storeId, storeName);
-  
-  // Create default menus with links to pages
   await createDefaultMenus(storeId, createdPages);
-  
   return { pagesCreated: createdPages.length };
 }
 
@@ -313,15 +311,11 @@ export async function initializeStoreDefaults(storeId: string, storeName: string
 // Demo Content Configuration
 // ============================================
 
-// Section types for type safety
-type SectionType = 'hero' | 'banner' | 'split_banner' | 'video_banner' | 'categories' | 'products' | 'newsletter' | 'custom' | 'reviews' | 'image_text' | 'features' | 'banner_small' | 'gallery' | 'text_block' | 'logos' | 'faq' | 'hero_slider' | 'series_grid' | 'quote_banner' | 'hero_premium' | 'featured_items';
-
 // Homepage sections (Noir template style)
-function getDefaultHomeSections(storeId: string, storeName: string) {
+function getDefaultHomeSections(storeName: string): PageSection[] {
   return [
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'hero' as SectionType,
       title: storeName.toUpperCase(),
       subtitle: 'ברוכים הבאים לחנות שלנו',
@@ -335,8 +329,7 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'categories' as SectionType,
       title: null,
       subtitle: null,
@@ -346,8 +339,7 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'products' as SectionType,
       title: 'פריטים נבחרים',
       subtitle: 'הבחירות שלנו לעונה',
@@ -357,8 +349,7 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'video_banner' as SectionType,
       title: 'קולקציה חדשה',
       subtitle: 'חדש בחנות',
@@ -372,8 +363,7 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'split_banner' as SectionType,
       title: null,
       subtitle: null,
@@ -388,8 +378,7 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'products' as SectionType,
       title: 'כל המוצרים',
       subtitle: null,
@@ -399,8 +388,7 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'home',
+      id: randomUUID(),
       type: 'newsletter' as SectionType,
       title: 'הצטרפו למועדון',
       subtitle: 'הרשמו לניוזלטר וקבלו 15% הנחה על ההזמנה הראשונה',
@@ -413,11 +401,10 @@ function getDefaultHomeSections(storeId: string, storeName: string) {
 }
 
 // Coming Soon page sections
-function getDefaultComingSoonSections(storeId: string, storeName: string) {
+function getDefaultComingSoonSections(storeName: string): PageSection[] {
   return [
     {
-      storeId,
-      page: 'coming_soon',
+      id: randomUUID(),
       type: 'hero' as SectionType,
       title: 'Coming Soon',
       subtitle: storeName,
@@ -431,8 +418,7 @@ function getDefaultComingSoonSections(storeId: string, storeName: string) {
       isActive: true,
     },
     {
-      storeId,
-      page: 'coming_soon',
+      id: randomUUID(),
       type: 'newsletter' as SectionType,
       title: 'הישארו מעודכנים',
       subtitle: 'אנחנו עובדים על משהו מיוחד. השאירו את האימייל שלכם ונעדכן אתכם כשנפתח.',
@@ -462,18 +448,24 @@ const DEMO_PRODUCTS = [
 
 /**
  * Create default home page sections
+ * NEW ARCHITECTURE: Updates stores.homeSections JSON
  */
 export async function createDefaultHomeSections(storeId: string, storeName: string) {
-  const sections = getDefaultHomeSections(storeId, storeName);
-  await db.insert(pageSections).values(sections);
+  const sections = getDefaultHomeSections(storeName);
+  await db.update(stores)
+    .set({ homeSections: sections })
+    .where(eq(stores.id, storeId));
 }
 
 /**
  * Create Coming Soon page sections
+ * NEW ARCHITECTURE: Updates stores.comingSoonSections JSON
  */
 export async function createDefaultComingSoonSections(storeId: string, storeName: string) {
-  const sections = getDefaultComingSoonSections(storeId, storeName);
-  await db.insert(pageSections).values(sections);
+  const sections = getDefaultComingSoonSections(storeName);
+  await db.update(stores)
+    .set({ comingSoonSections: sections })
+    .where(eq(stores.id, storeId));
 }
 
 /**
@@ -544,17 +536,16 @@ export async function createDemoProducts(
 
 /**
  * Create all default content for a store
- * Used by both store creation and store reset
  */
 export async function createAllStoreDefaults(
   storeId: string, 
   storeName: string, 
   userId: string
 ) {
-  // 1. Create home page sections
+  // 1. Create home page sections (stored on stores table)
   await createDefaultHomeSections(storeId, storeName);
 
-  // 2. Create coming soon sections
+  // 2. Create coming soon sections (stored on stores table)
   await createDefaultComingSoonSections(storeId, storeName);
 
   // 3. Create default internal pages (about, contact, etc.) and footer menu
@@ -576,7 +567,7 @@ export async function createAllStoreDefaults(
 
 /**
  * Reset store to defaults - deletes existing content and recreates defaults
- * WARNING: This is destructive! Only use when user explicitly requests reset
+ * NEW ARCHITECTURE: No need to delete pageSections - sections stored on pages/stores
  */
 export async function resetStoreToDefaults(
   storeId: string, 
@@ -584,7 +575,6 @@ export async function resetStoreToDefaults(
   userId: string
 ) {
   // Delete existing content in order (respecting foreign keys)
-  // Note: We don't delete orders, customers, or other business data
   
   // 1. Delete menu items first (references menus)
   const existingMenus = await db.query.menus.findMany({
@@ -614,15 +604,19 @@ export async function resetStoreToDefaults(
   // 5. Delete categories
   await db.delete(categories).where(eq(categories.storeId, storeId));
 
-  // 6. Delete page sections
-  await db.delete(pageSections).where(eq(pageSections.storeId, storeId));
-
-  // 7. Delete pages
+  // 6. Delete pages (sections are stored on pages, so they get deleted automatically)
   await db.delete(pages).where(eq(pages.storeId, storeId));
+
+  // 7. Clear home/coming_soon sections on stores table
+  await db.update(stores)
+    .set({ 
+      homeSections: [],
+      comingSoonSections: []
+    })
+    .where(eq(stores.id, storeId));
 
   // Now recreate all defaults
   const result = await createAllStoreDefaults(storeId, storeName, userId);
 
   return result;
 }
-
