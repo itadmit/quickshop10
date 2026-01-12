@@ -198,8 +198,8 @@ export function ShopHeaderClient({
   });
   
   // Determine if we should show categories or custom menu
-  // Use categories mode if: explicitly set to 'categories' OR no menu items available
-  const showCategories = effectiveNavigationMode === 'categories' || menuItems.length === 0;
+  // Only show categories when explicitly set to 'categories' mode
+  const showCategories = effectiveNavigationMode === 'categories';
 
   // Categories Navigation component (original behavior)
   const CategoriesNavigation = ({ className = '' }: { className?: string }) => (
@@ -252,6 +252,12 @@ export function ShopHeaderClient({
   // Menu Navigation component (custom menus from Navigation settings)
   const MenuNavigation = ({ className = '' }: { className?: string }) => (
     <nav className={`hidden lg:flex items-center gap-8 xl:gap-12 ${className}`}>
+      {/* Show placeholder in editor when menu is empty */}
+      {menuItems.length === 0 && isPreviewMode && (
+        <span className="text-[11px] tracking-[0.2em] uppercase text-gray-400 border border-dashed border-gray-300 px-4 py-2 rounded">
+          הוסף פריטים בניהול ניווט
+        </span>
+      )}
       {menuItems.map((item) => {
         const hasChildren = item.children && item.children.length > 0;
         const href = item.resolvedUrl?.startsWith('/') ? `${basePath}${item.resolvedUrl}` : item.resolvedUrl || '#';

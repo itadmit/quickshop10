@@ -84,8 +84,8 @@ export function ShopHeader({
   });
 
   // Determine if we should show categories or custom menu
-  // Use categories mode if: explicitly set to 'categories' OR no menu items available
-  const showCategories = navigationMode === 'categories' || menuItems.length === 0;
+  // Only show categories when explicitly set to 'categories' mode
+  const showCategories = navigationMode === 'categories';
 
   // Categories Navigation component (original behavior)
   const CategoriesNavigation = ({ className = '' }: { className?: string }) => (
