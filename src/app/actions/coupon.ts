@@ -268,10 +268,12 @@ export async function validateCoupon(
         break;
 
       case 'buy_x_get_y':
-        if (!discount.buyQuantity || totalMatchingQty < discount.buyQuantity) {
+        // קנה X קבל Y - צריך לפחות X + Y מוצרים (X לקנייה + Y במתנה)
+        const requiredForGift = (discount.buyQuantity || 0) + (discount.getQuantity || 0);
+        if (requiredForGift <= 0 || totalMatchingQty < requiredForGift) {
           return { 
             success: false, 
-            error: `קופון זה תקף לקניית לפחות ${discount.buyQuantity} מוצרים מתאימים` 
+            error: `קופון זה תקף לקניית לפחות ${requiredForGift} מוצרים מתאימים` 
           };
         }
         break;
