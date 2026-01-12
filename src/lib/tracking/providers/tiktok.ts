@@ -43,37 +43,69 @@ export function initTikTokPixel(pixelId: string): void {
   // Don't reinitialize
   if (window.ttq) return;
 
-  // TikTok Pixel - simplified initialization
-  // The actual SDK will be loaded from the script
+  // Official TikTok Pixel initialization pattern
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+  const d = document;
+  const t = 'ttq';
   
-  // Create a queue-based stub
-  const ttqQueue: unknown[][] = [];
+  w.TiktokAnalyticsObject = t;
+  const ttq = w[t] = w[t] || [];
   
-  const ttq = {
-    load: (id: string) => {
-      const script = document.createElement('script');
-      script.type = 'text/javascript';
-      script.async = true;
-      script.defer = true;
-      script.src = `https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=${id}&lib=ttq`;
-      document.head.appendChild(script);
-    },
-    page: () => {
-      ttqQueue.push(['page']);
-    },
-    track: (event: string, params?: Record<string, unknown>) => {
-      ttqQueue.push(['track', event, params]);
-    },
-    identify: (params: Record<string, unknown>) => {
-      ttqQueue.push(['identify', params]);
-    },
+  ttq.methods = ['page', 'track', 'identify', 'instances', 'debug', 'on', 'off', 'once', 'ready', 'alias', 'group', 'enableCookie', 'disableCookie'];
+  ttq.setAndDefer = function(t: unknown, e: string) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (t as any)[e] = function() {
+      // eslint-disable-next-line prefer-rest-params
+      (t as any).push([e].concat(Array.prototype.slice.call(arguments, 0)));
+    };
   };
-
-  window.TiktokAnalyticsObject = 'ttq';
-  window.ttq = ttq;
+  
+  for (let i = 0; i < ttq.methods.length; i++) {
+    ttq.setAndDefer(ttq, ttq.methods[i]);
+  }
+  
+  ttq.instance = function(t: string) {
+    const e = ttq._i[t] || [];
+    for (let n = 0; n < ttq.methods.length; n++) {
+      ttq.setAndDefer(e, ttq.methods[n]);
+    }
+    return e;
+  };
+  
+  ttq.load = function(e: string, n?: unknown) {
+    const i = 'https://analytics.tiktok.com/i18n/pixel/events.js';
+    ttq._i = ttq._i || {};
+    ttq._i[e] = [];
+    ttq._i[e]._u = i;
+    ttq._t = ttq._t || {};
+    ttq._t[e] = +new Date();
+    ttq._o = ttq._o || {};
+    ttq._o[e] = n || {};
+    
+    const o = d.createElement('script');
+    o.type = 'text/javascript';
+    o.async = true;
+    o.src = i + '?sdkid=' + e + '&lib=' + t;
+    const a = d.getElementsByTagName('script')[0];
+    if (a && a.parentNode) {
+      a.parentNode.insertBefore(o, a);
+    } else {
+      d.head.appendChild(o);
+    }
+  };
   
   // Load the pixel
   ttq.load(pixelId);
+  ttq.page();
+  
+  // Set window.ttq for our tracking functions
+  window.ttq = {
+    load: ttq.load,
+    page: () => ttq.page(),
+    track: (event: string, params?: Record<string, unknown>) => ttq.track(event, params),
+    identify: (params: Record<string, unknown>) => ttq.identify(params),
+  };
 }
 
 export function trackTikTokEvent<T extends TrackingEventType>(
