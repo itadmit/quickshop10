@@ -89,7 +89,13 @@ export async function inviteTeamMember(
     });
 
     // Send invitation email
-    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/invite/${token}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) {
+      console.error('NEXT_PUBLIC_APP_URL is not configured');
+      revalidatePath(`/shops/${slug}/admin/settings/team`);
+      return { success: true };
+    }
+    const inviteUrl = `${baseUrl}/invite/${token}`;
     
     try {
       await sendEmail({

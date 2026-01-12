@@ -85,7 +85,12 @@ export async function createInfluencer(storeId: string, slug: string, data: Infl
     }).returning();
 
     // Send welcome email to influencer
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) {
+      console.error('NEXT_PUBLIC_APP_URL is not configured');
+      revalidatePath(`/shops/${slug}/admin/influencers`);
+      return { success: true, influencer: newInfluencer };
+    }
     const loginUrl = `${baseUrl}/shops/${slug}/influencer/login`;
     
     try {

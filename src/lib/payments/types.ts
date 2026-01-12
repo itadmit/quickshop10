@@ -229,6 +229,36 @@ export interface PaymentProviderConfig {
   testMode: boolean;
 }
 
+// ============ REDIRECT PARAMS (returned from payment page) ============
+
+export interface RedirectParseResult {
+  // Was the payment successful?
+  success: boolean;
+  
+  // Status info
+  status: TransactionStatus;
+  statusCode?: string; // Original status code from provider
+  
+  // Transaction identifiers
+  transactionId?: string;
+  requestId?: string; // page_request_uid for PayPlus, TransactionId for Pelecard
+  approvalNumber?: string;
+  
+  // Card info (if available)
+  cardBrand?: string;
+  cardLastFour?: string;
+  
+  // Order reference (our internal reference)
+  orderReference?: string;
+  
+  // Error info
+  errorCode?: string;
+  errorMessage?: string;
+  
+  // Raw params for debugging
+  rawParams: Record<string, string | undefined>;
+}
+
 // ============ PROVIDER INTERFACE ============
 
 export interface IPaymentProvider {
@@ -247,6 +277,9 @@ export interface IPaymentProvider {
   // Webhook handling
   validateWebhook(body: unknown, headers: Record<string, string>): WebhookValidationResult;
   parseCallback(body: unknown): ParsedCallback;
+  
+  // Parse redirect URL params (after payment page redirect)
+  parseRedirectParams(params: Record<string, string | undefined>): RedirectParseResult;
   
   // Health check
   testConnection(): Promise<{ success: boolean; error?: string }>;

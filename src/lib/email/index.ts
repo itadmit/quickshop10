@@ -8,6 +8,19 @@ sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
 const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'no-reply@my-quickshop.com';
 const fromName = process.env.SENDGRID_FROM_NAME || 'QuickShop';
 
+/**
+ * Get the base app URL - never localhost in production
+ * Returns null if not configured, allowing callers to handle gracefully
+ */
+function getAppUrl(): string | null {
+  const url = process.env.NEXT_PUBLIC_APP_URL;
+  if (!url) {
+    console.error('NEXT_PUBLIC_APP_URL is not configured - emails will not contain valid links');
+    return null;
+  }
+  return url;
+}
+
 interface SendEmailOptions {
   to: string;
   subject: string;
@@ -38,7 +51,12 @@ export async function sendEmail({ to, subject, html, text, senderName }: SendEma
 // ============ EMAIL TEMPLATES ============
 
 export async function sendVerificationEmail(email: string, token: string, name?: string) {
-  const verifyUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify-email?token=${token}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send verification email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+  const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
   
   const html = `
     <!DOCTYPE html>
@@ -82,7 +100,12 @@ export async function sendVerificationEmail(email: string, token: string, name?:
 }
 
 export async function sendPasswordResetEmail(email: string, token: string, name?: string) {
-  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send password reset email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+  const resetUrl = `${baseUrl}/reset-password?token=${token}`;
   
   const html = `
     <!DOCTYPE html>
@@ -199,12 +222,18 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     freeShippingReason,
   } = data;
 
-  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${storeSlug}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send order confirmation email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${storeSlug}`;
   
   const itemsHtml = items.map(item => {
     // Ensure image URL is absolute
     const imageUrl = item.image 
-      ? (item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_APP_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
+      ? (item.image.startsWith('http') ? item.image : `${baseUrl}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
       : null;
     
     // Calculate item total including addons
@@ -453,11 +482,17 @@ export async function sendAbandonedCartEmail(data: AbandonedCartEmailData) {
     senderName,
   } = data;
 
-  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${storeSlug}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send abandoned cart email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${storeSlug}`;
   
   const itemsHtml = items.slice(0, 3).map(item => {
     const imageUrl = item.image 
-      ? (item.image.startsWith('http') ? item.image : `${process.env.NEXT_PUBLIC_APP_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
+      ? (item.image.startsWith('http') ? item.image : `${baseUrl}${item.image.startsWith('/') ? '' : '/'}${item.image}`)
       : null;
     
     return `
@@ -613,7 +648,13 @@ interface ReturnRequestEmailData {
 }
 
 export async function sendReturnRequestReceivedEmail(data: ReturnRequestEmailData) {
-  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${data.storeSlug}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send return request email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${data.storeSlug}`;
   const accountUrl = `${storeUrl}/account/returns`;
 
   const resolutionLabels: Record<string, string> = {
@@ -624,7 +665,7 @@ export async function sendReturnRequestReceivedEmail(data: ReturnRequestEmailDat
 
   const itemsHtml = data.items.map(item => {
     const imageUrl = item.imageUrl 
-      ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${process.env.NEXT_PUBLIC_APP_URL}${item.imageUrl}`)
+      ? (item.imageUrl.startsWith('http') ? item.imageUrl : `${baseUrl}${item.imageUrl}`)
       : null;
     
     return `
@@ -768,7 +809,13 @@ interface ReturnRequestUpdateEmailData {
 }
 
 export async function sendReturnRequestUpdateEmail(data: ReturnRequestUpdateEmailData) {
-  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${data.storeSlug}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send return request update email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${data.storeSlug}`;
   const accountUrl = `${storeUrl}/account/returns`;
 
   const statusConfig: Record<string, { title: string; icon: string; color: string; bgColor: string }> = {
@@ -937,7 +984,13 @@ interface ExchangePaymentEmailData {
 }
 
 export async function sendExchangePaymentEmail(data: ExchangePaymentEmailData) {
-  const storeUrl = `${process.env.NEXT_PUBLIC_APP_URL}/shops/${data.storeSlug}`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send exchange payment email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${data.storeSlug}`;
 
   const html = `
     <!DOCTYPE html>
@@ -1190,7 +1243,12 @@ export async function sendInfluencerWelcomeEmail(data: InfluencerWelcomeEmailDat
 }
 
 export async function sendWelcomeEmail(email: string, name?: string, storeName?: string) {
-  const dashboardUrl = `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`;
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send welcome email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+  const dashboardUrl = `${baseUrl}/dashboard`;
   
   const html = `
     <!DOCTYPE html>

@@ -34,23 +34,12 @@ import { ProductImage } from '@/components/product-image';
 import { formatPrice } from '@/lib/format-price';
 import { addPointsFromOrder } from '@/lib/actions/loyalty';
 import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
+import { parseRedirectParams, isSuccessfulRedirect } from '@/lib/payments/factory';
+import { executePostPaymentActions, type CartItem, type OrderData } from '@/lib/orders/post-payment';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ 
-    ref?: string;
-    more_info?: string;
-    status?: string;
-    status_code?: string;
-    amount?: string;
-    transaction_uid?: string;
-    page_request_uid?: string;
-    approval_num?: string;
-    four_digits?: string;
-    brand_name?: string;
-    customer_name?: string;
-    customer_email?: string;
-  }>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }
 
 // Decrement inventory for order items
@@ -171,16 +160,35 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
-  // Get order reference from query params
-  const orderReference = search.more_info || search.ref;
-  const pageRequestUid = search.page_request_uid;
+  // ========== PROVIDER-AGNOSTIC PAYMENT PARSING ==========
+  // Parse redirect params using the appropriate provider (PayPlus or Pelecard)
+  const paymentResult = parseRedirectParams(search);
+  const isPaymentSuccessful = paymentResult?.success || isSuccessfulRedirect(search);
   
-  // Check payment status from PayPlus
+  console.log(`Thank you page: Payment result:`, {
+    provider: paymentResult ? 'detected' : 'none',
+    success: paymentResult?.success,
+    statusCode: paymentResult?.statusCode,
+    orderReference: paymentResult?.orderReference,
+    isPaymentSuccessful,
+  });
+  
+  // Get order reference from query params (fallback to parsed result)
+  const orderReference = search.more_info || search.ref || paymentResult?.orderReference;
+  const pageRequestUid = search.page_request_uid || paymentResult?.requestId;
+  
+  // Check payment status (for backwards compatibility with PayPlus)
   const paymentStatus = search.status;
-  const statusCode = search.status_code;
+  const statusCode = search.status_code || paymentResult?.statusCode;
   
-  // If payment failed or cancelled, redirect back to checkout
-  if (paymentStatus === 'rejected' || paymentStatus === 'error' || (statusCode && statusCode !== '000')) {
+  // If payment explicitly failed, redirect back to checkout
+  // Only redirect if we have explicit failure indicators (not just missing success)
+  if (paymentStatus === 'rejected' || paymentStatus === 'error') {
+    redirect(`${basePath}/checkout?error=payment_failed`);
+  }
+  
+  // For Pelecard, check PelecardStatusCode explicitly for failure
+  if (search.PelecardStatusCode && search.PelecardStatusCode !== '000') {
     redirect(`${basePath}/checkout?error=payment_failed`);
   }
   
@@ -200,36 +208,168 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
   const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
   
-  // First try to find existing order by reference
+  // First try to find existing order by reference (orderNumber)
   let order = null;
   let isNewOrder = false;
+  let pendingPayment: typeof pendingPayments.$inferSelect | null = null;
   
   if (orderReference) {
+    // Try to find order by orderNumber in the current store
     const [existingOrder] = await db
       .select()
       .from(orders)
-      .where(eq(orders.orderNumber, orderReference))
+      .where(
+        and(
+          eq(orders.storeId, store.id),
+          eq(orders.orderNumber, orderReference)
+        )
+      )
       .limit(1);
-    order = existingOrder;
     
-    if (order) {
-      console.log(`Thank you page: Found existing order ${order.orderNumber}, skipping order creation`);
-      // Check if inventory was decremented by checking order items
-      const orderItemsCheck = await db
-        .select()
-        .from(orderItems)
-        .where(eq(orderItems.orderId, order.id))
-        .limit(1);
-      console.log(`Thank you page: Order has ${orderItemsCheck.length} items`);
+    if (existingOrder) {
+      console.log(`Thank you page: Found order ${existingOrder.orderNumber}, status: ${existingOrder.status}, financialStatus: ${existingOrder.financialStatus}`);
+      
+      // ========== KEY FIX: Update pending order to PAID if payment was successful ==========
+      if (existingOrder.financialStatus === 'pending' && isPaymentSuccessful) {
+        console.log(`Thank you page: Order ${existingOrder.orderNumber} is pending - updating to PAID`);
+        
+        // Find the pending payment for this order to get cart items and other data
+        const [foundPendingPayment] = await db
+          .select()
+          .from(pendingPayments)
+          .where(
+            and(
+              eq(pendingPayments.storeId, store.id),
+              eq(pendingPayments.orderId, existingOrder.id),
+              eq(pendingPayments.status, 'pending')
+            )
+          )
+          .limit(1);
+        
+        if (foundPendingPayment) {
+          pendingPayment = foundPendingPayment;
+          const orderData = pendingPayment.orderData as Record<string, unknown>;
+          const cartItems = pendingPayment.cartItems as Array<{
+            productId: string;
+            variantId?: string;
+            variantTitle?: string;
+            name: string;
+            quantity: number;
+            price: number;
+            sku?: string;
+            image?: string;
+            imageUrl?: string;
+          }>;
+          
+          // UPDATE order to PAID!
+          const [updatedOrder] = await db.update(orders)
+            .set({
+              status: 'confirmed',
+              financialStatus: 'paid',
+              paymentMethod: 'credit_card',
+              paymentDetails: {
+                provider: pendingPayment.provider,
+                transactionId: paymentResult?.transactionId || search.transaction_uid,
+                approvalNumber: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo,
+                cardBrand: paymentResult?.cardBrand || search.brand_name,
+                cardLastFour: paymentResult?.cardLastFour || search.four_digits,
+              },
+              paidAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(orders.id, existingOrder.id))
+            .returning();
+          
+          order = updatedOrder;
+          isNewOrder = true; // Trigger post-payment logic
+          
+          console.log(`Thank you page: Updated order ${order.orderNumber} to PAID via direct order lookup`);
+          
+          // Update pending payment status to completed
+          await db.update(pendingPayments)
+            .set({ 
+              status: 'completed',
+              completedAt: new Date(),
+            })
+            .where(eq(pendingPayments.id, pendingPayment.id));
+          
+          // Update customer stats
+          if (existingOrder.customerId) {
+            const totalSpent = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            await db.update(customers)
+              .set({
+                updatedAt: new Date(),
+                totalOrders: sql`COALESCE(${customers.totalOrders}, 0) + 1`,
+                totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${totalSpent}`,
+              })
+              .where(eq(customers.id, existingOrder.customerId));
+          }
+          
+          // ========== POST-PAYMENT LOGIC (CENTRALIZED) ==========
+          // All post-payment actions in one place - DRY principle
+          executePostPaymentActions({
+            storeId: store.id,
+            storeName: store.name,
+            storeSlug: store.slug,
+            order: {
+              id: updatedOrder.id,
+              orderNumber: updatedOrder.orderNumber,
+              total: updatedOrder.total,
+              customerEmail: updatedOrder.customerEmail,
+              customerName: updatedOrder.customerName,
+              customerId: existingOrder.customerId,
+              discountDetails: updatedOrder.discountDetails,
+            },
+            cartItems: cartItems as CartItem[],
+            orderData: orderData as OrderData,
+            discountCode: pendingPayment.discountCode,
+            discountAmount: Number(pendingPayment.discountAmount) || 0,
+            paymentInfo: {
+              lastFour: paymentResult?.cardLastFour || search.four_digits,
+              brand: paymentResult?.cardBrand || search.brand_name,
+              approvalNum: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo,
+            },
+          }).catch(err => console.error('Thank you page: Post-payment actions failed:', err));
+        } else {
+          // No pending payment found, but order is pending - just mark as paid without cart items
+          console.log(`Thank you page: No pending payment found for order ${existingOrder.orderNumber}, marking as paid anyway`);
+          
+          const [updatedOrder] = await db.update(orders)
+            .set({
+              status: 'confirmed',
+              financialStatus: 'paid',
+              paymentMethod: 'credit_card',
+              paymentDetails: {
+                provider: paymentResult ? 'detected' : 'unknown',
+                transactionId: paymentResult?.transactionId || search.transaction_uid || search.PelecardTransactionId,
+                approvalNumber: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo,
+              },
+              paidAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(orders.id, existingOrder.id))
+            .returning();
+          
+          order = updatedOrder;
+          console.log(`Thank you page: Updated order ${order.orderNumber} to PAID (no pending payment)`);
+        }
+      } else if (existingOrder.financialStatus === 'paid') {
+        // Order already paid - just show it
+        console.log(`Thank you page: Order ${existingOrder.orderNumber} already paid, showing thank you`);
+        order = existingOrder;
+      } else {
+        // Order exists but in other status - just show it
+        order = existingOrder;
+      }
     }
   }
   
-  // If no order found, check pending payments and UPDATE existing order to PAID
-  if (!order && pageRequestUid && statusCode === '000') {
+  // If no order found by reference, check pending payments by pageRequestUid
+  if (!order && pageRequestUid) {
     console.log(`Thank you page: Looking for pending payment with pageRequestUid=${pageRequestUid}, storeId=${store.id}`);
     
     // Find pending payment by provider request ID
-    const [pendingPayment] = await db
+    const [foundPendingPayment] = await db
       .select()
       .from(pendingPayments)
       .where(
@@ -241,9 +381,10 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
       )
       .limit(1);
     
+    pendingPayment = foundPendingPayment;
     console.log(`Thank you page: Found pending payment: ${pendingPayment ? 'YES' : 'NO'}, orderId: ${pendingPayment?.orderId || 'none'}`);
     
-    if (pendingPayment) {
+    if (pendingPayment && isPaymentSuccessful) {
       const orderData = pendingPayment.orderData as Record<string, unknown>;
       const cartItems = pendingPayment.cartItems as Array<{
         productId: string;
@@ -257,7 +398,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         imageUrl?: string;
       }>;
       
-      // ========== NEW FLOW: UPDATE EXISTING ORDER TO PAID ==========
+      // ========== UPDATE EXISTING ORDER TO PAID ==========
       // Order was already created in /api/payments/initiate with pending status
       if (pendingPayment.orderId) {
         const [existingOrder] = await db
@@ -308,283 +449,30 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 .where(eq(customers.id, existingOrder.customerId));
             }
             
-            // ========== POST-PAYMENT LOGIC FOR NEW FLOW ==========
-            // Decrement inventory with logging (non-blocking for speed)
-            decrementInventory(cartItems, store.id, existingOrder.id).catch(err => {
-              console.error('Thank you page (new flow): Failed to decrement inventory:', err);
-            });
-            
-            // Increment discount/coupon usage count
-            if (pendingPayment.discountCode) {
-              db.update(discounts)
-                .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
-                .where(
-                  and(
-                    eq(discounts.storeId, store.id),
-                    eq(discounts.code, pendingPayment.discountCode)
-                  )
-                )
-                .then(() => {
-                  console.log(`Thank you page (new flow): Incremented usage count for coupon ${pendingPayment.discountCode}`);
-                })
-                .catch(err => {
-                  console.error(`Thank you page (new flow): Failed to increment coupon usage:`, err);
-                });
-              
-              // Create influencer sale record if coupon is linked to an influencer
-              const totalAmount = Number(updatedOrder.total);
-              db.select({
-                influencerId: influencers.id,
-                commissionType: influencers.commissionType,
-                commissionValue: influencers.commissionValue,
-              })
-                .from(discounts)
-                .innerJoin(influencers, eq(influencers.discountId, discounts.id))
-                .where(
-                  and(
-                    eq(discounts.storeId, store.id),
-                    eq(discounts.code, pendingPayment.discountCode),
-                    eq(influencers.isActive, true)
-                  )
-                )
-                .limit(1)
-                .then(async ([result]) => {
-                  if (!result) return;
-                  
-                  const commissionType = result.commissionType || 'percentage';
-                  const commissionValue = Number(result.commissionValue) || 0;
-                  
-                  let commissionAmount = 0;
-                  if (commissionType === 'percentage') {
-                    commissionAmount = (totalAmount * commissionValue) / 100;
-                  } else {
-                    commissionAmount = commissionValue;
-                  }
-                  
-                  await db.insert(influencerSales).values({
-                    influencerId: result.influencerId,
-                    orderId: updatedOrder.id,
-                    orderTotal: String(totalAmount),
-                    commissionAmount: String(commissionAmount),
-                    netCommission: String(commissionAmount),
-                    status: 'pending',
-                  });
-                  
-                  await db.update(influencers)
-                    .set({
-                      totalSales: sql`COALESCE(${influencers.totalSales}, 0) + ${totalAmount}`,
-                      totalCommission: sql`COALESCE(${influencers.totalCommission}, 0) + ${commissionAmount}`,
-                      totalOrders: sql`COALESCE(${influencers.totalOrders}, 0) + 1`,
-                      updatedAt: new Date(),
-                    })
-                    .where(eq(influencers.id, result.influencerId));
-                  
-                  console.log(`Thank you page (new flow): Created influencer sale for ${result.influencerId}`);
-                })
-                .catch(err => {
-                  console.error(`Thank you page (new flow): Failed to create influencer sale:`, err);
-                });
-            }
-            
-            // Increment automatic discount usage counts (non-blocking)
-            const appliedAutoDiscounts = (orderData as { autoDiscounts?: Array<{ id: string; name: string }> })?.autoDiscounts || [];
-            if (appliedAutoDiscounts.length > 0) {
-              const autoDiscountIds = appliedAutoDiscounts.map(d => d.id);
-              db.update(automaticDiscounts)
-                .set({ usageCount: sql`COALESCE(${automaticDiscounts.usageCount}, 0) + 1` })
-                .where(inArray(automaticDiscounts.id, autoDiscountIds))
-                .then(() => {
-                  console.log(`Thank you page (new flow): Incremented usage count for ${autoDiscountIds.length} automatic discounts`);
-                })
-                .catch(err => {
-                  console.error(`Thank you page (new flow): Failed to increment automatic discount usage:`, err);
-                });
-            }
-            
-            // Handle gift card balance update (non-blocking)
-            const newFlowGiftCardCode = (orderData as { giftCardCode?: string })?.giftCardCode;
-            const newFlowGiftCardAmount = Number((orderData as { giftCardAmount?: number })?.giftCardAmount) || 0;
-            if (newFlowGiftCardCode && newFlowGiftCardAmount > 0) {
-              db.select()
-                .from(giftCards)
-                .where(
-                  and(
-                    eq(giftCards.storeId, store.id),
-                    eq(giftCards.code, newFlowGiftCardCode),
-                    eq(giftCards.status, 'active')
-                  )
-                )
-                .limit(1)
-                .then(async ([giftCard]) => {
-                  if (!giftCard) return;
-                  
-                  const currentBalance = Number(giftCard.currentBalance) || 0;
-                  const newBalance = Math.max(0, currentBalance - newFlowGiftCardAmount);
-                  
-                  // Update gift card balance
-                  await db
-                    .update(giftCards)
-                    .set({
-                      currentBalance: newBalance.toFixed(2),
-                      lastUsedAt: new Date(),
-                      status: newBalance <= 0 ? 'used' : 'active',
-                    })
-                    .where(eq(giftCards.id, giftCard.id));
-                  
-                  // Create gift card transaction
-                  await db.insert(giftCardTransactions).values({
-                    giftCardId: giftCard.id,
-                    orderId: updatedOrder.id,
-                    amount: (-newFlowGiftCardAmount).toFixed(2),
-                    balanceAfter: newBalance.toFixed(2),
-                    note: `הזמנה #${updatedOrder.orderNumber}`,
-                  });
-                  
-                  console.log(`Thank you page (new flow): Updated gift card ${newFlowGiftCardCode} balance from ${currentBalance} to ${newBalance}`);
-                })
-                .catch(err => {
-                  console.error(`Thank you page (new flow): Failed to update gift card balance:`, err);
-                });
-            }
-            
-            // Deduct customer credit if used (non-blocking for speed)
-            const newFlowCreditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
-            if (newFlowCreditUsed > 0 && existingOrder.customerId) {
-              db.select({ creditBalance: customers.creditBalance })
-                .from(customers)
-                .where(eq(customers.id, existingOrder.customerId))
-                .limit(1)
-                .then(async ([currentCustomer]) => {
-                  if (!currentCustomer) return;
-                  
-                  const currentBalance = Number(currentCustomer.creditBalance) || 0;
-                  const newBalance = Math.max(0, currentBalance - newFlowCreditUsed);
-                  
-                  // Update customer credit balance
-                  await db.update(customers)
-                    .set({ creditBalance: newBalance.toFixed(2) })
-                    .where(eq(customers.id, existingOrder.customerId!));
-                  
-                  // Create credit transaction record
-                  await db.insert(customerCreditTransactions).values({
-                    customerId: existingOrder.customerId!,
-                    storeId: store.id,
-                    type: 'debit',
-                    amount: (-newFlowCreditUsed).toFixed(2),
-                    balanceAfter: newBalance.toFixed(2),
-                    reason: `שימוש בקרדיט בהזמנה #${updatedOrder.orderNumber}`,
-                    orderId: updatedOrder.id,
-                  });
-                  
-                  console.log(`Thank you page (new flow): Deducted credit ${newFlowCreditUsed} from customer ${existingOrder.customerId}, new balance: ${newBalance}`);
-                })
-                .catch(err => {
-                  console.error(`Thank you page (new flow): Failed to deduct customer credit:`, err);
-                });
-            }
-            
-            // Send order confirmation email (non-blocking)
-            const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            const shippingCost = (orderData.shipping as { cost?: number })?.cost || 0;
-            const discountAmount = Number(pendingPayment.discountAmount) || 0;
-            const creditUsed = Number((orderData as { creditUsed?: number })?.creditUsed) || 0;
-            
-            sendOrderConfirmationEmail({
-              orderNumber: updatedOrder.orderNumber,
-              customerName: updatedOrder.customerName || 'לקוח יקר',
-              customerEmail: updatedOrder.customerEmail || '',
-              items: cartItems.map(item => {
-                const itemWithAddons = item as typeof item & { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number };
-                return {
-                name: item.name,
-                quantity: item.quantity,
-                price: item.price,
-                image: item.image || undefined,
-                variantTitle: item.variantTitle || undefined,
-                  addons: itemWithAddons.addons?.map(a => ({
-                    name: a.name,
-                    displayValue: a.displayValue,
-                    priceAdjustment: a.priceAdjustment,
-              })),
-                  addonTotal: itemWithAddons.addonTotal,
-                };
-              }),
-              subtotal,
-              shippingAmount: shippingCost,
-              discountAmount,
-              discountDetails: (updatedOrder.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}>) || undefined,
-              creditUsed,
-              total: Number(updatedOrder.total),
-              shippingAddress: orderData.shippingAddress as { address?: string; city?: string; firstName?: string; lastName?: string; phone?: string; } || undefined,
+            // ========== POST-PAYMENT LOGIC (CENTRALIZED) ==========
+            executePostPaymentActions({
+              storeId: store.id,
               storeName: store.name,
               storeSlug: store.slug,
+              order: {
+                id: updatedOrder.id,
+                orderNumber: updatedOrder.orderNumber,
+                total: updatedOrder.total,
+                customerEmail: updatedOrder.customerEmail,
+                customerName: updatedOrder.customerName,
+                customerId: existingOrder.customerId,
+                discountDetails: updatedOrder.discountDetails,
+              },
+              cartItems: cartItems as CartItem[],
+              orderData: orderData as OrderData,
+              discountCode: pendingPayment.discountCode,
+              discountAmount: Number(pendingPayment.discountAmount) || 0,
               paymentInfo: {
                 lastFour: search.four_digits,
                 brand: search.brand_name,
                 approvalNum: search.approval_num,
               },
-              freeShippingReason: shippingCost === 0 ? 'משלוח חינם' : undefined,
-            }).catch(err => console.error('Failed to send order confirmation email:', err));
-            
-            // Add loyalty points (non-blocking)
-            if (existingOrder.customerId) {
-              addPointsFromOrder(
-                store.id,
-                existingOrder.customerId,
-                updatedOrder.id,
-                Number(updatedOrder.total)
-              )
-                .then(result => {
-                  if (result.success && result.points && result.points > 0) {
-                    console.log(`Thank you page: Added ${result.points} loyalty points for order ${updatedOrder.orderNumber}`);
-                  }
-                })
-                .catch(err => console.error('Thank you page: Failed to add loyalty points:', err));
-            }
-            
-            // Emit order.created event (triggers dashboard notification + mobile push)
-            emitOrderCreated(
-              store.id,
-              store.name,
-              updatedOrder.id,
-              updatedOrder.orderNumber,
-              updatedOrder.customerEmail || '',
-              Number(updatedOrder.total),
-              cartItems.length,
-              updatedOrder.customerName || undefined,
-              pendingPayment.discountCode || undefined
-            );
-            
-            // Auto-send shipment if configured (non-blocking)
-            autoSendShipmentOnPayment(store.id, updatedOrder.id)
-              .then(result => {
-                if (result.success) {
-                  console.log(`Thank you page: Auto-sent shipment for order ${updatedOrder.orderNumber}, tracking: ${result.trackingNumber}`);
-                } else if (result.error !== 'Auto-send is disabled' && result.error !== 'No default shipping provider') {
-                  console.error(`Thank you page: Failed to auto-send shipment: ${result.error}`);
-                }
-              })
-              .catch(err => console.error('Thank you page: Auto-send error:', err));
-            
-            // Check for low stock
-            Promise.all(
-              cartItems.map(async (item) => {
-                if (!item.productId) return;
-                try {
-                  const [product] = await db
-                    .select({ id: products.id, name: products.name, inventory: products.inventory })
-                    .from(products)
-                    .where(eq(products.id, item.productId))
-                    .limit(1);
-                  
-                  if (product && product.inventory !== null) {
-                    emitLowStock(store.id, product.id, product.name, product.inventory);
-                  }
-                } catch (err) {
-                  console.error('Failed to check low stock:', err);
-                }
-              })
-            ).catch(err => console.error('Failed to check low stock:', err));
+            }).catch(err => console.error('Thank you page: Post-payment actions failed:', err));
           }
           
           // Update pending payment status
@@ -729,17 +617,18 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         }
         
         // Increment discount usage count (for reports/influencers)
-        if (pendingPayment.discountCode) {
+        const discountCodeForUpdate = pendingPayment.discountCode;
+        if (discountCodeForUpdate) {
           db.update(discounts)
             .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
             .where(
               and(
                 eq(discounts.storeId, store.id),
-                eq(discounts.code, pendingPayment.discountCode)
+                eq(discounts.code, discountCodeForUpdate)
               )
             )
             .then(() => {
-              console.log(`Thank you page: Incremented usage count for coupon ${pendingPayment.discountCode}`);
+              console.log(`Thank you page: Incremented usage count for coupon ${discountCodeForUpdate}`);
             })
             .catch(err => {
               console.error(`Thank you page: Failed to increment coupon usage:`, err);
@@ -762,7 +651,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         }
         
         // Create influencer sale record if coupon is linked to an influencer (non-blocking for speed)
-        if (pendingPayment.discountCode) {
+        if (discountCodeForUpdate) {
           // Find influencer linked to this coupon by checking influencers.discountId
           db.select({
             influencerId: influencers.id,
@@ -775,14 +664,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             .where(
               and(
                 eq(discounts.storeId, store.id),
-                eq(discounts.code, pendingPayment.discountCode),
+                eq(discounts.code, discountCodeForUpdate),
                 eq(influencers.isActive, true)
               )
             )
             .limit(1)
             .then(async ([result]) => {
               if (!result) {
-                console.log(`Thank you page: No influencer linked to coupon ${pendingPayment.discountCode}`);
+                console.log(`Thank you page: No influencer linked to coupon ${discountCodeForUpdate}`);
                 return;
               }
               

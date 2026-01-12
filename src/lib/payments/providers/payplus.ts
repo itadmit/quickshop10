@@ -18,6 +18,7 @@ import type {
   WebhookValidationResult,
   ParsedCallback,
   TransactionStatus,
+  RedirectParseResult,
 } from '../types';
 
 // PayPlus API Response types
@@ -617,6 +618,41 @@ export class PayPlusProvider extends BasePaymentProvider {
     }
   }
   
+  /**
+   * Parse redirect URL params from PayPlus
+   * Called when user returns from payment page to thank-you page
+   * 
+   * PayPlus sends these params on success redirect:
+   * - page_request_uid: Unique page request ID
+   * - transaction_uid: Transaction ID
+   * - status: "approved" or other
+   * - status_code: "000" = success
+   * - approval_num: Approval number
+   * - four_digits: Last 4 digits of card
+   * - brand_name: Card brand
+   * - more_info: Our order reference
+   */
+  parseRedirectParams(params: Record<string, string | undefined>): RedirectParseResult {
+    this.log('Parsing redirect params', params);
+    
+    const statusCode = params.status_code || '';
+    const status = this.mapStatusCode(statusCode);
+    const isSuccess = status === 'success';
+    
+    return {
+      success: isSuccess,
+      status,
+      statusCode,
+      transactionId: params.transaction_uid,
+      requestId: params.page_request_uid,
+      approvalNumber: params.approval_num,
+      cardBrand: params.brand_name,
+      cardLastFour: params.four_digits,
+      orderReference: params.more_info || params.ref,
+      rawParams: params,
+    };
+  }
+  
   // ============ PRIVATE HELPERS ============
   
   /**
@@ -624,7 +660,10 @@ export class PayPlusProvider extends BasePaymentProvider {
    * Uses the generic callback endpoint with provider parameter
    */
   private buildCallbackUrl(storeSlug: string): string {
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!baseUrl) {
+      throw new Error('NEXT_PUBLIC_APP_URL is not configured');
+    }
     // Generic callback URL - all providers use the same endpoint
     return `${baseUrl}/api/payments/callback?provider=payplus&store=${storeSlug}`;
   }

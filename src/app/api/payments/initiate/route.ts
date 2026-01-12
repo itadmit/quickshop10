@@ -135,7 +135,13 @@ export async function POST(request: NextRequest) {
       .where(eq(stores.id, store.id));
     
     // Build URLs - use custom domain if store has one, otherwise use platform URL
-    const platformUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const platformUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!platformUrl) {
+      return NextResponse.json(
+        { success: false, error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
     
     // For customer-facing redirects: use custom domain if available
     let customerFacingUrl: string;

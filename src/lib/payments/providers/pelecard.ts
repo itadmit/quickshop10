@@ -20,6 +20,7 @@ import type {
   WebhookValidationResult,
   ParsedCallback,
   TransactionStatus,
+  RedirectParseResult,
 } from '../types';
 
 // ============ PELECARD API TYPES ============
@@ -564,6 +565,39 @@ export class PelecardProvider extends BasePaymentProvider {
         error: error instanceof Error ? error.message : 'החיבור נכשל',
       };
     }
+  }
+  
+  /**
+   * Parse redirect URL params from Pelecard
+   * Called when user returns from payment page to thank-you page
+   * 
+   * Pelecard sends these params on GoodURL redirect:
+   * - PelecardTransactionId: Transaction ID
+   * - PelecardStatusCode: Status (000 = success)
+   * - ConfirmationKey: Confirmation key
+   * - ApprovalNo: Approval number
+   * - UserKey: Our order reference (sent in init)
+   * - ParamX: Our order reference (sent in init)
+   */
+  parseRedirectParams(params: Record<string, string | undefined>): RedirectParseResult {
+    this.log('Parsing redirect params', params);
+    
+    const statusCode = params.PelecardStatusCode || '';
+    const status = this.mapStatusCode(statusCode);
+    const isSuccess = status === 'success';
+    
+    return {
+      success: isSuccess,
+      status,
+      statusCode,
+      transactionId: params.PelecardTransactionId,
+      requestId: params.PelecardTransactionId, // Pelecard uses same ID
+      approvalNumber: params.ApprovalNo,
+      orderReference: params.UserKey || params.ParamX || params.ref,
+      errorCode: params.ErrorCode,
+      errorMessage: params.ErrorMessage,
+      rawParams: params,
+    };
   }
   
   // ============ PRIVATE HELPERS ============

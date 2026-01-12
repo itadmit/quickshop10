@@ -147,6 +147,11 @@ export function ThemeEditor({
   const [isSavingPageSettings, setIsSavingPageSettings] = useState(false);
   const [isDeletingPage, setIsDeletingPage] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // Save as template modal
+  const [showSaveTemplateModal, setShowSaveTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState('');
+  const [templateDescription, setTemplateDescription] = useState('');
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   
@@ -308,6 +313,40 @@ export function ThemeEditor({
     }
   };
   
+  // Save page as template
+  const handleSaveAsTemplate = async () => {
+    if (!templateName.trim()) return;
+    
+    setIsSavingTemplate(true);
+    try {
+      const response = await fetch(`/api/shops/${slug}/page-templates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: templateName.trim(),
+          description: templateDescription.trim() || null,
+          pageSlug: currentPage,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        setShowSaveTemplateModal(false);
+        setTemplateName('');
+        setTemplateDescription('');
+        alert('התבנית נשמרה בהצלחה!');
+      } else {
+        alert(data.error || 'שגיאה בשמירת התבנית');
+      }
+    } catch (error) {
+      console.error('Save template error:', error);
+      alert('שגיאה בשמירת התבנית');
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  };
+
   // Toggle page publish status
   const handleTogglePublish = async () => {
     if (!currentInternalPage) return;
@@ -918,7 +957,7 @@ export function ThemeEditor({
 
         {/* Left - Actions */}
         <div className="flex items-center gap-2">
-          {/* Import/Export */}
+          {/* Import/Export/Save Template */}
           <div className="flex items-center gap-1">
             <button
               onClick={handleImportJSON}
@@ -935,6 +974,14 @@ export function ThemeEditor({
             >
               <ExportIcon />
               <span>ייצוא</span>
+            </button>
+            <button
+              onClick={() => setShowSaveTemplateModal(true)}
+              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              title="שמור כתבנית לשימוש חוזר"
+            >
+              <TemplateIcon />
+              <span>שמור כתבנית</span>
             </button>
           </div>
 
@@ -1113,6 +1160,82 @@ export function ThemeEditor({
         </div>
       )}
       
+      {/* Save as Template Modal */}
+      {showSaveTemplateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">שמור כתבנית</h2>
+              <button
+                onClick={() => setShowSaveTemplateModal(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              שמרו את הסקשנים של העמוד הנוכחי כתבנית לשימוש חוזר בעמודים חדשים.
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  שם התבנית *
+                </label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  placeholder="לדוגמה: תבנית אודות"
+                  autoFocus
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  תיאור (אופציונלי)
+                </label>
+                <textarea
+                  value={templateDescription}
+                  onChange={(e) => setTemplateDescription(e.target.value)}
+                  rows={2}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                  placeholder="תיאור קצר לתבנית..."
+                />
+              </div>
+              
+              <div className="bg-gray-50 rounded-lg p-3">
+                <p className="text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">{sections.length}</span> סקשנים יישמרו בתבנית
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleSaveAsTemplate}
+                disabled={isSavingTemplate || !templateName.trim()}
+                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                {isSavingTemplate ? 'שומר...' : 'שמור תבנית'}
+              </button>
+              <button
+                onClick={() => {
+                  setShowSaveTemplateModal(false);
+                  setTemplateName('');
+                  setTemplateDescription('');
+                }}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Page Settings Modal */}
       {showPageSettingsModal && currentInternalPage && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
@@ -1539,6 +1662,17 @@ function CloseIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function TemplateIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="4" />
+      <rect x="14" y="10" width="7" height="11" />
+      <rect x="3" y="13" width="7" height="8" />
     </svg>
   );
 }

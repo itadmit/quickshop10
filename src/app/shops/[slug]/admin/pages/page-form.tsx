@@ -2,12 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { createPage, updatePage } from './actions';
+import { createPage, updatePage, createPageWithTemplate } from './actions';
 
 interface PageFormProps {
   storeId: string;
   slug: string;
   pageId?: string;
+  templateId?: string; // Template ID (custom) or system:templateId (system template)
   initialData?: {
     title: string;
     slug: string;
@@ -18,7 +19,7 @@ interface PageFormProps {
   };
 }
 
-export function PageForm({ storeId, slug, pageId, initialData }: PageFormProps) {
+export function PageForm({ storeId, slug, pageId, templateId, initialData }: PageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -51,9 +52,18 @@ export function PageForm({ storeId, slug, pageId, initialData }: PageFormProps) 
     }
 
     startTransition(async () => {
-      const result = pageId
-        ? await updatePage(pageId, slug, formData)
-        : await createPage(storeId, slug, formData);
+      let result;
+      
+      if (pageId) {
+        // Update existing page
+        result = await updatePage(pageId, slug, formData);
+      } else if (templateId) {
+        // Create new page with template sections
+        result = await createPageWithTemplate(storeId, slug, formData, templateId);
+      } else {
+        // Create empty page
+        result = await createPage(storeId, slug, formData);
+      }
 
       if (result.success) {
         if (!pageId && 'pageSlug' in result && result.pageSlug) {

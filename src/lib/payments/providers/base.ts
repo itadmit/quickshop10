@@ -15,6 +15,7 @@ import type {
   TransactionStatusResponse,
   WebhookValidationResult,
   ParsedCallback,
+  RedirectParseResult,
 } from '../types';
 
 export abstract class BasePaymentProvider implements IPaymentProvider {
@@ -69,6 +70,7 @@ export abstract class BasePaymentProvider implements IPaymentProvider {
   abstract getTransactionStatus(request: GetTransactionStatusRequest): Promise<TransactionStatusResponse>;
   abstract validateWebhook(body: unknown, headers: Record<string, string>): WebhookValidationResult;
   abstract parseCallback(body: unknown): ParsedCallback;
+  abstract parseRedirectParams(params: Record<string, string | undefined>): RedirectParseResult;
   abstract testConnection(): Promise<{ success: boolean; error?: string }>;
   
   // ============ UTILITY METHODS ============

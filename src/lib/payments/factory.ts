@@ -13,6 +13,7 @@ import type {
   PaymentProviderType, 
   PaymentProviderConfig, 
   IPaymentProvider,
+  RedirectParseResult,
 } from './types';
 import { PayPlusProvider } from './providers/payplus';
 import { PelecardProvider } from './providers/pelecard';
@@ -106,5 +107,66 @@ export async function getActiveProviders(storeId: string): Promise<Array<{
  */
 export async function getDefaultProvider(storeId: string): Promise<IPaymentProvider | null> {
   return getConfiguredProvider(storeId);
+}
+
+/**
+ * Detect which payment provider's redirect params are present
+ * Returns the provider type based on the URL params
+ */
+export function detectProviderFromParams(
+  params: Record<string, string | undefined>
+): PaymentProviderType | null {
+  // Pelecard-specific params
+  if (params.PelecardTransactionId || params.PelecardStatusCode) {
+    return 'pelecard';
+  }
+  
+  // PayPlus-specific params
+  if (params.page_request_uid || params.transaction_uid) {
+    return 'payplus';
+  }
+  
+  return null;
+}
+
+/**
+ * Parse redirect params using the appropriate provider
+ * Auto-detects which provider based on params, or uses explicit provider type
+ */
+export function parseRedirectParams(
+  params: Record<string, string | undefined>,
+  providerType?: PaymentProviderType
+): RedirectParseResult | null {
+  // Detect provider if not specified
+  const detectedProvider = providerType || detectProviderFromParams(params);
+  
+  if (!detectedProvider) {
+    console.log('[parseRedirectParams] Could not detect provider from params:', Object.keys(params));
+    return null;
+  }
+  
+  console.log(`[parseRedirectParams] Using provider: ${detectedProvider}`);
+  
+  // Create provider instance and parse
+  const provider = createProviderInstance(detectedProvider);
+  return provider.parseRedirectParams(params);
+}
+
+/**
+ * Check if the redirect indicates a successful payment
+ * Can be used before creating provider instance
+ */
+export function isSuccessfulRedirect(params: Record<string, string | undefined>): boolean {
+  // Pelecard success
+  if (params.PelecardStatusCode === '000') {
+    return true;
+  }
+  
+  // PayPlus success
+  if (params.status_code === '000' || params.status === 'approved') {
+    return true;
+  }
+  
+  return false;
 }
 
