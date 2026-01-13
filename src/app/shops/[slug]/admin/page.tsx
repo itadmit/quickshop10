@@ -380,8 +380,11 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
   });
   const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + Number(o.total), 0);
   
+  // Only count orders that are PAID and waiting for shipping
   const pendingOrders = orders.filter(o => 
-    o.fulfillmentStatus === 'unfulfilled' && o.status !== 'cancelled'
+    o.fulfillmentStatus === 'unfulfilled' && 
+    o.status !== 'cancelled' &&
+    o.financialStatus === 'paid'
   ).length;
   
   const lowStockProducts = products.filter(p => 

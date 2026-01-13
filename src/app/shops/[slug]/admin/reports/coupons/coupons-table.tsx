@@ -63,7 +63,6 @@ export function CouponsTable({ coupons, couponOrdersMap, storeSlug }: CouponsTab
           <th className="py-3 px-4 font-medium text-gray-500 text-sm">הזמנות</th>
           <th className="py-3 px-4 font-medium text-gray-500 text-sm">הכנסות</th>
           <th className="py-3 px-4 font-medium text-gray-500 text-sm">סה״כ הנחות</th>
-          <th className="py-3 px-4 font-medium text-gray-500 text-sm">% הנחה</th>
         </tr>
       </thead>
       <tbody className="divide-y divide-gray-100">
@@ -122,13 +121,10 @@ function CouponRow({
         <td className="py-3 px-4 font-medium">{formatNumber(coupon.orders)}</td>
         <td className="py-3 px-4 font-medium">{formatCurrency(coupon.revenue)}</td>
         <td className="py-3 px-4 text-green-600">{formatCurrency(coupon.discountTotal)}</td>
-        <td className="py-3 px-4 text-gray-500">
-          {coupon.revenue > 0 ? ((coupon.discountTotal / coupon.revenue) * 100).toFixed(1) : 0}%
-        </td>
       </tr>
       {isExpanded && orders.length > 0 && (
         <tr>
-          <td colSpan={5} className="bg-gray-50 p-4">
+          <td colSpan={4} className="bg-gray-50 p-4">
             <div className="bg-white border border-gray-200 rounded overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
