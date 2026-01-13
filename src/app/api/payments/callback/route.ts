@@ -20,10 +20,13 @@ import {
   pendingPayments, 
   paymentTransactions,
   paymentProviders,
+  orders,
+  orderItems,
 } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getConfiguredProvider } from '@/lib/payments';
 import type { TransactionStatus, PaymentProviderType } from '@/lib/payments/types';
+import { executePostPaymentActions, type CartItem } from '@/lib/orders/post-payment';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -239,6 +242,98 @@ export async function POST(request: NextRequest) {
           )
         )
         .catch(err => console.error('Failed to update provider stats:', err));
+      
+      // ============================================
+      // Handle POS orders (created before payment)
+      // Update order to paid and run all post-payment actions
+      // ============================================
+      const posOrderId = (orderData as { orderId?: string })?.orderId;
+      const isPosOrder = (orderData as { source?: string })?.source === 'pos';
+      
+      if (isPosOrder && posOrderId) {
+        console.log(`Payment callback [${providerName}]: Processing POS order ${posOrderId}`);
+        
+        // Get the order
+        const [posOrder] = await db
+          .select()
+          .from(orders)
+          .where(eq(orders.id, posOrderId))
+          .limit(1);
+        
+        if (posOrder) {
+          // Update order to paid
+          await db
+            .update(orders)
+            .set({
+              status: 'processing',
+              financialStatus: 'paid',
+              paidAt: new Date(),
+              paymentMethod: 'credit_card',
+              paymentDetails: {
+                provider: providerName,
+                transactionId: parsed.providerTransactionId,
+                approvalNumber: parsed.approvalNumber,
+              },
+            })
+            .where(eq(orders.id, posOrderId));
+          
+          // Get order items for post-payment actions
+          const items = await db
+            .select({
+              productId: orderItems.productId,
+              name: orderItems.name,
+              quantity: orderItems.quantity,
+              price: orderItems.price,
+              imageUrl: orderItems.imageUrl,
+            })
+            .from(orderItems)
+            .where(eq(orderItems.orderId, posOrderId));
+          
+          // Convert to CartItem format (filter out manual items without productId)
+          const cartItems: CartItem[] = items
+            .filter(item => item.productId) // Only items with productId for inventory
+            .map(item => ({
+              productId: item.productId!,
+              name: item.name,
+              quantity: item.quantity,
+              price: parseFloat(item.price),
+              imageUrl: item.imageUrl || undefined,
+            }));
+          
+          // Execute all post-payment actions (inventory, emails, etc.)
+          executePostPaymentActions({
+            storeId: store.id,
+            storeName: store.name,
+            storeSlug: store.slug,
+            order: {
+              id: posOrder.id,
+              orderNumber: posOrder.orderNumber,
+              total: posOrder.total,
+              customerEmail: posOrder.customerEmail,
+              customerName: posOrder.customerName,
+              customerId: posOrder.customerId,
+            },
+            cartItems,
+            orderData: {
+              paymentDetails: {
+                transactionId: parsed.providerTransactionId,
+                approvalNumber: parsed.approvalNumber,
+                cardBrand: parsed.cardBrand,
+                cardLastFour: parsed.cardLastFour,
+              },
+            },
+            discountCode: posOrder.discountCode,
+            discountAmount: parseFloat(posOrder.discountAmount || '0'),
+            paymentInfo: {
+              lastFour: parsed.cardLastFour,
+              brand: parsed.cardBrand,
+              approvalNum: parsed.approvalNumber,
+            },
+          }).catch(err => console.error(`[POS] Post-payment actions failed:`, err));
+          
+          console.log(`Payment callback [${providerName}]: POS order ${posOrderId} marked as paid, post-payment actions triggered`);
+        }
+      }
       
       const duration = Date.now() - startTime;
       console.log(`Payment callback [${providerName}]: Success in ${duration}ms for ${pendingPayment.id}`);

@@ -151,50 +151,76 @@ export function ProductSearch({
 
       {/* Products Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {products.map((product) => (
-          <button
-            key={product.id}
-            onClick={() => onAddToCart(product)}
-            className="group bg-white rounded-xl border border-gray-200 p-3 hover:border-gray-400 hover:shadow-md transition-all text-right cursor-pointer"
-          >
-            {/* Image */}
-            <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2">
-              {product.imageUrl ? (
-                <Image
-                  src={product.imageUrl}
-                  alt={product.name}
-                  width={150}
-                  height={150}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-gray-400">
-                  <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-              )}
-            </div>
+        {products.map((product) => {
+          const isOutOfStock = product.inventory !== null && product.inventory <= 0;
+          const isLowStock = product.inventory !== null && product.inventory > 0 && product.inventory <= 5;
+          
+          return (
+            <button
+              key={product.id}
+              onClick={() => !isOutOfStock && onAddToCart(product)}
+              disabled={isOutOfStock}
+              className={`group bg-white rounded-xl border p-3 transition-all text-right ${
+                isOutOfStock 
+                  ? 'border-gray-200 opacity-60 cursor-not-allowed' 
+                  : 'border-gray-200 hover:border-gray-400 hover:shadow-md cursor-pointer'
+              }`}
+            >
+              {/* Image */}
+              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-2 relative">
+                {product.imageUrl ? (
+                  <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    width={150}
+                    height={150}
+                    className={`w-full h-full object-cover transition-transform ${!isOutOfStock && 'group-hover:scale-105'}`}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                )}
+                {/* Out of stock overlay */}
+                {isOutOfStock && (
+                  <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                    <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded">
+                      אזל מהמלאי
+                    </span>
+                  </div>
+                )}
+              </div>
 
-            {/* Info */}
-            <h3 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
-              {product.name}
-            </h3>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-gray-900">
-                {formatPrice(product.price)}
-              </span>
-              {product.comparePrice && parseFloat(product.comparePrice) > parseFloat(product.price || '0') && (
-                <span className="text-xs text-gray-400 line-through">
-                  {formatPrice(product.comparePrice)}
+              {/* Info */}
+              <h3 className="font-medium text-gray-900 text-sm line-clamp-2 mb-1">
+                {product.name}
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-gray-900">
+                  {formatPrice(product.price)}
                 </span>
+                {product.comparePrice && parseFloat(product.comparePrice) > parseFloat(product.price || '0') && (
+                  <span className="text-xs text-gray-400 line-through">
+                    {formatPrice(product.comparePrice)}
+                  </span>
+                )}
+              </div>
+              {/* Stock indicator */}
+              {product.inventory !== null && (
+                <p className={`text-xs mt-1 ${
+                  isOutOfStock ? 'text-red-500' : isLowStock ? 'text-orange-500' : 'text-green-600'
+                }`}>
+                  {isOutOfStock ? 'אזל' : isLowStock ? `נותרו ${product.inventory}` : `במלאי: ${product.inventory}`}
+                </p>
               )}
-            </div>
-            {product.sku && (
-              <p className="text-xs text-gray-400 mt-1">{product.sku}</p>
-            )}
-          </button>
-        ))}
+              {product.sku && (
+                <p className="text-xs text-gray-400 mt-0.5">{product.sku}</p>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* Empty State */}
