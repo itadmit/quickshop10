@@ -181,22 +181,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             isFirstItem ? `${shippingAddress?.address || shippingAddress?.address1 || ''} ${shippingAddress?.address2 || ''}`.trim() : '',
             isFirstItem ? (order.shippingMethod || '') : '',
             // Item details
-            item.name,
-            item.variantTitle || '',
-            item.sku || '',
-            String(item.quantity),
-            String(Number(item.price).toFixed(2)),
-            String(Number(item.total).toFixed(2)),
+            item.name ?? '',
+            item.variantTitle ?? '',
+            item.sku ?? '',
+            String(item.quantity ?? 0),
+            String(Number(item.price ?? 0).toFixed(2)),
+            String(Number(item.total ?? 0).toFixed(2)),
             // Order totals only on first item
-            isFirstItem ? String(Number(order.subtotal).toFixed(2)) : '',
-            isFirstItem ? String(Number(order.discountAmount || 0).toFixed(2)) : '',
-            isFirstItem ? (order.discountCode || '') : '',
-            isFirstItem ? String(Number(order.shippingAmount || 0).toFixed(2)) : '',
-            isFirstItem ? String(Number(order.total).toFixed(2)) : '',
-            isFirstItem ? (order.paymentMethod || '') : '',
-            isFirstItem ? (order.note || '') : '',
-            isFirstItem ? (order.internalNote || '') : '',
-            isFirstItem ? (order.utmSource || '') : '',
+            isFirstItem ? String(Number(order.subtotal ?? 0).toFixed(2)) : '',
+            isFirstItem ? String(Number(order.discountAmount ?? 0).toFixed(2)) : '',
+            isFirstItem ? (order.discountCode ?? '') : '',
+            isFirstItem ? String(Number(order.shippingAmount ?? 0).toFixed(2)) : '',
+            isFirstItem ? String(Number(order.total ?? 0).toFixed(2)) : '',
+            isFirstItem ? (order.paymentMethod ?? '') : '',
+            isFirstItem ? (order.note ?? '') : '',
+            isFirstItem ? ((order as { internalNote?: string }).internalNote ?? '') : '',
+            isFirstItem ? (order.utmSource ?? '') : '',
           ]);
         }
       } else {
@@ -219,15 +219,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           '',
           '',
           '',
-          String(Number(order.subtotal).toFixed(2)),
-          String(Number(order.discountAmount || 0).toFixed(2)),
-          order.discountCode || '',
-          String(Number(order.shippingAmount || 0).toFixed(2)),
-          String(Number(order.total).toFixed(2)),
-          order.paymentMethod || '',
-          order.note || '',
-          order.internalNote || '',
-          order.utmSource || '',
+          String(Number(order.subtotal ?? 0).toFixed(2)),
+          String(Number(order.discountAmount ?? 0).toFixed(2)),
+          order.discountCode ?? '',
+          String(Number(order.shippingAmount ?? 0).toFixed(2)),
+          String(Number(order.total ?? 0).toFixed(2)),
+          order.paymentMethod ?? '',
+          order.note ?? '',
+          (order as { internalNote?: string }).internalNote ?? '',
+          order.utmSource ?? '',
         ]);
       }
     }
@@ -250,7 +250,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     });
   } catch (error) {
     console.error('Export error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(`Export failed: ${errorMessage}`, { status: 500 });
   }
 }
 
