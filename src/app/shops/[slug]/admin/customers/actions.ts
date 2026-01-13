@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { customers, contacts } from '@/lib/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { customers, contacts, customerSessions, customerOtpCodes, customerCreditTransactions } from '@/lib/db/schema';
+import { eq, and, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 interface CustomerData {
@@ -97,12 +97,44 @@ export async function updateCustomer(customerId: string, data: Partial<CustomerD
 
 export async function deleteCustomer(customerId: string) {
   try {
+    // Delete all related data first (cascade might not cover everything)
+    await db.delete(customerSessions).where(eq(customerSessions.customerId, customerId));
+    await db.delete(customerOtpCodes).where(eq(customerOtpCodes.customerId, customerId));
+    await db.delete(customerCreditTransactions).where(eq(customerCreditTransactions.customerId, customerId));
+    await db.delete(contacts).where(eq(contacts.customerId, customerId));
+    
+    // Finally delete the customer
     await db.delete(customers).where(eq(customers.id, customerId));
+    
     revalidatePath(`/shops/[slug]/admin/customers`);
     return { success: true };
   } catch (error) {
     console.error('Error deleting customer:', error);
     return { success: false, error: 'שגיאה במחיקת לקוח' };
+  }
+}
+
+// Bulk delete customers and all their data
+export async function bulkDeleteCustomers(customerIds: string[]) {
+  try {
+    if (!customerIds || customerIds.length === 0) {
+      return { success: false, error: 'לא נבחרו לקוחות למחיקה' };
+    }
+
+    // Delete all related data first
+    await db.delete(customerSessions).where(inArray(customerSessions.customerId, customerIds));
+    await db.delete(customerOtpCodes).where(inArray(customerOtpCodes.customerId, customerIds));
+    await db.delete(customerCreditTransactions).where(inArray(customerCreditTransactions.customerId, customerIds));
+    await db.delete(contacts).where(inArray(contacts.customerId, customerIds));
+    
+    // Finally delete the customers
+    await db.delete(customers).where(inArray(customers.id, customerIds));
+
+    revalidatePath(`/shops/[slug]/admin/customers`);
+    return { success: true, deleted: customerIds.length };
+  } catch (error) {
+    console.error('Error bulk deleting customers:', error);
+    return { success: false, error: 'שגיאה במחיקת לקוחות' };
   }
 }
 
