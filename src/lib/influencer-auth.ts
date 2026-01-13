@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { influencers, influencerSessions } from '@/lib/db/schema';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, gt, ilike } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
 
@@ -100,7 +100,7 @@ export async function getCurrentInfluencer() {
   return influencer || null;
 }
 
-// Get influencer by store and email
+// Get influencer by store and email (case-insensitive)
 export async function getInfluencerByEmail(storeId: string, email: string) {
   const [influencer] = await db
     .select()
@@ -108,7 +108,7 @@ export async function getInfluencerByEmail(storeId: string, email: string) {
     .where(
       and(
         eq(influencers.storeId, storeId),
-        eq(influencers.email, email.toLowerCase().trim()),
+        ilike(influencers.email, email.trim()),
         eq(influencers.isActive, true)
       )
     )

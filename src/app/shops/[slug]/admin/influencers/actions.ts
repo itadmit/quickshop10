@@ -58,11 +58,11 @@ export async function createInfluencer(storeId: string, slug: string, data: Infl
       passwordHash = await bcrypt.hash(data.password, 10);
     }
 
-    // Create influencer
+    // Create influencer (normalize email to lowercase)
     const [newInfluencer] = await db.insert(influencers).values({
       storeId,
       name: data.name,
-      email: data.email,
+      email: data.email.toLowerCase().trim(),
       phone: data.phone || null,
       passwordHash,
       instagramHandle: data.instagramHandle || null,
@@ -123,7 +123,7 @@ export async function updateInfluencer(influencerId: string, slug: string, data:
     };
 
     if (data.name !== undefined) updateData.name = data.name;
-    if (data.email !== undefined) updateData.email = data.email;
+    if (data.email !== undefined) updateData.email = data.email.toLowerCase().trim();
     if (data.phone !== undefined) updateData.phone = data.phone || null;
     if (data.instagramHandle !== undefined) updateData.instagramHandle = data.instagramHandle || null;
     if (data.instagramFollowers !== undefined) updateData.instagramFollowers = data.instagramFollowers || null;
