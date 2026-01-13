@@ -74,11 +74,13 @@ function getFulfillmentVariant(status: string | null): 'success' | 'warning' | '
 
 function formatDate(date: Date | null) {
   if (!date) return '-';
-  return new Date(date).toLocaleDateString('he-IL', { 
-    day: '2-digit', 
-    month: '2-digit',
-    year: '2-digit'
-  });
+  const d = new Date(date);
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = String(d.getFullYear()).slice(-2);
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${day}.${month}.${year} | ${hours}:${minutes}`;
 }
 
 
