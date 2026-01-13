@@ -86,7 +86,7 @@ export default async function CustomersPage({ params, searchParams }: CustomersP
   return (
     <div className="space-y-6">
       <PageHeader
-        title="אנשי קשר"
+        title="לקוחות"
         description={`${allCustomers.length} רשומות • ${customersCount} לקוחות • ${clubMembersCount} מועדון`}
         actions={
           <div className="flex gap-2">

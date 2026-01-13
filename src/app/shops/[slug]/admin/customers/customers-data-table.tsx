@@ -94,7 +94,7 @@ function DeleteConfirmModal({
 
         {/* Title */}
         <h3 className="text-xl font-semibold text-center text-gray-900 mb-2">
-          מחיקת {count} אנשי קשר
+          מחיקת {count} לקוחות
         </h3>
 
         {/* Warning Message */}
@@ -103,7 +103,7 @@ function DeleteConfirmModal({
             ⚠️ פעולה בלתי הפיכה!
           </p>
           <p className="text-red-700 text-sm text-center">
-            כל המידע הקשור לאנשי קשר אלו יימחק לצמיתות:
+            כל המידע הקשור ללקוחות אלו יימחק לצמיתות:
           </p>
           <ul className="text-red-600 text-xs mt-2 space-y-1 text-center">
             <li>• היסטוריית הזמנות</li>
@@ -247,7 +247,7 @@ export function CustomersDataTable({
   const columns: Column<Customer>[] = [
     {
       key: 'customer',
-      header: 'איש קשר',
+      header: 'לקוח',
       render: (customer) => (
         <div>
           <Link 
@@ -397,8 +397,8 @@ export function CustomersDataTable({
         emptyState={
           <EmptyState
             icon="users"
-            title="אין אנשי קשר"
-            description={searchValue ? 'לא נמצאו אנשי קשר התואמים לחיפוש' : 'עדיין אין אנשי קשר רשומים'}
+            title="אין לקוחות"
+            description={searchValue ? 'לא נמצאו לקוחות התואמים לחיפוש' : 'עדיין אין לקוחות רשומים'}
           />
         }
       />
