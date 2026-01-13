@@ -235,6 +235,25 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
             </p>
           </div>
 
+          {/* Site Tagline */}
+          <div className="col-span-full">
+            <label htmlFor="siteTagline" className="block text-sm font-medium text-gray-700 mb-2">
+              תיאור האתר
+            </label>
+            <input
+              type="text"
+              id="siteTagline"
+              value={formData.siteTagline}
+              onChange={(e) => setFormData(prev => ({ ...prev, siteTagline: e.target.value }))}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-right"
+              placeholder="לדוגמה: אופנה בסגנון, חנות הבגדים המובילה"
+              dir="rtl"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              יופיע בטאב הדפדפן אחרי שם החנות (לדוגמה: Argania | אופנה בסגנון)
+            </p>
+          </div>
+
           {/* Currency & Timezone */}
           <div className="grid md:grid-cols-2 gap-4">
             <div>

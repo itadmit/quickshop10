@@ -16,6 +16,7 @@ interface SettingsWrapperProps {
 // Settings tabs - defined once, used everywhere
 const settingsTabs = [
   { id: 'general', label: 'כללי', path: '' },
+  { id: 'seo', label: 'SEO', path: '/seo' },
   { id: 'subscription', label: 'מנוי', path: '/subscription' },
   { id: 'domain', label: 'דומיין', path: '/domain' },
   { id: 'payments', label: 'תשלומים', path: '/payments' },

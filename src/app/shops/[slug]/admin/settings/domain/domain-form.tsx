@@ -39,8 +39,8 @@ export function DomainForm({ storeId, storeSlug, currentDomain }: DomainFormProp
       return;
     }
 
-    // Basic domain validation
-    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$/;
+    // Basic domain validation - supports multi-part TLDs like .co.il, .com.br, etc.
+    const domainRegex = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
     if (!domainRegex.test(domain.trim())) {
       setError('פורמט דומיין לא תקין');
       return;
