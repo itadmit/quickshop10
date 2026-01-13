@@ -60,7 +60,7 @@ function getNotificationLink(notification: { resourceType: string | null; resour
     case 'product':
       return `/shops/${storeSlug}/admin/products/${notification.resourceId}`;
     case 'customer':
-      return `/shops/${storeSlug}/admin/customers/${notification.resourceId}`;
+      return `/shops/${storeSlug}/admin/contacts?type=customer`;
     default:
       return null;
   }

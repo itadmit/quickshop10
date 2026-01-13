@@ -501,7 +501,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                   {order.customer?.firstName?.[0]}{order.customer?.lastName?.[0]}
                 </div>
                 <Link 
-                  href={`/shops/${slug}/admin/customers/${order.customer?.id}`}
+                  href={`/shops/${slug}/admin/contacts?type=customer&search=${encodeURIComponent(order.customer?.email || '')}`}
                   className="text-sm font-medium text-blue-600 hover:underline"
                 >
                   {order.customer?.firstName} {order.customer?.lastName}

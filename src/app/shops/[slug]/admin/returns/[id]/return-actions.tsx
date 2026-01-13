@@ -310,7 +310,7 @@ export function ReturnRequestActions({ storeSlug, request, canProcess, canComple
           </a>
           {request.customerId && (
             <a
-              href={`/shops/${storeSlug}/admin/customers/${request.customerId}`}
+              href={`/shops/${storeSlug}/admin/contacts?type=customer`}
               className="block text-sm text-blue-600 hover:underline"
             >
               צפה בפרופיל הלקוח →

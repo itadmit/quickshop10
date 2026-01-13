@@ -98,8 +98,13 @@ export function EditorSectionHighlighter() {
           }
         }
           if (updates.content?.buttonText !== undefined) {
-            const btnEl = element.querySelector('[data-section-button]');
-            if (btnEl) btnEl.textContent = updates.content.buttonText;
+            const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+            if (btnEl) {
+              btnEl.textContent = updates.content.buttonText;
+              // Hide button if no text
+              btnEl.style.display = updates.content.buttonText ? '' : 'none';
+              btnEl.classList.toggle('hidden', !updates.content.buttonText);
+            }
           }
           
         // =====================================================
@@ -234,7 +239,10 @@ export function EditorSectionHighlighter() {
           const btnEl = element.querySelector('[data-section-button]') as HTMLAnchorElement;
           if (btnEl) {
             btnEl.href = updates.content.buttonLink || '#';
-            btnEl.classList.toggle('hidden', !updates.content.buttonLink || !btnEl.textContent);
+            // Hide button if no text (buttonText is more important than buttonLink)
+            const hasText = btnEl.textContent && btnEl.textContent.trim().length > 0;
+            btnEl.style.display = hasText ? '' : 'none';
+            btnEl.classList.toggle('hidden', !hasText);
           }
         }
         

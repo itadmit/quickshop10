@@ -5,10 +5,30 @@ import { useState, useTransition } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { markContactAsRead, updateContactStatus, deleteContact, markAllAsRead } from './actions';
-import type { Contact } from '@/lib/db/schema';
-
-// Contact with customer relation
-interface ContactWithCustomer extends Contact {
+// Contact with customer relation - flexible type for customers tab
+interface ContactWithCustomer {
+  id: string;
+  storeId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  type: 'newsletter' | 'club_member' | 'contact_form' | 'popup_form' | 'customer';
+  status: 'active' | 'unsubscribed' | 'spam';
+  source: string | null;
+  sourceUrl?: string | null;
+  popupId?: string | null;
+  utmSource?: string | null;
+  utmMedium?: string | null;
+  utmCampaign?: string | null;
+  ipAddress?: string | null;
+  userAgent?: string | null;
+  metadata?: unknown;
+  customerId: string | null;
+  isRead: boolean;
+  readAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
   customer?: {
     id: string;
     totalOrders: number | null;
@@ -31,6 +51,7 @@ interface ContactsDataTableProps {
 }
 
 const typeLabels: Record<string, { label: string; color: 'default' | 'info' | 'warning' | 'success' }> = {
+  customer: { label: 'לקוח', color: 'success' },
   newsletter: { label: 'ניוזלטר', color: 'info' },
   club_member: { label: 'מועדון', color: 'success' },
   contact_form: { label: 'יצירת קשר', color: 'warning' },
@@ -372,7 +393,7 @@ function ContactActions({
   storeId, 
   onUpdate 
 }: { 
-  contact: Contact; 
+  contact: ContactWithCustomer; 
   storeId: string; 
   onUpdate: () => void;
 }) {

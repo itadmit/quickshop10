@@ -800,7 +800,7 @@ export function ThemeEditor({
       />
 
       {/* Top Bar - RTL layout */}
-      <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50" dir="rtl">
+      <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50 relative" dir="rtl">
         {/* Right - Back & Store Name */}
         <div className="flex items-center gap-3">
           <Link 
@@ -820,15 +820,15 @@ export function ThemeEditor({
           </span>
         </div>
 
-        {/* Center - Page Selector Dropdown */}
-        <div className="flex items-center gap-2">
+        {/* Center - Page Selector Dropdown (Absolutely Centered) */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
         <div className="relative">
           <button
             onClick={() => setShowPageDropdown(!showPageDropdown)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-pointer text-white"
           >
               {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : currentPageInfo.icon === 'file' ? <FileIcon /> : <ClockIcon />}
-            <span className="text-white text-sm">{currentPageInfo.label}</span>
+            <span className="text-sm">{currentPageInfo.label}</span>
               {isInternalPage && currentInternalPage && !currentInternalPage.isPublished && (
                 <span className="text-[10px] text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">טיוטה</span>
               )}
@@ -1456,8 +1456,8 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     image_text: {
       imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800',
       text: '<p>זהו טקסט לדוגמה שמופיע לצד התמונה. ניתן לערוך אותו ולהתאים לתוכן שלכם.</p>',
-      buttonText: 'קרא עוד',
-      buttonLink: '#'
+      buttonText: '',
+      buttonLink: ''
     },
     gallery: {
       images: [
