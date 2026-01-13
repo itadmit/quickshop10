@@ -190,16 +190,15 @@ export function ContactsDataTable({
       width: '100px',
       align: 'center',
       render: (contact) => {
-        if (!contact.customer) {
+        const orders = contact.customer?.totalOrders || 0;
+        // לקוח = רק מי שרכש לפחות פעם אחת
+        if (orders === 0) {
           return <span className="text-gray-400 text-sm">-</span>;
         }
-        const orders = contact.customer.totalOrders || 0;
         return (
           <div className="text-center">
             <Badge variant="success">לקוח</Badge>
-            {orders > 0 && (
-              <p className="text-xs text-gray-500 mt-0.5">{orders} הזמנות</p>
-            )}
+            <p className="text-xs text-gray-500 mt-0.5">{orders} הזמנות</p>
           </div>
         );
       },
