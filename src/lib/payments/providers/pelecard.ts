@@ -25,6 +25,48 @@ import type {
 
 // ============ PELECARD API TYPES ============
 
+// Invoice line item for Payper
+interface PayperInvoiceLine {
+  description: string;
+  quantity: string;
+  price_per_unit: string; // In agorot, BEFORE VAT
+  include_vat: string; // 'True' or 'False'
+  catalog_id?: string;
+}
+
+// Receipt line for Payper (payment details)
+interface PayperReceiptLine {
+  payment_type: string; // 'Cc' for credit card
+  date: string; // 'DD-MM-YYYY'
+  cc_num: string; // Last 4 digits (use '0000' if not known)
+  cc_payment_type: string; // '1' = regular
+  num_of_payments: string;
+  amount: string; // In agorot, INCLUDING VAT
+}
+
+// PayperParameters for automatic invoice generation
+interface PayperParameters {
+  typeDocument: 'Invoice-Receipt' | 'Invoice' | 'Receipt';
+  DataPayper: {
+    document_lang: string; // 'hb' or 'en'
+    customer_unique_id?: string; // Customer ID number
+    customer_mail: string;
+    customer_name: string;
+    customer_mobile?: string;
+    customer_business_phone?: string;
+    customer_address?: string;
+    document_subject: string;
+    document_remarks?: string;
+    document_no_vat: boolean;
+    document_rounded: boolean;
+    send_by_mail: boolean; // CRITICAL! Must be true
+    discount_with_vat?: string;
+    income_id?: number;
+    invoice_lines: PayperInvoiceLine[];
+    receipt_lines: PayperReceiptLine[];
+  };
+}
+
 interface PelecardInitRequest {
   terminal: string;
   user: string;
@@ -47,8 +89,10 @@ interface PelecardInitRequest {
   CustomerName?: string;
   CustomerEmail?: string;
   CustomerPhone?: string;
+  // Payper invoice parameters (optional)
+  PayperParameters?: PayperParameters;
   // Index signature for Record<string, unknown> compatibility
-  [key: string]: string | undefined;
+  [key: string]: string | PayperParameters | undefined;
 }
 
 interface PelecardInitResponse {
@@ -283,6 +327,89 @@ export class PelecardProvider extends BasePaymentProvider {
   }
   
   /**
+   * Build PayperParameters for automatic invoice generation
+   */
+  private buildPayperParameters(request: InitiatePaymentRequest): PayperParameters | undefined {
+    // Check if auto invoice is enabled in settings
+    const autoInvoice = this.config?.settings?.autoInvoice;
+    if (!autoInvoice) {
+      return undefined;
+    }
+    
+    const invoiceLang = (this.config?.settings?.invoiceLang as string) || 'hb';
+    const totalInAgorot = Math.round(request.amount * 100);
+    
+    // Build invoice lines - prices in agorot BEFORE VAT
+    // Pelecard will add 18% VAT when include_vat is 'True'
+    const invoiceLines: PayperInvoiceLine[] = request.items.map(item => {
+      const priceWithVat = item.price;
+      const priceBeforeVat = priceWithVat / 1.18; // Remove 18% VAT
+      const priceInAgorot = Math.round(priceBeforeVat * 100);
+      
+      return {
+        description: item.name,
+        quantity: String(item.quantity),
+        price_per_unit: String(priceInAgorot), // In agorot, before VAT
+        include_vat: 'True', // Pelecard will add VAT
+        catalog_id: '',
+      };
+    });
+    
+    // If no items, create a single line for the total
+    if (invoiceLines.length === 0) {
+      const totalBeforeVat = request.amount / 1.18;
+      const totalBeforeVatAgorot = Math.round(totalBeforeVat * 100);
+      invoiceLines.push({
+        description: `הזמנה`,
+        quantity: '1',
+        price_per_unit: String(totalBeforeVatAgorot),
+        include_vat: 'True',
+        catalog_id: '',
+      });
+    }
+    
+    // Build receipt lines - amount in agorot INCLUDING VAT
+    const today = new Date();
+    const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+    
+    const receiptLines: PayperReceiptLine[] = [{
+      payment_type: 'Cc',
+      date: dateStr,
+      cc_num: '0000', // Will be filled by Pelecard after payment
+      cc_payment_type: '1',
+      num_of_payments: '1',
+      amount: String(totalInAgorot), // In agorot, including VAT
+    }];
+    
+    // Calculate discount in agorot if exists
+    const discountWithVat = request.discountAmount 
+      ? String(Math.round(request.discountAmount * 100)) 
+      : '0';
+    
+    return {
+      typeDocument: 'Invoice-Receipt',
+      DataPayper: {
+        document_lang: invoiceLang,
+        customer_unique_id: request.customer.vatNumber || '',
+        customer_mail: request.customer.email,
+        customer_name: request.customer.name,
+        customer_mobile: request.customer.phone || '',
+        customer_business_phone: '',
+        customer_address: request.customer.address || '',
+        document_subject: `הזמנה`,
+        document_remarks: '',
+        document_no_vat: false,
+        document_rounded: false,
+        send_by_mail: true, // CRITICAL! Must be true for invoice to be sent
+        discount_with_vat: discountWithVat,
+        income_id: -100000000, // Default per Pelecard docs
+        invoice_lines: invoiceLines,
+        receipt_lines: receiptLines,
+      },
+    };
+  }
+  
+  /**
    * Initiate payment - Generate payment page URL
    */
   async initiatePayment(request: InitiatePaymentRequest): Promise<InitiatePaymentResponse> {
@@ -290,6 +417,9 @@ export class PelecardProvider extends BasePaymentProvider {
     
     try {
       const currencyCode = PelecardProvider.CURRENCY_MAP[request.currency || 'ILS'] || '1';
+      
+      // Build PayperParameters for automatic invoice
+      const payperParameters = this.buildPayperParameters(request);
       
       // Build Pelecard init request
       const body: PelecardInitRequest = {
@@ -314,9 +444,6 @@ export class PelecardProvider extends BasePaymentProvider {
         MaxPayments: this.config!.settings?.maxPayments as string || '12',
         MinPayments: '1',
         
-        // Invoice settings - send tax invoice by email
-        send_by_mail: 'true',
-        
         // Our reference for callback
         UserKey: request.orderReference,
         ParamX: request.orderReference,
@@ -326,6 +453,12 @@ export class PelecardProvider extends BasePaymentProvider {
         CustomerEmail: request.customer.email,
         CustomerPhone: request.customer.phone,
       };
+      
+      // Add PayperParameters if auto invoice is enabled
+      if (payperParameters) {
+        body.PayperParameters = payperParameters;
+        console.log('[Pelecard] PayperParameters included for automatic invoice');
+      }
       
       const response = await this.makeRequest<PelecardInitResponse>('/init', 'POST', body);
       

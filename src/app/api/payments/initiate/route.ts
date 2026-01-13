@@ -124,15 +124,15 @@ export async function POST(request: NextRequest) {
     // Generate order reference for internal tracking
     const orderReference = `QS-${nanoid(10)}`;
     
-    // Generate numeric order number BEFORE creating successUrl
-    // So the URL contains the actual order number
-    const currentCounter = store.orderCounter ?? 1000;
-    const orderNumber = String(currentCounter);
+    // 🔒 ATOMIC: Generate numeric order number with atomic increment
+    // This prevents race conditions when multiple orders are created simultaneously
+    // We increment first, then use the NEW value as the order number
+    const [updatedStore] = await db.update(stores)
+      .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
+      .where(eq(stores.id, store.id))
+      .returning({ orderCounter: stores.orderCounter });
     
-    // Increment the store's order counter immediately
-    await db.update(stores)
-      .set({ orderCounter: currentCounter + 1 })
-      .where(eq(stores.id, store.id));
+    const orderNumber = String(updatedStore?.orderCounter ?? 1001);
     
     // Build URLs - use custom domain if store has one, otherwise use platform URL
     const platformUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -452,28 +452,33 @@ export async function POST(request: NextRequest) {
     // Create order items
     if (cartItemsForOrder.length > 0) {
       try {
-        // Validate productIds exist before inserting (foreign key constraint)
+        // Validate productIds exist and get product names for fallback
         const productIds = cartItemsForOrder
           .map(item => item.productId)
           .filter((id): id is string => !!id);
         
-        let existingProductIds = new Set<string>();
+        // Fetch existing products with their names (for fallback if item.name is missing)
+        const productNameMap = new Map<string, string>();
         if (productIds.length > 0) {
           const existingProducts = await db
-            .select({ id: products.id })
+            .select({ id: products.id, name: products.name })
             .from(products)
             .where(inArray(products.id, productIds));
-          existingProductIds = new Set(existingProducts.map(p => p.id));
+          
+          existingProducts.forEach(p => {
+            productNameMap.set(p.id, p.name);
+          });
         }
 
         await db.insert(orderItems).values(
           cartItemsForOrder.map(item => ({
             orderId: newOrder.id,
             // Only include productId if it exists in products table
-            productId: item.productId && existingProductIds.has(item.productId) 
+            productId: item.productId && productNameMap.has(item.productId) 
               ? item.productId 
               : null,
-            name: item.name,
+            // 🐛 FIX: Fallback to product name from DB if cart item has no name
+            name: item.name || (item.productId && productNameMap.get(item.productId)) || 'מוצר',
             variantTitle: item.variantTitle || null,
             sku: item.sku || '',
             quantity: item.quantity,

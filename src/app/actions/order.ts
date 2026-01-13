@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions, contacts } from '@/lib/db/schema';
-import { eq, and, sql, gte, lte, gt, or, isNull, desc } from 'drizzle-orm';
+import { eq, and, sql, gte, lte, gt, or, isNull, desc, inArray } from 'drizzle-orm';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 
 type CartItem = {
@@ -357,15 +357,15 @@ export async function createOrder(
       }
     }
 
-    // 2. Generate order number and increment counter
-    const currentCounter = store.orderCounter ?? 1000;
-    const orderNumber = String(currentCounter);
-    
-    // Increment the store's order counter (handle null case)
-    await db
+    // 2. 🔒 ATOMIC: Generate order number and increment counter in one operation
+    // This prevents race conditions when multiple orders are created simultaneously
+    const [updatedStore] = await db
       .update(stores)
       .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
-      .where(eq(stores.id, store.id));
+      .where(eq(stores.id, store.id))
+      .returning({ orderCounter: stores.orderCounter });
+    
+    const orderNumber = String(updatedStore?.orderCounter ?? 1001);
 
     // 3. Create order (using SERVER-VALIDATED values, not client values)
     const customerFullName = `${customerInfo.firstName} ${customerInfo.lastName}`.trim();
@@ -475,6 +475,20 @@ export async function createOrder(
     }
 
     // 7. Create order items and update inventory
+    // First, fetch product names for fallback (in case cart item has no name)
+    const productIds = cart
+      .map(item => item.productId.length > 36 ? item.productId.substring(0, 36) : item.productId)
+      .filter(id => !!id);
+    
+    const productNameMap = new Map<string, string>();
+    if (productIds.length > 0) {
+      const existingProducts = await db
+        .select({ id: products.id, name: products.name })
+        .from(products)
+        .where(inArray(products.id, productIds));
+      existingProducts.forEach(p => productNameMap.set(p.id, p.name));
+    }
+    
     for (const item of cart) {
       // Handle legacy productId format (productId-variantId)
       // UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx (36 chars)
@@ -489,7 +503,8 @@ export async function createOrder(
         orderId: order.id,
         productId: actualProductId,
         variantTitle: item.variantTitle || null,
-        name: item.name,
+        // 🐛 FIX: Fallback to product name from DB if cart item has no name
+        name: item.name || productNameMap.get(actualProductId) || 'מוצר',
         quantity: item.quantity,
         price: item.price.toFixed(2),
         total: (item.price * item.quantity).toFixed(2),

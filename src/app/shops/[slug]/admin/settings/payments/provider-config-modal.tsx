@@ -33,22 +33,31 @@ export function ProviderConfigModal({
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [testMode, setTestMode] = useState(true);
   const [displayName, setDisplayName] = useState('');
+  const [settings, setSettings] = useState<Record<string, unknown>>({});
 
   // Initialize form with existing config
   useEffect(() => {
     if (existingConfig) {
       const existingCreds = existingConfig.credentials as Record<string, string> || {};
+      const existingSettings = existingConfig.settings as Record<string, unknown> || {};
       setCredentials(existingCreds);
       setTestMode(existingConfig.testMode);
       setDisplayName(existingConfig.displayName || '');
+      setSettings(existingSettings);
     } else {
       setCredentials({});
       setTestMode(true);
       setDisplayName('');
+      setSettings({});
     }
     setTestResult(null);
     setError(null);
   }, [existingConfig, isOpen]);
+
+  // Handle settings change
+  const handleSettingsChange = (key: string, value: unknown) => {
+    setSettings(prev => ({ ...prev, [key]: value }));
+  };
 
   // Handle credential change
   const handleCredentialChange = (key: string, value: string) => {
@@ -102,6 +111,7 @@ export function ProviderConfigModal({
           testMode,
           displayName: displayName || providerInfo.nameHe,
           isActive: existingConfig?.isActive ?? true,
+          settings,
         }),
       });
 
@@ -216,6 +226,56 @@ export function ProviderConfigModal({
                 />
               </div>
             ))}
+
+            {/* Pelecard-specific settings */}
+            {providerInfo.type === 'pelecard' && (
+              <div className="space-y-4 pt-4 border-t border-gray-200">
+                <h3 className="font-medium text-gray-900">הגדרות חשבונית מס</h3>
+                
+                {/* Auto Invoice Toggle */}
+                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => handleSettingsChange('autoInvoice', !Boolean(settings.autoInvoice))}
+                    dir="ltr"
+                    className={`
+                      relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 cursor-pointer
+                      ${Boolean(settings.autoInvoice) ? 'bg-green-500' : 'bg-gray-300'}
+                    `}
+                  >
+                    <span
+                      className={`
+                        inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform
+                        ${Boolean(settings.autoInvoice) ? 'translate-x-6' : 'translate-x-1'}
+                      `}
+                    />
+                  </button>
+                  <div>
+                    <div className="font-medium text-gray-900">חשבונית מס אוטומטית</div>
+                    <p className="text-sm text-gray-500">
+                      יצירת חשבונית מס ושליחה אוטומטית ללקוח דרך Payper
+                    </p>
+                  </div>
+                </div>
+
+                {/* Invoice Language */}
+                {Boolean(settings.autoInvoice) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      שפת חשבונית
+                    </label>
+                    <select
+                      value={String(settings.invoiceLang || 'hb')}
+                      onChange={(e) => handleSettingsChange('invoiceLang', e.target.value)}
+                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-shadow"
+                    >
+                      <option value="hb">עברית</option>
+                      <option value="en">אנגלית</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Test Result */}
             {testResult && (

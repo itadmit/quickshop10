@@ -245,11 +245,12 @@ export function AdvisorWizard({
       const existingCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
 
       const cartItem = {
+        id: crypto.randomUUID(),
         productId: result.productId,
         quantity: 1,
-        title: result.title,
+        name: result.title, // 🐛 FIX: Changed from 'title' to 'name' to match CartItem interface
         price: result.price,
-        image: result.imageUrl,
+        image: result.imageUrl || '',
       };
 
       const existingIndex = existingCart.findIndex(
