@@ -328,6 +328,12 @@ export class PelecardProvider extends BasePaymentProvider {
   
   /**
    * Build PayperParameters for automatic invoice generation
+   * 
+   * IMPORTANT: All prices are in AGOROT (1/100 of ILS)
+   * - include_vat: "False" = price already includes VAT (המחיר כולל מע"מ)
+   * - include_vat: "True" = price does NOT include VAT, Payper will add it
+   * 
+   * Since store prices include VAT, we use include_vat: "False"
    */
   private buildPayperParameters(request: InitiatePaymentRequest): PayperParameters | undefined {
     // Check if auto invoice is enabled in settings
@@ -339,50 +345,51 @@ export class PelecardProvider extends BasePaymentProvider {
     const invoiceLang = (this.config?.settings?.invoiceLang as string) || 'hb';
     const totalInAgorot = Math.round(request.amount * 100);
     
-    // Filter out discount items (negative prices) and shipping items
-    // Invoice lines should only contain actual products
+    // Filter out discount items (negative prices) and shipping
     const productItems = request.items.filter(item => 
       item.price > 0 && !item.isShipping
     );
     
-    // Build invoice lines - prices in agorot BEFORE VAT
-    // Pelecard will add 18% VAT when include_vat is 'True'
+    // Build invoice lines with itemized products
+    // Prices INCLUDE VAT, so we use include_vat: "False"
     const invoiceLines: PayperInvoiceLine[] = productItems.map(item => {
-      const priceWithVat = item.price;
-      const priceBeforeVat = priceWithVat / 1.18; // Remove 18% VAT
-      const priceInAgorot = Math.round(priceBeforeVat * 100);
-      
+      const priceInAgorot = Math.round(item.price * 100);
       return {
         description: item.name,
         quantity: String(item.quantity),
-        price_per_unit: String(priceInAgorot), // In agorot, before VAT
-        include_vat: 'True', // Pelecard will add VAT
-        catalog_id: '',
+        price_per_unit: String(priceInAgorot), // Price in agorot, INCLUDING VAT
+        include_vat: 'False', // Price already includes VAT
+        catalog_id: item.sku || '',
       };
     });
     
     // Add shipping as a separate line if exists
     const shippingItem = request.items.find(item => item.isShipping && item.price > 0);
     if (shippingItem) {
-      const shippingBeforeVat = shippingItem.price / 1.18;
       invoiceLines.push({
-        description: shippingItem.name,
+        description: shippingItem.name || 'משלוח',
         quantity: '1',
-        price_per_unit: String(Math.round(shippingBeforeVat * 100)),
-        include_vat: 'True',
+        price_per_unit: String(Math.round(shippingItem.price * 100)),
+        include_vat: 'False',
         catalog_id: '',
       });
     }
     
+    // Calculate subtotal from invoice lines (before discount)
+    const invoiceSubtotal = invoiceLines.reduce((sum, line) => {
+      return sum + (parseInt(line.price_per_unit) * parseInt(line.quantity));
+    }, 0);
+    
+    // Calculate discount - the difference between invoice subtotal and what was paid
+    const discountInAgorot = invoiceSubtotal - totalInAgorot;
+    
     // If no items, create a single line for the total
     if (invoiceLines.length === 0) {
-      const totalBeforeVat = request.amount / 1.18;
-      const totalBeforeVatAgorot = Math.round(totalBeforeVat * 100);
       invoiceLines.push({
-        description: `הזמנה`,
+        description: `הזמנה #${request.orderReference}`,
         quantity: '1',
-        price_per_unit: String(totalBeforeVatAgorot),
-        include_vat: 'True',
+        price_per_unit: String(totalInAgorot),
+        include_vat: 'False',
         catalog_id: '',
       });
     }
@@ -400,10 +407,12 @@ export class PelecardProvider extends BasePaymentProvider {
       amount: String(totalInAgorot), // In agorot, including VAT
     }];
     
-    // Calculate discount in agorot if exists
-    const discountWithVat = request.discountAmount 
-      ? String(Math.round(request.discountAmount * 100)) 
-      : '0';
+    console.log('[Pelecard] PayperParameters calculation:', {
+      invoiceSubtotal,
+      discountInAgorot,
+      totalInAgorot,
+      itemsCount: invoiceLines.length,
+    });
     
     return {
       typeDocument: 'Invoice-Receipt',
@@ -418,9 +427,9 @@ export class PelecardProvider extends BasePaymentProvider {
         document_subject: `הזמנה #${request.orderReference}`,
         document_remarks: '',
         document_no_vat: false,
-        document_rounded: false,
+        document_rounded: true, // Let Payper round to avoid decimal issues
         send_by_mail: true, // CRITICAL! Must be true for invoice to be sent
-        discount_with_vat: discountWithVat,
+        discount_with_vat: discountInAgorot > 0 ? String(discountInAgorot) : '0',
         income_id: -100000000, // Default per Pelecard docs
         invoice_lines: invoiceLines,
         receipt_lines: receiptLines,
