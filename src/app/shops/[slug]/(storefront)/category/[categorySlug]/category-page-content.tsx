@@ -15,8 +15,8 @@ import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
-import type { CategoryPageSettings } from '@/lib/category-page-settings';
-import { bannerHeightClasses, aspectRatioClasses } from '@/lib/category-page-settings';
+import type { CategoryPageSettings, BannerAspectRatio } from '@/lib/category-page-settings';
+import { bannerHeightClasses, aspectRatioClasses, bannerAspectRatioClasses } from '@/lib/category-page-settings';
 
 // Section name labels for editor (Hebrew)
 const sectionNames: Record<string, string> = {
@@ -171,41 +171,122 @@ export function CategoryPageContent({
       {/* Hero Banner */}
       {settings.banner.show && (
         <section 
-          className={`relative ${bannerHeightClasses[settings.banner.height]} bg-gray-100 overflow-hidden`}
+          className={`relative bg-gray-100 overflow-hidden ${
+            settings.banner.useAspectRatio 
+              ? '' // רטיו מטופל ב-div פנימי
+              : bannerHeightClasses[settings.banner.height]
+          }`}
           data-section-id="cp-banner"
           data-section-name={sectionNames['cp-banner']}
         >
-          {category.imageUrl ? (
-            <img 
-              src={category.imageUrl}
-              alt={category.name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200" />
-          )}
-          <div 
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ backgroundColor: `rgba(0,0,0,${settings.banner.overlayOpacity / 100})` }}
-          >
-            {settings.banner.showTitle && (
-              <div className="text-center">
-                {isSubcategory && parentCategory && settings.banner.showParentCategory && (
-                  <p className="text-white/70 text-sm tracking-widest uppercase mb-2">
-                    {parentCategory.name}
-                  </p>
+          {settings.banner.useAspectRatio ? (
+            // גרסת רטיו - רספונסיבית לפי מכשיר
+            <div className="relative w-full">
+              {/* Mobile aspect ratio */}
+              <div className={`md:hidden ${bannerAspectRatioClasses[settings.banner.mobileAspectRatio || '4:3']}`}>
+                {category.imageUrl ? (
+                  <img 
+                    src={category.imageUrl}
+                    alt={category.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-gray-200" />
                 )}
-                <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white font-extralight tracking-[0.3em] uppercase">
-                  {category.name}
-                </h1>
-                {category.description && settings.banner.showDescription && (
-                  <p className="text-white/80 mt-4 text-sm tracking-wide max-w-md mx-auto">
-                    {category.description}
-                  </p>
+                <div 
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ backgroundColor: `rgba(0,0,0,${settings.banner.overlayOpacity / 100})` }}
+                >
+                  {settings.banner.showTitle && (
+                    <div className="text-center px-4">
+                      {isSubcategory && parentCategory && settings.banner.showParentCategory && (
+                        <p className="text-white/70 text-xs tracking-widest uppercase mb-2">
+                          {parentCategory.name}
+                        </p>
+                      )}
+                      <h1 className="font-display text-3xl text-white font-extralight tracking-[0.2em] uppercase">
+                        {category.name}
+                      </h1>
+                      {category.description && settings.banner.showDescription && (
+                        <p className="text-white/80 mt-3 text-sm tracking-wide max-w-xs mx-auto">
+                          {category.description}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+              {/* Desktop aspect ratio */}
+              <div className={`hidden md:block ${bannerAspectRatioClasses[settings.banner.desktopAspectRatio || '21:9']}`}>
+                {category.imageUrl ? (
+                  <img 
+                    src={category.imageUrl}
+                    alt={category.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-gray-200" />
+                )}
+                <div 
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ backgroundColor: `rgba(0,0,0,${settings.banner.overlayOpacity / 100})` }}
+                >
+                  {settings.banner.showTitle && (
+                    <div className="text-center">
+                      {isSubcategory && parentCategory && settings.banner.showParentCategory && (
+                        <p className="text-white/70 text-sm tracking-widest uppercase mb-2">
+                          {parentCategory.name}
+                        </p>
+                      )}
+                      <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white font-extralight tracking-[0.3em] uppercase">
+                        {category.name}
+                      </h1>
+                      {category.description && settings.banner.showDescription && (
+                        <p className="text-white/80 mt-4 text-sm tracking-wide max-w-md mx-auto">
+                          {category.description}
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            // גרסת גובה קבוע (לתאימות אחורה)
+            <>
+              {category.imageUrl ? (
+                <img 
+                  src={category.imageUrl}
+                  alt={category.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200" />
+              )}
+              <div 
+                className="absolute inset-0 flex items-center justify-center"
+                style={{ backgroundColor: `rgba(0,0,0,${settings.banner.overlayOpacity / 100})` }}
+              >
+                {settings.banner.showTitle && (
+                  <div className="text-center">
+                    {isSubcategory && parentCategory && settings.banner.showParentCategory && (
+                      <p className="text-white/70 text-sm tracking-widest uppercase mb-2">
+                        {parentCategory.name}
+                      </p>
+                    )}
+                    <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white font-extralight tracking-[0.3em] uppercase">
+                      {category.name}
+                    </h1>
+                    {category.description && settings.banner.showDescription && (
+                      <p className="text-white/80 mt-4 text-sm tracking-wide max-w-md mx-auto">
+                        {category.description}
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </section>
       )}
 

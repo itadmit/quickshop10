@@ -9,6 +9,7 @@
  */
 
 export type AspectRatio = '1:1' | '3:4' | '4:3' | '4:5' | '16:9';
+export type BannerAspectRatio = '16:9' | '21:9' | '3:1' | '4:1' | '2:1' | '3:2' | '4:3';
 
 export interface CategoryPageSettings {
   // Banner settings
@@ -18,7 +19,11 @@ export interface CategoryPageSettings {
     showDescription: boolean;    // הצג תיאור
     showParentCategory: boolean; // הצג קטגוריית אב
     overlayOpacity: number;      // שקיפות הכיהוי (0-100)
-    height: 'small' | 'medium' | 'large'; // גובה הבאנר
+    height: 'small' | 'medium' | 'large'; // גובה הבאנר (לגרסאות קודמות)
+    // רטיו נפרד למובייל ולמחשב - לתמונות אופקיות
+    desktopAspectRatio: BannerAspectRatio;
+    mobileAspectRatio: BannerAspectRatio;
+    useAspectRatio: boolean;     // האם להשתמש ברטיו במקום גובה קבוע
   };
   
   // Subcategories grid settings
@@ -53,6 +58,9 @@ export const defaultCategoryPageSettings: CategoryPageSettings = {
     showParentCategory: true,
     overlayOpacity: 30,
     height: 'medium',
+    desktopAspectRatio: '21:9',
+    mobileAspectRatio: '4:3',
+    useAspectRatio: false, // ברירת מחדל: גובה קבוע (לתאימות אחורה)
   },
   
   subcategories: {
@@ -99,12 +107,34 @@ export const bannerHeightClasses: Record<string, string> = {
   large: 'h-[70vh] min-h-[500px]',
 };
 
-// Aspect ratio classes
+// Aspect ratio classes for subcategories
 export const aspectRatioClasses: Record<AspectRatio, string> = {
   '1:1': 'aspect-square',
   '3:4': 'aspect-[3/4]',
   '4:3': 'aspect-[4/3]',
   '4:5': 'aspect-[4/5]',
   '16:9': 'aspect-video',
+};
+
+// Banner aspect ratio classes - more horizontal options for banners
+export const bannerAspectRatioClasses: Record<BannerAspectRatio, string> = {
+  '16:9': 'aspect-video',         // וידאו רגיל
+  '21:9': 'aspect-[21/9]',        // אולטרה-וויד (קולנועי)
+  '3:1': 'aspect-[3/1]',          // באנר רחב מאוד
+  '4:1': 'aspect-[4/1]',          // סרט צר
+  '2:1': 'aspect-[2/1]',          // פנורמי
+  '3:2': 'aspect-[3/2]',          // צילום קלאסי
+  '4:3': 'aspect-[4/3]',          // מסך קלאסי
+};
+
+// Labels for banner aspect ratios
+export const bannerAspectRatioLabels: Record<BannerAspectRatio, string> = {
+  '16:9': 'וידאו (16:9)',
+  '21:9': 'קולנועי (21:9)',
+  '3:1': 'באנר רחב (3:1)',
+  '4:1': 'סרט צר (4:1)',
+  '2:1': 'פנורמי (2:1)',
+  '3:2': 'צילום (3:2)',
+  '4:3': 'קלאסי (4:3)',
 };
 

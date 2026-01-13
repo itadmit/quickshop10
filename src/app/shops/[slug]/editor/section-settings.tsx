@@ -6283,18 +6283,65 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                     })}
                   />
                   
-                  <SelectField
-                    label="גובה באנר"
-                    value={categorySettings.banner.height}
-                    options={[
-                      { value: 'small', label: 'קטן' },
-                      { value: 'medium', label: 'בינוני' },
-                      { value: 'large', label: 'גדול' },
-                    ]}
+                  <SwitchField
+                    label="השתמש ביחס תמונה (רטיו)"
+                    value={categorySettings.banner.useAspectRatio ?? false}
                     onChange={(v) => updateCategorySettings({ 
-                      banner: { ...categorySettings.banner, height: v as 'small' | 'medium' | 'large' } 
+                      banner: { ...categorySettings.banner, useAspectRatio: v } 
                     })}
                   />
+                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                    מומלץ לתמונות אופקיות/מלבניות. מונע זום מוגזם במובייל.
+                  </p>
+                  
+                  {categorySettings.banner.useAspectRatio ? (
+                    <>
+                      <SelectField
+                        label="רטיו במחשב"
+                        value={categorySettings.banner.desktopAspectRatio || '21:9'}
+                        options={[
+                          { value: '4:3', label: 'קלאסי (4:3)' },
+                          { value: '3:2', label: 'צילום (3:2)' },
+                          { value: '16:9', label: 'וידאו (16:9)' },
+                          { value: '2:1', label: 'פנורמי (2:1)' },
+                          { value: '21:9', label: 'קולנועי (21:9)' },
+                          { value: '3:1', label: 'באנר רחב (3:1)' },
+                          { value: '4:1', label: 'סרט צר (4:1)' },
+                        ]}
+                        onChange={(v) => updateCategorySettings({ 
+                          banner: { ...categorySettings.banner, desktopAspectRatio: v as any } 
+                        })}
+                      />
+                      
+                      <SelectField
+                        label="רטיו במובייל"
+                        value={categorySettings.banner.mobileAspectRatio || '4:3'}
+                        options={[
+                          { value: '4:3', label: 'קלאסי (4:3)' },
+                          { value: '3:2', label: 'צילום (3:2)' },
+                          { value: '16:9', label: 'וידאו (16:9)' },
+                          { value: '2:1', label: 'פנורמי (2:1)' },
+                          { value: '21:9', label: 'קולנועי (21:9)' },
+                        ]}
+                        onChange={(v) => updateCategorySettings({ 
+                          banner: { ...categorySettings.banner, mobileAspectRatio: v as any } 
+                        })}
+                      />
+                    </>
+                  ) : (
+                    <SelectField
+                      label="גובה באנר"
+                      value={categorySettings.banner.height}
+                      options={[
+                        { value: 'small', label: 'קטן' },
+                        { value: 'medium', label: 'בינוני' },
+                        { value: 'large', label: 'גדול' },
+                      ]}
+                      onChange={(v) => updateCategorySettings({ 
+                        banner: { ...categorySettings.banner, height: v as 'small' | 'medium' | 'large' } 
+                      })}
+                    />
+                  )}
                   
                   <SliderField
                     label="שקיפות כיהוי (%)"

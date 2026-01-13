@@ -251,19 +251,26 @@ export async function importContactsFromCSV(
 
     const emailsToCheck = validContacts.map(c => c.email);
     
-    // Single query to get all existing emails
-    const existingContacts = await db
-      .select({ email: contacts.email })
-      .from(contacts)
-      .where(
-        and(
-          eq(contacts.storeId, storeId),
-          eq(contacts.type, contactType),
-          inArray(contacts.email, emailsToCheck)
-        )
-      );
-
-    const existingEmailSet = new Set(existingContacts.map(c => c.email));
+    // Batch check for existing emails (Neon/PostgreSQL has limits on IN clause size)
+    const DUPLICATE_CHECK_BATCH_SIZE = 500; // Check 500 emails at a time
+    const existingEmailSet = new Set<string>();
+    
+    for (let i = 0; i < emailsToCheck.length; i += DUPLICATE_CHECK_BATCH_SIZE) {
+      const emailBatch = emailsToCheck.slice(i, i + DUPLICATE_CHECK_BATCH_SIZE);
+      
+      const existingBatch = await db
+        .select({ email: contacts.email })
+        .from(contacts)
+        .where(
+          and(
+            eq(contacts.storeId, storeId),
+            eq(contacts.type, contactType),
+            inArray(contacts.email, emailBatch)
+          )
+        );
+      
+      existingBatch.forEach(c => existingEmailSet.add(c.email));
+    }
     
     // Filter out existing contacts
     const newContacts = validContacts.filter(c => {
