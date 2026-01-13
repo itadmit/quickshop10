@@ -29,7 +29,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'play-circle',
     author: 'QuickShop',
     isFree: false,
-    price: 39.90,
+    price: 29,
     trialDays: 14,
     defaultConfig: {
       enabled: false,
@@ -72,7 +72,7 @@ export const pluginRegistry: PluginDefinition[] = [
   // ============================================
   {
     slug: 'smart-advisor',
-    name: 'יועץ חכם',
+    name: 'הצעה חכמה (AI)',
     description: 'צור שאלונים אינטראקטיביים שממליצים על מוצרים לפי תשובות הלקוח - עם אפקט AI ואנימציות מרשימות',
     type: 'core',
     category: 'customization',
@@ -80,7 +80,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'brain',
     author: 'QuickShop',
     isFree: false,
-    price: 49.90,
+    price: 79,
     trialDays: 14,
     defaultConfig: {
       enabled: false,
@@ -122,7 +122,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'target',
     author: 'QuickShop',
     isFree: false,
-    price: 29.90,
+    price: 29,
     trialDays: 14,
     defaultConfig: {
       enabled: false,
@@ -158,7 +158,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'sparkles',
     author: 'QuickShop',
     isFree: false,
-    price: 29.90,
+    price: 29,
     trialDays: 14,
     defaultConfig: {
       enabled: false,
@@ -198,7 +198,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'crown',
     author: 'QuickShop',
     isFree: false,
-    price: 79.90,
+    price: 149,
     trialDays: 14,
     defaultConfig: {
       enabled: true,
@@ -235,7 +235,7 @@ export const pluginRegistry: PluginDefinition[] = [
   // ============================================
   {
     slug: 'pos',
-    name: 'קופה',
+    name: 'קופה חכמה',
     description: 'ממשק קופה לסליקת לקוחות עם חיפוש מהיר, מוצרים מהקטלוג ופריטים ידניים',
     type: 'core',
     category: 'operations',
@@ -243,7 +243,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'receipt',
     author: 'QuickShop',
     isFree: false,
-    price: 49.90,
+    price: 149,
     trialDays: 14,
     defaultConfig: {
       enabled: true,
@@ -285,7 +285,7 @@ export const pluginRegistry: PluginDefinition[] = [
     icon: 'star',
     author: 'QuickShop',
     isFree: false,
-    price: 49.90,
+    price: 159,
     trialDays: 14,
     defaultConfig: {
       enabled: true,
