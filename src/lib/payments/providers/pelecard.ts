@@ -339,9 +339,15 @@ export class PelecardProvider extends BasePaymentProvider {
     const invoiceLang = (this.config?.settings?.invoiceLang as string) || 'hb';
     const totalInAgorot = Math.round(request.amount * 100);
     
+    // Filter out discount items (negative prices) and shipping items
+    // Invoice lines should only contain actual products
+    const productItems = request.items.filter(item => 
+      item.price > 0 && !item.isShipping
+    );
+    
     // Build invoice lines - prices in agorot BEFORE VAT
     // Pelecard will add 18% VAT when include_vat is 'True'
-    const invoiceLines: PayperInvoiceLine[] = request.items.map(item => {
+    const invoiceLines: PayperInvoiceLine[] = productItems.map(item => {
       const priceWithVat = item.price;
       const priceBeforeVat = priceWithVat / 1.18; // Remove 18% VAT
       const priceInAgorot = Math.round(priceBeforeVat * 100);
@@ -354,6 +360,19 @@ export class PelecardProvider extends BasePaymentProvider {
         catalog_id: '',
       };
     });
+    
+    // Add shipping as a separate line if exists
+    const shippingItem = request.items.find(item => item.isShipping && item.price > 0);
+    if (shippingItem) {
+      const shippingBeforeVat = shippingItem.price / 1.18;
+      invoiceLines.push({
+        description: shippingItem.name,
+        quantity: '1',
+        price_per_unit: String(Math.round(shippingBeforeVat * 100)),
+        include_vat: 'True',
+        catalog_id: '',
+      });
+    }
     
     // If no items, create a single line for the total
     if (invoiceLines.length === 0) {
@@ -396,7 +415,7 @@ export class PelecardProvider extends BasePaymentProvider {
         customer_mobile: request.customer.phone || '',
         customer_business_phone: '',
         customer_address: request.customer.address || '',
-        document_subject: `הזמנה`,
+        document_subject: `הזמנה #${request.orderReference}`,
         document_remarks: '',
         document_no_vat: false,
         document_rounded: false,
@@ -457,9 +476,14 @@ export class PelecardProvider extends BasePaymentProvider {
       // Add PayperParameters if auto invoice is enabled
       if (payperParameters) {
         body.PayperParameters = payperParameters;
-        console.log('[Pelecard] PayperParameters included for automatic invoice');
+        console.log('[Pelecard] PayperParameters included for automatic invoice:');
+        console.log('[Pelecard] PayperParameters:', JSON.stringify(payperParameters, null, 2));
+      } else {
+        console.log('[Pelecard] autoInvoice setting:', this.config?.settings?.autoInvoice);
+        console.log('[Pelecard] No PayperParameters - autoInvoice not enabled');
       }
       
+      console.log('[Pelecard] Full init request body:', JSON.stringify(body, null, 2));
       const response = await this.makeRequest<PelecardInitResponse>('/init', 'POST', body);
       
       if (response.URL) {

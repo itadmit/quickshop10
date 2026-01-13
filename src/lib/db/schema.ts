@@ -843,6 +843,11 @@ export const orders = pgTable('orders', {
   // Archive
   archivedAt: timestamp('archived_at'), // null = not archived, timestamp = when archived
   
+  // Invoice (Payper)
+  invoiceNumber: varchar('invoice_number', { length: 100 }),
+  invoiceLink: varchar('invoice_link', { length: 500 }),
+  invoiceGeneratedAt: timestamp('invoice_generated_at'),
+  
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
