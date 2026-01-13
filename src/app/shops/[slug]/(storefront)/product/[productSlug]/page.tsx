@@ -274,6 +274,11 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     return ratios[ratio];
   };
 
+  // Get first category for breadcrumb
+  const firstCategory = productCategoryIds.length > 0 
+    ? categories.find(c => c.id === productCategoryIds[0]) 
+    : null;
+
   // Render section based on type - with data-section-id for editor interaction
   const renderSection = (sectionType: string) => {
     // Get section ID for editor (prefixed with pp- for product page)
@@ -293,8 +298,24 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               <ol className="flex items-center gap-2 text-sm text-gray-500">
                 <li><Link href={basePath || '/'} className="hover:text-black transition-colors">בית</Link></li>
                 <li>/</li>
-                <li><Link href={`${basePath}#products`} className="hover:text-black transition-colors">מוצרים</Link></li>
-                <li>/</li>
+                {firstCategory ? (
+                  <>
+                    <li>
+                      <Link 
+                        href={`${basePath}/products?category=${firstCategory.slug}`} 
+                        className="hover:text-black transition-colors"
+                      >
+                        {firstCategory.name}
+                      </Link>
+                    </li>
+                    <li>/</li>
+                  </>
+                ) : (
+                  <>
+                    <li><Link href={`${basePath}/products`} className="hover:text-black transition-colors">מוצרים</Link></li>
+                    <li>/</li>
+                  </>
+                )}
                 <li className="text-black truncate">{product.name}</li>
               </ol>
             </div>
@@ -364,17 +385,19 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                   </svg>
                 </summary>
                 <div className="pb-4">
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                    {decodeHtmlEntities(product.description)}
-                  </p>
+                  <div 
+                    className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.description) }}
+                  />
                 </div>
               </details>
             ) : (
               <>
             <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
-            <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-              {decodeHtmlEntities(product.description)}
-            </p>
+            <div 
+              className="text-gray-600 leading-relaxed prose prose-sm max-w-none"
+              dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.description) }}
+            />
               </>
             )}
           </div>
@@ -708,23 +731,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                             </svg>
                           </summary>
                           <div className="pb-4">
-                            <p 
-                              className="pp-description leading-relaxed whitespace-pre-line"
+                            <div 
+                              className="pp-description leading-relaxed prose prose-sm max-w-none"
                               style={getTypographyStyle(pageSettings.typography?.description)}
-                            >
-                              {decodeHtmlEntities(product.description)}
-                            </p>
+                              dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.description) }}
+                            />
                           </div>
                         </details>
                       ) : (
                         <>
                       <h3 className="text-[11px] tracking-[0.2em] uppercase text-black mb-4">תיאור</h3>
-                          <p 
-                            className="pp-description leading-relaxed whitespace-pre-line"
+                          <div 
+                            className="pp-description leading-relaxed prose prose-sm max-w-none"
                             style={getTypographyStyle(pageSettings.typography?.description)}
-                          >
-                        {decodeHtmlEntities(product.description)}
-                      </p>
+                            dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.description) }}
+                          />
                         </>
                       )}
                     </div>
