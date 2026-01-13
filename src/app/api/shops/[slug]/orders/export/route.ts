@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { stores, orders, orderItems, customers } from '@/lib/db/schema';
-import { eq, and, gte, lte, desc } from 'drizzle-orm';
+import { eq, and, gte, lte, desc, inArray } from 'drizzle-orm';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -108,18 +108,34 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return new NextResponse('No orders found in the specified date range', { status: 404 });
     }
 
-    // Fetch items and customers for all orders in parallel for speed
-    const ordersWithDetails = await Promise.all(
-      ordersData.map(async (order) => {
-        const [items, customer] = await Promise.all([
-          db.select().from(orderItems).where(eq(orderItems.orderId, order.id)),
-          order.customerId
-            ? db.select().from(customers).where(eq(customers.id, order.customerId)).limit(1).then(r => r[0] || null)
-            : Promise.resolve(null)
-        ]);
-        return { ...order, items, customer };
-      })
-    );
+    // Get all order IDs and customer IDs for batch queries (prevents connection pool exhaustion)
+    const orderIds = ordersData.map(o => o.id);
+    const customerIds = [...new Set(ordersData.map(o => o.customerId).filter(Boolean))] as string[];
+
+    // Batch fetch all items and customers in just 2 queries instead of N*2
+    const [allItems, allCustomers] = await Promise.all([
+      db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds)),
+      customerIds.length > 0 
+        ? db.select().from(customers).where(inArray(customers.id, customerIds))
+        : Promise.resolve([])
+    ]);
+
+    // Create lookup maps for O(1) access
+    const itemsByOrderId = new Map<string, typeof allItems>();
+    for (const item of allItems) {
+      const existing = itemsByOrderId.get(item.orderId) || [];
+      existing.push(item);
+      itemsByOrderId.set(item.orderId, existing);
+    }
+
+    const customersById = new Map(allCustomers.map(c => [c.id, c]));
+
+    // Combine orders with their items and customers
+    const ordersWithDetails = ordersData.map(order => ({
+      ...order,
+      items: itemsByOrderId.get(order.id) || [],
+      customer: order.customerId ? customersById.get(order.customerId) || null : null,
+    }));
 
     // CSV Headers
     const headers = [
