@@ -486,6 +486,7 @@ export async function getProductVariants(productId: string) {
 // NEW ARCHITECTURE: Sections stored as JSON on pages/stores tables
 // - home → stores.homeSections
 // - coming_soon → stores.comingSoonSections  
+// - product → stores.productPageSections (V2 - fully editable)
 // - pages/* → pages.sections (internal pages)
 
 // Section type for JSON storage
@@ -521,11 +522,12 @@ export const getPageSections = cache(async (storeId: string, page: string = 'hom
       .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
   }
   
-  // System pages (home, coming_soon)
+  // System pages (home, coming_soon, product)
   const [store] = await db
     .select({ 
       homeSections: stores.homeSections,
-      comingSoonSections: stores.comingSoonSections 
+      comingSoonSections: stores.comingSoonSections,
+      productPageSections: stores.productPageSections
     })
     .from(stores)
     .where(eq(stores.id, storeId))
@@ -533,9 +535,14 @@ export const getPageSections = cache(async (storeId: string, page: string = 'hom
   
   if (!store) return [];
   
-  const sections = page === 'coming_soon' 
-    ? (store.comingSoonSections || []) as PageSection[]
-    : (store.homeSections || []) as PageSection[];
+  let sections: PageSection[];
+  if (page === 'coming_soon') {
+    sections = (store.comingSoonSections || []) as PageSection[];
+  } else if (page === 'product') {
+    sections = (store.productPageSections || []) as PageSection[];
+  } else {
+    sections = (store.homeSections || []) as PageSection[];
+  }
   
   return sections
     .filter(s => s.isActive !== false)
@@ -564,11 +571,12 @@ export const getPageSectionsCached = unstable_cache(
         .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
     }
     
-    // System pages (home, coming_soon)
+    // System pages (home, coming_soon, product)
     const [store] = await db
       .select({ 
         homeSections: stores.homeSections,
-        comingSoonSections: stores.comingSoonSections 
+        comingSoonSections: stores.comingSoonSections,
+        productPageSections: stores.productPageSections
       })
       .from(stores)
       .where(eq(stores.id, storeId))
@@ -576,9 +584,14 @@ export const getPageSectionsCached = unstable_cache(
     
     if (!store) return [];
     
-    const sections = page === 'coming_soon' 
-      ? (store.comingSoonSections || []) as PageSection[]
-      : (store.homeSections || []) as PageSection[];
+    let sections: PageSection[];
+    if (page === 'coming_soon') {
+      sections = (store.comingSoonSections || []) as PageSection[];
+    } else if (page === 'product') {
+      sections = (store.productPageSections || []) as PageSection[];
+    } else {
+      sections = (store.homeSections || []) as PageSection[];
+    }
     
     return sections
       .filter(s => s.isActive !== false)

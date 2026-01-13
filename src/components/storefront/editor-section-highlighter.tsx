@@ -1380,6 +1380,50 @@ export function EditorSectionHighlighter() {
             `;
             break;
 
+          case 'accordion':
+            placeholder.className = 'py-8 px-4';
+            html = `
+              <div class="max-w-4xl mx-auto">
+                <div class="border border-gray-200 rounded-lg divide-y divide-gray-200">
+                  <details class="group">
+                    <summary class="flex items-center justify-between cursor-pointer px-4 py-3 font-medium text-gray-900 hover:bg-gray-50">
+                      <span>פריט אקורדיון 1</span>
+                      <svg class="w-4 h-4 text-gray-500 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div class="px-4 pb-4 text-gray-600 text-sm">תוכן הפריט יופיע כאן...</div>
+                  </details>
+                  <details class="group">
+                    <summary class="flex items-center justify-between cursor-pointer px-4 py-3 font-medium text-gray-900 hover:bg-gray-50">
+                      <span>פריט אקורדיון 2</span>
+                      <svg class="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div class="px-4 pb-4 text-gray-600 text-sm hidden">תוכן הפריט...</div>
+                  </details>
+                </div>
+              </div>
+            `;
+            break;
+
+          case 'tabs':
+            placeholder.className = 'py-8 px-4';
+            html = `
+              <div class="max-w-4xl mx-auto">
+                <div class="flex border-b border-gray-200 mb-4 gap-4">
+                  <button class="py-2 px-4 text-sm font-medium border-b-2 border-blue-600 text-blue-600">לשונית 1</button>
+                  <button class="py-2 px-4 text-sm font-medium text-gray-500 hover:text-gray-700">לשונית 2</button>
+                  <button class="py-2 px-4 text-sm font-medium text-gray-500 hover:text-gray-700">לשונית 3</button>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                  <p class="text-gray-600 text-sm">תוכן הלשונית יופיע כאן...</p>
+                </div>
+              </div>
+            `;
+            break;
+          
           case 'custom':
             placeholder.className = 'py-16 bg-gradient-to-b from-blue-50 to-white border-2 border-dashed border-blue-300';
             html = `
@@ -1430,13 +1474,42 @@ export function EditorSectionHighlighter() {
             main.appendChild(placeholder);
           }
         } else {
-          const allSections = document.querySelectorAll('[data-section-id]');
-          const lastSection = allSections[allSections.length - 1];
-          if (lastSection) {
-            lastSection.insertAdjacentElement('afterend', placeholder);
+          // Smart insertion: avoid inserting after footer
+          // Check if we're on a product page (has pp-info or pp-gallery)
+          const isProductPage = document.querySelector('[data-section-id="pp-info"]') || 
+                                document.querySelector('[data-section-id="pp-gallery"]');
+          
+          if (isProductPage) {
+            // For product pages, insert before reviews or related products
+            const reviewsSection = document.querySelector('[data-section-id="pp-reviews"]');
+            const relatedSection = document.querySelector('[data-section-id="pp-related"]');
+            const footer = document.querySelector('footer');
+            
+            // Priority: before reviews > before related > before footer > end of main content
+            if (reviewsSection) {
+              reviewsSection.insertAdjacentElement('beforebegin', placeholder);
+            } else if (relatedSection) {
+              relatedSection.insertAdjacentElement('beforebegin', placeholder);
+            } else if (footer) {
+              footer.insertAdjacentElement('beforebegin', placeholder);
+            } else {
+              const main = document.querySelector('main') || document.body;
+              main.appendChild(placeholder);
+            }
           } else {
-            const main = document.querySelector('main') || document.body;
-            main.appendChild(placeholder);
+            // For other pages, find last non-footer section
+            const allSections = document.querySelectorAll('[data-section-id]:not([data-section-id="footer"])');
+            const footer = document.querySelector('footer');
+            
+            if (allSections.length > 0) {
+              const lastSection = allSections[allSections.length - 1];
+              lastSection.insertAdjacentElement('afterend', placeholder);
+            } else if (footer) {
+              footer.insertAdjacentElement('beforebegin', placeholder);
+            } else {
+              const main = document.querySelector('main') || document.body;
+              main.appendChild(placeholder);
+            }
           }
         }
         

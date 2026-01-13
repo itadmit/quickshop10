@@ -845,6 +845,34 @@ export function ThemeEditor({
     }
   };
 
+  // Apply template - replace all sections with template sections (Product Page V2)
+  const applyTemplate = (templateId: string) => {
+    // Import dynamically to avoid circular deps
+    import('@/lib/product-page-sections').then(({ productPageTemplates }) => {
+      const template = productPageTemplates.find(t => t.id === templateId);
+      if (!template) return;
+      
+      // Generate new unique IDs for each section
+      const newSections: Section[] = template.sections.map((s, index) => ({
+        id: crypto.randomUUID(),
+        type: s.type,
+        title: s.title,
+        subtitle: s.subtitle,
+        content: { ...s.content },
+        settings: { ...s.settings },
+        sortOrder: index,
+        isActive: s.isActive,
+      }));
+      
+      setSections(newSections);
+      setSelectedSectionId(newSections[0]?.id || null);
+      setHasChanges(true);
+      
+      // Refresh preview to show new template
+      setPreviewRefreshKey(k => k + 1);
+    });
+  };
+
   // Reorder sections - update local state (iframe will refresh on save)
   const reorderSections = (fromIndex: number, toIndex: number) => {
     const newSections = [...sections];
@@ -1170,6 +1198,7 @@ export function ThemeEditor({
             onAddSection={addSection}
             onRemoveSection={removeSection}
             onReorderSections={reorderSections}
+            onApplyTemplate={currentPage === 'product' ? applyTemplate : undefined}
             headerLayout={themeSettings.headerLayout}
             currentPage={currentPage}
           />
@@ -1480,6 +1509,7 @@ export function ThemeEditor({
 // Helper functions for default section values
 function getSectionDefaultTitle(type: string): string {
   const titles: Record<string, string> = {
+    // Home page sections
     hero: 'באנר ראשי',
     categories: 'קטגוריות',
     products: 'מוצרים',
@@ -1487,6 +1517,18 @@ function getSectionDefaultTitle(type: string): string {
     video_banner: 'באנר וידאו',
     split_banner: 'באנר מפוצל',
     contact: 'צור קשר',
+    // Product page sections (V2)
+    product_gallery: '',
+    product_info: '',
+    product_description: '',
+    product_reviews: 'ביקורות',
+    product_related: 'אולי יעניין אותך',
+    product_upsells: 'מוצרים נוספים',
+    accordion: '',
+    tabs: '',
+    breadcrumb: '',
+    divider: '',
+    spacer: '',
   };
   return titles[type] || 'סקשן חדש';
 }
@@ -1579,6 +1621,33 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     },
     custom: {
       html: '<div class="text-center p-8"><p>תוכן מותאם אישית</p></div>'
+    },
+    // Product page sections (V2)
+    product_gallery: {},
+    product_info: {},
+    product_description: {},
+    product_reviews: {},
+    product_related: {},
+    product_upsells: {},
+    accordion: {
+      items: [
+        { id: '1', title: 'מפרט טכני', content: '', isOpen: false, contentSource: 'static' },
+        { id: '2', title: 'חומרים', content: '', isOpen: false, contentSource: 'static' },
+        { id: '3', title: 'משלוחים והחזרות', content: 'משלוח חינם מעל ₪200. ניתן להחזיר תוך 14 יום.', isOpen: false, contentSource: 'static' },
+      ]
+    },
+    tabs: {
+      items: [
+        { id: '1', title: 'פרטים', content: '', contentSource: 'dynamic', dynamicField: 'product.description' },
+        { id: '2', title: 'מפרט', content: '', contentSource: 'static' },
+        { id: '3', title: 'משלוח', content: 'משלוח תוך 3-5 ימי עסקים.', contentSource: 'static' },
+      ]
+    },
+    breadcrumb: {},
+    divider: {},
+    spacer: {},
+    video: {
+      videoUrl: '',
     }
   };
   return defaults[type] || {};
@@ -1586,6 +1655,7 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
 
 function getSectionDefaultSettings(type: string): Record<string, unknown> {
   const defaults: Record<string, Record<string, unknown>> = {
+    // Home page sections
     hero: { height: '90vh', overlay: 0.3 },
     categories: { columns: 4, gap: 8 },
     products: { columns: 4, gap: 8, showCount: false },
@@ -1593,6 +1663,56 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
     video_banner: { height: '80vh', overlay: 0.4 },
     split_banner: { height: '60vh' },
     contact: { layout: 'split', maxWidth: 'xl', textAlign: 'right', paddingY: 'large' },
+    // Product page sections (V2)
+    product_gallery: {
+      layout: 'carousel',
+      thumbnailsPosition: 'bottom',
+      thumbnailsPositionMobile: 'bottom',
+      aspectRatio: '3:4',
+      enableZoom: true,
+      showArrows: true,
+      showDotsOnMobile: false,
+    },
+    product_info: {
+      showComparePrice: true,
+      showDiscount: true,
+      discountStyle: 'badge',
+      inventoryDisplay: 'count',
+      lowStockThreshold: 5,
+    },
+    product_description: {
+      style: 'text',
+    },
+    product_reviews: {
+      showRating: true,
+      showCount: true,
+      showPhotos: true,
+      style: 'list',
+    },
+    product_related: {
+      count: 4,
+      source: 'same_category',
+      showIfEmpty: false,
+    },
+    product_upsells: {
+      count: 4,
+    },
+    accordion: {
+      allowMultiple: false,
+      style: 'bordered',
+    },
+    tabs: {
+      style: 'underline',
+      alignment: 'right',
+    },
+    breadcrumb: {
+      showHome: true,
+      showCategory: true,
+      separator: '/',
+    },
+    divider: {},
+    spacer: { height: '40px' },
+    video: { autoplay: false, controls: true },
   };
   return defaults[type] || {};
 }

@@ -106,7 +106,7 @@ export function StoreFooter({
                 {categories.slice(0, 6).map(cat => (
                   <li key={cat.id}>
                     <Link 
-                      href={`${basePath === '' ? '/' : basePath}/category/${cat.slug}`} 
+                      href={`${basePath}/category/${cat.slug}`} 
                       className="text-sm opacity-60 hover:opacity-100 transition-opacity"
                     >
                       {cat.name}
@@ -237,9 +237,14 @@ export function StoreFooter({
             </div>
           )}
           
-          <p className="text-xs opacity-30 tracking-wide">
+          <a 
+            href="https://my-quickshop.com" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-xs opacity-60 tracking-wide hover:opacity-100 transition-opacity"
+          >
             נבנה עם QuickShop ⚡
-          </p>
+          </a>
         </div>
       </div>
     </footer>

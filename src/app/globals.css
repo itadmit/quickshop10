@@ -1,9 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Hebrew:wght@100;200;300;400;500;600;700&family=Assistant:wght@200;300;400;500;600&family=Pacifico&display=swap');
 @import "tailwindcss";
 
 :root {
   --font-display: 'Noto Sans Hebrew', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-sans: 'Assistant', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Noto Sans Hebrew', -apple-system, BlinkMacSystemFont, sans-serif;
   
   /* ZARA Colors - Minimal palette */
   --color-black: #000000;

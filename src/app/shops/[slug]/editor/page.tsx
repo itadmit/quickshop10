@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { pages, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
+import { defaultProductPageSections } from '@/lib/product-page-sections';
 
 // ============================================
 // Theme Editor Page - Full Screen (No Admin Layout)
@@ -127,6 +128,24 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     // Update stores table with coming_soon sections
     await db.update(stores)
       .set({ comingSoonSections: defaultComingSoonSections })
+      .where(eq(stores.id, store.id));
+    
+    // Refetch after creation
+    sections = await getPageSections(store.id, currentPage);
+  }
+
+  // For product page: auto-create default sections if none exist
+  // NEW ARCHITECTURE: Product page is fully editable like home page
+  if (currentPage === 'product' && sections.length === 0) {
+    // Generate unique IDs for default sections
+    const productSectionsWithIds = defaultProductPageSections.map(s => ({
+      ...s,
+      id: randomUUID(),
+    }));
+    
+    // Update stores table with product page sections
+    await db.update(stores)
+      .set({ productPageSections: productSectionsWithIds })
       .where(eq(stores.id, store.id));
     
     // Refetch after creation

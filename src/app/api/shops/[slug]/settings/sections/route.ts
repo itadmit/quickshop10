@@ -61,7 +61,7 @@ export async function PUT(
       return NextResponse.json({ success: true });
     }
     
-    // System pages (home, coming_soon)
+    // System pages (home, coming_soon, product)
     if (page === 'coming_soon') {
       await db.update(stores)
         .set({ 
@@ -72,6 +72,19 @@ export async function PUT(
       
       revalidateTag('sections', { expire: 0 });
       revalidatePath(`/shops/${slug}/coming-soon`);
+    } else if (page === 'product') {
+      // Product page sections (V2 - fully editable)
+      await db.update(stores)
+        .set({ 
+          productPageSections: sections,
+          updatedAt: new Date()
+        })
+        .where(eq(stores.id, store.id));
+      
+      revalidateTag('sections', { expire: 0 });
+      revalidateTag('product-page', { expire: 0 });
+      // Revalidate all product pages
+      revalidatePath(`/shops/${slug}/product/[productSlug]`, 'page');
     } else {
       // Default to home
       await db.update(stores)
@@ -110,7 +123,8 @@ export async function GET(
       .select({ 
         id: stores.id,
         homeSections: stores.homeSections,
-        comingSoonSections: stores.comingSoonSections
+        comingSoonSections: stores.comingSoonSections,
+        productPageSections: stores.productPageSections
       })
       .from(stores)
       .where(eq(stores.slug, slug))
@@ -139,9 +153,14 @@ export async function GET(
     }
 
     // System pages
-    const sections = page === 'coming_soon' 
-      ? (store.comingSoonSections || []) as Section[]
-      : (store.homeSections || []) as Section[];
+    let sections: Section[];
+    if (page === 'coming_soon') {
+      sections = (store.comingSoonSections || []) as Section[];
+    } else if (page === 'product') {
+      sections = (store.productPageSections || []) as Section[];
+    } else {
+      sections = (store.homeSections || []) as Section[];
+    }
 
     return NextResponse.json({ 
       sections: sections.sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))

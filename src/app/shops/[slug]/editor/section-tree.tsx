@@ -43,6 +43,7 @@ interface SectionTreeProps {
   onAddSection: (type: string, afterSectionId?: string) => void;
   onRemoveSection: (id: string) => void;
   onReorderSections: (fromIndex: number, toIndex: number) => void;
+  onApplyTemplate?: (templateId: string) => void;
   headerLayout?: 'logo-right' | 'logo-left' | 'logo-center';
   currentPage?: string;
 }
@@ -58,6 +59,7 @@ const PAGE_LABELS: Record<string, string> = {
 // Icon component type for section types
 type SectionIconComponent = React.ComponentType<{ className?: string }>;
 
+// Section types for home page
 const sectionTypes: Array<{ type: string; label: string; icon: SectionIconComponent; category: string }> = [
   // באנרים
   { type: 'hero', label: 'באנר ראשי', icon: Image, category: 'באנרים' },
@@ -87,6 +89,55 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   { type: 'custom', label: 'מותאם אישית', icon: Code, category: 'אחר' },
 ];
 
+// Section types for PRODUCT PAGE (V2 - fully editable)
+const productSectionTypes: Array<{ type: string; label: string; icon: SectionIconComponent; category: string }> = [
+  // מוצר (חובה)
+  { type: 'product_gallery', label: 'גלריית מוצר', icon: Images, category: 'מוצר' },
+  { type: 'product_info', label: 'מידע מוצר', icon: ShoppingBag, category: 'מוצר' },
+  { type: 'product_description', label: 'תיאור מוצר', icon: FileText, category: 'מוצר' },
+  { type: 'product_reviews', label: 'ביקורות', icon: Star, category: 'מוצר' },
+  { type: 'product_related', label: 'מוצרים דומים', icon: Grid3X3, category: 'מוצר' },
+  { type: 'product_upsells', label: 'מוצרי אפסייל', icon: ShoppingBag, category: 'מוצר' },
+  // תוכן (עם תמיכה בתוכן דינמי)
+  { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
+  { type: 'accordion', label: 'אקורדיון', icon: Layers, category: 'תוכן' },
+  { type: 'tabs', label: 'לשוניות', icon: LayoutGrid, category: 'תוכן' },
+  { type: 'features', label: 'חוזקות/יתרונות', icon: Sparkles, category: 'תוכן' },
+  { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },
+  { type: 'video', label: 'וידאו', icon: Video, category: 'תוכן' },
+  // פריסה
+  { type: 'breadcrumb', label: 'ניווט (Breadcrumb)', icon: Tag, category: 'פריסה' },
+  { type: 'divider', label: 'קו מפריד', icon: Code, category: 'פריסה' },
+  { type: 'spacer', label: 'רווח', icon: Code, category: 'פריסה' },
+];
+
+// Get label for product page sections
+const getProductSectionLabel = (type: string): string => {
+  return productSectionTypes.find(s => s.type === type)?.label || type;
+};
+
+// Get icon name for product page sections
+const getProductSectionIcon = (type: string): string => {
+  const icons: Record<string, string> = {
+    product_gallery: 'gallery',
+    product_info: 'product-info',
+    product_description: 'description',
+    product_reviews: 'reviews',
+    product_related: 'related',
+    product_upsells: 'upsell',
+    text_block: 'text',
+    accordion: 'accordion',
+    tabs: 'tabs',
+    features: 'features',
+    image_text: 'image',
+    video: 'video',
+    breadcrumb: 'breadcrumb',
+    divider: 'divider',
+    spacer: 'spacer',
+  };
+  return icons[type] || 'section';
+};
+
 export function SectionTree({
   sections,
   selectedSectionId,
@@ -94,6 +145,7 @@ export function SectionTree({
   onAddSection,
   onRemoveSection,
   onReorderSections,
+  onApplyTemplate,
   headerLayout,
   currentPage = 'home',
 }: SectionTreeProps) {
@@ -102,6 +154,7 @@ export function SectionTree({
   const isProductPage = currentPage === 'product';
   const isCategoryPage = currentPage === 'category';
   const [showAddMenu, setShowAddMenu] = useState(false);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
@@ -148,28 +201,34 @@ export function SectionTree({
     return icons[type] || 'section';
   };
 
-  // Special UI for Product Page - Similar to home page structure
+  // ============================================
+  // PRODUCT PAGE V2 - Fully Editable Like Home Page
+  // Sections are stored in stores.productPageSections JSON
+  // ============================================
   if (isProductPage) {
-    // Product page section types with their icons and labels
-    const productPageSections = [
-      { id: 'pp-gallery', icon: 'gallery', label: 'גלריית תמונות', category: 'main' },
-      { id: 'pp-info', icon: 'product-info', label: 'מידע מוצר', category: 'main' },
-      { id: 'pp-features', icon: 'features', label: 'חוזקות', category: 'main' },
-      { id: 'pp-description', icon: 'description', label: 'תיאור', category: 'main' },
-      { id: 'pp-reviews', icon: 'reviews', label: 'ביקורות', category: 'extra' },
-      { id: 'pp-related', icon: 'related', label: 'מוצרים דומים', category: 'extra' },
-    ];
-
     return (
       <div className="flex flex-col h-full" dir="rtl">
         {/* Header */}
         <div className="p-4 border-b border-gray-200">
-          <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+            {/* Template Picker Button */}
+            {onApplyTemplate && (
+              <button
+                onClick={() => setShowTemplateMenu(true)}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+              >
+                <Layers className="w-3.5 h-3.5" />
+                תבניות
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">גרור לסידור מחדש • לחץ + להוספה</p>
         </div>
 
-        {/* Scrollable Content - Same structure as home page */}
+        {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
-          {/* Header Section */}
+          {/* Header Section (Global - not part of sections) */}
           <div className="border-b border-gray-100">
             <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
               כותרת עליונה
@@ -197,49 +256,55 @@ export function SectionTree({
                 </span>
               </div>
             )}
-            <SectionItem
-              icon="breadcrumb"
-              label="ניווט (Breadcrumb)"
-              isSelected={selectedSectionId === 'pp-breadcrumb'}
-              onClick={() => onSelectSection('pp-breadcrumb')}
+          </div>
+          
+          {/* Dynamic Product Page Sections */}
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              סקשנים
+            </div>
+            
+            {/* Empty state */}
+            {sections.length === 0 && (
+              <div className="px-4 py-6 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <path d="M12 8v8M8 12h8" />
+                  </svg>
+                </div>
+                <p className="text-sm text-gray-600 mb-1">אין עדיין סקשנים</p>
+                <p className="text-xs text-gray-400">לחץ על &quot;הוסף סקשן&quot; כדי להתחיל</p>
+              </div>
+            )}
+            
+            {/* Draggable sections */}
+            {sections.map((section, index) => (
+              <div
+                key={section.id}
+                draggable
+                onDragStart={() => handleDragStart(index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragEnd={handleDragEnd}
+                className={draggedIndex === index ? 'opacity-50' : ''}
+              >
+                <SectionItem
+                  icon={getProductSectionIcon(section.type)}
+                  label={section.title || getProductSectionLabel(section.type)}
+                  isSelected={selectedSectionId === section.id}
+                  onClick={() => onSelectSection(section.id)}
+                  isDisabled={!section.isActive}
+                />
+              </div>
+            ))}
+            
+            {/* Add Section Button */}
+            <AddSectionButton 
+              onClick={() => setShowAddMenu(true)} 
             />
           </div>
-          
-          {/* Main Content Sections */}
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-              תוכן מוצר
-            </div>
-            
-            {productPageSections.filter(s => s.category === 'main').map((section) => (
-              <SectionItem
-                key={section.id}
-                icon={section.icon}
-                label={section.label}
-                isSelected={selectedSectionId === section.id}
-                onClick={() => onSelectSection(section.id)}
-              />
-            ))}
-          </div>
-          
-          {/* Extra Sections */}
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-              סקשנים נוספים
-            </div>
-            
-            {productPageSections.filter(s => s.category === 'extra').map((section) => (
-              <SectionItem
-                key={section.id}
-                icon={section.icon}
-                label={section.label}
-                isSelected={selectedSectionId === section.id}
-                onClick={() => onSelectSection(section.id)}
-              />
-            ))}
-          </div>
 
-          {/* Footer Section */}
+          {/* Footer Section (Global - not part of sections) */}
           <div>
             <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
               פוטר
@@ -262,6 +327,29 @@ export function SectionTree({
             )}
           </div>
         </div>
+
+        {/* Add Section Modal - Product Page specific types */}
+        {showAddMenu && (
+          <AddSectionModal
+            onClose={() => setShowAddMenu(false)}
+            onAdd={(type) => {
+              onAddSection(type);
+              setShowAddMenu(false);
+            }}
+            sectionTypes={productSectionTypes}
+          />
+        )}
+
+        {/* Template Picker Modal */}
+        {showTemplateMenu && onApplyTemplate && (
+          <ProductTemplatePickerModal
+            onClose={() => setShowTemplateMenu(false)}
+            onSelect={(templateId) => {
+              onApplyTemplate(templateId);
+              setShowTemplateMenu(false);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -614,21 +702,27 @@ function AddSectionButton({ onClick, small }: { onClick: () => void; small?: boo
 }
 
 // Add Section Popover (attached to sidebar)
+// Now accepts custom sectionTypes for product page support
 function AddSectionModal({
   onClose,
   onAdd,
+  sectionTypes: customSectionTypes,
 }: {
   onClose: () => void;
   onAdd: (type: string) => void;
+  sectionTypes?: typeof sectionTypes; // Optional - use default if not provided
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Use custom section types if provided, otherwise use default
+  const availableSectionTypes = customSectionTypes || sectionTypes;
+
   // Get unique categories
-  const categories = ['all', ...Array.from(new Set(sectionTypes.map(s => s.category).filter(Boolean)))];
+  const categories = ['all', ...Array.from(new Set(availableSectionTypes.map(s => s.category).filter(Boolean)))];
 
   // Filter sections
-  const filteredSections = sectionTypes.filter((section) => {
+  const filteredSections = availableSectionTypes.filter((section) => {
     const matchesSearch = 
       section.label.includes(searchTerm) ||
       section.type.includes(searchTerm);
@@ -644,7 +738,7 @@ function AddSectionModal({
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(section);
     return acc;
-  }, {} as Record<string, typeof sectionTypes>);
+  }, {} as Record<string, typeof availableSectionTypes>);
 
   return (
     <>
@@ -938,4 +1032,141 @@ function SectionIcon({ type }: { type: string }) {
         </svg>
       );
   }
+}
+
+// ============================================
+// Product Template Picker Modal
+// ============================================
+
+import { productPageTemplates } from '@/lib/product-page-sections';
+
+interface ProductTemplatePickerModalProps {
+  onClose: () => void;
+  onSelect: (templateId: string) => void;
+}
+
+function ProductTemplatePickerModal({ onClose, onSelect }: ProductTemplatePickerModalProps) {
+  // Template preview icons based on their structure
+  const getTemplatePreview = (templateId: string) => {
+    switch (templateId) {
+      case 'clean':
+        return (
+          <div className="w-full h-full flex gap-1 p-2">
+            <div className="w-1/2 bg-gray-200 rounded" />
+            <div className="w-1/2 flex flex-col gap-1">
+              <div className="h-4 bg-gray-300 rounded w-3/4" />
+              <div className="h-3 bg-gray-200 rounded w-1/2" />
+              <div className="flex-1" />
+              <div className="h-6 bg-blue-200 rounded" />
+            </div>
+          </div>
+        );
+      case 'detailed':
+        return (
+          <div className="w-full h-full flex flex-col gap-1 p-2">
+            <div className="flex gap-1 flex-1">
+              <div className="w-1/2 bg-gray-200 rounded" />
+              <div className="w-1/2 flex flex-col gap-1">
+                <div className="h-3 bg-gray-300 rounded w-3/4" />
+                <div className="h-2 bg-gray-200 rounded w-1/2" />
+              </div>
+            </div>
+            <div className="h-3 bg-amber-100 border border-amber-200 rounded" />
+            <div className="h-3 bg-amber-100 border border-amber-200 rounded" />
+          </div>
+        );
+      case 'fashion':
+        return (
+          <div className="w-full h-full flex flex-col gap-1 p-2">
+            <div className="flex-1 bg-gray-200 rounded" />
+            <div className="h-4 bg-gray-300 rounded w-1/2 mx-auto" />
+            <div className="h-3 bg-gray-200 rounded w-1/3 mx-auto" />
+            <div className="h-5 bg-blue-200 rounded" />
+          </div>
+        );
+      case 'tabs':
+        return (
+          <div className="w-full h-full flex flex-col gap-1 p-2">
+            <div className="flex gap-1 flex-1">
+              <div className="w-1/2 bg-gray-200 rounded" />
+              <div className="w-1/2 flex flex-col gap-1">
+                <div className="h-3 bg-gray-300 rounded w-3/4" />
+                <div className="h-2 bg-gray-200 rounded w-1/2" />
+              </div>
+            </div>
+            <div className="flex gap-0.5 border-b border-gray-200 pb-1">
+              <div className="h-2 w-8 bg-blue-300 rounded-t" />
+              <div className="h-2 w-8 bg-gray-200 rounded-t" />
+              <div className="h-2 w-8 bg-gray-200 rounded-t" />
+            </div>
+            <div className="h-6 bg-gray-100 rounded" />
+          </div>
+        );
+      default:
+        return (
+          <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center">
+            <Layers className="w-6 h-6 text-gray-400" />
+          </div>
+        );
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
+      <div 
+        className="bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+        dir="rtl"
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">בחר תבנית לעמוד מוצר</h2>
+            <p className="text-sm text-gray-500 mt-0.5">התבנית תחליף את כל הסקשנים הקיימים</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Templates Grid */}
+        <div className="p-6 grid grid-cols-2 gap-4 max-h-[60vh] overflow-auto">
+          {productPageTemplates.map((template) => (
+            <button
+              key={template.id}
+              onClick={() => onSelect(template.id)}
+              className="group text-right border border-gray-200 rounded-xl p-4 hover:border-blue-300 hover:bg-blue-50/50 transition-all"
+            >
+              {/* Preview */}
+              <div className="aspect-[4/3] bg-gray-50 rounded-lg mb-3 overflow-hidden border border-gray-100 group-hover:border-blue-200 transition-colors">
+                {getTemplatePreview(template.id)}
+              </div>
+              {/* Info */}
+              <h3 className="font-medium text-gray-900 group-hover:text-blue-700 transition-colors">
+                {template.name}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                {template.description}
+              </p>
+            </button>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            ביטול
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

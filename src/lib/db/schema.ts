@@ -217,6 +217,7 @@ export const stores = pgTable('stores', {
   // Page sections stored as JSON (no separate table needed - atomic operations)
   homeSections: jsonb('home_sections').default([]).notNull(),
   comingSoonSections: jsonb('coming_soon_sections').default([]).notNull(),
+  productPageSections: jsonb('product_page_sections').default([]).notNull(), // Product page V2 - fully editable sections
   plan: storePlanEnum('plan').default('free').notNull(),
   planExpiresAt: timestamp('plan_expires_at'),
   orderCounter: integer('order_counter').default(1000).notNull(),

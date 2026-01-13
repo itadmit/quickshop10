@@ -22,6 +22,8 @@ interface Section {
   subtitle: string | null;
   content: Record<string, unknown>;
   settings: Record<string, unknown>;
+  sortOrder: number;
+  isActive: boolean;
 }
 
 type HeaderLayout = 'logo-right' | 'logo-left' | 'logo-center';
@@ -507,18 +509,28 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     );
   }
 
-  // Special handling for product page settings (general settings)
+  // Special handling for product page settings (general settings) - LEGACY V1
   if (section.type === 'product-page') {
     return <ProductPageSettingsUI settings={settings as Record<string, unknown>} updateSettings={updateSettings as (settings: Record<string, unknown>) => void} initialTab="gallery" />;
   }
   
-  // Handle individual product page sections - show focused settings for each
+  // Handle individual product page sections - LEGACY V1 (pp-* prefix)
   if (section.type.startsWith('pp-')) {
     return (
       <ProductPageSectionSettings 
         sectionType={section.type}
         settings={settings as Record<string, unknown>} 
         updateSettings={updateSettings as (settings: Record<string, unknown>) => void} 
+      />
+    );
+  }
+
+  // Handle NEW product page sections V2 (product_* prefix)
+  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video'].includes(section.type)) {
+    return (
+      <ProductPageSectionSettingsV2 
+        section={section}
+        onUpdate={onUpdate}
       />
     );
   }
@@ -6190,6 +6202,952 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// ===========================================
+// Product Page Section Settings V2 - NEW Architecture
+// Each section is independently configurable
+// ===========================================
+
+interface ProductPageSectionSettingsV2Props {
+  section: Section;
+  onUpdate: (updates: Partial<Section>) => void;
+}
+
+function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionSettingsV2Props) {
+  const updateContent = (updates: Record<string, unknown>) => {
+    onUpdate({ content: { ...section.content, ...updates } });
+  };
+
+  const updateSettings = (updates: Record<string, unknown>) => {
+    onUpdate({ settings: { ...section.settings, ...updates } });
+  };
+
+  const sectionLabels: Record<string, string> = {
+    product_gallery: 'גלריית מוצר',
+    product_info: 'מידע מוצר',
+    product_description: 'תיאור מוצר',
+    product_reviews: 'ביקורות',
+    product_related: 'מוצרים דומים',
+    product_upsells: 'מוצרי אפסייל',
+    text_block: 'בלוק טקסט',
+    accordion: 'אקורדיון',
+    tabs: 'לשוניות',
+    features: 'חוזקות',
+    image_text: 'תמונה + טקסט',
+    video: 'וידאו',
+    breadcrumb: 'ניווט (Breadcrumb)',
+    divider: 'קו מפריד',
+    spacer: 'רווח',
+  };
+
+  return (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-gray-900">{sectionLabels[section.type] || section.type}</h3>
+          <button
+            onClick={() => onUpdate({ isActive: !section.isActive })}
+            className={`p-2 rounded-lg transition-colors ${section.isActive ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+            title={section.isActive ? 'מוצג' : 'מוסתר'}
+          >
+            {section.isActive ? <EyeIcon /> : <EyeOffIcon />}
+          </button>
+        </div>
+        <p className="text-xs text-gray-500">
+          {section.isActive ? 'הסקשן מוצג בעמוד' : 'הסקשן מוסתר מהעמוד'}
+        </p>
+      </div>
+
+      {/* Settings Content */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Product Gallery Settings */}
+        {section.type === 'product_gallery' && (
+          <>
+            <SettingsGroup title="פריסת גלריה">
+              <SelectField
+                label="סגנון תצוגה"
+                value={(section.settings.layout as string) || 'carousel'}
+                options={[
+                  { value: 'carousel', label: 'קרוסלה (ברירת מחדל)' },
+                  { value: 'grid', label: 'תמונות אחת מתחת לשנייה' },
+                  { value: 'single', label: 'תמונה בודדת' },
+                ]}
+                onChange={(v) => updateSettings({ layout: v })}
+              />
+              
+              <SelectField
+                label="מיקום תמונות קטנות"
+                value={(section.settings.thumbnailsPosition as string) || 'bottom'}
+                options={[
+                  { value: 'bottom', label: 'למטה' },
+                  { value: 'right', label: 'מימין' },
+                  { value: 'left', label: 'משמאל' },
+                  { value: 'hidden', label: 'מוסתר' },
+                ]}
+                onChange={(v) => updateSettings({ thumbnailsPosition: v })}
+              />
+              
+              <SelectField
+                label="יחס גובה-רוחב"
+                value={(section.settings.aspectRatio as string) || '3:4'}
+                options={[
+                  { value: '1:1', label: 'ריבוע (1:1)' },
+                  { value: '3:4', label: 'פורטרט (3:4)' },
+                  { value: '4:3', label: 'לנדסקייפ (4:3)' },
+                  { value: '16:9', label: 'רחב (16:9)' },
+                ]}
+                onChange={(v) => updateSettings({ aspectRatio: v })}
+              />
+              
+              <SwitchField
+                label="הפעל זום בלחיצה"
+                value={(section.settings.enableZoom as boolean) ?? true}
+                onChange={(v) => updateSettings({ enableZoom: v })}
+              />
+              
+              <SwitchField
+                label="הצג חצי ניווט"
+                value={(section.settings.showArrows as boolean) ?? true}
+                onChange={(v) => updateSettings({ showArrows: v })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Product Info Settings */}
+        {section.type === 'product_info' && (
+          <>
+            <SettingsGroup title="הגדרות מחיר">
+              <SwitchField
+                label="הצג מחיר השוואה"
+                value={(section.settings.showComparePrice as boolean) ?? true}
+                onChange={(v) => updateSettings({ showComparePrice: v })}
+              />
+              
+              <SwitchField
+                label="הצג הנחה"
+                value={(section.settings.showDiscount as boolean) ?? true}
+                onChange={(v) => updateSettings({ showDiscount: v })}
+              />
+              
+              {Boolean(section.settings.showDiscount) && (
+                <SelectField
+                  label="סגנון הנחה"
+                  value={(section.settings.discountStyle as string) || 'badge'}
+                  options={[
+                    { value: 'badge', label: 'תג' },
+                    { value: 'text', label: 'טקסט' },
+                    { value: 'both', label: 'שניהם' },
+                  ]}
+                  onChange={(v) => updateSettings({ discountStyle: v })}
+                />
+              )}
+            </SettingsGroup>
+            
+            <SettingsGroup title="תצוגת מלאי">
+              <SelectField
+                label="סגנון תצוגה"
+                value={(section.settings.inventoryDisplay as string) || 'count'}
+                options={[
+                  { value: 'in_stock', label: 'במלאי / אזל מהמלאי' },
+                  { value: 'count', label: 'X יחידות במלאי' },
+                  { value: 'low_stock', label: 'נותרו יחידות אחרונות (כשפחות מ-5)' },
+                  { value: 'hidden', label: 'להסתיר' },
+                ]}
+                onChange={(v) => updateSettings({ inventoryDisplay: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="שורות מותאמות אישית">
+              <p className="text-xs text-gray-500 mb-3">
+                הוסף שורות מתחת למחיר (למשל: משלוח חינם, מידע חומר)
+              </p>
+              <CustomInfoRowsEditor
+                rows={(section.content.customRows as Array<{ id: string; label: string; value: string; valueSource: 'static' | 'dynamic'; dynamicField?: string; isVisible: boolean }>) || []}
+                onChange={(rows) => updateContent({ customRows: rows })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Product Description Settings */}
+        {section.type === 'product_description' && (
+          <SettingsGroup title="סגנון תיאור">
+            <SelectField
+              label="סגנון תצוגה"
+              value={(section.settings.style as string) || 'text'}
+              options={[
+                { value: 'text', label: 'טקסט רגיל' },
+                { value: 'accordion', label: 'אקורדיון (נפתח בלחיצה)' },
+              ]}
+              onChange={(v) => updateSettings({ style: v })}
+            />
+            
+            {section.settings.style === 'accordion' && (
+              <TextField
+                label="כותרת אקורדיון"
+                value={(section.settings.accordionTitle as string) || 'תיאור מוצר'}
+                onChange={(v) => updateSettings({ accordionTitle: v })}
+              />
+            )}
+          </SettingsGroup>
+        )}
+
+        {/* Product Reviews Settings */}
+        {section.type === 'product_reviews' && (
+          <>
+            <SettingsGroup title="הגדרות ביקורות">
+              <TextField
+                label="כותרת"
+                value={section.title || 'ביקורות'}
+                onChange={(v) => onUpdate({ title: v })}
+              />
+              
+              <SwitchField
+                label="הצג דירוג"
+                value={(section.settings.showRating as boolean) ?? true}
+                onChange={(v) => updateSettings({ showRating: v })}
+              />
+              
+              <SwitchField
+                label="הצג כמות ביקורות"
+                value={(section.settings.showCount as boolean) ?? true}
+                onChange={(v) => updateSettings({ showCount: v })}
+              />
+              
+              <SwitchField
+                label="הצג תמונות"
+                value={(section.settings.showPhotos as boolean) ?? true}
+                onChange={(v) => updateSettings({ showPhotos: v })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Related Products Settings */}
+        {section.type === 'product_related' && (
+          <>
+            <SettingsGroup title="מוצרים דומים">
+              <TextField
+                label="כותרת"
+                value={section.title || 'אולי יעניין אותך'}
+                onChange={(v) => onUpdate({ title: v })}
+              />
+              
+              <TextField
+                label="תת-כותרת"
+                value={section.subtitle || ''}
+                onChange={(v) => onUpdate({ subtitle: v })}
+              />
+              
+              <SliderField
+                label="כמות מוצרים"
+                value={(section.settings.count as number) || 4}
+                min={2}
+                max={8}
+                onChange={(v) => updateSettings({ count: v })}
+              />
+              
+              <SwitchField
+                label="הצג גם כשאין מוצרים"
+                value={(section.settings.showIfEmpty as boolean) ?? false}
+                onChange={(v) => updateSettings({ showIfEmpty: v })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Accordion Section Settings */}
+        {section.type === 'accordion' && (
+          <>
+            <SettingsGroup title="הגדרות אקורדיון">
+              <SwitchField
+                label="אפשר לפתוח כמה פריטים"
+                value={(section.settings.allowMultiple as boolean) ?? false}
+                onChange={(v) => updateSettings({ allowMultiple: v })}
+              />
+              
+              <SelectField
+                label="סגנון"
+                value={(section.settings.style as string) || 'bordered'}
+                options={[
+                  { value: 'default', label: 'ברירת מחדל' },
+                  { value: 'bordered', label: 'עם מסגרת' },
+                  { value: 'minimal', label: 'מינימלי' },
+                ]}
+                onChange={(v) => updateSettings({ style: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="פריטים">
+              <p className="text-xs text-gray-500 mb-2">
+                ניתן להשתמש בתוכן דינמי: {"{{product.custom.xxx}}"}
+              </p>
+              <AccordionItemsEditor
+                items={(section.content.items as Array<{ id: string; title: string; content: string; isOpen: boolean; contentSource: string; dynamicField?: string }>) || []}
+                onChange={(items) => updateContent({ items })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Tabs Section Settings */}
+        {section.type === 'tabs' && (
+          <>
+            <SettingsGroup title="הגדרות לשוניות">
+              <SelectField
+                label="סגנון"
+                value={(section.settings.style as string) || 'underline'}
+                options={[
+                  { value: 'default', label: 'ברירת מחדל' },
+                  { value: 'pills', label: 'כפתורים' },
+                  { value: 'underline', label: 'קו תחתון' },
+                ]}
+                onChange={(v) => updateSettings({ style: v })}
+              />
+              
+              <SelectField
+                label="יישור"
+                value={(section.settings.alignment as string) || 'right'}
+                options={[
+                  { value: 'right', label: 'ימין' },
+                  { value: 'center', label: 'מרכז' },
+                  { value: 'left', label: 'שמאל' },
+                ]}
+                onChange={(v) => updateSettings({ alignment: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="לשוניות">
+              <p className="text-xs text-gray-500 mb-2">
+                ניתן להשתמש בתוכן דינמי: {"{{product.description}}"}
+              </p>
+              <TabItemsEditor
+                items={(section.content.items as Array<{ id: string; title: string; content: string; contentSource: string; dynamicField?: string }>) || []}
+                onChange={(items) => updateContent({ items })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Features Section Settings */}
+        {section.type === 'features' && (
+          <SettingsGroup title="חוזקות">
+            <SelectField
+              label="פריסה"
+              value={(section.settings.layout as string) || 'horizontal'}
+              options={[
+                { value: 'horizontal', label: 'אופקי' },
+                { value: 'vertical', label: 'אנכי' },
+                { value: 'grid', label: 'רשת' },
+              ]}
+              onChange={(v) => updateSettings({ layout: v })}
+            />
+            
+            <FeaturesItemsEditor
+              items={(section.content.items as Array<{ id: string; icon: string; text: string; isVisible: boolean }>) || []}
+              onChange={(items) => updateContent({ items })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Breadcrumb Settings */}
+        {section.type === 'breadcrumb' && (
+          <SettingsGroup title="הגדרות ניווט">
+            <SwitchField
+              label="הצג קישור לעמוד הבית"
+              value={(section.settings.showHome as boolean) ?? true}
+              onChange={(v) => updateSettings({ showHome: v })}
+            />
+            
+            <SwitchField
+              label="הצג קטגוריה"
+              value={(section.settings.showCategory as boolean) ?? true}
+              onChange={(v) => updateSettings({ showCategory: v })}
+            />
+            
+            <SelectField
+              label="מפריד"
+              value={(section.settings.separator as string) || '/'}
+              options={[
+                { value: '/', label: '/' },
+                { value: '>', label: '>' },
+                { value: '→', label: '→' },
+                { value: '•', label: '•' },
+              ]}
+              onChange={(v) => updateSettings({ separator: v })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Spacer Settings */}
+        {section.type === 'spacer' && (
+          <SettingsGroup title="הגדרות רווח">
+            <SelectField
+              label="גובה"
+              value={(section.settings.height as string) || '40px'}
+              options={[
+                { value: '20px', label: 'קטן (20px)' },
+                { value: '40px', label: 'בינוני (40px)' },
+                { value: '60px', label: 'גדול (60px)' },
+                { value: '80px', label: 'גדול מאוד (80px)' },
+              ]}
+              onChange={(v) => updateSettings({ height: v })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Divider Settings */}
+        {section.type === 'divider' && (
+          <div className="text-center py-8 text-gray-500">
+            <p className="text-sm">קו מפריד פשוט</p>
+            <p className="text-xs mt-2">ללא הגדרות נוספות</p>
+          </div>
+        )}
+
+        {/* Video Settings */}
+        {section.type === 'video' && (
+          <SettingsGroup title="הגדרות וידאו">
+            <TextField
+              label="כתובת וידאו (YouTube/Vimeo)"
+              value={(section.content.videoUrl as string) || ''}
+              onChange={(v) => updateContent({ videoUrl: v })}
+              placeholder="https://www.youtube.com/watch?v=..."
+            />
+            
+            <SwitchField
+              label="ניגון אוטומטי"
+              value={(section.settings.autoplay as boolean) ?? false}
+              onChange={(v) => updateSettings({ autoplay: v })}
+            />
+            
+            <SwitchField
+              label="הצג פקדים"
+              value={(section.settings.controls as boolean) ?? true}
+              onChange={(v) => updateSettings({ controls: v })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Text Block Settings */}
+        {section.type === 'text_block' && (
+          <SettingsGroup title="תוכן">
+            <p className="text-xs text-gray-500 mb-2">
+              ניתן להשתמש בתוכן דינמי: {"{{product.title}}"}, {"{{product.custom.xxx}}"}
+            </p>
+            <div className="border rounded-lg p-2">
+              <textarea
+                value={(section.content.text as string) || ''}
+                onChange={(e) => updateContent({ text: e.target.value })}
+                className="w-full h-32 text-sm resize-none focus:outline-none"
+                placeholder="הזן טקסט כאן... ניתן להשתמש ב-{{product.xxx}}"
+              />
+            </div>
+            
+            <SelectField
+              label="יישור טקסט"
+              value={(section.content.textAlign as string) || 'right'}
+              options={[
+                { value: 'right', label: 'ימין' },
+                { value: 'center', label: 'מרכז' },
+                { value: 'left', label: 'שמאל' },
+              ]}
+              onChange={(v) => updateContent({ textAlign: v })}
+            />
+          </SettingsGroup>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
+// Dynamic Field Picker - Select with all product variables
+// Like Shopify - shows available fields as selectable options
+// ===========================================
+
+import { dynamicVariables } from '@/lib/dynamic-content';
+
+function DynamicFieldPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  // Group variables by category
+  const productVars = dynamicVariables.filter(v => v.category === 'product');
+  const variantVars = dynamicVariables.filter(v => v.category === 'variant');
+  const storeVars = dynamicVariables.filter(v => v.category === 'store');
+  
+  // Find current variable label
+  const currentVar = dynamicVariables.find(v => v.path === value);
+  
+  return (
+    <div className="space-y-2">
+      <label className="text-xs text-gray-600 block">מידע דינמי מהמוצר</label>
+      
+      {/* Selected value as blue tag */}
+      {value && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v8M8 12h8" />
+            </svg>
+            {currentVar?.label || value}
+          </span>
+          <button
+            onClick={() => onChange('')}
+            className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+            title="הסר"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
+      
+      {/* Select dropdown with all variables */}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+      >
+        <option value="">בחר שדה...</option>
+        
+        <optgroup label="📦 מוצר">
+          {productVars.map(v => (
+            <option key={v.path} value={v.path}>
+              {v.label}{v.description ? ` - ${v.description}` : ''}
+            </option>
+          ))}
+        </optgroup>
+        
+        <optgroup label="🏷️ וריאנט">
+          {variantVars.map(v => (
+            <option key={v.path} value={v.path}>
+              {v.label}{v.description ? ` - ${v.description}` : ''}
+            </option>
+          ))}
+        </optgroup>
+        
+        <optgroup label="🏪 חנות">
+          {storeVars.map(v => (
+            <option key={v.path} value={v.path}>
+              {v.label}{v.description ? ` - ${v.description}` : ''}
+            </option>
+          ))}
+        </optgroup>
+        
+        <optgroup label="✨ שדות מותאמים">
+          <option value="product.custom.material">חומר (material)</option>
+          <option value="product.custom.care">הוראות טיפול (care)</option>
+          <option value="product.custom.specs">מפרט טכני (specs)</option>
+          <option value="product.custom.origin">ארץ ייצור (origin)</option>
+        </optgroup>
+      </select>
+      
+      <p className="text-xs text-gray-400">
+        בחר שדה מהרשימה או הזן ידנית: product.custom.xxx
+      </p>
+    </div>
+  );
+}
+
+// ===========================================
+// Custom Info Rows Editor - For product_info section
+// Allows adding custom rows below price (e.g., "Free shipping", "Material: Cotton")
+// ===========================================
+
+interface CustomInfoRow {
+  id: string;
+  label: string;
+  value: string;
+  valueSource: 'static' | 'dynamic';
+  dynamicField?: string;
+  isVisible: boolean;
+}
+
+function CustomInfoRowsEditor({
+  rows,
+  onChange,
+}: {
+  rows: CustomInfoRow[];
+  onChange: (rows: CustomInfoRow[]) => void;
+}) {
+  const addRow = () => {
+    onChange([
+      ...rows,
+      { id: `row-${Date.now()}`, label: '', value: '', valueSource: 'static', isVisible: true },
+    ]);
+  };
+
+  const updateRow = (id: string, updates: Partial<CustomInfoRow>) => {
+    onChange(rows.map(row => row.id === id ? { ...row, ...updates } : row));
+  };
+
+  const removeRow = (id: string) => {
+    onChange(rows.filter(row => row.id !== id));
+  };
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row, index) => (
+        <div key={row.id} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">שורה {index + 1}</span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => updateRow(row.id, { isVisible: !row.isVisible })}
+                className={`p-1.5 rounded transition-colors ${row.isVisible ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}
+                title={row.isVisible ? 'מוצג' : 'מוסתר'}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  {row.isVisible ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  )}
+                </svg>
+              </button>
+              <button
+                onClick={() => removeRow(row.id)}
+                className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block">תווית (Label)</label>
+              <input
+                type="text"
+                value={row.label}
+                onChange={(e) => updateRow(row.id, { label: e.target.value })}
+                className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="משלוח"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block">סוג ערך</label>
+              <select
+                value={row.valueSource}
+                onChange={(e) => updateRow(row.id, { valueSource: e.target.value as 'static' | 'dynamic' })}
+                className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+              >
+                <option value="static">טקסט קבוע</option>
+                <option value="dynamic">מידע דינמי</option>
+              </select>
+            </div>
+          </div>
+          
+          {row.valueSource === 'static' ? (
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block">ערך</label>
+              <input
+                type="text"
+                value={row.value}
+                onChange={(e) => updateRow(row.id, { value: e.target.value })}
+                className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="חינם מעל ₪200"
+              />
+            </div>
+          ) : (
+            <DynamicFieldPicker
+              value={row.dynamicField || ''}
+              onChange={(v) => updateRow(row.id, { dynamicField: v, value: `{{${v}}}` })}
+            />
+          )}
+        </div>
+      ))}
+      
+      <button
+        onClick={addRow}
+        className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        הוסף שורה מותאמת אישית
+      </button>
+    </div>
+  );
+}
+
+// ===========================================
+// Accordion Items Editor
+// ===========================================
+
+function AccordionItemsEditor({
+  items,
+  onChange,
+}: {
+  items: Array<{ id: string; title: string; content: string; isOpen: boolean; contentSource: string; dynamicField?: string }>;
+  onChange: (items: Array<{ id: string; title: string; content: string; isOpen: boolean; contentSource: string; dynamicField?: string }>) => void;
+}) {
+  const addItem = () => {
+    onChange([
+      ...items,
+      { id: `item-${Date.now()}`, title: 'פריט חדש', content: '', isOpen: false, contentSource: 'static' },
+    ]);
+  };
+
+  const updateItem = (id: string, updates: Partial<typeof items[0]>) => {
+    onChange(items.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
+  const removeItem = (id: string) => {
+    onChange(items.filter(item => item.id !== id));
+  };
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">פריט {index + 1}</span>
+            <button
+              onClick={() => removeItem(item.id)}
+              className="p-1 text-red-500 hover:bg-red-50 rounded"
+            >
+              <TrashIcon />
+            </button>
+          </div>
+          
+          <TextField
+            label="כותרת"
+            value={item.title}
+            onChange={(v) => updateItem(item.id, { title: v })}
+          />
+          
+          <SelectField
+            label="מקור תוכן"
+            value={item.contentSource}
+            options={[
+              { value: 'static', label: 'טקסט קבוע' },
+              { value: 'dynamic', label: 'תוכן דינמי (מהמוצר)' },
+            ]}
+            onChange={(v) => updateItem(item.id, { contentSource: v })}
+          />
+          
+          {item.contentSource === 'static' ? (
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block">תוכן</label>
+              <textarea
+                value={item.content}
+                onChange={(e) => updateItem(item.id, { content: e.target.value })}
+                className="w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="הזן תוכן..."
+              />
+            </div>
+          ) : (
+            <DynamicFieldPicker
+              value={item.dynamicField || ''}
+              onChange={(v) => updateItem(item.id, { dynamicField: v, content: `{{${v}}}` })}
+            />
+          )}
+          
+          <SwitchField
+            label="פתוח כברירת מחדל"
+            value={item.isOpen}
+            onChange={(v) => updateItem(item.id, { isOpen: v })}
+          />
+        </div>
+      ))}
+      
+      <button
+        onClick={addItem}
+        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+      >
+        + הוסף פריט
+      </button>
+    </div>
+  );
+}
+
+// ===========================================
+// Tab Items Editor
+// ===========================================
+
+function TabItemsEditor({
+  items,
+  onChange,
+}: {
+  items: Array<{ id: string; title: string; content: string; contentSource: string; dynamicField?: string }>;
+  onChange: (items: Array<{ id: string; title: string; content: string; contentSource: string; dynamicField?: string }>) => void;
+}) {
+  const addItem = () => {
+    onChange([
+      ...items,
+      { id: `tab-${Date.now()}`, title: 'לשונית חדשה', content: '', contentSource: 'static' },
+    ]);
+  };
+
+  const updateItem = (id: string, updates: Partial<typeof items[0]>) => {
+    onChange(items.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
+  const removeItem = (id: string) => {
+    if (items.length > 1) {
+      onChange(items.filter(item => item.id !== id));
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">לשונית {index + 1}</span>
+            {items.length > 1 && (
+              <button
+                onClick={() => removeItem(item.id)}
+                className="p-1 text-red-500 hover:bg-red-50 rounded"
+              >
+                <TrashIcon />
+              </button>
+            )}
+          </div>
+          
+          <TextField
+            label="כותרת"
+            value={item.title}
+            onChange={(v) => updateItem(item.id, { title: v })}
+          />
+          
+          <SelectField
+            label="מקור תוכן"
+            value={item.contentSource}
+            options={[
+              { value: 'static', label: 'טקסט קבוע' },
+              { value: 'dynamic', label: 'תוכן דינמי (מהמוצר)' },
+            ]}
+            onChange={(v) => updateItem(item.id, { contentSource: v })}
+          />
+          
+          {item.contentSource === 'static' ? (
+            <div>
+              <label className="text-xs text-gray-600 mb-1 block">תוכן</label>
+              <textarea
+                value={item.content}
+                onChange={(e) => updateItem(item.id, { content: e.target.value })}
+                className="w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
+                placeholder="הזן תוכן..."
+              />
+            </div>
+          ) : (
+            <DynamicFieldPicker
+              value={item.dynamicField || ''}
+              onChange={(v) => updateItem(item.id, { dynamicField: v, content: `{{${v}}}` })}
+            />
+          )}
+        </div>
+      ))}
+      
+      <button
+        onClick={addItem}
+        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+      >
+        + הוסף לשונית
+      </button>
+    </div>
+  );
+}
+
+// ===========================================
+// Features Items Editor
+// ===========================================
+
+function FeaturesItemsEditor({
+  items,
+  onChange,
+}: {
+  items: Array<{ id: string; icon: string; text: string; isVisible: boolean }>;
+  onChange: (items: Array<{ id: string; icon: string; text: string; isVisible: boolean }>) => void;
+}) {
+  const addItem = () => {
+    onChange([
+      ...items,
+      { id: `feature-${Date.now()}`, icon: 'check', text: 'חוזקה חדשה', isVisible: true },
+    ]);
+  };
+
+  const updateItem = (id: string, updates: Partial<typeof items[0]>) => {
+    onChange(items.map(item => item.id === id ? { ...item, ...updates } : item));
+  };
+
+  const removeItem = (id: string) => {
+    onChange(items.filter(item => item.id !== id));
+  };
+
+  return (
+    <div className="space-y-3">
+      {items.map((item, index) => (
+        <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => updateItem(item.id, { isVisible: !item.isVisible })}
+                className={`p-1 rounded ${item.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+              >
+                {item.isVisible ? <EyeIcon /> : <EyeOffIcon />}
+              </button>
+              <button
+                onClick={() => removeItem(item.id)}
+                className="p-1 text-red-500 hover:bg-red-50 rounded"
+              >
+                <TrashIcon />
+              </button>
+            </div>
+          </div>
+          
+          <SelectField
+            label="אייקון"
+            value={item.icon}
+            options={[
+              { value: 'truck', label: 'משלוח' },
+              { value: 'refresh', label: 'החזרה' },
+              { value: 'shield', label: 'אחריות' },
+              { value: 'check', label: 'וי' },
+              { value: 'heart', label: 'לב' },
+              { value: 'star', label: 'כוכב' },
+              { value: 'gift', label: 'מתנה' },
+              { value: 'clock', label: 'שעון' },
+              { value: 'creditCard', label: 'כרטיס אשראי' },
+              { value: 'phone', label: 'טלפון' },
+              { value: 'mail', label: 'מייל' },
+              { value: 'package', label: 'חבילה' },
+            ]}
+            onChange={(v) => updateItem(item.id, { icon: v })}
+          />
+          
+          <TextField
+            label="טקסט"
+            value={item.text}
+            onChange={(v) => updateItem(item.id, { text: v })}
+          />
+        </div>
+      ))}
+      
+      {items.length < 5 && (
+        <button
+          onClick={addItem}
+          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+        >
+          + הוסף חוזקה
+        </button>
+      )}
     </div>
   );
 }

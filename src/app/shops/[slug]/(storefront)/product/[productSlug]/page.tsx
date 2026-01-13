@@ -25,6 +25,9 @@ import {
   LiveDescriptionSection,
 } from '@/components/storefront/product-page-preview';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
+import { ProductSection } from '@/components/product-sections';
+import { type ProductPageSection } from '@/lib/product-page-sections';
+import { type DynamicContentContext } from '@/lib/dynamic-content';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -83,6 +86,18 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const pageSettings = getProductPageSettings(storeSettings);
   const visibleSections = getVisibleSections(pageSettings);
   const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
+  
+  // V2 Product Page Sections - dynamic sections from stores.productPageSections
+  const v2Sections = (store.productPageSections || []) as ProductPageSection[];
+  const hasV2Sections = v2Sections.length > 0;
+  
+  // Filter V2 sections by type for rendering in appropriate locations
+  const v2ContentSections = hasV2Sections 
+    ? v2Sections.filter(s => 
+        s.isActive && 
+        ['accordion', 'tabs', 'text_block', 'features', 'divider', 'spacer'].includes(s.type)
+      )
+    : [];
 
   // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
@@ -171,6 +186,40 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
   // Helper to check if section is visible
   const isSectionVisible = (type: string) => visibleSections.some(s => s.type === type);
+  
+  // 🆕 V2 Dynamic Content Context - for resolving {{product.xxx}} placeholders
+  // Cast product to access additional fields that may exist
+  const productData = product as typeof product & { 
+    barcode?: string | null; 
+    weight?: string | null; 
+    metadata?: Record<string, unknown>; 
+  };
+  
+  const dynamicContext: DynamicContentContext = {
+    product: {
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      price: finalPrice,
+      comparePrice: effectiveComparePrice,
+      description: product.description,
+      shortDescription: product.shortDescription,
+      sku: product.sku,
+      barcode: productData.barcode || null,
+      inventory: product.inventory,
+      weight: productData.weight || null,
+      trackInventory: product.trackInventory,
+      hasVariants: product.hasVariants,
+      category: categories.find(c => c.id === productCategoryIds[0])?.name || null,
+      categories: categories.filter(c => productCategoryIds.includes(c.id)).map(c => c.name),
+      metadata: productData.metadata as { customFields?: Record<string, string>; [key: string]: unknown } | undefined,
+    },
+    store: {
+      name: store.name,
+      currency: '₪',
+    },
+    showDecimalPrices,
+  };
 
   // Helper to convert typography settings to inline styles (for SSR - no JS!)
   const getTypographyStyle = (settings: ProductPageSettings['typography'][keyof ProductPageSettings['typography']]): React.CSSProperties => {
@@ -686,6 +735,21 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                 </div>
               )}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* 🆕 V2 Content Sections - Accordion, Tabs, Text Block, Features */}
+      {v2ContentSections.length > 0 && (
+        <section className="py-8 px-6">
+          <div className="max-w-7xl mx-auto">
+            {v2ContentSections.map((section) => (
+              <ProductSection 
+                key={section.id} 
+                section={section} 
+                context={dynamicContext}
+              />
+            ))}
           </div>
         </section>
       )}
