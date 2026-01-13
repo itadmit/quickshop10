@@ -249,6 +249,25 @@ export function ContactsDataTable({
       ),
     },
     {
+      key: 'message',
+      header: 'הודעה',
+      width: '200px',
+      render: (contact) => {
+        const metadata = (contact.metadata || {}) as { message?: string };
+        const message = metadata.message;
+        if (!message) return <span className="text-gray-400 text-sm">-</span>;
+        // Show truncated message with tooltip
+        return (
+          <p 
+            className="text-gray-600 text-sm truncate max-w-[180px]"
+            title={message}
+          >
+            {message}
+          </p>
+        );
+      },
+    },
+    {
       key: 'date',
       header: 'תאריך',
       width: '100px',

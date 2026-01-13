@@ -1,7 +1,9 @@
 /**
- * ContactSection - Server Component
- * סקשן יצירת קשר - אפס JS, מהיר כמו PHP!
+ * ContactSection - Server Component with Client Form
+ * סקשן יצירת קשר - הטופס עצמו הוא client component לצורך חיווי
  */
+
+import { ContactForm } from './contact-form';
 
 interface ContactSectionProps {
   title: string | null;
@@ -103,9 +105,6 @@ export function ContactSection({
   const showInfo = layout !== 'form-only' && (content.email || content.phone || content.address || content.hours || content.text);
   // Default showForm to true unless explicitly set to false
   const showForm = (content.showForm !== false) && layout !== 'info-only';
-
-  // Form action URL - use the new API route
-  const formActionUrl = content.formAction || (storeSlug ? `/api/shops/${storeSlug}/contact` : '#');
 
   return (
     <section 
@@ -234,84 +233,15 @@ export function ContactSection({
             </div>
           )}
 
-          {/* Contact Form - Zara-style minimalist design */}
-          {showForm && (
-            <form 
-              action={formActionUrl}
-              method="POST"
-              className="space-y-6"
-            >
-              {/* Hidden field for section ID */}
-              {sectionId && <input type="hidden" name="sectionId" value={sectionId} />}
-              
-              <div>
-                <label htmlFor="contact-name" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
-                  שם מלא *
-                </label>
-                <input
-                  type="text"
-                  id="contact-name"
-                  name="name"
-                  required
-                  className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm"
-                  placeholder=""
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="contact-email" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
-                  אימייל *
-                </label>
-                <input
-                  type="email"
-                  id="contact-email"
-                  name="email"
-                  required
-                  className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm"
-                  placeholder=""
-                  dir="ltr"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="contact-phone" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
-                  טלפון
-                </label>
-                <input
-                  type="tel"
-                  id="contact-phone"
-                  name="phone"
-                  className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm"
-                  placeholder=""
-                  dir="ltr"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="contact-message" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
-                  הודעה *
-                </label>
-                <textarea
-                  id="contact-message"
-                  name="message"
-                  required
-                  rows={4}
-                  className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm resize-none"
-                  placeholder=""
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full py-4 px-8 text-xs font-normal tracking-[0.2em] uppercase transition-all duration-200 hover:opacity-80"
-                style={{
-                  backgroundColor: settings.buttonBackgroundColor || '#000',
-                  color: settings.buttonTextColor || '#fff',
-                }}
-              >
-                {content.submitButtonText || 'שליחה'}
-              </button>
-            </form>
+          {/* Contact Form - Client Component with feedback */}
+          {showForm && storeSlug && (
+            <ContactForm
+              storeSlug={storeSlug}
+              sectionId={sectionId}
+              submitButtonText={content.submitButtonText || 'שליחה'}
+              buttonBackgroundColor={settings.buttonBackgroundColor || '#000'}
+              buttonTextColor={settings.buttonTextColor || '#fff'}
+            />
           )}
         </div>
       </div>
