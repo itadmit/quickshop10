@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValidPassword = await verifyPassword(password, influencer.passwordHash);
+    const isValidPassword = await verifyPassword(password.trim(), influencer.passwordHash);
 
     if (!isValidPassword) {
       return NextResponse.json(

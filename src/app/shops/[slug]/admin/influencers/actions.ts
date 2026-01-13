@@ -51,11 +51,11 @@ export async function createInfluencer(storeId: string, slug: string, data: Infl
       .where(eq(stores.id, storeId))
       .limit(1);
 
-    // Hash password if provided
+    // Hash password if provided (trim whitespace)
     let passwordHash = null;
-    const tempPassword = data.password; // Keep original password for email
-    if (data.password) {
-      passwordHash = await bcrypt.hash(data.password, 10);
+    const tempPassword = data.password?.trim(); // Keep original password for email
+    if (tempPassword) {
+      passwordHash = await bcrypt.hash(tempPassword, 10);
     }
 
     // Create influencer (normalize email to lowercase)
