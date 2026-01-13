@@ -422,8 +422,8 @@ export function DataTable<T>({
         </table>
       </div>
 
-      {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {/* Pagination - show if more than 1 page OR if there's extra content (like per-page selector) */}
+      {pagination && (pagination.totalPages > 1 || paginationExtra) && (
         <div className="px-3 sm:px-4 py-3 border-t border-gray-200 bg-gray-50 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
             מציג {((pagination.currentPage - 1) * pagination.perPage) + 1} - {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)} מתוך {pagination.totalItems}
@@ -436,23 +436,28 @@ export function DataTable<T>({
             </div>
           )}
           
-          <div className="flex items-center gap-2 order-1 sm:order-3">
-            <PaginationButton
-              href={pagination.currentPage > 1 ? `${pathname}?${getPageParams(searchParams, pagination.currentPage - 1)}` : undefined}
-              disabled={pagination.currentPage === 1}
-            >
-              הקודם
-            </PaginationButton>
-            <span className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-gray-600">
-              {pagination.currentPage} / {pagination.totalPages}
-            </span>
-            <PaginationButton
-              href={pagination.currentPage < pagination.totalPages ? `${pathname}?${getPageParams(searchParams, pagination.currentPage + 1)}` : undefined}
-              disabled={pagination.currentPage === pagination.totalPages}
-            >
-              הבא
-            </PaginationButton>
-          </div>
+          {/* Only show navigation buttons if more than 1 page */}
+          {pagination.totalPages > 1 ? (
+            <div className="flex items-center gap-2 order-1 sm:order-3">
+              <PaginationButton
+                href={pagination.currentPage > 1 ? `${pathname}?${getPageParams(searchParams, pagination.currentPage - 1)}` : undefined}
+                disabled={pagination.currentPage === 1}
+              >
+                הקודם
+              </PaginationButton>
+              <span className="px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-gray-600">
+                {pagination.currentPage} / {pagination.totalPages}
+              </span>
+              <PaginationButton
+                href={pagination.currentPage < pagination.totalPages ? `${pathname}?${getPageParams(searchParams, pagination.currentPage + 1)}` : undefined}
+                disabled={pagination.currentPage === pagination.totalPages}
+              >
+                הבא
+              </PaginationButton>
+            </div>
+          ) : (
+            <div className="order-1 sm:order-3" />
+          )}
         </div>
       )}
     </div>

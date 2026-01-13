@@ -22,6 +22,8 @@ export function PerPageSelector({ currentPerPage }: PerPageSelectorProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const hasInitialized = useRef(false);
 
   // On mount, check if stored value differs from URL and redirect if needed
@@ -44,6 +46,19 @@ export function PerPageSelector({ currentPerPage }: PerPageSelectorProps) {
     }
   }, [pathname, router, searchParams]);
 
+  // Calculate dropdown position when opening
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      // Position above the button, centered
+      setDropdownPosition({
+        top: rect.top - 8, // 8px gap above button
+        left: rect.left + rect.width / 2,
+      });
+    }
+    setIsOpen(!isOpen);
+  };
+
   const handleSelect = (value: PerPageOption) => {
     // Save to localStorage
     localStorage.setItem(STORAGE_KEY, value.toString());
@@ -60,13 +75,14 @@ export function PerPageSelector({ currentPerPage }: PerPageSelectorProps) {
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="flex items-center gap-1.5 px-2.5 py-1 text-xs sm:text-sm text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
       >
         <span>הצג:</span>
         <span className="font-medium text-gray-900">{currentPerPage}</span>
         <svg 
-          className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? '' : 'rotate-180'}`} 
           fill="none" 
           stroke="currentColor" 
           viewBox="0 0 24 24"
@@ -83,8 +99,15 @@ export function PerPageSelector({ currentPerPage }: PerPageSelectorProps) {
             onClick={() => setIsOpen(false)} 
           />
           
-          {/* Dropdown - opens upward */}
-          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[80px]">
+          {/* Dropdown - fixed position, opens upward */}
+          <div 
+            className="fixed bg-white border border-gray-200 rounded-lg shadow-lg z-50 min-w-[80px] -translate-x-1/2"
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              transform: 'translate(-50%, -100%)',
+            }}
+          >
             {PER_PAGE_OPTIONS.map((option) => (
               <button
                 key={option}
