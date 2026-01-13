@@ -739,6 +739,9 @@ export function CheckoutForm({
   
   // Check for free shipping
   const hasFreeShipping = discountCalc.freeShipping || appliedCoupons.some(c => c.type === 'free_shipping');
+  
+  // 🎁 Check if cart contains only virtual items (gift cards) - no shipping needed
+  const isVirtualCartOnly = cart.length > 0 && cart.every(item => item.isGiftCard === true);
 
   // Calculate shipping based on selected method OR legacy settings
   const selectedMethod = shippingOptions.find(m => m.id === selectedShippingMethod);
@@ -746,10 +749,13 @@ export function CheckoutForm({
   const selectedMethodName = selectedMethod?.name || shippingSettings.rates[0]?.name || 'משלוח';
   const freeShippingThreshold = shippingSettings.enableFreeShipping ? shippingSettings.freeShippingThreshold : Infinity;
   // If using new shipping system, the price is already calculated. If legacy, check threshold
-  const shipping = selectedMethod 
-    ? selectedMethod.price 
-    : (cartOriginalTotal >= freeShippingThreshold ? 0 : baseShippingRate);
-  const shippingAfterDiscount = hasFreeShipping ? 0 : shipping;
+  // 🎁 Virtual cart (gift cards only) = no shipping
+  const shipping = isVirtualCartOnly 
+    ? 0 
+    : (selectedMethod 
+        ? selectedMethod.price 
+        : (cartOriginalTotal >= freeShippingThreshold ? 0 : baseShippingRate));
+  const shippingAfterDiscount = hasFreeShipping || isVirtualCartOnly ? 0 : shipping;
   const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount + giftCardAmount;
   // ⚠️ CRITICAL: Use cartOriginalTotal - discounts are calculated from original price!
   const subtotalAfterDiscount = cartOriginalTotal - totalDiscount + shippingAfterDiscount;
@@ -779,8 +785,13 @@ export function CheckoutForm({
     if (step === 'details') {
       // Track InitiateCheckout when moving from details to shipping
       tracker.initiateCheckout(cartData);
-      setStep('shipping');
-      // Scroll to top so shipping section is visible
+      // 🎁 Skip shipping step for virtual cart (gift cards only)
+      if (isVirtualCartOnly) {
+        setStep('payment');
+      } else {
+        setStep('shipping');
+      }
+      // Scroll to top so next section is visible
       window.scrollTo({ top: 0, behavior: 'instant' });
     } else if (step === 'shipping') {
       // Track AddShippingInfo when moving from shipping to payment
@@ -905,6 +916,8 @@ export function CheckoutForm({
                 price: item.price,
                 quantity: item.quantity,
                 variantTitle: item.variantTitle,
+                isGiftCard: item.isGiftCard,
+                giftCardDetails: item.giftCardDetails,
               })),
               formData,
               primaryCoupon ? {
@@ -1032,6 +1045,9 @@ export function CheckoutForm({
                   // 🆕 Include addons in order data
                   addons: item.addons,
                   addonTotal: item.addonTotal,
+                  // 🎁 Gift card data
+                  isGiftCard: item.isGiftCard,
+                  giftCardDetails: item.giftCardDetails,
                 })),
                 shipping: {
                   method: selectedMethodName,
@@ -1203,6 +1219,8 @@ export function CheckoutForm({
               price: item.price,
               quantity: item.quantity,
               variantTitle: item.variantTitle,
+              isGiftCard: item.isGiftCard,
+              giftCardDetails: item.giftCardDetails,
             })),
             formData,
             primaryCoupon ? {
@@ -2011,7 +2029,12 @@ export function CheckoutForm({
                   <button
                     type="button"
                     onClick={() => {
-                      setStep(step === 'payment' ? 'shipping' : 'details');
+                      // 🎁 Skip shipping step for virtual cart when going back
+                      if (step === 'payment' && isVirtualCartOnly) {
+                        setStep('details');
+                      } else {
+                        setStep(step === 'payment' ? 'shipping' : 'details');
+                      }
                       window.scrollTo({ top: 0, behavior: 'instant' });
                     }}
                     className="btn-secondary flex-1"

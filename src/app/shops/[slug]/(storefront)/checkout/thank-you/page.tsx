@@ -259,6 +259,13 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             sku?: string;
             image?: string;
             imageUrl?: string;
+            isGiftCard?: boolean;
+            giftCardDetails?: {
+              recipientName: string;
+              recipientEmail: string;
+              senderName?: string;
+              message?: string;
+            };
           }>;
           
           // UPDATE order to PAID!
@@ -396,6 +403,13 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         sku?: string;
         image?: string;
         imageUrl?: string;
+        isGiftCard?: boolean;
+        giftCardDetails?: {
+          recipientName: string;
+          recipientEmail: string;
+          senderName?: string;
+          message?: string;
+        };
       }>;
       
       // ========== UPDATE EXISTING ORDER TO PAID ==========

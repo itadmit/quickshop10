@@ -35,7 +35,7 @@ import {
   inventoryLogs,
 } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
-import { sendOrderConfirmationEmail } from '@/lib/email';
+import { sendOrderConfirmationEmail, sendGiftCardEmail } from '@/lib/email';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 import { addPointsFromOrder } from '@/lib/actions/loyalty';
 import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
@@ -60,6 +60,14 @@ export interface CartItem {
     priceAdjustment: number;
   }>;
   addonTotal?: number;
+  // 🎁 Gift card virtual product
+  isGiftCard?: boolean;
+  giftCardDetails?: {
+    recipientName: string;
+    recipientEmail: string;
+    senderName?: string;
+    message?: string;
+  };
 }
 
 export interface OrderData {
@@ -207,6 +215,15 @@ export async function executePostPaymentActions(params: PostPaymentParams): Prom
     checkLowStock(storeId, cartItems)
       .catch(err => console.error('[PostPayment] Low stock check failed:', err))
   );
+  
+  // 11. Create and send gift cards for virtual gift card items
+  const giftCardItems = cartItems.filter(item => item.isGiftCard && item.giftCardDetails);
+  if (giftCardItems.length > 0) {
+    operations.push(
+      createAndSendGiftCards(storeId, storeName, storeSlug, order, giftCardItems)
+        .catch(err => console.error('[PostPayment] Gift card creation failed:', err))
+    );
+  }
   
   // Wait for all operations (but don't block - they're already fire-and-forget)
   await Promise.allSettled(operations);
@@ -552,6 +569,104 @@ async function checkLowStock(storeId: string, cartItems: CartItem[]): Promise<vo
     
     if (product && product.inventory !== null) {
       emitLowStock(storeId, product.id, product.name, product.inventory);
+    }
+  }
+}
+
+/**
+ * Generate a unique gift card code
+ */
+function generateGiftCardCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed confusing chars like O,0,I,1
+  let code = '';
+  for (let i = 0; i < 16; i++) {
+    if (i > 0 && i % 4 === 0) code += '-';
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
+/**
+ * Create gift cards and send to recipients
+ */
+async function createAndSendGiftCards(
+  storeId: string,
+  storeName: string,
+  storeSlug: string,
+  order: {
+    id: string;
+    orderNumber: string;
+    customerEmail?: string | null;
+    customerName?: string | null;
+  },
+  giftCardItems: CartItem[]
+): Promise<void> {
+  console.log(`[PostPayment] Creating ${giftCardItems.length} gift cards for order ${order.orderNumber}`);
+  
+  for (const item of giftCardItems) {
+    if (!item.giftCardDetails) continue;
+    
+    // Create one gift card per quantity
+    for (let i = 0; i < item.quantity; i++) {
+      try {
+        // Generate unique code
+        let code: string;
+        let isUnique = false;
+        do {
+          code = generateGiftCardCode();
+          // Check uniqueness
+          const existing = await db.query.giftCards.findFirst({
+            where: and(eq(giftCards.storeId, storeId), eq(giftCards.code, code)),
+          });
+          isUnique = !existing;
+        } while (!isUnique);
+        
+        // Calculate expiry (12 months from now by default)
+        const expiresAt = new Date();
+        expiresAt.setMonth(expiresAt.getMonth() + 12);
+        
+        // Create gift card in database
+        const [newGiftCard] = await db.insert(giftCards).values({
+          storeId,
+          code,
+          initialBalance: String(item.price),
+          currentBalance: String(item.price),
+          status: 'active',
+          recipientEmail: item.giftCardDetails.recipientEmail,
+          recipientName: item.giftCardDetails.recipientName,
+          senderName: item.giftCardDetails.senderName || order.customerName || undefined,
+          message: item.giftCardDetails.message,
+          purchasedOrderId: order.id,
+          expiresAt,
+        }).returning();
+        
+        // Create initial transaction
+        await db.insert(giftCardTransactions).values({
+          giftCardId: newGiftCard.id,
+          orderId: order.id,
+          amount: String(item.price),
+          balanceAfter: String(item.price),
+          note: `גיפט קארד נרכש בהזמנה ${order.orderNumber}`,
+        });
+        
+        // Send email to recipient
+        await sendGiftCardEmail({
+          storeName,
+          storeSlug,
+          recipientName: item.giftCardDetails.recipientName,
+          recipientEmail: item.giftCardDetails.recipientEmail,
+          senderName: item.giftCardDetails.senderName || order.customerName || 'מישהו מיוחד',
+          message: item.giftCardDetails.message || '',
+          amount: item.price,
+          giftCardCode: code,
+          expiresAt,
+        });
+        
+        console.log(`[PostPayment] Created gift card ${code} for ${item.giftCardDetails.recipientEmail}`);
+        
+      } catch (err) {
+        console.error(`[PostPayment] Failed to create gift card:`, err);
+      }
     }
   }
 }

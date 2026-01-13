@@ -1,6 +1,7 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { headers } from 'next/headers';
 import { getGiftCardSettings } from '../../admin/gift-cards/settings/actions';
 import { defaultGiftCardSettings } from '../../admin/gift-cards/settings/types';
 import { GiftCardPurchaseForm } from './gift-card-purchase-form';
@@ -15,6 +16,11 @@ interface GiftCardPageProps {
 export default async function GiftCardPage({ params }: GiftCardPageProps) {
   const { slug } = await params;
   const store = await getStoreBySlug(slug);
+  
+  // Get base path for navigation
+  const headersList = await headers();
+  const isCustomDomain = !!headersList.get('x-custom-domain');
+  const basePath = isCustomDomain ? '' : `/shops/${slug}`;
   
   if (!store) {
     notFound();
@@ -69,6 +75,7 @@ export default async function GiftCardPage({ params }: GiftCardPageProps) {
           storeSlug={slug}
           storeName={store.name}
           settings={settings}
+          basePath={basePath}
         />
 
         {/* Info Section */}

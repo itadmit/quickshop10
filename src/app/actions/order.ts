@@ -12,6 +12,14 @@ type CartItem = {
   price: number;
   quantity: number;
   variantTitle?: string;
+  // 🎁 Gift card virtual product
+  isGiftCard?: boolean;
+  giftCardDetails?: {
+    recipientName: string;
+    recipientEmail: string;
+    senderName?: string;
+    message?: string;
+  };
 };
 
 type CustomerInfo = {

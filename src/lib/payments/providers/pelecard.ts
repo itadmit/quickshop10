@@ -314,6 +314,9 @@ export class PelecardProvider extends BasePaymentProvider {
         MaxPayments: this.config!.settings?.maxPayments as string || '12',
         MinPayments: '1',
         
+        // Invoice settings - send tax invoice by email
+        send_by_mail: 'true',
+        
         // Our reference for callback
         UserKey: request.orderReference,
         ParamX: request.orderReference,

@@ -12,6 +12,14 @@ export interface StoreDisplaySettings {
   currency: string;
 }
 
+// פרטי גיפט קארד (לפריט וירטואלי בעגלה)
+export interface GiftCardCartDetails {
+  recipientName: string;
+  recipientEmail: string;
+  senderName?: string;
+  message?: string;
+}
+
 export interface CartItem {
   id: string;
   productId: string;
@@ -44,6 +52,9 @@ export interface CartItem {
     priceAdjustment: number;
   }>;
   addonTotal?: number;
+  // 🎁 גיפט קארד - מוצר וירטואלי
+  isGiftCard?: boolean;
+  giftCardDetails?: GiftCardCartDetails;
 }
 
 // קופון מוחל
@@ -263,6 +274,12 @@ export function StoreProvider({ children, initialSettings, storeSlug }: StorePro
   // Actions
   const addToCart = useCallback((item: Omit<CartItem, 'id' | 'quantity'>, quantity = 1) => {
     setCart(prev => {
+      // 🎁 Gift cards are always unique items (different recipient details)
+      // Never merge gift cards - each is a separate item
+      if (item.isGiftCard) {
+        return [...prev, { ...item, id: crypto.randomUUID(), quantity: 1 }];
+      }
+      
       // Match by productId AND variantId (for products with variants)
       const existing = prev.find(i => 
         i.productId === item.productId && i.variantId === item.variantId

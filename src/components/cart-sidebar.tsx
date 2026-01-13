@@ -171,41 +171,64 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                             )}
                           </div>
                         )}
+                        
+                        {/* 🎁 Gift Card Details */}
+                        {item.isGiftCard && item.giftCardDetails && (
+                          <div className="mt-2 bg-purple-50 border border-purple-100 rounded-md p-2 space-y-1">
+                            <div className="flex items-center gap-1 text-xs text-purple-700">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+                              </svg>
+                              <span className="font-medium">גיפט קארד</span>
+                            </div>
+                            <p className="text-[11px] text-purple-600">
+                              <span className="text-gray-500">עבור:</span> {item.giftCardDetails.recipientName}
+                            </p>
+                            <p className="text-[11px] text-purple-600 dir-ltr text-right">
+                              <span className="text-gray-500">מייל:</span> {item.giftCardDetails.recipientEmail}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     
-                    {/* Quantity Controls */}
+                    {/* Quantity Controls - Hidden for gift cards */}
                     <div className="flex items-center justify-between mt-3">
-                      <div className="flex items-center border border-gray-200">
-                        <button
-                          onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
-                          className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
-                        >
-                          −
-                        </button>
-                        <span className="w-8 text-center text-sm">{item.quantity}</span>
-                        {/* כפתור + עם בדיקת מלאי מקומית ⚡ */}
-                        {(() => {
-                          const atMax = item.trackInventory && 
-                            item.maxQuantity !== null && 
-                            item.maxQuantity !== undefined && 
-                            item.quantity >= item.maxQuantity;
-                          return (
-                            <button
-                              onClick={() => !atMax && handleUpdateQuantity(item, item.quantity + 1)}
-                              disabled={atMax}
-                              className={`w-8 h-8 flex items-center justify-center transition-colors cursor-pointer ${
-                                atMax 
-                                  ? 'text-gray-300 cursor-not-allowed' 
-                                  : 'text-gray-500 hover:text-black'
-                              }`}
-                              title={atMax ? 'הגעת למקסימום הזמין' : undefined}
-                            >
-                              +
-                            </button>
-                          );
-                        })()}
-                      </div>
+                      {item.isGiftCard ? (
+                        // Gift cards don't have quantity controls - each is unique
+                        <span className="text-xs text-gray-400">×1</span>
+                      ) : (
+                        <div className="flex items-center border border-gray-200">
+                          <button
+                            onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
+                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-black transition-colors cursor-pointer"
+                          >
+                            −
+                          </button>
+                          <span className="w-8 text-center text-sm">{item.quantity}</span>
+                          {/* כפתור + עם בדיקת מלאי מקומית ⚡ */}
+                          {(() => {
+                            const atMax = item.trackInventory && 
+                              item.maxQuantity !== null && 
+                              item.maxQuantity !== undefined && 
+                              item.quantity >= item.maxQuantity;
+                            return (
+                              <button
+                                onClick={() => !atMax && handleUpdateQuantity(item, item.quantity + 1)}
+                                disabled={atMax}
+                                className={`w-8 h-8 flex items-center justify-center transition-colors cursor-pointer ${
+                                  atMax 
+                                    ? 'text-gray-300 cursor-not-allowed' 
+                                    : 'text-gray-500 hover:text-black'
+                                }`}
+                                title={atMax ? 'הגעת למקסימום הזמין' : undefined}
+                              >
+                                +
+                              </button>
+                            );
+                          })()}
+                        </div>
+                      )}
                       <button
                         onClick={() => handleRemove(item)}
                         className="text-[11px] tracking-wide text-gray-400 hover:text-black underline underline-offset-4 transition-colors cursor-pointer"
