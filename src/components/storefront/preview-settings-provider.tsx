@@ -36,6 +36,8 @@ interface ThemeSettings {
   announcementBgColor?: string;
   announcementTextColor?: string;
   footerShowLogo?: boolean;
+  footerShowCategories?: boolean;
+  footerShowMenu?: boolean;
   footerShowNewsletter?: boolean;
   footerNewsletterTitle?: string;
   footerNewsletterSubtitle?: string;

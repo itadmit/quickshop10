@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { NewsletterForm } from './storefront/newsletter-form';
+import { usePreviewSettings } from './preview-settings-provider';
+import { NewsletterForm } from './newsletter-form';
 
 interface Category {
   id: string;
@@ -13,63 +16,96 @@ interface FooterMenuItem {
   linkType: 'page' | 'category' | 'product' | 'custom' | 'collection';
   linkUrl?: string | null;
   linkResourceId?: string | null;
-  pageSlug?: string | null; // For page links
+  pageSlug?: string | null;
 }
 
-interface ThemeSettings {
-  footerShowLogo?: boolean;
-  footerShowCategories?: boolean;
-  footerShowMenu?: boolean;
-  footerShowNewsletter?: boolean;
-  footerNewsletterTitle?: string;
-  footerNewsletterSubtitle?: string;
-  footerShowSocial?: boolean;
-  footerShowPayments?: boolean;
-  footerCopyright?: string;
-  footerBgColor?: string;
-  footerTextColor?: string;
-  socialFacebook?: string;
-  socialInstagram?: string;
-  socialTwitter?: string;
-  socialTiktok?: string;
-  socialYoutube?: string;
-}
-
-interface StoreFooterProps {
+interface FooterClientProps {
   storeName: string;
   storeSlug: string;
   categories?: Category[];
   basePath: string;
-  settings?: ThemeSettings;
   footerMenuItems?: FooterMenuItem[];
+  // Default settings from server
+  defaultShowLogo?: boolean;
+  defaultShowCategories?: boolean;
+  defaultShowMenu?: boolean;
+  defaultShowNewsletter?: boolean;
+  defaultNewsletterTitle?: string;
+  defaultNewsletterSubtitle?: string;
+  defaultShowSocial?: boolean;
+  defaultShowPayments?: boolean;
+  defaultCopyright?: string;
+  defaultBgColor?: string;
+  defaultTextColor?: string;
+  defaultSocialFacebook?: string;
+  defaultSocialInstagram?: string;
+  defaultSocialTiktok?: string;
+  defaultSocialYoutube?: string;
 }
 
-export function StoreFooter({ 
-  storeName, 
+/**
+ * Footer Client Component
+ * 
+ * Supports live preview updates from editor via usePreviewSettings.
+ * Falls back to server defaults when not in preview mode.
+ * 
+ * PERFORMANCE: Only used when footer needs live updates (in editor preview)
+ */
+export function FooterClient({
+  storeName,
   storeSlug,
-  categories = [], 
+  categories = [],
   basePath,
-  settings = {},
   footerMenuItems = [],
-}: StoreFooterProps) {
-  // Default settings
-  const {
-    footerShowLogo = true,
-    footerShowCategories = true,
-    footerShowMenu = true,
-    footerShowNewsletter = true,
-    footerNewsletterTitle = 'הירשמו לניוזלטר',
-    footerNewsletterSubtitle = 'קבלו עדכונים על מוצרים חדשים והנחות בלעדיות',
-    footerShowSocial = true,
-    footerShowPayments = true,
-    footerCopyright,
-    footerBgColor = '#ffffff',
-    footerTextColor = '#111111',
-    socialFacebook,
-    socialInstagram,
-    socialTiktok,
-    socialYoutube,
-  } = settings;
+  defaultShowLogo = true,
+  defaultShowCategories = true,
+  defaultShowMenu = true,
+  defaultShowNewsletter = true,
+  defaultNewsletterTitle = 'הירשמו לניוזלטר',
+  defaultNewsletterSubtitle = 'קבלו עדכונים על מוצרים חדשים והנחות בלעדיות',
+  defaultShowSocial = true,
+  defaultShowPayments = true,
+  defaultCopyright,
+  defaultBgColor = '#ffffff',
+  defaultTextColor = '#111111',
+  defaultSocialFacebook,
+  defaultSocialInstagram,
+  defaultSocialTiktok,
+  defaultSocialYoutube,
+}: FooterClientProps) {
+  const { settings, isPreviewMode } = usePreviewSettings();
+
+  // Get settings from preview or use defaults
+  const footerShowLogo = isPreviewMode && settings.footerShowLogo !== undefined 
+    ? settings.footerShowLogo : defaultShowLogo;
+  const footerShowCategories = isPreviewMode && settings.footerShowCategories !== undefined 
+    ? settings.footerShowCategories : defaultShowCategories;
+  const footerShowMenu = isPreviewMode && settings.footerShowMenu !== undefined 
+    ? settings.footerShowMenu : defaultShowMenu;
+  const footerShowNewsletter = isPreviewMode && settings.footerShowNewsletter !== undefined 
+    ? settings.footerShowNewsletter : defaultShowNewsletter;
+  const footerNewsletterTitle = isPreviewMode && settings.footerNewsletterTitle !== undefined 
+    ? settings.footerNewsletterTitle : defaultNewsletterTitle;
+  const footerNewsletterSubtitle = isPreviewMode && settings.footerNewsletterSubtitle !== undefined 
+    ? settings.footerNewsletterSubtitle : defaultNewsletterSubtitle;
+  const footerShowSocial = isPreviewMode && settings.footerShowSocial !== undefined 
+    ? settings.footerShowSocial : defaultShowSocial;
+  const footerShowPayments = isPreviewMode && settings.footerShowPayments !== undefined 
+    ? settings.footerShowPayments : defaultShowPayments;
+  const footerCopyright = isPreviewMode && settings.footerCopyright !== undefined 
+    ? settings.footerCopyright : defaultCopyright;
+  const footerBgColor = isPreviewMode && settings.footerBgColor !== undefined 
+    ? settings.footerBgColor : defaultBgColor;
+  const footerTextColor = isPreviewMode && settings.footerTextColor !== undefined 
+    ? settings.footerTextColor : defaultTextColor;
+  const socialFacebook = isPreviewMode && settings.socialFacebook !== undefined 
+    ? settings.socialFacebook : defaultSocialFacebook;
+  const socialInstagram = isPreviewMode && settings.socialInstagram !== undefined 
+    ? settings.socialInstagram : defaultSocialInstagram;
+  const socialTiktok = isPreviewMode && settings.socialTiktok !== undefined 
+    ? settings.socialTiktok : defaultSocialTiktok;
+  const socialYoutube = isPreviewMode && settings.socialYoutube !== undefined 
+    ? settings.socialYoutube : defaultSocialYoutube;
 
   // Check if any social links exist
   const hasSocialLinks = socialFacebook || socialInstagram || socialTiktok || socialYoutube;
@@ -82,9 +118,6 @@ export function StoreFooter({
         color: footerTextColor,
       }}
       data-footer
-      data-section-id="footer"
-      data-section-type="footer"
-      data-section-name="פוטר"
     >
       <div className="max-w-7xl mx-auto">
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
@@ -124,7 +157,6 @@ export function StoreFooter({
               <ul className="space-y-2.5 text-sm opacity-60">
                 {footerMenuItems.length > 0 ? (
                   footerMenuItems.slice(0, 6).map(item => {
-                    // Determine the href based on link type
                     let href = '#';
                     if (item.linkType === 'page' && item.pageSlug) {
                       href = `${basePath}/pages/${item.pageSlug}`;
@@ -148,7 +180,6 @@ export function StoreFooter({
                     );
                   })
                 ) : (
-                  // Fallback for stores without footer menu
                   <>
                     <li><Link href={`${basePath}/pages/about`} className="hover:opacity-100 transition-opacity">אודות</Link></li>
                     <li><Link href={`${basePath}/pages/contact`} className="hover:opacity-100 transition-opacity">צור קשר</Link></li>
@@ -163,12 +194,16 @@ export function StoreFooter({
           {/* Column 4: Newsletter OR Social Links */}
           {footerShowNewsletter ? (
             <div data-footer-newsletter>
-              <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80" data-footer-newsletter-title>{footerNewsletterTitle}</h4>
-              <p className="text-sm opacity-60 mb-4" data-footer-newsletter-subtitle>{footerNewsletterSubtitle}</p>
+              <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80" data-footer-newsletter-title>
+                {footerNewsletterTitle}
+              </h4>
+              <p className="text-sm opacity-60 mb-4" data-footer-newsletter-subtitle>
+                {footerNewsletterSubtitle}
+              </p>
               <NewsletterForm storeSlug={storeSlug} />
               
               {/* Social Links under newsletter */}
-          {footerShowSocial && hasSocialLinks && (
+              {footerShowSocial && hasSocialLinks && (
                 <div className="flex gap-4 mt-6" data-footer-social>
                   {socialInstagram && (
                     <a href={socialInstagram} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">
@@ -194,9 +229,9 @@ export function StoreFooter({
               )}
             </div>
           ) : footerShowSocial && hasSocialLinks ? (
-            <div>
+            <div data-footer-social-only>
               <h4 className="text-[11px] tracking-[0.2em] uppercase mb-5 opacity-80">עקבו אחרינו</h4>
-              <div className="flex gap-4">
+              <div className="flex gap-4" data-footer-social>
                 {socialInstagram && (
                   <a href={socialInstagram} target="_blank" rel="noopener noreferrer" className="opacity-60 hover:opacity-100 transition-opacity">
                     <InstagramIcon />
@@ -307,3 +342,4 @@ function AmexIcon() {
     </svg>
   );
 }
+

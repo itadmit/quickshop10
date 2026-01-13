@@ -538,6 +538,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
                 id: string; 
                 name: string; 
                 imageUrl?: string;
+                videoUrl?: string;
                 link: string;
               }>;
             }}

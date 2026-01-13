@@ -16,7 +16,12 @@ import {
   Mail, 
   Code,
   Megaphone,
-  Phone
+  Phone,
+  Users,
+  Layers,
+  Quote,
+  Grid3X3,
+  Crown
 } from 'lucide-react';
 
 // ============================================
@@ -46,6 +51,7 @@ interface SectionTreeProps {
 const PAGE_LABELS: Record<string, string> = {
   home: 'דף הבית',
   product: 'עמוד מוצר',
+  category: 'עמוד קטגוריה',
   coming_soon: 'Coming Soon',
 };
 
@@ -55,9 +61,12 @@ type SectionIconComponent = React.ComponentType<{ className?: string }>;
 const sectionTypes: Array<{ type: string; label: string; icon: SectionIconComponent; category: string }> = [
   // באנרים
   { type: 'hero', label: 'באנר ראשי', icon: Image, category: 'באנרים' },
+  { type: 'hero_premium', label: 'באנר פרימיום', icon: Crown, category: 'באנרים' },
+  { type: 'hero_slider', label: 'סליידר הירו', icon: Layers, category: 'באנרים' },
   { type: 'video_banner', label: 'באנר וידאו', icon: Video, category: 'באנרים' },
   { type: 'split_banner', label: 'באנר מפוצל', icon: LayoutGrid, category: 'באנרים' },
   { type: 'banner_small', label: 'באנר קטן', icon: Megaphone, category: 'באנרים' },
+  { type: 'quote_banner', label: 'באנר ציטוט', icon: Quote, category: 'באנרים' },
   // תוכן
   { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },
   { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
@@ -66,10 +75,12 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   // קטלוג
   { type: 'categories', label: 'קטגוריות', icon: Tag, category: 'קטלוג' },
   { type: 'products', label: 'מוצרים', icon: ShoppingBag, category: 'קטלוג' },
+  { type: 'series_grid', label: 'גריד סדרות', icon: Grid3X3, category: 'קטלוג' },
   // סושיאל והמלצות
   { type: 'reviews', label: 'ביקורות', icon: Star, category: 'סושיאל' },
   { type: 'gallery', label: 'גלריה', icon: Images, category: 'סושיאל' },
   { type: 'logos', label: 'לוגואים', icon: Building2, category: 'סושיאל' },
+  { type: 'featured_items', label: 'פריטים מובילים', icon: Users, category: 'סושיאל' },
   // אחר
   { type: 'newsletter', label: 'ניוזלטר', icon: Mail, category: 'אחר' },
   { type: 'contact', label: 'יצירת קשר', icon: Phone, category: 'אחר' },
@@ -89,6 +100,7 @@ export function SectionTree({
   const pageLabel = PAGE_LABELS[currentPage] || currentPage;
   const isComingSoon = currentPage === 'coming_soon';
   const isProductPage = currentPage === 'product';
+  const isCategoryPage = currentPage === 'category';
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
@@ -217,6 +229,98 @@ export function SectionTree({
             </div>
             
             {productPageSections.filter(s => s.category === 'extra').map((section) => (
+              <SectionItem
+                key={section.id}
+                icon={section.icon}
+                label={section.label}
+                isSelected={selectedSectionId === section.id}
+                onClick={() => onSelectSection(section.id)}
+              />
+            ))}
+          </div>
+
+          {/* Footer Section */}
+          <div>
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              פוטר
+            </div>
+            <SectionItem
+              icon="footer"
+              label="פוטר"
+              isSelected={selectedSectionId === 'footer'}
+              onClick={() => onSelectSection('footer')}
+              hasChildren
+              isExpanded={expandedSections.has('footer')}
+              onToggle={() => toggleExpand('footer')}
+            />
+            {expandedSections.has('footer') && (
+              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+                <span className="text-xs text-gray-500">
+                  לוגו • ניוזלטר • רשתות חברתיות
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Special UI for Category Page
+  if (isCategoryPage) {
+    const categoryPageSections = [
+      { id: 'cp-banner', icon: 'hero', label: 'באנר קטגוריה', category: 'main' },
+      { id: 'cp-breadcrumb', icon: 'breadcrumb', label: 'ניווט (Breadcrumb)', category: 'main' },
+      { id: 'cp-subcategories', icon: 'categories', label: 'תתי קטגוריות', category: 'main' },
+      { id: 'cp-products', icon: 'products', label: 'רשת מוצרים', category: 'main' },
+    ];
+
+    return (
+      <div className="flex flex-col h-full" dir="rtl">
+        {/* Header */}
+        <div className="p-4 border-b border-gray-200">
+          <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-auto">
+          {/* Header Section */}
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              כותרת עליונה
+            </div>
+            <SectionItem
+              icon="header"
+              label="פס הודעות"
+              isSelected={selectedSectionId === 'announcement-bar'}
+              onClick={() => onSelectSection('announcement-bar')}
+            />
+            <SectionItem
+              icon="header"
+              label="הדר"
+              isSelected={selectedSectionId === 'header'}
+              onClick={() => onSelectSection('header')}
+              hasChildren
+              isExpanded={expandedSections.has('header')}
+              onToggle={() => toggleExpand('header')}
+            />
+            {expandedSections.has('header') && (
+              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
+                <span className="text-xs text-gray-500">
+                  פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
+                           headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
+                </span>
+              </div>
+            )}
+          </div>
+          
+          {/* Main Content Sections */}
+          <div className="border-b border-gray-100">
+            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+              תוכן קטגוריה
+            </div>
+            
+            {categoryPageSections.map((section) => (
               <SectionItem
                 key={section.id}
                 icon={section.icon}

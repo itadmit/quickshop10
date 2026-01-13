@@ -399,7 +399,7 @@ export function ShopHeaderClient({
     return (
       <>
         {AnnouncementBarSection}
-        <header className={headerClasses} data-section-id="header">
+        <header className={headerClasses} data-section-id="header" data-section-type="header" data-section-name="הדר">
           <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
             <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
               {/* Right: Mobile Menu + Logo */}
@@ -434,7 +434,7 @@ export function ShopHeaderClient({
     return (
       <>
         {AnnouncementBarSection}
-        <header className={headerClasses} data-section-id="header">
+        <header className={headerClasses} data-section-id="header" data-section-type="header" data-section-name="הדר">
           <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
             <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
               {/* Right: Icons with cart at extreme right */}
@@ -468,7 +468,7 @@ export function ShopHeaderClient({
   return (
     <>
       {AnnouncementBarSection}
-      <header className={headerClasses} data-section-id="header">
+      <header className={headerClasses} data-section-id="header" data-section-type="header" data-section-name="הדר">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
           {/* Top row: Hamburger/Search - Logo - Icons */}
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">

@@ -16,6 +16,7 @@ interface FeaturedItem {
   id: string;
   name: string;
   imageUrl?: string;
+  videoUrl?: string;
   link: string;
 }
 
@@ -131,12 +132,21 @@ export function FeaturedItemsSection({
                 style={{ animationDelay: `${index * 100}ms` }}
                 data-item-id={item.id}
               >
-                {/* Image Container */}
+                {/* Image/Video Container */}
                 <div 
                   className={`relative ${aspectClass} overflow-hidden mb-4 ${imageRoundedClass}`}
                   style={{ backgroundColor: cardBg || '#f3f4f6' }}
                 >
-                  {item.imageUrl ? (
+                  {item.videoUrl ? (
+                    <video 
+                      src={item.videoUrl}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className={`w-full h-full object-cover transition-transform duration-500 ${hoverImageClass}`}
+                    />
+                  ) : item.imageUrl ? (
                     <img 
                       src={item.imageUrl}
                       alt={item.name}

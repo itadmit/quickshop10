@@ -52,6 +52,9 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
     return [...new Set(store.cart.map(item => item.productId))];
   }, [store?.cart]);
 
+  // Stable string key for cart product IDs
+  const cartKey = useMemo(() => cartProductIds.join(','), [cartProductIds]);
+
   // Fetch upsells when cart changes
   useEffect(() => {
     if (cartProductIds.length === 0) {
@@ -59,24 +62,40 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
       return;
     }
 
+    // AbortController to cancel duplicate/stale requests
+    const controller = new AbortController();
+    let cancelled = false;
+
     const fetchUpsells = async () => {
       setIsLoading(true);
       try {
         const res = await fetch(
-          `/api/storefront/${storeSlug}/cart/upsells?productIds=${cartProductIds.join(',')}`
+          `/api/storefront/${storeSlug}/cart/upsells?productIds=${cartKey}`,
+          { signal: controller.signal }
         );
-        if (res.ok) {
+        if (res.ok && !cancelled) {
           const data = await res.json();
           setUpsells(data.upsells || []);
         }
       } catch (error) {
-        console.error('Error fetching upsells:', error);
+        // Ignore abort errors
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error fetching upsells:', error);
+        }
       }
-      setIsLoading(false);
+      if (!cancelled) {
+        setIsLoading(false);
+      }
     };
 
     fetchUpsells();
-  }, [cartProductIds.join(','), storeSlug]);
+
+    // Cleanup: cancel request if component unmounts or deps change
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [cartKey, storeSlug, cartProductIds.length]);
 
   // Handle add to cart
   const handleAddToCart = (product: UpsellProduct) => {

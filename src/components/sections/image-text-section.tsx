@@ -186,8 +186,11 @@ export function ImageTextSection({
             />
             <Link 
               href={content.buttonLink?.startsWith('/') ? `${basePath}${content.buttonLink}` : (content.buttonLink || '#')}
-              className={`inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase ${!content.buttonText || !content.buttonLink ? 'hidden' : ''}`}
-              style={buttonStyle}
+              className="inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase"
+              style={{
+                ...buttonStyle,
+                display: content.buttonText?.trim() ? '' : 'none',
+              }}
               data-section-button
             >
               {content.buttonText || ''}

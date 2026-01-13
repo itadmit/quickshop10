@@ -59,6 +59,8 @@ interface ThemeSettings {
   
   // Footer settings
   footerShowLogo?: boolean;
+  footerShowCategories?: boolean;
+  footerShowMenu?: boolean;
   footerShowNewsletter?: boolean;
   footerNewsletterTitle?: string;
   footerNewsletterSubtitle?: string;
@@ -397,6 +399,16 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
               onChange={(v) => updateSettings({ footerShowLogo: v })}
             />
             <SwitchField
+              label="הצג קטגוריות"
+              value={settings.footerShowCategories ?? true}
+              onChange={(v) => updateSettings({ footerShowCategories: v })}
+            />
+            <SwitchField
+              label="הצג תפריט תחתון"
+              value={settings.footerShowMenu ?? true}
+              onChange={(v) => updateSettings({ footerShowMenu: v })}
+            />
+            <SwitchField
               label="הצג טופס ניוזלטר"
               value={settings.footerShowNewsletter ?? true}
               onChange={(v) => updateSettings({ footerShowNewsletter: v })}
@@ -499,6 +511,17 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   if (section.type.startsWith('pp-')) {
     return (
       <ProductPageSectionSettings 
+        sectionType={section.type}
+        settings={settings as Record<string, unknown>} 
+        updateSettings={updateSettings as (settings: Record<string, unknown>) => void} 
+      />
+    );
+  }
+
+  // Handle category page sections
+  if (section.type.startsWith('cp-')) {
+    return (
+      <CategoryPageSectionSettings 
         sectionType={section.type}
         settings={settings as Record<string, unknown>} 
         updateSettings={updateSettings as (settings: Record<string, unknown>) => void} 
@@ -4512,6 +4535,7 @@ function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { sectio
     id: string;
     name: string;
     imageUrl?: string;
+    videoUrl?: string;
     link: string;
   }>) || [];
 
@@ -4619,6 +4643,12 @@ function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { sectio
                   onChange={(v) => updateItem(index, 'imageUrl', v)}
                   storeId={storeInfo?.id}
                   storeSlug={storeInfo?.slug}
+                />
+                <TextField
+                  label="וידאו (אופציונלי - מחליף תמונה)"
+                  value={item.videoUrl || ''}
+                  onChange={(v) => updateItem(index, 'videoUrl', v)}
+                  placeholder="https://example.com/video.mp4"
                 />
                 <TextField
                   label="שם"
@@ -6153,6 +6183,259 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
               />
             </SettingsGroup>
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ===========================================
+// Category Page Settings UI
+// ===========================================
+
+import { 
+  defaultCategoryPageSettings, 
+  type CategoryPageSettings,
+  type AspectRatio
+} from '@/lib/category-page-settings';
+
+interface CategoryPageSectionSettingsProps {
+  sectionType: string;
+  settings: Record<string, unknown>;
+  updateSettings: (settings: Record<string, unknown>) => void;
+}
+
+function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: CategoryPageSectionSettingsProps) {
+  // Get category page settings from store settings
+  const categorySettings: CategoryPageSettings = {
+    ...defaultCategoryPageSettings,
+    ...(settings.categoryPageSettings as Partial<CategoryPageSettings> || {}),
+  };
+  
+  // Update category page settings
+  const updateCategorySettings = (updates: Partial<CategoryPageSettings>) => {
+    updateSettings({
+      categoryPageSettings: {
+        ...categorySettings,
+        ...updates,
+      },
+    });
+  };
+  
+  const sectionLabels: Record<string, string> = {
+    'cp-banner': 'באנר קטגוריה',
+    'cp-breadcrumb': 'ניווט (Breadcrumb)',
+    'cp-subcategories': 'תתי קטגוריות',
+    'cp-products': 'רשת מוצרים',
+  };
+
+  const aspectRatioOptions: { value: AspectRatio; label: string }[] = [
+    { value: '1:1', label: 'ריבוע (1:1)' },
+    { value: '3:4', label: 'מלבן עומד (3:4)' },
+    { value: '4:3', label: 'מלבן שוכב (4:3)' },
+    { value: '4:5', label: 'מלבן עומד (4:5)' },
+    { value: '16:9', label: 'וידאו (16:9)' },
+  ];
+
+  return (
+    <div className="flex flex-col h-full" dir="rtl">
+      {/* Header */}
+      <div className="p-4 border-b border-gray-200">
+        <h3 className="font-semibold text-gray-900">{sectionLabels[sectionType] || sectionType}</h3>
+      </div>
+      
+      {/* Section-specific settings */}
+      <div className="flex-1 overflow-auto p-4 space-y-4">
+        {/* Banner Settings */}
+        {sectionType === 'cp-banner' && (
+          <>
+            <SettingsGroup title="הגדרות באנר">
+              <SwitchField
+                label="הצג באנר"
+                value={categorySettings.banner.show}
+                onChange={(v) => updateCategorySettings({ 
+                  banner: { ...categorySettings.banner, show: v } 
+                })}
+              />
+              
+              {categorySettings.banner.show && (
+                <>
+                  <SwitchField
+                    label="הצג כיתוב (שם הקטגוריה)"
+                    value={categorySettings.banner.showTitle}
+                    onChange={(v) => updateCategorySettings({ 
+                      banner: { ...categorySettings.banner, showTitle: v } 
+                    })}
+                  />
+                  
+                  <SwitchField
+                    label="הצג תיאור"
+                    value={categorySettings.banner.showDescription}
+                    onChange={(v) => updateCategorySettings({ 
+                      banner: { ...categorySettings.banner, showDescription: v } 
+                    })}
+                  />
+                  
+                  <SwitchField
+                    label="הצג קטגוריית אב"
+                    value={categorySettings.banner.showParentCategory}
+                    onChange={(v) => updateCategorySettings({ 
+                      banner: { ...categorySettings.banner, showParentCategory: v } 
+                    })}
+                  />
+                  
+                  <SelectField
+                    label="גובה באנר"
+                    value={categorySettings.banner.height}
+                    options={[
+                      { value: 'small', label: 'קטן' },
+                      { value: 'medium', label: 'בינוני' },
+                      { value: 'large', label: 'גדול' },
+                    ]}
+                    onChange={(v) => updateCategorySettings({ 
+                      banner: { ...categorySettings.banner, height: v as 'small' | 'medium' | 'large' } 
+                    })}
+                  />
+                  
+                  <SliderField
+                    label="שקיפות כיהוי (%)"
+                    value={categorySettings.banner.overlayOpacity}
+                    min={0}
+                    max={100}
+                    suffix="%"
+                    onChange={(v) => updateCategorySettings({ 
+                      banner: { ...categorySettings.banner, overlayOpacity: v } 
+                    })}
+                  />
+                </>
+              )}
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Breadcrumb Settings */}
+        {sectionType === 'cp-breadcrumb' && (
+          <SettingsGroup title="הגדרות ניווט">
+            <SwitchField
+              label="הצג ניווט (Breadcrumb)"
+              value={categorySettings.breadcrumb.show}
+              onChange={(v) => updateCategorySettings({ 
+                breadcrumb: { ...categorySettings.breadcrumb, show: v } 
+              })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Subcategories Settings */}
+        {sectionType === 'cp-subcategories' && (
+          <>
+            <SettingsGroup title="הגדרות תתי קטגוריות">
+              <SwitchField
+                label="הצג תתי קטגוריות"
+                value={categorySettings.subcategories.show}
+                onChange={(v) => updateCategorySettings({ 
+                  subcategories: { ...categorySettings.subcategories, show: v } 
+                })}
+              />
+              
+              {categorySettings.subcategories.show && (
+                <>
+                  <SelectField
+                    label="כמות בשורה - מובייל"
+                    value={String(categorySettings.subcategories.mobileColumns)}
+                    options={[
+                      { value: '1', label: '1' },
+                      { value: '2', label: '2' },
+                    ]}
+                    onChange={(v) => updateCategorySettings({ 
+                      subcategories: { ...categorySettings.subcategories, mobileColumns: parseInt(v) as 1 | 2 } 
+                    })}
+                  />
+                  
+                  <SelectField
+                    label="כמות בשורה - מחשב"
+                    value={String(categorySettings.subcategories.desktopColumns)}
+                    options={[
+                      { value: '2', label: '2' },
+                      { value: '3', label: '3' },
+                      { value: '4', label: '4' },
+                    ]}
+                    onChange={(v) => updateCategorySettings({ 
+                      subcategories: { ...categorySettings.subcategories, desktopColumns: parseInt(v) as 2 | 3 | 4 } 
+                    })}
+                  />
+                  
+                  <SelectField
+                    label="יחס גובה-רוחב"
+                    value={categorySettings.subcategories.aspectRatio}
+                    options={aspectRatioOptions}
+                    onChange={(v) => updateCategorySettings({ 
+                      subcategories: { ...categorySettings.subcategories, aspectRatio: v as AspectRatio } 
+                    })}
+                  />
+                  
+                  <SwitchField
+                    label="הצג שכבת כיהוי"
+                    value={categorySettings.subcategories.showOverlay}
+                    onChange={(v) => updateCategorySettings({ 
+                      subcategories: { ...categorySettings.subcategories, showOverlay: v } 
+                    })}
+                  />
+                  
+                  {categorySettings.subcategories.showOverlay && (
+                    <SliderField
+                      label="שקיפות כיהוי (%)"
+                      value={categorySettings.subcategories.overlayOpacity}
+                      min={0}
+                      max={100}
+                      suffix="%"
+                      onChange={(v) => updateCategorySettings({ 
+                        subcategories: { ...categorySettings.subcategories, overlayOpacity: v } 
+                      })}
+                    />
+                  )}
+                </>
+              )}
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Products Grid Settings */}
+        {sectionType === 'cp-products' && (
+          <SettingsGroup title="הגדרות רשת מוצרים">
+            <SwitchField
+              label="הצג מספר פריטים"
+              value={categorySettings.products.showCount}
+              onChange={(v) => updateCategorySettings({ 
+                products: { ...categorySettings.products, showCount: v } 
+              })}
+            />
+            
+            <SelectField
+              label="כמות בשורה - מובייל"
+              value={String(categorySettings.products.mobileColumns)}
+              options={[
+                { value: '2', label: '2' },
+                { value: '3', label: '3' },
+              ]}
+              onChange={(v) => updateCategorySettings({ 
+                products: { ...categorySettings.products, mobileColumns: parseInt(v) as 2 | 3 } 
+              })}
+            />
+            
+            <SelectField
+              label="כמות בשורה - מחשב"
+              value={String(categorySettings.products.desktopColumns)}
+              options={[
+                { value: '3', label: '3' },
+                { value: '4', label: '4' },
+                { value: '5', label: '5' },
+              ]}
+              onChange={(v) => updateCategorySettings({ 
+                products: { ...categorySettings.products, desktopColumns: parseInt(v) as 3 | 4 | 5 } 
+              })}
+            />
+          </SettingsGroup>
         )}
       </div>
     </div>

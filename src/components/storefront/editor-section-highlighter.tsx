@@ -43,7 +43,69 @@ export function EditorSectionHighlighter() {
         setSelectedSection(event.data.sectionId);
       }
       if (event.data?.type === 'THEME_SETTINGS_UPDATE') {
-        // Already handled by PreviewSettingsProvider
+        // Handle footer live updates directly in DOM
+        const { settings } = event.data;
+        const footer = document.querySelector('[data-footer]') as HTMLElement;
+        
+        if (footer) {
+          // Update colors
+          if (settings.footerBgColor !== undefined) {
+            footer.style.backgroundColor = settings.footerBgColor;
+          }
+          if (settings.footerTextColor !== undefined) {
+            footer.style.color = settings.footerTextColor;
+          }
+          
+          // Toggle visibility of footer elements
+          const logoEl = footer.querySelector('[data-footer-logo]') as HTMLElement;
+          if (logoEl && settings.footerShowLogo !== undefined) {
+            logoEl.style.display = settings.footerShowLogo ? '' : 'none';
+          }
+          
+          const categoriesEl = footer.querySelector('[data-footer-categories]') as HTMLElement;
+          if (categoriesEl && settings.footerShowCategories !== undefined) {
+            categoriesEl.style.display = settings.footerShowCategories ? '' : 'none';
+          }
+          
+          const menuEl = footer.querySelector('[data-footer-menu]') as HTMLElement;
+          if (menuEl && settings.footerShowMenu !== undefined) {
+            menuEl.style.display = settings.footerShowMenu ? '' : 'none';
+          }
+          
+          const newsletterEl = footer.querySelector('[data-footer-newsletter]') as HTMLElement;
+          if (newsletterEl && settings.footerShowNewsletter !== undefined) {
+            newsletterEl.style.display = settings.footerShowNewsletter ? '' : 'none';
+          }
+          
+          const socialEl = footer.querySelector('[data-footer-social]') as HTMLElement;
+          if (socialEl && settings.footerShowSocial !== undefined) {
+            socialEl.style.display = settings.footerShowSocial ? '' : 'none';
+          }
+          
+          const paymentsEl = footer.querySelector('[data-footer-payments]') as HTMLElement;
+          if (paymentsEl && settings.footerShowPayments !== undefined) {
+            paymentsEl.style.display = settings.footerShowPayments ? '' : 'none';
+          }
+          
+          // Update newsletter text
+          const newsletterTitleEl = footer.querySelector('[data-footer-newsletter-title]') as HTMLElement;
+          if (newsletterTitleEl && settings.footerNewsletterTitle !== undefined) {
+            newsletterTitleEl.textContent = settings.footerNewsletterTitle;
+          }
+          
+          const newsletterSubtitleEl = footer.querySelector('[data-footer-newsletter-subtitle]') as HTMLElement;
+          if (newsletterSubtitleEl && settings.footerNewsletterSubtitle !== undefined) {
+            newsletterSubtitleEl.textContent = settings.footerNewsletterSubtitle;
+          }
+          
+          // Update copyright
+          const copyrightEl = footer.querySelector('[data-footer-copyright]') as HTMLElement;
+          if (copyrightEl && settings.footerCopyright !== undefined) {
+            copyrightEl.textContent = settings.footerCopyright;
+          }
+        }
+        
+        // Also handled by PreviewSettingsProvider for header settings
       }
       if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
         const { sectionId, updates } = event.data;
@@ -724,7 +786,7 @@ export function EditorSectionHighlighter() {
         }
         
         // =====================================================
-        // SERIES GRID ITEMS UPDATES
+        // SERIES GRID / FEATURED ITEMS UPDATES
         // =====================================================
         if (updates.content?.items !== undefined) {
           const items = updates.content.items as Array<{
@@ -734,6 +796,7 @@ export function EditorSectionHighlighter() {
             subtitle?: string;
             description?: string;
             imageUrl?: string;
+            videoUrl?: string;
             link?: string;
           }>;
           items.forEach((item, index) => {
@@ -759,6 +822,36 @@ export function EditorSectionHighlighter() {
               if (item.description !== undefined) {
                 const descEl = itemEl.querySelector('p') as HTMLElement;
                 if (descEl) descEl.textContent = item.description;
+              }
+              // Handle video/image updates for featured_items
+              if (item.videoUrl !== undefined) {
+                const videoEl = itemEl.querySelector('video') as HTMLVideoElement;
+                const imgEl = itemEl.querySelector('img') as HTMLImageElement;
+                if (item.videoUrl) {
+                  // Show video, hide image
+                  if (videoEl) {
+                    videoEl.src = item.videoUrl;
+                    videoEl.style.display = '';
+                  } else {
+                    // Create video element if doesn't exist
+                    const mediaContainer = itemEl.querySelector('.overflow-hidden') || itemEl.querySelector('[class*="aspect"]');
+                    if (mediaContainer && !mediaContainer.querySelector('video')) {
+                      const newVideo = document.createElement('video');
+                      newVideo.src = item.videoUrl;
+                      newVideo.autoplay = true;
+                      newVideo.muted = true;
+                      newVideo.loop = true;
+                      newVideo.playsInline = true;
+                      newVideo.className = 'w-full h-full object-cover';
+                      mediaContainer.insertBefore(newVideo, mediaContainer.firstChild);
+                    }
+                  }
+                  if (imgEl) imgEl.style.display = 'none';
+                } else {
+                  // Hide video, show image
+                  if (videoEl) videoEl.style.display = 'none';
+                  if (imgEl) imgEl.style.display = '';
+                }
               }
               if (item.imageUrl !== undefined) {
                 const imgContainer = itemEl.querySelector('[style*="background-image"], .bg-cover') as HTMLElement;
@@ -979,6 +1072,28 @@ export function EditorSectionHighlighter() {
         placeholder.dataset.sectionId = sectionId;
         placeholder.dataset.sectionType = sectionType;
         placeholder.dataset.previewPlaceholder = 'true';
+        
+        // Map section types to Hebrew names
+        const sectionNames: Record<string, string> = {
+          hero: 'באנר ראשי',
+          banner: 'באנר',
+          banner_small: 'באנר קטן',
+          text_block: 'בלוק טקסט',
+          image_text: 'תמונה + טקסט',
+          video_banner: 'באנר וידאו',
+          split_banner: 'באנר מפוצל',
+          categories: 'קטגוריות',
+          products: 'מוצרים',
+          newsletter: 'ניוזלטר',
+          features: 'יתרונות',
+          gallery: 'גלריה',
+          faq: 'שאלות נפוצות',
+          reviews: 'ביקורות',
+          logos: 'לוגואים',
+          contact: 'צור קשר',
+          custom: 'מותאם אישית',
+        };
+        placeholder.dataset.sectionName = sectionNames[sectionType] || sectionType;
         
         // Generate type-specific placeholder HTML
         let html = '';

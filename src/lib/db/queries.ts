@@ -290,6 +290,7 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
       allowBackorder: products.allowBackorder,
       isFeatured: products.isFeatured,
       hasVariants: products.hasVariants,
+      sortOrder: productCategories.sortOrder,
       createdAt: products.createdAt,
       image: productImages.url,
       // Video for card display
@@ -308,15 +309,15 @@ export const getProductsByCategory = cache(async (storeId: string, categoryId: s
       eq(productCategories.categoryId, categoryId),
       eq(products.isActive, true)
     ))
-    .orderBy(desc(products.createdAt));
+    .orderBy(asc(productCategories.sortOrder), desc(products.createdAt));
 
-  // Remove duplicates (in case of multiple category assignments) and exclude createdAt from result
+  // Remove duplicates (in case of multiple category assignments) and exclude internal fields from result
   const seen = new Set<string>();
   const uniqueProducts = results.filter(p => {
     if (seen.has(p.id)) return false;
     seen.add(p.id);
     return true;
-  }).map(({ createdAt, ...rest }) => rest);
+  }).map(({ createdAt, sortOrder, ...rest }) => rest);
 
   // Get variant prices for products with variants
   const variantProductIds = uniqueProducts.filter(p => p.hasVariants).map(p => p.id);

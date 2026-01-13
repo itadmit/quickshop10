@@ -569,6 +569,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
                 id: string; 
                 name: string; 
                 imageUrl?: string;
+                videoUrl?: string;
                 link: string;
               }>;
             }}

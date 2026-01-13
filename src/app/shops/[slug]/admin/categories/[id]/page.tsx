@@ -38,7 +38,7 @@ async function getCategoryWithProducts(storeId: string, categoryId: string, perP
 
   // Get products in this category with their sort order
   // Using productCategories junction table
-  const categoryProducts = await db
+  const categoryProductsRaw = await db
     .select({
       id: products.id,
       name: products.name,
@@ -61,8 +61,15 @@ async function getCategoryWithProducts(storeId: string, categoryId: string, perP
       eq(productCategories.categoryId, categoryId),
       eq(products.storeId, storeId)
     ))
-    .orderBy(asc(productCategories.sortOrder), desc(products.createdAt))
-    .limit(perPage);
+    .orderBy(asc(productCategories.sortOrder), desc(products.createdAt));
+
+  // Remove duplicates (can happen if product has multiple primary images)
+  const seenIds = new Set<string>();
+  const categoryProducts = categoryProductsRaw.filter(p => {
+    if (seenIds.has(p.id)) return false;
+    seenIds.add(p.id);
+    return true;
+  }).slice(0, perPage);
 
   // Get variant prices for products with variants
   const variantProductIds = categoryProducts.filter(p => p.hasVariants).map(p => p.id);

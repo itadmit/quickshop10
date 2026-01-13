@@ -43,7 +43,7 @@ export function MenuEditor({
 
   const [newItem, setNewItem] = useState<{
     title: string;
-    linkType: 'url' | 'page' | 'category';
+    linkType: 'url' | 'page' | 'category' | 'products';
     linkUrl: string;
     linkResourceId: string;
     imageUrl: string;
@@ -60,7 +60,7 @@ export function MenuEditor({
   // State for editing existing item
   const [editItem, setEditItem] = useState<{
     title: string;
-    linkType: 'url' | 'page' | 'category';
+    linkType: 'url' | 'page' | 'category' | 'products';
     linkUrl: string;
     linkResourceId: string;
     imageUrl: string;
@@ -100,6 +100,9 @@ export function MenuEditor({
       return;
     }
 
+    // 'products' type uses URL internally but doesn't need user input
+    // It automatically links to /products
+
     // Calculate sort order based on parent
     let sortOrder = 0;
     if (newItem.parentId) {
@@ -110,11 +113,18 @@ export function MenuEditor({
     }
 
     startTransition(async () => {
+      // For 'products' type, we use 'url' internally with /products path
+      const linkType = newItem.linkType === 'products' ? 'url' : newItem.linkType;
+      const linkUrl = newItem.linkType === 'products' ? '/products' : 
+                      newItem.linkType === 'url' ? newItem.linkUrl : null;
+      const linkResourceId = (newItem.linkType === 'page' || newItem.linkType === 'category') 
+                            ? newItem.linkResourceId : null;
+      
       const result = await addMenuItem(menu.id, slug, {
         title: newItem.title,
-        linkType: newItem.linkType,
-        linkUrl: newItem.linkType === 'url' ? newItem.linkUrl : null,
-        linkResourceId: newItem.linkType !== 'url' ? newItem.linkResourceId : null,
+        linkType,
+        linkUrl,
+        linkResourceId,
         imageUrl: newItem.imageUrl || null,
         parentId: newItem.parentId,
         sortOrder,
@@ -140,9 +150,11 @@ export function MenuEditor({
 
   const handleStartEdit = (item: MenuItem) => {
     setEditingId(item.id);
+    // Detect if this is a "products" type (url with /products path)
+    const isProductsLink = item.linkType === 'url' && item.linkUrl === '/products';
     setEditItem({
       title: item.title,
-      linkType: item.linkType as 'url' | 'page' | 'category',
+      linkType: isProductsLink ? 'products' : item.linkType as 'url' | 'page' | 'category',
       linkUrl: item.linkUrl || '',
       linkResourceId: item.linkResourceId || '',
       imageUrl: item.imageUrl || '',
@@ -171,11 +183,18 @@ export function MenuEditor({
     }
 
     startTransition(async () => {
+      // For 'products' type, we use 'url' internally with /products path
+      const linkType = editItem.linkType === 'products' ? 'url' : editItem.linkType;
+      const linkUrl = editItem.linkType === 'products' ? '/products' : 
+                      editItem.linkType === 'url' ? editItem.linkUrl : null;
+      const linkResourceId = (editItem.linkType === 'page' || editItem.linkType === 'category') 
+                            ? editItem.linkResourceId : null;
+      
       const result = await updateMenuItem(editingId, slug, {
         title: editItem.title,
-        linkType: editItem.linkType,
-        linkUrl: editItem.linkType === 'url' ? editItem.linkUrl : null,
-        linkResourceId: editItem.linkType !== 'url' ? editItem.linkResourceId : null,
+        linkType,
+        linkUrl,
+        linkResourceId,
         imageUrl: editItem.imageUrl || null,
       });
 
@@ -269,6 +288,10 @@ export function MenuEditor({
   };
 
   const getLinkDisplay = (item: MenuItem) => {
+    // Check if this is a "products" type (url with /products path)
+    if (item.linkType === 'url' && item.linkUrl === '/products') {
+      return '/products';
+    }
     if (item.linkType === 'url') return item.linkUrl;
     if (item.linkType === 'page') {
       const page = availablePages.find(p => p.id === item.linkResourceId);
@@ -279,6 +302,14 @@ export function MenuEditor({
       return cat ? `/category/${cat.slug}` : 'קטגוריה לא נמצאה';
     }
     return '';
+  };
+  
+  // Helper to get link type for display (detect products type)
+  const getLinkTypeForDisplay = (item: MenuItem) => {
+    if (item.linkType === 'url' && item.linkUrl === '/products') {
+      return 'products';
+    }
+    return item.linkType;
   };
 
   // Render a single menu item row
@@ -360,11 +391,14 @@ export function MenuEditor({
               
           {/* Type badge */}
           <span className={`px-2 py-0.5 text-xs rounded flex-shrink-0 ${
-                item.linkType === 'url' ? 'bg-blue-100 text-blue-700' :
-                item.linkType === 'page' ? 'bg-green-100 text-green-700' :
+                getLinkTypeForDisplay(item) === 'url' ? 'bg-blue-100 text-blue-700' :
+                getLinkTypeForDisplay(item) === 'page' ? 'bg-green-100 text-green-700' :
+                getLinkTypeForDisplay(item) === 'products' ? 'bg-orange-100 text-orange-700' :
                 'bg-purple-100 text-purple-700'
               }`}>
-                {item.linkType === 'url' ? 'קישור' : item.linkType === 'page' ? 'עמוד' : 'קטגוריה'}
+                {getLinkTypeForDisplay(item) === 'url' ? 'קישור' : 
+                 getLinkTypeForDisplay(item) === 'page' ? 'עמוד' : 
+                 getLinkTypeForDisplay(item) === 'products' ? 'כל המוצרים' : 'קטגוריה'}
               </span>
               
           {/* Children count */}
@@ -445,10 +479,19 @@ export function MenuEditor({
                 >
                   <option value="category">קטגוריה</option>
                   <option value="page">עמוד</option>
+                  <option value="products">כל המוצרים</option>
                   <option value="url">קישור חיצוני</option>
                 </select>
               </div>
             </div>
+
+            {editItem.linkType === 'products' && (
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <p className="text-sm text-gray-600">
+                  🛍️ קישור לעמוד כל המוצרים של החנות
+                </p>
+              </div>
+            )}
 
             {editItem.linkType === 'url' && (
               <div>
@@ -580,10 +623,19 @@ export function MenuEditor({
               >
             <option value="category">קטגוריה</option>
             <option value="page">עמוד</option>
+            <option value="products">כל המוצרים</option>
                 <option value="url">קישור חיצוני</option>
               </select>
             </div>
           </div>
+
+          {newItem.linkType === 'products' && (
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600">
+                🛍️ קישור לעמוד כל המוצרים של החנות
+              </p>
+            </div>
+          )}
 
           {newItem.linkType === 'url' && (
             <div>

@@ -122,8 +122,11 @@ export function BannerSmallSection({
         {/* Button */}
         <Link 
           href={content.buttonLink?.startsWith('/') ? `${basePath}${content.buttonLink}` : (content.buttonLink || '#')}
-          className={`px-4 py-1.5 text-sm font-medium transition-colors border ${buttonStyle === 'none' || !content.buttonText || !content.buttonLink ? 'hidden' : ''}`}
-          style={buttonStyle_obj}
+          className="px-4 py-1.5 text-sm font-medium transition-colors border"
+          style={{
+            ...buttonStyle_obj,
+            display: (buttonStyle === 'none' || !content.buttonText?.trim()) ? 'none' : '',
+          }}
           data-section-button
         >
           {content.buttonText || ''}

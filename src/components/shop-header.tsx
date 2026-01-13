@@ -255,7 +255,7 @@ export function ShopHeader({
   // Layout 1: Logo Right (RTL default) - לוגו בימין, תפריט במרכז, אייקונים משמאל
   if (layout === 'logo-right') {
     return (
-      <header className={headerClass}>
+      <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
             {/* Right: Mobile Menu + Logo */}
@@ -289,7 +289,7 @@ export function ShopHeader({
   // Mobile: hamburger at extreme left, logo next to it, cart at extreme right
   if (layout === 'logo-left') {
     return (
-      <header className={headerClass}>
+      <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
             {/* Right (in RTL = visual right): Icons with cart at extreme right */}
@@ -322,7 +322,7 @@ export function ShopHeader({
   // Layout 3: Logo Center - לוגו במרכז, תפריט מתחת
   // Mobile: hamburger on right, logo center, cart at extreme left
   return (
-    <header className={headerClass}>
+    <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Top row: Hamburger/Search - Logo - Icons */}
         <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">

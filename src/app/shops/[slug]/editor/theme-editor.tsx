@@ -7,6 +7,7 @@ import { SectionTree } from './section-tree';
 import { SectionSettings } from './section-settings';
 import { LivePreview } from './live-preview';
 import { defaultProductPageSettings } from '@/lib/product-page-settings';
+import { defaultCategoryPageSettings } from '@/lib/category-page-settings';
 
 // ============================================
 // Theme Editor - Client Component (Shopify Style)
@@ -61,6 +62,8 @@ interface ThemeSettings {
   announcementBgColor?: string;
   announcementTextColor?: string;
   footerShowLogo?: boolean;
+  footerShowCategories?: boolean;
+  footerShowMenu?: boolean;
   footerShowNewsletter?: boolean;
   footerNewsletterTitle?: string;
   footerNewsletterSubtitle?: string;
@@ -76,6 +79,8 @@ interface ThemeSettings {
   socialYoutube?: string;
   // Product page settings
   productPageSettings?: Record<string, unknown>;
+  // Category page settings
+  categoryPageSettings?: Record<string, unknown>;
 }
 
 interface Category {
@@ -90,6 +95,7 @@ interface Category {
 const EDITABLE_PAGES = [
   { id: 'home', label: 'דף הבית', icon: 'home' },
   { id: 'product', label: 'עמוד מוצר', icon: 'package' },
+  { id: 'category', label: 'עמוד קטגוריה', icon: 'folder' },
   { id: 'coming_soon', label: 'Coming Soon', icon: 'clock' },
 ] as const;
 
@@ -128,7 +134,10 @@ export function ThemeEditor({
   const [sections, setSections] = useState<Section[]>(initialSections);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
     // For product page, auto-select the settings pseudo-section
-    currentPage === 'product' ? 'product-page' : (initialSections[0]?.id || null)
+    // For category page, auto-select the banner section
+    currentPage === 'product' ? 'product-page' : 
+    currentPage === 'category' ? 'cp-banner' : 
+    (initialSections[0]?.id || null)
   );
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -510,6 +519,16 @@ export function ThemeEditor({
       }, '*');
     }
   }, []);
+
+  // Send category page settings update to iframe for live preview
+  const sendCategoryPagePreviewUpdate = useCallback((categoryPageSettings: Record<string, unknown>) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage({
+        type: 'CATEGORY_PAGE_SETTINGS_UPDATE',
+        settings: categoryPageSettings,
+      }, '*');
+    }
+  }, []);
   
   // Handle theme settings change - LIVE PREVIEW only, no DB save
   const handleThemeSettingsChange = useCallback((updates: Partial<ThemeSettings>) => {
@@ -533,7 +552,17 @@ export function ThemeEditor({
       };
       sendProductPagePreviewUpdate(fullProductSettings);
     }
-  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate]);
+
+    // If category page settings changed, send the FULL merged settings
+    if ('categoryPageSettings' in updates) {
+      // Merge with defaults to ensure all fields are present
+      const fullCategorySettings = {
+        ...defaultCategoryPageSettings,
+        ...(newSettings.categoryPageSettings as Record<string, unknown> || {}),
+      };
+      sendCategoryPagePreviewUpdate(fullCategorySettings);
+    }
+  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate]);
   
   // Set iframe ref when loaded
   const handleIframeLoad = useCallback((iframe: HTMLIFrameElement) => {
@@ -550,7 +579,16 @@ export function ThemeEditor({
       };
       sendProductPagePreviewUpdate(productSettings);
     }
-  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, currentPage]);
+
+    // Also send category page settings if on category page
+    if (currentPage === 'category') {
+      const categorySettings = {
+        ...defaultCategoryPageSettings,
+        ...(themeSettings.categoryPageSettings as Record<string, unknown> || {}),
+      };
+      sendCategoryPagePreviewUpdate(categorySettings);
+    }
+  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate, currentPage]);
   
   // Listen for PREVIEW_READY message from iframe and send settings
   useEffect(() => {
@@ -566,12 +604,29 @@ export function ThemeEditor({
           };
           sendProductPagePreviewUpdate(productSettings);
         }
+        // Send category page settings if on category page
+        if (currentPage === 'category') {
+          const categorySettings = {
+            ...defaultCategoryPageSettings,
+            ...(themeSettings.categoryPageSettings as Record<string, unknown> || {}),
+          };
+          sendCategoryPagePreviewUpdate(categorySettings);
+        }
+      }
+      // Also handle CATEGORY_PREVIEW_READY
+      if (event.data?.type === 'CATEGORY_PREVIEW_READY') {
+        sendPreviewUpdate(themeSettings);
+        const categorySettings = {
+          ...defaultCategoryPageSettings,
+          ...(themeSettings.categoryPageSettings as Record<string, unknown> || {}),
+        };
+        sendCategoryPagePreviewUpdate(categorySettings);
       }
     };
     
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, currentPage]);
+  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate, currentPage]);
 
   // Update section data
   const updateSection = useCallback((sectionId: string, updates: Partial<Section>) => {
@@ -1442,7 +1497,9 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     },
     video_banner: { 
       videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
-      imageUrl: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=1920'
+      imageUrl: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=1920',
+      buttonText: 'צפה עכשיו',
+      buttonLink: '#'
     },
     split_banner: { 
       items: [
@@ -1451,13 +1508,15 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       ] 
     },
     text_block: {
-      text: '<p>זהו טקסט לדוגמה. ניתן לערוך אותו לפי הצורך ולהוסיף תוכן מותאם אישית לעסק שלכם.</p>'
+      text: '<p>זהו טקסט לדוגמה. ניתן לערוך אותו לפי הצורך ולהוסיף תוכן מותאם אישית לעסק שלכם.</p>',
+      buttonText: 'קרא עוד',
+      buttonLink: '#'
     },
     image_text: {
       imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800',
       text: '<p>זהו טקסט לדוגמה שמופיע לצד התמונה. ניתן לערוך אותו ולהתאים לתוכן שלכם.</p>',
-      buttonText: '',
-      buttonLink: ''
+      buttonText: 'קרא עוד',
+      buttonLink: '#'
     },
     gallery: {
       images: [

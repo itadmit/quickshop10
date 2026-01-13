@@ -136,6 +136,9 @@ export function LivePreview({
       case 'product':
         // Preview a sample product (first product in store will be fetched)
         return `/shops/${storeSlug}/product/sample?preview=true&t=${refreshKey}`;
+      case 'category':
+        // Preview a sample category (first category in store will be fetched)
+        return `/shops/${storeSlug}/category/sample?preview=true&t=${refreshKey}`;
       default:
         return `/shops/${storeSlug}?preview=true&t=${refreshKey}`;
     }
