@@ -7,6 +7,7 @@ import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { printOrders, printOrder } from '@/lib/print-order';
 import { archiveOrders, permanentlyDeleteOrders, unarchiveOrders } from './actions';
+import { PerPageSelector } from './per-page-selector';
 
 // ============================================
 // OrdersDataTable - Client Component
@@ -139,20 +140,6 @@ export function OrdersDataTable({
       ),
       onAction: async (selectedIds) => {
         printOrders(storeSlug, selectedIds);
-      },
-    },
-    {
-      id: 'export',
-      label: 'ייצא',
-      icon: (
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-          <polyline points="7 10 12 15 17 10"/>
-          <line x1="12" y1="15" x2="12" y2="3"/>
-        </svg>
-      ),
-      onAction: async (selectedIds) => {
-        console.log('Export:', selectedIds);
       },
     },
   ];
@@ -349,6 +336,7 @@ export function OrdersDataTable({
         searchPlaceholder="חיפוש לפי מספר הזמנה, שם או אימייל..."
         searchValue={searchValue}
         pagination={pagination}
+        paginationExtra={<PerPageSelector currentPerPage={pagination.perPage} />}
         emptyState={
           <EmptyState
             icon="orders"

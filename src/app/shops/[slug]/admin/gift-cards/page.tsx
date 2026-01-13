@@ -5,6 +5,8 @@ import { eq, desc, sql, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { PageHeader, Button, StatCard, StatCardGrid, Badge } from '@/components/admin/ui';
 import { GiftCardsDataTable } from './gift-cards-data-table';
+import { GiftCardSettingsButton } from './gift-card-settings-button';
+import { getGiftCardSettings } from './settings/actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,8 +39,8 @@ export default async function GiftCardsPage({ params, searchParams }: GiftCardsP
     filterCondition = and(filterCondition, eq(giftCards.status, 'expired'))!;
   }
 
-  // Get gift cards and stats in parallel ⚡
-  const [cards, [stats]] = await Promise.all([
+  // Get gift cards, stats, and settings in parallel ⚡
+  const [cards, [stats], giftCardSettings] = await Promise.all([
     db
       .select({
         id: giftCards.id,
@@ -69,6 +71,7 @@ export default async function GiftCardsPage({ params, searchParams }: GiftCardsP
       })
       .from(giftCards)
       .where(eq(giftCards.storeId, store.id)),
+    getGiftCardSettings(store.id),
   ]);
 
   // Pagination
@@ -93,9 +96,16 @@ export default async function GiftCardsPage({ params, searchParams }: GiftCardsP
         title="גיפט קארדס"
         description="ניהול כרטיסי מתנה לחנות"
         actions={
-          <Button href={`/shops/${slug}/admin/gift-cards/new`} variant="primary" icon="plus">
-            גיפט קארד חדש
-          </Button>
+          <div className="flex items-center gap-3">
+            <GiftCardSettingsButton
+              storeId={store.id}
+              storeSlug={slug}
+              initialSettings={giftCardSettings}
+            />
+            <Button href={`/shops/${slug}/admin/gift-cards/new`} variant="primary" icon="plus">
+              גיפט קארד חדש
+            </Button>
+          </div>
         }
       />
 

@@ -1109,7 +1109,12 @@ export function CheckoutForm({
             // Redirect to payment page
             window.location.href = data.paymentUrl;
           } else {
-            setOrderError(data.error || 'שגיאה ביצירת עמוד תשלום');
+            // Sanitize error message - don't show raw SQL or technical errors
+            const rawError = data.error || 'שגיאה ביצירת עמוד תשלום';
+            const safeError = rawError.length > 100 || rawError.includes('insert') || rawError.includes('SELECT')
+              ? 'שגיאה ביצירת עמוד תשלום. אנא נסה שנית.'
+              : rawError;
+            setOrderError(safeError);
           }
         } else {
           // Simulation mode - create order directly (backward compatibility)

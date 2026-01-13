@@ -6,6 +6,7 @@ import { OrdersDataTable } from './orders-data-table';
 import { OrderFilters } from './order-filters';
 import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { parseDateRange } from '@/components/admin/report-header';
+import { ExportOrdersButton } from './export-orders-modal';
 
 // ============================================
 // Orders Page - Server Component
@@ -17,6 +18,7 @@ interface OrdersPageProps {
     status?: string; 
     search?: string; 
     page?: string;
+    perPage?: string;
     // Date range picker (like reports)
     period?: string;
     from?: string;
@@ -43,7 +45,7 @@ interface OrdersPageProps {
 export default async function OrdersPage({ params, searchParams }: OrdersPageProps) {
   const { slug } = await params;
   const { 
-    status, search, page, 
+    status, search, page, perPage: perPageParam,
     // Date range picker params
     period, from, to,
     itemCountMin, itemCountMax, categoryId, couponCode,
@@ -208,8 +210,11 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     filteredOrders = filteredOrders.filter(o => o.utmSource === trafficSource);
   }
   
-  // Pagination
-  const perPage = 20;
+  // Pagination - support 20, 50, 100, 200 (stored in localStorage via client component)
+  const validPerPages = [20, 50, 100, 200];
+  const perPage = perPageParam && validPerPages.includes(parseInt(perPageParam)) 
+    ? parseInt(perPageParam) 
+    : 20;
   const currentPage = parseInt(page || '1', 10);
   const totalPages = Math.ceil(filteredOrders.length / perPage);
   const paginatedOrders = filteredOrders.slice(
@@ -253,6 +258,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
         actions={
           <div className="flex items-center gap-3">
             <DateRangePicker />
+            <ExportOrdersButton storeSlug={slug} />
             <Button href={`/shops/${slug}/admin/orders/drafts/new`} variant="primary" icon="plus">
               צור הזמנה
             </Button>

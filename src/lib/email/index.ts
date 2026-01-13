@@ -1509,3 +1509,202 @@ export async function sendClubMemberWelcomeEmail(data: ClubMemberWelcomeEmailDat
   });
 }
 
+// ============ GIFT CARD EMAIL ============
+
+interface GiftCardEmailData {
+  recipientEmail: string;
+  recipientName: string;
+  senderName?: string;
+  message?: string;
+  giftCardCode: string;
+  amount: number;
+  storeName: string;
+  storeSlug: string;
+  cardImage?: string | null;
+  expiresAt?: Date | null;
+}
+
+export async function sendGiftCardEmail(data: GiftCardEmailData) {
+  const {
+    recipientEmail,
+    recipientName,
+    senderName,
+    message,
+    giftCardCode,
+    amount,
+    storeName,
+    storeSlug,
+    cardImage,
+    expiresAt,
+  } = data;
+
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send gift card email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${storeSlug}`;
+  const expiryText = expiresAt 
+    ? `תקף עד: ${expiresAt.toLocaleDateString('he-IL', { day: 'numeric', month: 'long', year: 'numeric' })}`
+    : 'ללא תאריך תפוגה';
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%); margin: 0; padding: 40px 20px; direction: rtl; text-align: right;">
+      
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; margin: 0 auto;">
+        <tr>
+          <td>
+            
+            <!-- Header -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); border-radius: 24px 24px 0 0; padding: 40px 32px; text-align: center;">
+              <tr>
+                <td>
+                  <div style="font-size: 48px; margin-bottom: 16px;">🎁</div>
+                  <h1 style="margin: 0 0 8px; color: white; font-size: 28px; font-weight: bold;">קיבלת גיפט קארד!</h1>
+                  <p style="margin: 0; color: rgba(255,255,255,0.9); font-size: 16px;">מ-${storeName}</p>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Card Image or Default -->
+            ${cardImage ? `
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background: white; padding: 24px 24px 0;">
+                  <img src="${cardImage}" alt="גיפט קארד" style="width: 100%; max-height: 200px; object-fit: cover; border-radius: 16px;" />
+                </td>
+              </tr>
+            </table>
+            ` : ''}
+            
+            <!-- Amount -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 32px;">
+              <tr>
+                <td style="text-align: center;">
+                  <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">סכום הכרטיס</p>
+                  <p style="margin: 0; font-size: 48px; font-weight: bold; color: #1a1a1a;">₪${amount}</p>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Sender Message -->
+            ${senderName || message ? `
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 0 32px 24px;">
+              <tr>
+                <td>
+                  <div style="background: linear-gradient(135deg, #f5f3ff 0%, #fdf2f8 100%); border-radius: 16px; padding: 24px;">
+                    ${senderName ? `<p style="margin: 0 0 8px; font-weight: 600; color: #7c3aed;">מאת: ${senderName}</p>` : ''}
+                    ${message ? `<p style="margin: 0; color: #374151; line-height: 1.6; font-style: italic;">"${message}"</p>` : ''}
+                  </div>
+                </td>
+              </tr>
+            </table>
+            ` : ''}
+            
+            <!-- Gift Card Code -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 0 32px 32px;">
+              <tr>
+                <td>
+                  <div style="background: #1a1a1a; border-radius: 16px; padding: 24px; text-align: center;">
+                    <p style="margin: 0 0 12px; color: rgba(255,255,255,0.7); font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">קוד הגיפט קארד שלך</p>
+                    <p style="margin: 0; color: white; font-size: 24px; font-weight: bold; letter-spacing: 2px; font-family: monospace;">${giftCardCode}</p>
+                  </div>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- How to Use -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 0 32px 32px;">
+              <tr>
+                <td>
+                  <p style="margin: 0 0 16px; font-weight: 600; color: #374151;">איך להשתמש?</p>
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="padding: 8px 0;">
+                        <table cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="width: 28px; height: 28px; background: #f3e8ff; border-radius: 50%; text-align: center; vertical-align: middle; color: #7c3aed; font-weight: bold; font-size: 14px;">1</td>
+                            <td style="padding-right: 12px; color: #4b5563;">היכנס לחנות ${storeName}</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0;">
+                        <table cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="width: 28px; height: 28px; background: #f3e8ff; border-radius: 50%; text-align: center; vertical-align: middle; color: #7c3aed; font-weight: bold; font-size: 14px;">2</td>
+                            <td style="padding-right: 12px; color: #4b5563;">בחר מוצרים והוסף לעגלה</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 8px 0;">
+                        <table cellpadding="0" cellspacing="0">
+                          <tr>
+                            <td style="width: 28px; height: 28px; background: #f3e8ff; border-radius: 50%; text-align: center; vertical-align: middle; color: #7c3aed; font-weight: bold; font-size: 14px;">3</td>
+                            <td style="padding-right: 12px; color: #4b5563;">בעמוד התשלום, הזן את הקוד</td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- CTA Button -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: white; padding: 0 32px 32px;">
+              <tr>
+                <td style="text-align: center;">
+                  <a href="${storeUrl}" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%); color: white !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-weight: 600; font-size: 16px;">
+                    התחל לקנות
+                  </a>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Expiry -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: white; border-radius: 0 0 24px 24px; padding: 0 32px 32px;">
+              <tr>
+                <td style="text-align: center; color: #9ca3af; font-size: 12px;">
+                  ${expiryText}
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Footer -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 24px;">
+              <tr>
+                <td style="text-align: center; padding: 24px;">
+                  <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+                    © ${storeName} - מופעל על ידי QuickShop
+                  </p>
+                </td>
+              </tr>
+            </table>
+            
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: recipientEmail,
+    subject: `🎁 ${senderName ? `${senderName} שלח לך` : 'קיבלת'} גיפט קארד מ-${storeName}!`,
+    html,
+    senderName: storeName,
+  });
+}
+

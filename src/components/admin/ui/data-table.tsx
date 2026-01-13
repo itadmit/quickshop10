@@ -77,6 +77,8 @@ interface DataTableProps<T> {
   loading?: boolean;
   /** Additional URL params to preserve on tab/search change */
   additionalParams?: Record<string, string>;
+  /** Extra content to render in pagination bar (e.g., per-page selector) */
+  paginationExtra?: React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -96,6 +98,7 @@ export function DataTable<T>({
   emptyState,
   loading = false,
   additionalParams = {},
+  paginationExtra,
 }: DataTableProps<T>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -425,7 +428,15 @@ export function DataTable<T>({
           <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
             מציג {((pagination.currentPage - 1) * pagination.perPage) + 1} - {Math.min(pagination.currentPage * pagination.perPage, pagination.totalItems)} מתוך {pagination.totalItems}
           </div>
-          <div className="flex items-center gap-2 order-1 sm:order-2">
+          
+          {/* Extra content in center (e.g., per-page selector) */}
+          {paginationExtra && (
+            <div className="order-3 sm:order-2">
+              {paginationExtra}
+            </div>
+          )}
+          
+          <div className="flex items-center gap-2 order-1 sm:order-3">
             <PaginationButton
               href={pagination.currentPage > 1 ? `${pathname}?${getPageParams(searchParams, pagination.currentPage - 1)}` : undefined}
               disabled={pagination.currentPage === 1}

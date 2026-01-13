@@ -275,6 +275,18 @@ export async function POST(request: NextRequest) {
       image?: string;
       imageUrl?: string;
     }>;
+    
+    // Validate cart items exist
+    if (!cartItemsForOrder || cartItemsForOrder.length === 0) {
+      console.error('[Payment Initiate] No cart items found in request', { 
+        hasOrderDataItems: !!body.orderData?.items, 
+        hasBodyItems: !!body.items 
+      });
+      return NextResponse.json(
+        { success: false, error: 'העגלה ריקה. אנא הוסף מוצרים והמשך לתשלום.' },
+        { status: 400 }
+      );
+    }
 
     // ========== CREATE ORDER WITH PENDING STATUS ==========
     // This allows us to track all checkout attempts, not just completed ones
@@ -439,36 +451,43 @@ export async function POST(request: NextRequest) {
 
     // Create order items
     if (cartItemsForOrder.length > 0) {
-      // Validate productIds exist before inserting (foreign key constraint)
-      const productIds = cartItemsForOrder
-        .map(item => item.productId)
-        .filter((id): id is string => !!id);
-      
-      let existingProductIds = new Set<string>();
-      if (productIds.length > 0) {
-        const existingProducts = await db
-          .select({ id: products.id })
-          .from(products)
-          .where(inArray(products.id, productIds));
-        existingProductIds = new Set(existingProducts.map(p => p.id));
-      }
+      try {
+        // Validate productIds exist before inserting (foreign key constraint)
+        const productIds = cartItemsForOrder
+          .map(item => item.productId)
+          .filter((id): id is string => !!id);
+        
+        let existingProductIds = new Set<string>();
+        if (productIds.length > 0) {
+          const existingProducts = await db
+            .select({ id: products.id })
+            .from(products)
+            .where(inArray(products.id, productIds));
+          existingProductIds = new Set(existingProducts.map(p => p.id));
+        }
 
-      await db.insert(orderItems).values(
-        cartItemsForOrder.map(item => ({
-          orderId: newOrder.id,
-          // Only include productId if it exists in products table
-          productId: item.productId && existingProductIds.has(item.productId) 
-            ? item.productId 
-            : null,
-          name: item.name,
-          variantTitle: item.variantTitle || null,
-          sku: item.sku || '',
-          quantity: item.quantity,
-          price: String(item.price),
-          total: String(item.price * item.quantity),
-          imageUrl: item.image || item.imageUrl || null,
-        }))
-      );
+        await db.insert(orderItems).values(
+          cartItemsForOrder.map(item => ({
+            orderId: newOrder.id,
+            // Only include productId if it exists in products table
+            productId: item.productId && existingProductIds.has(item.productId) 
+              ? item.productId 
+              : null,
+            name: item.name,
+            variantTitle: item.variantTitle || null,
+            sku: item.sku || '',
+            quantity: item.quantity,
+            price: String(item.price),
+            total: String(item.price * item.quantity),
+            imageUrl: item.image || item.imageUrl || null,
+          }))
+        );
+        
+        console.log(`[Payment Initiate] Created ${cartItemsForOrder.length} order items for order #${orderNumber}`);
+      } catch (itemError) {
+        // Log but don't fail the payment - the order exists, items can be recovered
+        console.error(`[Payment Initiate] Failed to create order items for order #${orderNumber}:`, itemError);
+      }
     }
 
     // ========== CREATE PENDING PAYMENT RECORD ==========
@@ -526,10 +545,27 @@ export async function POST(request: NextRequest) {
     
   } catch (error) {
     console.error('Payment initiation error:', error);
+    
+    // Don't expose raw error messages (may contain SQL) to users
+    // Log the full error for debugging but return a friendly message
+    let friendlyError = 'שגיאה ביצירת התשלום. אנא נסה שנית.';
+    
+    // Check for specific known error types
+    if (error instanceof Error) {
+      const msg = error.message.toLowerCase();
+      if (msg.includes('duplicate') || msg.includes('unique')) {
+        friendlyError = 'הזמנה כפולה. אנא רענן את הדף ונסה שנית.';
+      } else if (msg.includes('foreign key') || msg.includes('violates')) {
+        friendlyError = 'שגיאה בנתוני המוצר. אנא רענן את הדף.';
+      } else if (msg.includes('timeout') || msg.includes('connection')) {
+        friendlyError = 'בעיית תקשורת. אנא נסה שנית.';
+      }
+    }
+    
     return NextResponse.json(
       { 
         success: false, 
-        error: error instanceof Error ? error.message : 'Internal server error' 
+        error: friendlyError,
       },
       { status: 500 }
     );
