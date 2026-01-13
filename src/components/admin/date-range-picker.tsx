@@ -71,6 +71,16 @@ const periodOptions: PeriodOption[] = [
       return { from, to };
     },
   },
+  {
+    value: 'all',
+    label: 'הכל',
+    getRange: () => {
+      const to = new Date().toISOString().split('T')[0];
+      // 10 years back - effectively "all"
+      const from = new Date(Date.now() - 3650 * 86400000).toISOString().split('T')[0];
+      return { from, to };
+    },
+  },
 ];
 
 function formatDateHebrew(dateStr: string): string {
@@ -93,8 +103,8 @@ export function DateRangePicker({ basePath }: { basePath?: string }) {
   // Use current pathname instead of fixed basePath to stay on the same page
   const targetPath = basePath || pathname;
 
-  // Get current selection from URL - default to '30d' (החודש)
-  const currentPeriod = searchParams.get('period') || '30d';
+  // Get current selection from URL - default to 'today' (היום)
+  const currentPeriod = searchParams.get('period') || 'today';
   const customFrom = searchParams.get('from');
   const customTo = searchParams.get('to');
 

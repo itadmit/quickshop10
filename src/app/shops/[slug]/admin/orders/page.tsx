@@ -73,28 +73,31 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const activeOrders = allOrdersRaw.filter(o => !o.archivedAt);
   const archivedOrders = allOrdersRaw.filter(o => o.archivedAt);
   
-  // Filter by status tab
+  // Filter by status tab - ברירת מחדל: 'paid' (שולמו)
+  const effectiveStatus = status || 'paid';
   let filteredOrders = activeOrders;
-  if (status === 'archived') {
+  
+  if (effectiveStatus === 'archived') {
     // הזמנות מאורכבות
     filteredOrders = archivedOrders;
-  } else if (status && status !== 'all') {
-    if (status === 'unpaid') {
-      // הזמנות שממתינות לתשלום (pending payment)
-      filteredOrders = activeOrders.filter(o => o.financialStatus === 'pending');
-    } else if (status === 'paid') {
-      // הזמנות ששולמו
-      filteredOrders = activeOrders.filter(o => o.financialStatus === 'paid');
-    } else if (status === 'cancelled') {
-      // הזמנות שבוטלו
-      filteredOrders = activeOrders.filter(o => o.status === 'cancelled');
-    } else if (status === 'unfulfilled') {
-      filteredOrders = activeOrders.filter(o => o.fulfillmentStatus === 'unfulfilled');
-    } else if (status === 'open') {
-      filteredOrders = activeOrders.filter(o => 
-        o.status !== 'cancelled' && o.status !== 'refunded' && o.fulfillmentStatus !== 'fulfilled'
-      );
-    }
+  } else if (effectiveStatus === 'all') {
+    // הכל - לא מסננים לפי סטטוס
+    filteredOrders = activeOrders;
+  } else if (effectiveStatus === 'unpaid') {
+    // הזמנות שממתינות לתשלום (pending payment)
+    filteredOrders = activeOrders.filter(o => o.financialStatus === 'pending');
+  } else if (effectiveStatus === 'paid') {
+    // הזמנות ששולמו
+    filteredOrders = activeOrders.filter(o => o.financialStatus === 'paid');
+  } else if (effectiveStatus === 'cancelled') {
+    // הזמנות שבוטלו
+    filteredOrders = activeOrders.filter(o => o.status === 'cancelled');
+  } else if (effectiveStatus === 'unfulfilled') {
+    filteredOrders = activeOrders.filter(o => o.fulfillmentStatus === 'unfulfilled');
+  } else if (effectiveStatus === 'open') {
+    filteredOrders = activeOrders.filter(o => 
+      o.status !== 'cancelled' && o.status !== 'refunded' && o.fulfillmentStatus !== 'fulfilled'
+    );
   }
   
   // Filter by search
@@ -190,7 +193,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     });
   }
   
-  // Advanced filters - financial status
+  // Advanced filters - financial status (רק אם נבחר במפורש בפילטרים המתקדמים)
   if (filterFinancialStatus) {
     filteredOrders = filteredOrders.filter(o => o.financialStatus === filterFinancialStatus);
   }
@@ -222,12 +225,12 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const archivedCount = archivedOrders.length;
 
   const tabs: Tab[] = [
-    { id: 'all', label: 'הכל', count: activeOrders.length },
-    { id: 'unpaid', label: 'ממתינות לתשלום', count: unpaidCount },
     { id: 'paid', label: 'שולמו', count: paidCount },
+    { id: 'unpaid', label: 'ממתינות לתשלום', count: unpaidCount },
     { id: 'unfulfilled', label: 'ממתינות למשלוח', count: unfulfilledCount },
     { id: 'cancelled', label: 'בוטלו', count: cancelledCount },
     { id: 'archived', label: 'ארכיון', count: archivedCount },
+    { id: 'all', label: 'הכל', count: activeOrders.length },
   ];
 
   // Prepare category options for filter
@@ -271,7 +274,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
         orders={paginatedOrders}
         storeSlug={slug}
         tabs={tabs}
-        currentTab={status || 'all'}
+        currentTab={effectiveStatus}
         searchValue={search}
         pagination={{
           currentPage,

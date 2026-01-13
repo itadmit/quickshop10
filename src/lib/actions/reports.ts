@@ -93,11 +93,12 @@ export const getSalesOverview = cache(async (
   const { from, to } = getDateRange(period, customRange);
   
   // Use SQL aggregations for speed - single query
+  // רק הזמנות ששולמו (paid) - לא כולל ממתין לתשלום
   const [salesStats] = await db
     .select({
-      totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
-      totalOrders: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
-      avgOrderValue: sql<number>`COALESCE(AVG(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric END), 0)`,
+      totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.financialStatus} = 'paid' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
+      totalOrders: sql<number>`COUNT(CASE WHEN ${orders.financialStatus} = 'paid' THEN 1 END)`,
+      avgOrderValue: sql<number>`COALESCE(AVG(CASE WHEN ${orders.financialStatus} = 'paid' THEN ${orders.total}::numeric END), 0)`,
     })
     .from(orders)
     .where(and(

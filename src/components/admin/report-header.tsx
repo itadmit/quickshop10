@@ -41,7 +41,7 @@ export function ReportHeader({
 }
 
 // Helper function to parse date range from search params
-// ⚠️ Default must match DateRangePicker default (30d = החודש)
+// ⚠️ Default must match DateRangePicker default (today = היום)
 export function parseDateRange(searchParams: { 
   period?: string; 
   from?: string; 
@@ -55,7 +55,7 @@ export function parseDateRange(searchParams: {
   let startDate: Date;
   let endDate: Date = new Date();
   endDate.setHours(23, 59, 59, 999);
-  let periodLabel = 'החודש';
+  let periodLabel = 'היום';
 
   if (period === 'custom' && from && to) {
     startDate = new Date(from);
@@ -63,12 +63,6 @@ export function parseDateRange(searchParams: {
     endDate = new Date(to);
     endDate.setHours(23, 59, 59, 999);
     periodLabel = 'תאריך מותאם';
-  } else if (period === 'today') {
-    startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
-    endDate = new Date();
-    endDate.setHours(23, 59, 59, 999);
-    periodLabel = 'היום';
   } else if (period === 'yesterday') {
     startDate = new Date(Date.now() - 86400000);
     startDate.setHours(0, 0, 0, 0);
@@ -78,6 +72,9 @@ export function parseDateRange(searchParams: {
   } else if (period === '7d') {
     startDate = new Date(Date.now() - 7 * 86400000);
     periodLabel = 'השבוע';
+  } else if (period === '30d') {
+    startDate = new Date(Date.now() - 30 * 86400000);
+    periodLabel = 'החודש';
   } else if (period === '90d') {
     startDate = new Date(Date.now() - 90 * 86400000);
     periodLabel = '90 יום';
@@ -87,10 +84,14 @@ export function parseDateRange(searchParams: {
   } else if (period === '1y') {
     startDate = new Date(Date.now() - 365 * 86400000);
     periodLabel = 'שנה';
+  } else if (period === 'all') {
+    startDate = new Date(Date.now() - 3650 * 86400000); // 10 years back
+    periodLabel = 'הכל';
   } else {
-    // Default to 30d (החודש) - must match DateRangePicker default
-    startDate = new Date(Date.now() - 30 * 86400000);
-    periodLabel = 'החודש';
+    // Default to today (היום) - must match DateRangePicker default
+    startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    periodLabel = 'היום';
   }
 
   return { startDate, endDate, periodLabel };
