@@ -8,7 +8,7 @@
  * - Preview mode uses postMessage for real-time updates
  */
 
-export type AspectRatio = '1:1' | '3:4' | '4:3' | '4:5' | '16:9';
+export type AspectRatio = '1:1' | '3:4' | '4:3' | '4:5' | '16:9' | '2:1' | '21:9' | '3:1' | '4:1';
 export type BannerAspectRatio = '16:9' | '21:9' | '3:1' | '4:1' | '2:1' | '3:2' | '4:3';
 
 export interface CategoryPageSettings {
@@ -120,6 +120,10 @@ export const aspectRatioClasses: Record<AspectRatio, string> = {
   '4:3': 'aspect-[4/3]',
   '4:5': 'aspect-[4/5]',
   '16:9': 'aspect-video',
+  '2:1': 'aspect-[2/1]',
+  '21:9': 'aspect-[21/9]',
+  '3:1': 'aspect-[3/1]',
+  '4:1': 'aspect-[4/1]',
 };
 
 // Banner aspect ratio classes - more horizontal options for banners

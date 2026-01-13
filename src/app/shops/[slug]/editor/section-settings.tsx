@@ -6234,6 +6234,10 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
     { value: '4:3', label: 'מלבן שוכב (4:3)' },
     { value: '4:5', label: 'מלבן עומד (4:5)' },
     { value: '16:9', label: 'וידאו (16:9)' },
+    { value: '2:1', label: 'פנורמי (2:1)' },
+    { value: '21:9', label: 'קולנועי (21:9)' },
+    { value: '3:1', label: 'באנר רחב (3:1)' },
+    { value: '4:1', label: 'סרט צר (4:1)' },
   ];
 
   return (

@@ -329,61 +329,95 @@ export function CategoryPageContent({
               {subcategories.map((sub) => {
                 // קביעת רטיו - רספונסיבי או אחיד
                 const useResponsive = settings.subcategories.useResponsiveRatio;
-                const desktopRatio = settings.subcategories.desktopAspectRatio || settings.subcategories.aspectRatio || '4:3';
-                const mobileRatio = settings.subcategories.mobileAspectRatio || '1:1';
-                const uniformRatio = settings.subcategories.aspectRatio || '4:3';
+                const desktopRatio = (settings.subcategories.desktopAspectRatio || '4:3') as keyof typeof aspectRatioClasses;
+                const mobileRatio = (settings.subcategories.mobileAspectRatio || '1:1') as keyof typeof aspectRatioClasses;
+                const uniformRatio = (settings.subcategories.aspectRatio || '4:3') as keyof typeof aspectRatioClasses;
                 
+                // כשמשתמשים ברטיו רספונסיבי - נפרד div לכל מכשיר
+                if (useResponsive) {
+                  return (
+                    <Link
+                      key={sub.id}
+                      href={`${basePath}/category/${sub.slug}`}
+                      className="group relative bg-gray-100 overflow-hidden block"
+                    >
+                      {/* Mobile version */}
+                      <div className={`md:hidden ${aspectRatioClasses[mobileRatio] || 'aspect-square'}`}>
+                        {sub.imageUrl ? (
+                          <img
+                            src={sub.imageUrl}
+                            alt={sub.name}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200" />
+                        )}
+                        {settings.subcategories.showOverlay && (
+                          <div 
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{ backgroundColor: `rgba(0,0,0,${settings.subcategories.overlayOpacity / 100})` }}
+                          >
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                              {sub.name}
+                            </span>
+                          </div>
+                        )}
+                        {!settings.subcategories.showOverlay && (
+                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                              {sub.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Desktop version */}
+                      <div className={`hidden md:block ${aspectRatioClasses[desktopRatio] || 'aspect-[4/3]'}`}>
+                        {sub.imageUrl ? (
+                          <img
+                            src={sub.imageUrl}
+                            alt={sub.name}
+                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200" />
+                        )}
+                        {settings.subcategories.showOverlay && (
+                          <div 
+                            className="absolute inset-0 flex items-center justify-center"
+                            style={{ backgroundColor: `rgba(0,0,0,${settings.subcategories.overlayOpacity / 100})` }}
+                          >
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                              {sub.name}
+                            </span>
+                          </div>
+                        )}
+                        {!settings.subcategories.showOverlay && (
+                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                              {sub.name}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                }
+                
+                // רטיו אחיד - גרסה מקורית
                 return (
                 <Link
                   key={sub.id}
                   href={`${basePath}/category/${sub.slug}`}
-                  className={`group relative bg-gray-100 overflow-hidden ${
-                    useResponsive 
-                      ? `${aspectRatioClasses[mobileRatio as keyof typeof aspectRatioClasses]} md:${aspectRatioClasses[desktopRatio as keyof typeof aspectRatioClasses].replace('aspect-', 'aspect-')}`
-                      : aspectRatioClasses[uniformRatio as keyof typeof aspectRatioClasses]
-                  }`}
-                  style={useResponsive ? {
-                    // CSS custom properties for responsive aspect ratio
-                  } : undefined}
+                  className={`group relative bg-gray-100 overflow-hidden ${aspectRatioClasses[uniformRatio] || 'aspect-[4/3]'}`}
                 >
-                  {/* Mobile aspect ratio wrapper */}
-                  {useResponsive ? (
-                    <>
-                      <div className={`md:hidden absolute inset-0`}>
-                        {sub.imageUrl ? (
-                          <img
-                            src={sub.imageUrl}
-                            alt={sub.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
-                        )}
-                      </div>
-                      <div className={`hidden md:block absolute inset-0`}>
-                        {sub.imageUrl ? (
-                          <img
-                            src={sub.imageUrl}
-                            alt={sub.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
-                        )}
-                      </div>
-                    </>
+                  {sub.imageUrl ? (
+                    <img
+                      src={sub.imageUrl}
+                      alt={sub.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
                   ) : (
-                    <>
-                      {sub.imageUrl ? (
-                        <img
-                          src={sub.imageUrl}
-                          alt={sub.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
-                      )}
-                    </>
+                    <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
                   )}
                   {settings.subcategories.showOverlay && (
                     <div 
