@@ -231,6 +231,48 @@ export const pluginRegistry: PluginDefinition[] = [
   },
 
   // ============================================
+  // 🧾 OPERATIONS - תפעול
+  // ============================================
+  {
+    slug: 'pos',
+    name: 'קופה',
+    description: 'ממשק קופה לסליקת לקוחות עם חיפוש מהיר, מוצרים מהקטלוג ופריטים ידניים',
+    type: 'core',
+    category: 'operations',
+    version: '1.0.0',
+    icon: 'receipt',
+    author: 'QuickShop',
+    isFree: false,
+    price: 49.90,
+    trialDays: 14,
+    defaultConfig: {
+      enabled: true,
+      defaultShippingMethod: 'pickup',
+      showRecentProducts: true,
+      recentProductsCount: 12,
+      allowManualItems: true,
+    },
+    metadata: {
+      menuItem: {
+        icon: 'Receipt',
+        label: 'קופה',
+        href: '/plugins/pos',
+        section: 'addons',
+        badge: 'חדש',
+      },
+      features: [
+        'ממשק קופה מהיר',
+        'חיפוש מוצרים וברקודים',
+        'חיפוש לקוחות קיימים',
+        'פריטים ידניים',
+        'קופונים והנחות',
+        'הזמנות נשמרות במערכת',
+      ],
+      screenshots: [],
+    },
+  },
+
+  // ============================================
   // ⭐ REVIEWS - ביקורות
   // ============================================
   {
