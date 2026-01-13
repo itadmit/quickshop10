@@ -26,6 +26,7 @@ import {
 } from '@/components/storefront/product-page-preview';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import { ProductSection } from '@/components/product-sections';
+import { V2ProductPage } from '@/components/product-sections/v2-product-page';
 import { type ProductPageSection } from '@/lib/product-page-sections';
 import { type DynamicContentContext } from '@/lib/dynamic-content';
 import Link from 'next/link';
@@ -497,6 +498,27 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // Page content - conditionally wrapped for preview mode
   const responsiveCSS = generateResponsiveCSS();
   
+  // 🆕 V2 Product Page Data for new section-based rendering
+  const imageUrls = product.images.map(img => img.url);
+  const v2ProductData = {
+    id: product.id,
+    name: product.name,
+    description: product.description,
+    shortDescription: product.shortDescription,
+    price: effectivePrice,
+    comparePrice: effectiveComparePrice,
+    discountedPrice: hasAutomaticDiscount ? finalPrice : null,
+    images: imageUrls,
+    mainImage: mainImage,
+    hasVariants: product.hasVariants,
+    trackInventory: product.trackInventory,
+    inventory: product.inventory,
+    sku: product.sku,
+    isFeatured: product.isFeatured,
+    allowBackorder: product.allowBackorder,
+    storeId: store.id,
+  };
+  
   const pageContent = (
     <div className="min-h-screen bg-white">
       {/* Responsive typography CSS for mobile (Server-side, zero JS) */}
@@ -510,6 +532,80 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       
       {/* Track ViewContent event */}
       <TrackViewProduct product={trackingProduct} />
+      
+      {/* 🆕 V2 RENDERING: When V2 sections exist, use the new section-based product page */}
+      {hasV2Sections ? (
+        <>
+          <V2ProductPage
+            sections={v2Sections}
+            product={v2ProductData}
+            variants={variants.map(v => ({
+              id: v.id,
+              title: v.title,
+              price: String(v.price),
+              comparePrice: v.comparePrice ? String(v.comparePrice) : null,
+              inventory: v.inventory,
+              option1: v.option1,
+              option2: v.option2,
+              option3: v.option3,
+              allowBackorder: v.allowBackorder,
+              sku: v.sku ?? null,
+            }))}
+            options={options.map(o => ({
+              id: o.id,
+              name: o.name,
+              displayType: o.displayType as 'button' | 'color' | 'pattern' | 'image',
+              values: o.values.map(ov => ({
+                id: ov.id,
+                value: ov.value,
+                metadata: ov.metadata as Record<string, unknown> | null,
+                sortOrder: ov.sortOrder ?? 0,
+              })),
+            }))}
+            relatedProducts={relatedProducts.map(p => ({
+              id: p.id,
+              name: p.name,
+              slug: p.slug,
+              price: p.price ?? '0',
+              comparePrice: p.comparePrice,
+              images: p.image ? [p.image] : [],
+              inventory: p.inventory,
+              trackInventory: p.trackInventory,
+              allowBackorder: p.allowBackorder,
+              hasVariants: p.hasVariants,
+            }))}
+            productAddons={productAddons.map(a => ({
+              id: a.id,
+              name: a.name,
+              description: a.placeholder || null,
+              price: String(a.priceAdjustment),
+              isRequired: a.isRequired,
+              maxQuantity: a.maxLength ?? 1,
+            }))}
+            context={dynamicContext}
+            basePath={basePath}
+            showDecimalPrices={showDecimalPrices}
+            isPreviewMode={isPreviewMode}
+            discountLabels={discountLabels}
+            compareDiscount={compareDiscount}
+            firstCategory={firstCategory ?? null}
+            storeSlug={slug}
+            categoryIds={productCategoryIds}
+          />
+          
+          {/* Footer */}
+          <StoreFooter 
+            storeName={store.name}
+            storeSlug={slug}
+            categories={categories} 
+            basePath={basePath}
+            settings={store.settings as Record<string, unknown>}
+            footerMenuItems={footerMenuItems}
+          />
+        </>
+      ) : (
+        <>
+      {/* V1 RENDERING: Legacy section-based rendering (when no V2 sections exist) */}
       
       {/* Breadcrumb - based on settings */}
       {isSectionVisible('breadcrumb') && renderSection('breadcrumb')}
@@ -781,7 +877,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       {/* Related Products */}
       {isSectionVisible('related') && renderSection('related')}
 
-      {/* Footer */}
+      {/* Footer - V1 */}
       <StoreFooter 
         storeName={store.name}
         storeSlug={slug}
@@ -790,6 +886,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         settings={store.settings as Record<string, unknown>}
         footerMenuItems={footerMenuItems}
       />
+        </> 
+      ) /* End V1 conditional */}
     </div>
   );
 
