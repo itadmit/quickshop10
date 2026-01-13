@@ -1923,7 +1923,6 @@ export function CheckoutForm({
                           <div className="flex items-center gap-2">
                             <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Visa</span>
                             <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Mastercard</span>
-                            <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Bit</span>
                           </div>
                         </div>
                         

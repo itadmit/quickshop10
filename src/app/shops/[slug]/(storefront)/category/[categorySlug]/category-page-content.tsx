@@ -326,20 +326,64 @@ export function CategoryPageContent({
         >
           <div className="max-w-7xl mx-auto">
             <div className={`grid ${getSubcategoryGridClasses()} gap-4`}>
-              {subcategories.map((sub) => (
+              {subcategories.map((sub) => {
+                // קביעת רטיו - רספונסיבי או אחיד
+                const useResponsive = settings.subcategories.useResponsiveRatio;
+                const desktopRatio = settings.subcategories.desktopAspectRatio || settings.subcategories.aspectRatio || '4:3';
+                const mobileRatio = settings.subcategories.mobileAspectRatio || '1:1';
+                const uniformRatio = settings.subcategories.aspectRatio || '4:3';
+                
+                return (
                 <Link
                   key={sub.id}
                   href={`${basePath}/category/${sub.slug}`}
-                  className={`group relative ${aspectRatioClasses[settings.subcategories.aspectRatio]} bg-gray-100 overflow-hidden`}
+                  className={`group relative bg-gray-100 overflow-hidden ${
+                    useResponsive 
+                      ? `${aspectRatioClasses[mobileRatio as keyof typeof aspectRatioClasses]} md:${aspectRatioClasses[desktopRatio as keyof typeof aspectRatioClasses].replace('aspect-', 'aspect-')}`
+                      : aspectRatioClasses[uniformRatio as keyof typeof aspectRatioClasses]
+                  }`}
+                  style={useResponsive ? {
+                    // CSS custom properties for responsive aspect ratio
+                  } : undefined}
                 >
-                  {sub.imageUrl ? (
-                    <img
-                      src={sub.imageUrl}
-                      alt={sub.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
+                  {/* Mobile aspect ratio wrapper */}
+                  {useResponsive ? (
+                    <>
+                      <div className={`md:hidden absolute inset-0`}>
+                        {sub.imageUrl ? (
+                          <img
+                            src={sub.imageUrl}
+                            alt={sub.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
+                        )}
+                      </div>
+                      <div className={`hidden md:block absolute inset-0`}>
+                        {sub.imageUrl ? (
+                          <img
+                            src={sub.imageUrl}
+                            alt={sub.name}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
+                        )}
+                      </div>
+                    </>
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
+                    <>
+                      {sub.imageUrl ? (
+                        <img
+                          src={sub.imageUrl}
+                          alt={sub.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
+                      )}
+                    </>
                   )}
                   {settings.subcategories.showOverlay && (
                     <div 
@@ -361,7 +405,8 @@ export function CategoryPageContent({
                     </div>
                   )}
                 </Link>
-              ))}
+              );
+              })}
             </div>
           </div>
         </section>

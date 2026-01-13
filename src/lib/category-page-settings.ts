@@ -31,7 +31,10 @@ export interface CategoryPageSettings {
     show: boolean;               // הצג תתי קטגוריות
     mobileColumns: 1 | 2;        // כמות בשורה במובייל
     desktopColumns: 2 | 3 | 4;   // כמות בשורה במחשב
-    aspectRatio: AspectRatio;    // יחס גובה-רוחב
+    aspectRatio: AspectRatio;    // יחס גובה-רוחב (לתאימות אחורה)
+    desktopAspectRatio: AspectRatio;  // רטיו במחשב
+    mobileAspectRatio: AspectRatio;   // רטיו במובייל
+    useResponsiveRatio: boolean;      // האם להשתמש ברטיו נפרד למובייל
     showOverlay: boolean;        // הצג שכבת כיהוי
     overlayOpacity: number;      // שקיפות הכיהוי
   };
@@ -68,6 +71,9 @@ export const defaultCategoryPageSettings: CategoryPageSettings = {
     mobileColumns: 2,
     desktopColumns: 4,
     aspectRatio: '4:3',
+    desktopAspectRatio: '4:3',
+    mobileAspectRatio: '1:1',
+    useResponsiveRatio: false, // ברירת מחדל: רטיו אחיד
     showOverlay: true,
     overlayOpacity: 20,
   },

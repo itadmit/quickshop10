@@ -6411,14 +6411,47 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                     })}
                   />
                   
-                  <SelectField
-                    label="יחס גובה-רוחב"
-                    value={categorySettings.subcategories.aspectRatio}
-                    options={aspectRatioOptions}
+                  <SwitchField
+                    label="רטיו נפרד למובייל ולמחשב"
+                    value={categorySettings.subcategories.useResponsiveRatio ?? false}
                     onChange={(v) => updateCategorySettings({ 
-                      subcategories: { ...categorySettings.subcategories, aspectRatio: v as AspectRatio } 
+                      subcategories: { ...categorySettings.subcategories, useResponsiveRatio: v } 
                     })}
                   />
+                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                    מומלץ לתמונות אופקיות. מונע זום מוגזם במובייל.
+                  </p>
+                  
+                  {categorySettings.subcategories.useResponsiveRatio ? (
+                    <>
+                      <SelectField
+                        label="רטיו במחשב"
+                        value={categorySettings.subcategories.desktopAspectRatio || '4:3'}
+                        options={aspectRatioOptions}
+                        onChange={(v) => updateCategorySettings({ 
+                          subcategories: { ...categorySettings.subcategories, desktopAspectRatio: v as AspectRatio } 
+                        })}
+                      />
+                      
+                      <SelectField
+                        label="רטיו במובייל"
+                        value={categorySettings.subcategories.mobileAspectRatio || '1:1'}
+                        options={aspectRatioOptions}
+                        onChange={(v) => updateCategorySettings({ 
+                          subcategories: { ...categorySettings.subcategories, mobileAspectRatio: v as AspectRatio } 
+                        })}
+                      />
+                    </>
+                  ) : (
+                    <SelectField
+                      label="יחס גובה-רוחב"
+                      value={categorySettings.subcategories.aspectRatio}
+                      options={aspectRatioOptions}
+                      onChange={(v) => updateCategorySettings({ 
+                        subcategories: { ...categorySettings.subcategories, aspectRatio: v as AspectRatio } 
+                      })}
+                    />
+                  )}
                   
                   <SwitchField
                     label="הצג שכבת כיהוי"
