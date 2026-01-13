@@ -251,19 +251,27 @@ export function ContactsDataTable({
     {
       key: 'message',
       header: 'הודעה',
-      width: '200px',
+      width: '250px',
       render: (contact) => {
         const metadata = (contact.metadata || {}) as { message?: string };
         const message = metadata.message;
         if (!message) return <span className="text-gray-400 text-sm">-</span>;
-        // Show truncated message with tooltip
+        
+        const isLong = message.length > 40;
+        const truncated = isLong ? message.slice(0, 40) + '...' : message;
+        
         return (
-          <p 
-            className="text-gray-600 text-sm truncate max-w-[180px]"
-            title={message}
-          >
-            {message}
-          </p>
+          <div className="group relative">
+            <p className="text-gray-600 text-sm">
+              {truncated}
+            </p>
+            {/* Full message popup on hover */}
+            {isLong && (
+              <div className="hidden group-hover:block absolute z-50 top-full right-0 mt-1 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm whitespace-pre-wrap text-sm text-gray-700">
+                {message}
+              </div>
+            )}
+          </div>
         );
       },
     },
