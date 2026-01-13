@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 import { contacts, stores, customers } from '@/lib/db/schema';
-import { eq, and, desc, count, gt } from 'drizzle-orm';
+import { eq, and, desc, count, gt, or, ilike, sql } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
@@ -57,33 +57,40 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
 
   // Special case: "customer" tab shows customers with orders, not contacts
   if (type === 'customer') {
-    // Get customers who made at least 1 purchase
-    const allCustomers = await db
-      .select()
-      .from(customers)
-      .where(and(eq(customers.storeId, store.id), gt(customers.totalOrders, 0)))
-      .orderBy(desc(customers.createdAt));
+    const perPage = 25;
+    const currentPage = parseInt(page || '1', 10);
+    const offset = (currentPage - 1) * perPage;
 
-    // Filter by search
-    let filteredCustomers = allCustomers;
+    // Build search conditions at DB level
+    const customerConditions = [eq(customers.storeId, store.id), gt(customers.totalOrders, 0)];
     if (search) {
-      const searchLower = search.toLowerCase();
-      filteredCustomers = allCustomers.filter(c => 
-        c.email.toLowerCase().includes(searchLower) ||
-        c.firstName?.toLowerCase().includes(searchLower) ||
-        c.lastName?.toLowerCase().includes(searchLower) ||
-        c.phone?.toLowerCase().includes(searchLower)
+      const searchPattern = `%${search}%`;
+      customerConditions.push(
+        or(
+          ilike(customers.email, searchPattern),
+          ilike(customers.firstName, searchPattern),
+          ilike(customers.lastName, searchPattern),
+          ilike(customers.phone, searchPattern)
+        )!
       );
     }
 
-    // Pagination
-    const perPage = 25;
-    const currentPage = parseInt(page || '1', 10);
-    const totalPages = Math.ceil(filteredCustomers.length / perPage);
-    const paginatedCustomers = filteredCustomers.slice(
-      (currentPage - 1) * perPage,
-      currentPage * perPage
-    );
+    // Get total count for pagination (single count query)
+    const [{ total }] = await db
+      .select({ total: count() })
+      .from(customers)
+      .where(and(...customerConditions));
+
+    // Get paginated customers (with limit & offset at DB level)
+    const paginatedCustomers = await db
+      .select()
+      .from(customers)
+      .where(and(...customerConditions))
+      .orderBy(desc(customers.createdAt))
+      .limit(perPage)
+      .offset(offset);
+
+    const totalPages = Math.ceil(total / perPage);
 
     // Convert customers to contact-like format for the table
     const customersAsContacts = paginatedCustomers.map(c => ({
@@ -194,7 +201,7 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
           pagination={{
             currentPage,
             totalPages,
-            totalItems: filteredCustomers.length,
+            totalItems: total,
             perPage,
           }}
         />
@@ -203,15 +210,40 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
   }
 
   // Build query conditions for other tabs
+  const perPage = 25;
+  const currentPage = parseInt(page || '1', 10);
+  const offset = (currentPage - 1) * perPage;
+
   const conditions = [eq(contacts.storeId, store.id)];
   if (type && type !== 'all') {
     conditions.push(eq(contacts.type, type as 'newsletter' | 'club_member' | 'contact_form' | 'popup_form'));
   }
 
-  // Get contacts with customer data (for "לקוח" column)
-  let allContacts = await db.query.contacts.findMany({
+  // Add search filter at DB level
+  if (search) {
+    const searchPattern = `%${search}%`;
+    conditions.push(
+      or(
+        ilike(contacts.email, searchPattern),
+        ilike(contacts.firstName, searchPattern),
+        ilike(contacts.lastName, searchPattern),
+        ilike(contacts.phone, searchPattern)
+      )!
+    );
+  }
+
+  // Get total count for pagination (single count query)
+  const [{ total: contactsTotal }] = await db
+    .select({ total: count() })
+    .from(contacts)
+    .where(and(...conditions));
+
+  // Get paginated contacts with customer data (with limit & offset at DB level)
+  const paginatedContacts = await db.query.contacts.findMany({
     where: and(...conditions),
     orderBy: desc(contacts.createdAt),
+    limit: perPage,
+    offset: offset,
     with: {
       customer: {
         columns: {
@@ -223,25 +255,7 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
     },
   });
 
-  // Filter by search
-  if (search) {
-    const searchLower = search.toLowerCase();
-    allContacts = allContacts.filter(c => 
-      c.email.toLowerCase().includes(searchLower) ||
-      c.firstName?.toLowerCase().includes(searchLower) ||
-      c.lastName?.toLowerCase().includes(searchLower) ||
-      c.phone?.toLowerCase().includes(searchLower)
-    );
-  }
-
-  // Pagination
-  const perPage = 25;
-  const currentPage = parseInt(page || '1', 10);
-  const totalPages = Math.ceil(allContacts.length / perPage);
-  const paginatedContacts = allContacts.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage
-  );
+  const totalPages = Math.ceil(contactsTotal / perPage);
 
   // Tabs - לקוחות ראשון
   const tabs: Tab[] = [
@@ -322,7 +336,7 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
         pagination={{
           currentPage,
           totalPages,
-          totalItems: allContacts.length,
+          totalItems: contactsTotal,
           perPage,
         }}
       />

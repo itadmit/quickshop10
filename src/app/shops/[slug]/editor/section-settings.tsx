@@ -5,6 +5,11 @@ import { usePathname } from 'next/navigation';
 import { MediaPickerModal, type MediaItem } from '@/components/admin/media-picker-modal';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import { TypographyPopover } from '@/components/admin/typography-popover';
+import { 
+  defaultCategoryPageSettings, 
+  type CategoryPageSettings,
+  type AspectRatio
+} from '@/lib/category-page-settings';
 
 // ============================================
 // Section Settings - Right Panel (Shopify Style) - עברית
@@ -6192,12 +6197,6 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
 // ===========================================
 // Category Page Settings UI
 // ===========================================
-
-import { 
-  defaultCategoryPageSettings, 
-  type CategoryPageSettings,
-  type AspectRatio
-} from '@/lib/category-page-settings';
 
 interface CategoryPageSectionSettingsProps {
   sectionType: string;

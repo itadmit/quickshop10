@@ -14,8 +14,17 @@ import Link from 'next/link';
 import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
+import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import type { CategoryPageSettings } from '@/lib/category-page-settings';
 import { bannerHeightClasses, aspectRatioClasses } from '@/lib/category-page-settings';
+
+// Section name labels for editor (Hebrew)
+const sectionNames: Record<string, string> = {
+  'cp-banner': 'באנר קטגוריה',
+  'cp-breadcrumb': 'ניווט',
+  'cp-subcategories': 'תתי קטגוריות',
+  'cp-products': 'רשת מוצרים',
+};
 
 interface CategoryData {
   id: string;
@@ -147,16 +156,25 @@ export function CategoryPageContent({
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Editor Section Highlighter - only in preview mode */}
+      {isPreviewMode && <EditorSectionHighlighter />}
+
       {/* Track ViewCategory event */}
-      <TrackViewCategory 
-        categoryId={category.id} 
-        categoryName={category.name} 
-        productsCount={products.length}
-      />
+      {!isPreviewMode && (
+        <TrackViewCategory 
+          categoryId={category.id} 
+          categoryName={category.name} 
+          productsCount={products.length}
+        />
+      )}
       
       {/* Hero Banner */}
       {settings.banner.show && (
-        <section className={`relative ${bannerHeightClasses[settings.banner.height]} bg-gray-100 overflow-hidden`}>
+        <section 
+          className={`relative ${bannerHeightClasses[settings.banner.height]} bg-gray-100 overflow-hidden`}
+          data-section-id="cp-banner"
+          data-section-name={sectionNames['cp-banner']}
+        >
           {category.imageUrl ? (
             <img 
               src={category.imageUrl}
@@ -193,7 +211,11 @@ export function CategoryPageContent({
 
       {/* Breadcrumb */}
       {settings.breadcrumb.show && (
-        <nav className="py-6 px-6 border-b border-gray-100">
+        <nav 
+          className="py-6 px-6 border-b border-gray-100"
+          data-section-id="cp-breadcrumb"
+          data-section-name={sectionNames['cp-breadcrumb']}
+        >
           <div className="max-w-7xl mx-auto">
             <ol className="flex items-center gap-2 text-sm text-gray-500">
               <li><Link href={basePath || '/'} className="hover:text-black transition-colors">בית</Link></li>
@@ -216,7 +238,11 @@ export function CategoryPageContent({
 
       {/* Subcategories Grid */}
       {hasSubcategories && settings.subcategories.show && (
-        <section className="py-12 px-6 border-b border-gray-100">
+        <section 
+          className="py-12 px-6 border-b border-gray-100"
+          data-section-id="cp-subcategories"
+          data-section-name={sectionNames['cp-subcategories']}
+        >
           <div className="max-w-7xl mx-auto">
             <div className={`grid ${getSubcategoryGridClasses()} gap-4`}>
               {subcategories.map((sub) => (
@@ -261,7 +287,11 @@ export function CategoryPageContent({
       )}
 
       {/* Products Grid */}
-      <section className="py-16 px-6">
+      <section 
+        className="py-16 px-6"
+        data-section-id="cp-products"
+        data-section-name={sectionNames['cp-products']}
+      >
         <div className="max-w-7xl mx-auto">
           {settings.products.showCount && (
             <div className="flex justify-between items-center mb-12">
@@ -315,4 +345,3 @@ export function CategoryPageContent({
     </div>
   );
 }
-

@@ -55,6 +55,9 @@ const VALID_SETTINGS_KEYS = [
   
   // Product page settings (object with all product page customization)
   'productPageSettings',
+  
+  // Category page settings (object with all category page customization)
+  'categoryPageSettings',
 ];
 
 export async function PUT(

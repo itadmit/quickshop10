@@ -494,6 +494,26 @@ export function ThemeEditor({
         isActive: true,
       };
     }
+
+    // Category page individual sections (cp-banner, cp-subcategories, etc.)
+    if (selectedSectionId?.startsWith('cp-')) {
+      const sectionLabels: Record<string, string> = {
+        'cp-banner': 'באנר קטגוריה',
+        'cp-breadcrumb': 'ניווט (Breadcrumb)',
+        'cp-subcategories': 'תתי קטגוריות',
+        'cp-products': 'רשת מוצרים',
+      };
+      return {
+        id: selectedSectionId,
+        type: selectedSectionId,
+        title: sectionLabels[selectedSectionId] || selectedSectionId,
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: 0,
+        isActive: true,
+      };
+    }
     
     return sections.find(s => s.id === selectedSectionId) || null;
   };
