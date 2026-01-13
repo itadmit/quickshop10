@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { DataTable, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
+import type { CustomerTag } from '@/lib/db/queries';
 
 // ============================================
 // CustomersDataTable - Client Component
+// Shows customers with tags (מדבקות)
 // ============================================
 
 type Customer = {
@@ -20,6 +21,7 @@ type Customer = {
   creditBalance: string | null;
   acceptsMarketing: boolean | null;
   createdAt: Date;
+  tags: CustomerTag[];
 };
 
 interface CustomersDataTableProps {
@@ -44,6 +46,14 @@ function formatDate(date: Date) {
   });
 }
 
+// Tag badge configuration
+const tagConfig: Record<CustomerTag, { label: string; bgColor: string; textColor: string }> = {
+  customer: { label: 'לקוח', bgColor: 'bg-green-100', textColor: 'text-green-700' },
+  club_member: { label: 'מועדון', bgColor: 'bg-purple-100', textColor: 'text-purple-700' },
+  newsletter: { label: 'ניוזלטר', bgColor: 'bg-blue-100', textColor: 'text-blue-700' },
+  contact_form: { label: 'יצירת קשר', bgColor: 'bg-orange-100', textColor: 'text-orange-700' },
+};
+
 export function CustomersDataTable({
   customers,
   storeSlug,
@@ -52,8 +62,6 @@ export function CustomersDataTable({
   searchValue,
   pagination,
 }: CustomersDataTableProps) {
-  const router = useRouter();
-
   // Bulk Actions
   const bulkActions: BulkAction[] = [
     {
@@ -67,7 +75,6 @@ export function CustomersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement export
         console.log('Export customers:', selectedIds);
       },
     },
@@ -81,7 +88,6 @@ export function CustomersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement send email
         console.log('Send email to:', selectedIds);
       },
     },
@@ -96,7 +102,6 @@ export function CustomersDataTable({
         </svg>
       ),
       onAction: async (selectedIds) => {
-        // TODO: Implement add credit
         console.log('Add credit to:', selectedIds);
       },
     },
@@ -105,7 +110,7 @@ export function CustomersDataTable({
   const columns: Column<Customer>[] = [
     {
       key: 'customer',
-      header: 'לקוח',
+      header: 'איש קשר',
       render: (customer) => (
         <div>
           <Link 
@@ -127,27 +132,52 @@ export function CustomersDataTable({
       ),
     },
     {
+      key: 'tags',
+      header: 'מדבקות',
+      width: '200px',
+      render: (customer) => (
+        <div className="flex flex-wrap gap-1">
+          {customer.tags.length > 0 ? (
+            customer.tags.map(tag => (
+              <span 
+                key={tag}
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${tagConfig[tag].bgColor} ${tagConfig[tag].textColor}`}
+              >
+                {tagConfig[tag].label}
+              </span>
+            ))
+          ) : (
+            <span className="text-gray-400 text-xs">-</span>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'orders',
       header: 'הזמנות',
-      width: '100px',
+      width: '80px',
       align: 'center',
       render: (customer) => (
-        <span className="text-gray-600">{customer.totalOrders || 0}</span>
+        <span className={customer.totalOrders ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+          {customer.totalOrders || 0}
+        </span>
       ),
     },
     {
       key: 'spent',
       header: 'סה״כ קניות',
-      width: '120px',
+      width: '100px',
       align: 'center',
       render: (customer) => (
-        <span className="font-medium">₪{Number(customer.totalSpent || 0).toFixed(2)}</span>
+        <span className={Number(customer.totalSpent || 0) > 0 ? 'font-medium' : 'text-gray-400'}>
+          ₪{Number(customer.totalSpent || 0).toFixed(0)}
+        </span>
       ),
     },
     {
       key: 'credit',
-      header: 'יתרת קרדיט',
-      width: '120px',
+      header: 'קרדיט',
+      width: '90px',
       align: 'center',
       render: (customer) => (
         <span className={`font-medium ${
@@ -155,45 +185,22 @@ export function CustomersDataTable({
             ? 'text-blue-600' 
             : 'text-gray-400'
         }`}>
-          ₪{Number(customer.creditBalance || 0).toFixed(2)}
+          ₪{Number(customer.creditBalance || 0).toFixed(0)}
         </span>
       ),
     },
     {
-      key: 'marketing',
-      header: 'דיוור',
+      key: 'joined',
+      header: 'נוצר',
       width: '80px',
       align: 'center',
       render: (customer) => (
-        customer.acceptsMarketing ? (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-            <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-            מאושר
-          </span>
-        ) : (
-          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
-            <svg className="w-3 h-3 ml-1" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-            לא
-          </span>
-        )
-      ),
-    },
-    {
-      key: 'joined',
-      header: 'הצטרפות',
-      width: '100px',
-      align: 'center',
-      render: (customer) => (
-        <span className="text-gray-500">{formatDate(customer.createdAt)}</span>
+        <span className="text-gray-500 text-sm">{formatDate(customer.createdAt)}</span>
       ),
     },
     {
       key: 'actions',
-      header: 'פעולות',
+      header: '',
       width: '100px',
       align: 'left',
       render: (customer) => (
@@ -201,22 +208,24 @@ export function CustomersDataTable({
           <Link
             href={`/shops/${storeSlug}/admin/customers/${customer.id}`}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="צפה בלקוח"
+            title="צפה"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
             </svg>
           </Link>
-          <Link
-            href={`/shops/${storeSlug}/admin/orders?search=${encodeURIComponent(customer.email)}`}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-            title="הזמנות הלקוח"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-            </svg>
-          </Link>
+          {customer.tags.includes('customer') && (
+            <Link
+              href={`/shops/${storeSlug}/admin/orders?search=${encodeURIComponent(customer.email)}`}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              title="הזמנות"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+            </Link>
+          )}
           <a
             href={`mailto:${customer.email}`}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
@@ -250,8 +259,8 @@ export function CustomersDataTable({
       emptyState={
         <EmptyState
           icon="users"
-          title="אין לקוחות"
-          description={searchValue ? 'לא נמצאו לקוחות התואמים לחיפוש' : 'עדיין אין לקוחות רשומים בחנות'}
+          title="אין אנשי קשר"
+          description={searchValue ? 'לא נמצאו אנשי קשר התואמים לחיפוש' : 'עדיין אין אנשי קשר רשומים'}
         />
       }
     />

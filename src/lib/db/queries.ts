@@ -1,5 +1,5 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons } from './schema';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons, contacts } from './schema';
 import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
@@ -815,6 +815,103 @@ export const getOrderDetails = cache(async (storeId: string, orderId: string) =>
 
 // ============ CUSTOMERS ============
 
+// Customer tags type
+export type CustomerTag = 'customer' | 'club_member' | 'newsletter' | 'contact_form';
+
+export interface CustomerWithTags {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  totalOrders: number | null;
+  totalSpent: string | null;
+  creditBalance: string | null;
+  acceptsMarketing: boolean | null;
+  createdAt: Date;
+  tags: CustomerTag[];
+}
+
+export const getStoreCustomersWithTags = cache(async (storeId: string): Promise<CustomerWithTags[]> => {
+  // Get all customers
+  const allCustomers = await db
+    .select()
+    .from(customers)
+    .where(eq(customers.storeId, storeId))
+    .orderBy(desc(customers.createdAt));
+
+  if (allCustomers.length === 0) return [];
+
+  // Get all contact types for these customers in one query
+  const customerIds = allCustomers.map(c => c.id);
+  const customerContacts = await db
+    .select({
+      customerId: contacts.customerId,
+      type: contacts.type,
+    })
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.storeId, storeId),
+        inArray(contacts.customerId, customerIds)
+      )
+    );
+
+  // Build a map of customerId -> contact types
+  const contactTypesMap = new Map<string, Set<string>>();
+  for (const contact of customerContacts) {
+    if (contact.customerId) {
+      if (!contactTypesMap.has(contact.customerId)) {
+        contactTypesMap.set(contact.customerId, new Set());
+      }
+      contactTypesMap.get(contact.customerId)!.add(contact.type);
+    }
+  }
+
+  // Build customers with tags
+  return allCustomers.map(customer => {
+    const tags: CustomerTag[] = [];
+    
+    // לקוח = made at least one purchase
+    if ((customer.totalOrders || 0) > 0) {
+      tags.push('customer');
+    }
+    
+    // Get contact types for this customer
+    const contactTypes = contactTypesMap.get(customer.id) || new Set();
+    
+    // מועדון = registered as club member
+    if (contactTypes.has('club_member')) {
+      tags.push('club_member');
+    }
+    
+    // ניוזלטר = accepts marketing OR has newsletter contact
+    if (customer.acceptsMarketing || contactTypes.has('newsletter')) {
+      tags.push('newsletter');
+    }
+    
+    // יצירת קשר = submitted contact form
+    if (contactTypes.has('contact_form')) {
+      tags.push('contact_form');
+    }
+
+    return {
+      id: customer.id,
+      email: customer.email,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+      phone: customer.phone,
+      totalOrders: customer.totalOrders,
+      totalSpent: customer.totalSpent,
+      creditBalance: customer.creditBalance,
+      acceptsMarketing: customer.acceptsMarketing,
+      createdAt: customer.createdAt,
+      tags,
+    };
+  });
+});
+
+// Simple version for backwards compatibility
 export const getStoreCustomers = cache(async (storeId: string, limit?: number) => {
   const query = db
     .select()

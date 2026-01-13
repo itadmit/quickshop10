@@ -1,4 +1,4 @@
-import { getStoreBySlug, getStoreCustomers } from '@/lib/db/queries';
+import { getStoreBySlug, getStoreCustomersWithTags, type CustomerTag } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { PageHeader } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
@@ -8,6 +8,7 @@ import { CSVImport } from './csv-import';
 
 // ============================================
 // Customers Page - Server Component
+// One record per user with tags (מדבקות)
 // ============================================
 
 interface CustomersPageProps {
@@ -25,20 +26,29 @@ export default async function CustomersPage({ params, searchParams }: CustomersP
     notFound();
   }
 
-  // Fetch customers
-  const allCustomers = await getStoreCustomers(store.id);
+  // Fetch customers with their tags
+  const allCustomers = await getStoreCustomersWithTags(store.id);
   
-  // Filter by tab
+  // Count by tags
+  const customersCount = allCustomers.filter(c => c.tags.includes('customer')).length;
+  const clubMembersCount = allCustomers.filter(c => c.tags.includes('club_member')).length;
+  const newsletterCount = allCustomers.filter(c => c.tags.includes('newsletter')).length;
+  const contactFormCount = allCustomers.filter(c => c.tags.includes('contact_form')).length;
+  const withCredit = allCustomers.filter(c => Number(c.creditBalance || 0) > 0).length;
+  
+  // Filter by tag
   let filteredCustomers = allCustomers;
   if (filter && filter !== 'all') {
-    if (filter === 'repeat') {
-      filteredCustomers = allCustomers.filter(c => (c.totalOrders || 0) > 1);
-    } else if (filter === 'new') {
-      filteredCustomers = allCustomers.filter(c => (c.totalOrders || 0) <= 1);
+    if (filter === 'customer') {
+      filteredCustomers = allCustomers.filter(c => c.tags.includes('customer'));
+    } else if (filter === 'club_member') {
+      filteredCustomers = allCustomers.filter(c => c.tags.includes('club_member'));
+    } else if (filter === 'newsletter') {
+      filteredCustomers = allCustomers.filter(c => c.tags.includes('newsletter'));
+    } else if (filter === 'contact_form') {
+      filteredCustomers = allCustomers.filter(c => c.tags.includes('contact_form'));
     } else if (filter === 'credit') {
       filteredCustomers = allCustomers.filter(c => Number(c.creditBalance || 0) > 0);
-    } else if (filter === 'marketing') {
-      filteredCustomers = allCustomers.filter(c => c.acceptsMarketing === true);
     }
   }
   
@@ -64,25 +74,20 @@ export default async function CustomersPage({ params, searchParams }: CustomersP
     currentPage * perPage
   );
 
-  // Count for tabs
-  const repeatCustomers = allCustomers.filter(c => (c.totalOrders || 0) > 1).length;
-  const newCustomers = allCustomers.filter(c => (c.totalOrders || 0) <= 1).length;
-  const withCredit = allCustomers.filter(c => Number(c.creditBalance || 0) > 0).length;
-  const acceptsMarketing = allCustomers.filter(c => c.acceptsMarketing === true).length;
-
   const tabs: Tab[] = [
     { id: 'all', label: 'הכל', count: allCustomers.length },
-    { id: 'repeat', label: 'לקוחות חוזרים', count: repeatCustomers },
-    { id: 'new', label: 'חדשים', count: newCustomers },
+    { id: 'customer', label: 'לקוחות', count: customersCount },
+    { id: 'club_member', label: 'מועדון', count: clubMembersCount },
+    { id: 'newsletter', label: 'ניוזלטר', count: newsletterCount },
+    { id: 'contact_form', label: 'יצירת קשר', count: contactFormCount },
     { id: 'credit', label: 'עם קרדיט', count: withCredit },
-    { id: 'marketing', label: 'מאשרים דיוור', count: acceptsMarketing },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="לקוחות"
-        description={`${allCustomers.length} לקוחות רשומים`}
+        title="אנשי קשר"
+        description={`${allCustomers.length} רשומות • ${customersCount} לקוחות • ${clubMembersCount} מועדון`}
         actions={
           <div className="flex gap-2">
             <CSVImport storeId={store.id} />

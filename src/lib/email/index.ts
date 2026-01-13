@@ -1318,3 +1318,194 @@ export async function sendWelcomeEmail(email: string, name?: string, storeName?:
   });
 }
 
+// ============ CLUB MEMBER WELCOME EMAIL ============
+
+interface ClubMemberWelcomeEmailData {
+  email: string;
+  customerName?: string;
+  storeName: string;
+  storeSlug: string;
+}
+
+export async function sendClubMemberWelcomeEmail(data: ClubMemberWelcomeEmailData) {
+  const { email, customerName, storeName, storeSlug } = data;
+
+  const baseUrl = getAppUrl();
+  if (!baseUrl) {
+    console.error('Cannot send club member welcome email - NEXT_PUBLIC_APP_URL not configured');
+    return { success: false, error: 'App URL not configured' };
+  }
+
+  const storeUrl = `${baseUrl}/shops/${storeSlug}`;
+  const accountUrl = `${storeUrl}/account`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html dir="rtl" lang="he">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f9fafb; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <!-- Header with Celebration -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%); padding: 48px 24px; text-align: center; border-radius: 16px 16px 0 0;">
+            <!-- Star/Crown Icon -->
+            <table cellpadding="0" cellspacing="0" style="margin: 0 auto 24px;">
+              <tr>
+                <td style="width: 72px; height: 72px; background: rgba(255,255,255,0.1); border-radius: 50%; text-align: center; vertical-align: middle;">
+                  <span style="color: #ffd700; font-size: 36px; line-height: 72px;">⭐</span>
+                </td>
+              </tr>
+            </table>
+            <h1 style="margin: 0 0 8px; font-size: 28px; font-weight: 300; letter-spacing: 1px; color: white;">ברוך הבא למועדון!</h1>
+            <p style="margin: 0; color: rgba(255,255,255,0.8); font-size: 16px;">
+              ${storeName}
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Content -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border: 1px solid #e5e7eb; border-top: none; padding: 40px 32px;">
+            
+            <p style="margin: 0 0 24px; color: #1a1a1a; line-height: 1.8; font-size: 18px;">
+              היי ${customerName || 'חבר יקר'}! 👋
+            </p>
+            
+            <p style="margin: 0 0 32px; color: #4b5563; line-height: 1.8; font-size: 16px;">
+              שמחים לבשר לך שהצטרפת בהצלחה למועדון הלקוחות של <strong style="color: #1a1a1a;">${storeName}</strong>!
+            </p>
+            
+            <!-- Benefits Box -->
+            <div style="background: #fafafa; border-radius: 16px; padding: 28px; margin-bottom: 32px;">
+              <h2 style="margin: 0 0 20px; font-size: 16px; font-weight: 600; color: #1a1a1a; text-align: center;">
+                ההטבות שלך כחבר מועדון
+              </h2>
+              
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 48px; vertical-align: top;">
+                          <div style="width: 40px; height: 40px; background: #fef3c7; border-radius: 10px; text-align: center; line-height: 40px;">
+                            🎁
+                          </div>
+                        </td>
+                        <td style="vertical-align: middle; padding-right: 12px;">
+                          <span style="color: #1a1a1a; font-weight: 500;">הטבות בלעדיות</span>
+                          <br>
+                          <span style="color: #6b7280; font-size: 14px;">מבצעים והנחות רק לחברי מועדון</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 48px; vertical-align: top;">
+                          <div style="width: 40px; height: 40px; background: #dbeafe; border-radius: 10px; text-align: center; line-height: 40px;">
+                            📦
+                          </div>
+                        </td>
+                        <td style="vertical-align: middle; padding-right: 12px;">
+                          <span style="color: #1a1a1a; font-weight: 500;">מעקב הזמנות</span>
+                          <br>
+                          <span style="color: #6b7280; font-size: 14px;">צפייה בהיסטוריית ההזמנות שלך</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 48px; vertical-align: top;">
+                          <div style="width: 40px; height: 40px; background: #dcfce7; border-radius: 10px; text-align: center; line-height: 40px;">
+                            ⚡
+                          </div>
+                        </td>
+                        <td style="vertical-align: middle; padding-right: 12px;">
+                          <span style="color: #1a1a1a; font-weight: 500;">צ'קאאוט מהיר</span>
+                          <br>
+                          <span style="color: #6b7280; font-size: 14px;">הפרטים שלך נשמרים לרכישות עתידיות</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 12px 0;">
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="width: 48px; vertical-align: top;">
+                          <div style="width: 40px; height: 40px; background: #f3e8ff; border-radius: 10px; text-align: center; line-height: 40px;">
+                            🔔
+                          </div>
+                        </td>
+                        <td style="vertical-align: middle; padding-right: 12px;">
+                          <span style="color: #1a1a1a; font-weight: 500;">עדכונים ראשונים</span>
+                          <br>
+                          <span style="color: #6b7280; font-size: 14px;">תקבל הודעות על מוצרים חדשים ומבצעים</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </div>
+            
+          </td>
+        </tr>
+      </table>
+      
+      <!-- CTA Buttons -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; padding: 32px 24px; text-align: center; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 16px 16px;">
+            <a href="${storeUrl}" style="display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 16px 48px; border-radius: 12px; font-weight: 500; font-size: 16px;">
+              התחל לקנות
+            </a>
+            <p style="margin: 16px 0 0;">
+              <a href="${accountUrl}" style="color: #6b7280; text-decoration: underline; font-size: 14px;">
+                או היכנס לאזור האישי שלך
+              </a>
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+      <!-- Footer -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; margin: 32px auto 0;">
+        <tr>
+          <td style="text-align: center; padding: 24px;">
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">
+              יש שאלות? צרו איתנו קשר!
+            </p>
+            <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+              © ${storeName} - מופעל על ידי QuickShop
+            </p>
+          </td>
+        </tr>
+      </table>
+      
+    </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `ברוך הבא למועדון ${storeName}! ⭐`,
+    html,
+    senderName: storeName,
+  });
+}
+

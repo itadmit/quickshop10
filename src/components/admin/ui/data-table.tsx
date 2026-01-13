@@ -75,6 +75,8 @@ interface DataTableProps<T> {
   emptyState?: React.ReactNode;
   /** Loading state */
   loading?: boolean;
+  /** Additional URL params to preserve on tab/search change */
+  additionalParams?: Record<string, string>;
 }
 
 export function DataTable<T>({
@@ -93,6 +95,7 @@ export function DataTable<T>({
   bulkActions,
   emptyState,
   loading = false,
+  additionalParams = {},
 }: DataTableProps<T>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -147,6 +150,13 @@ export function DataTable<T>({
   const updateParams = useCallback((updates: Record<string, string | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
     
+    // Apply additional params first (to preserve them)
+    Object.entries(additionalParams).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    
     Object.entries(updates).forEach(([key, value]) => {
       if (value === undefined || value === '') {
         params.delete(key);
@@ -163,7 +173,7 @@ export function DataTable<T>({
     startTransition(() => {
       router.push(`${pathname}?${params.toString()}`, { scroll: false });
     });
-  }, [searchParams, pathname, router, tabParamName]);
+  }, [searchParams, pathname, router, tabParamName, additionalParams]);
 
   // Handle tab click
   const handleTabClick = (tabId: string) => {

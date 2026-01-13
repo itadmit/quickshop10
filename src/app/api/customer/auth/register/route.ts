@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { customers } from '@/lib/db/schema';
+import { customers, contacts, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { hashPassword, createCustomerSession, setSessionCookie } from '@/lib/customer-auth';
+import { sendClubMemberWelcomeEmail } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,6 +58,36 @@ export async function POST(request: NextRequest) {
         emailVerifiedAt: null, // Will be verified later via OTP
       })
       .returning();
+
+    // Also create club_member contact entry
+    await db.insert(contacts).values({
+      storeId,
+      email: normalizedEmail,
+      firstName: firstName?.trim() || null,
+      lastName: lastName?.trim() || null,
+      phone: phone?.trim() || null,
+      type: 'club_member',
+      status: 'active',
+      source: 'registration',
+      customerId: customer.id,
+    });
+
+    // Get store info for welcome email
+    const [store] = await db
+      .select({ name: stores.name, slug: stores.slug })
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+
+    // Send club member welcome email (don't await - fire and forget)
+    if (store) {
+      sendClubMemberWelcomeEmail({
+        email: normalizedEmail,
+        customerName: firstName?.trim() || undefined,
+        storeName: store.name,
+        storeSlug: store.slug,
+      }).catch(err => console.error('Failed to send club member welcome email:', err));
+    }
 
     // Create session and set cookie
     const userAgent = request.headers.get('user-agent') || undefined;

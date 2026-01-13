@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { customers } from '@/lib/db/schema';
+import { customers, contacts } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -35,14 +35,30 @@ export async function createCustomer(storeId: string, data: CustomerData) {
     const tagsNote = data.tags && data.tags.length > 0 ? `תגיות: ${data.tags.join(', ')}` : '';
     const combinedNotes = [data.note, tagsNote].filter(Boolean).join('\n');
 
-    await db.insert(customers).values({
+    const normalizedEmail = data.email.toLowerCase();
+
+    // Create customer
+    const [newCustomer] = await db.insert(customers).values({
       storeId,
-      email: data.email.toLowerCase(),
+      email: normalizedEmail,
       firstName: data.firstName,
       lastName: data.lastName,
       phone: data.phone || null,
       acceptsMarketing: data.acceptsMarketing || false,
       notes: combinedNotes || null,
+    }).returning();
+
+    // Also create club_member contact (since created via admin = club member)
+    await db.insert(contacts).values({
+      storeId,
+      email: normalizedEmail,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phone: data.phone || null,
+      type: 'club_member',
+      status: 'active',
+      source: 'admin',
+      customerId: newCustomer.id,
     });
 
     revalidatePath(`/shops/[slug]/admin/customers`);
@@ -164,12 +180,43 @@ export async function importCustomersFromCSV(storeId: string, rows: CSVRow[]) {
       existingEmails.add(email); // Prevent duplicates within the CSV
     }
 
-    // Batch insert (chunks of 100)
+    // Batch insert customers (chunks of 100)
     const chunkSize = 100;
+    const insertedCustomers: Array<{ id: string; email: string; firstName: string | null; lastName: string | null; phone: string | null }> = [];
+    
     for (let i = 0; i < toInsert.length; i += chunkSize) {
       const chunk = toInsert.slice(i, i + chunkSize);
       if (chunk.length > 0) {
-        await db.insert(customers).values(chunk);
+        const inserted = await db.insert(customers).values(chunk).returning({
+          id: customers.id,
+          email: customers.email,
+          firstName: customers.firstName,
+          lastName: customers.lastName,
+          phone: customers.phone,
+        });
+        insertedCustomers.push(...inserted);
+      }
+    }
+
+    // Create club_member contacts for all imported customers
+    if (insertedCustomers.length > 0) {
+      const contactsToInsert = insertedCustomers.map(c => ({
+        storeId,
+        email: c.email,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        phone: c.phone,
+        type: 'club_member' as const,
+        status: 'active' as const,
+        source: 'import',
+        customerId: c.id,
+      }));
+
+      for (let i = 0; i < contactsToInsert.length; i += chunkSize) {
+        const chunk = contactsToInsert.slice(i, i + chunkSize);
+        if (chunk.length > 0) {
+          await db.insert(contacts).values(chunk);
+        }
       }
     }
 
