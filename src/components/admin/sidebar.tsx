@@ -335,6 +335,18 @@ const settingsMenuItems: MenuItem[] = [
   },
 ];
 
+// Help & Guides - external link
+const helpMenuItem: MenuItem = {
+  label: 'מדריכים ועזרה',
+  href: '/help',
+  icon: (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+    </svg>
+  ),
+};
+
 
 // Map of lucide icon names to inline SVGs for dynamic plugins
 const getPluginIcon = (iconName: string): React.ReactNode => {
@@ -568,6 +580,24 @@ export function AdminSidebar({ storeSlug, unreadOrdersCount = 0, pluginMenuItems
           
           {/* Settings */}
           <MenuSection items={settingsMenuItems} basePath={basePath} isActive={isActive} getBadge={getBadge} />
+          
+          {/* Help - External Link */}
+          <a
+            href="/help"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 mt-2 text-sm rounded-lg transition-all duration-150 text-gray-600 hover:bg-gray-50 hover:text-gray-900 group"
+          >
+            <span className="flex-shrink-0 transition-colors text-gray-400 group-hover:text-gray-600">
+              {helpMenuItem.icon}
+            </span>
+            <span className="flex-1">{helpMenuItem.label}</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-300">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
         </nav>
       </aside>
     </>

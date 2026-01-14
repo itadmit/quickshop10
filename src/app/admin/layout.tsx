@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Store, Users, CreditCard, Settings, LogOut, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Store, Users, CreditCard, Settings, LogOut, ChevronDown, BookOpen } from 'lucide-react';
 
 // Platform admin emails - can add more here
 const ADMIN_EMAILS = ['admin@quickshop.co.il'];
@@ -42,6 +42,7 @@ export default async function AdminLayout({
           <NavItem href="/admin/stores" icon={Store} label="חנויות" />
           <NavItem href="/admin/users" icon={Users} label="משתמשים" />
           <NavItem href="/admin/billing" icon={CreditCard} label="חיובים" />
+          <NavItem href="/admin/guides" icon={BookOpen} label="מדריכים" />
           <NavItem href="/admin/settings" icon={Settings} label="הגדרות" />
         </nav>
 

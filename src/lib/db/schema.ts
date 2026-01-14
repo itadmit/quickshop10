@@ -3736,3 +3736,38 @@ export type NewProductWaitlistEntry = typeof productWaitlist.$inferInsert;
 // Platform Settings types
 export type PlatformSetting = typeof platformSettings.$inferSelect;
 export type NewPlatformSetting = typeof platformSettings.$inferInsert;
+
+// ============================================================================
+// HELP GUIDES (Platform-wide guides managed by admin)
+// ============================================================================
+
+export const helpGuideCategories = pgTable('help_guide_categories', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  slug: text('slug').notNull().unique(),
+  title: text('title').notNull(),
+  description: text('description'),
+  icon: text('icon'), // emoji or icon name
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+export const helpGuides = pgTable('help_guides', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  categoryId: uuid('category_id').references(() => helpGuideCategories.id, { onDelete: 'cascade' }),
+  slug: text('slug').notNull(),
+  title: text('title').notNull(),
+  description: text('description'),
+  content: text('content').notNull(), // markdown content
+  sortOrder: integer('sort_order').default(0),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Help Guides types
+export type HelpGuideCategory = typeof helpGuideCategories.$inferSelect;
+export type NewHelpGuideCategory = typeof helpGuideCategories.$inferInsert;
+export type HelpGuide = typeof helpGuides.$inferSelect;
+export type NewHelpGuide = typeof helpGuides.$inferInsert;

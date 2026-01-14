@@ -34,6 +34,7 @@ export function LandingFooter() {
           <div>
             <h4 className="font-bold text-gray-900 mb-4">תמיכה</h4>
             <ul className="space-y-3 text-sm text-gray-500">
+              <li><Link href="/help" className="hover:text-emerald-600 transition-colors font-medium">מדריכים ועזרה</Link></li>
               <li>
                 <a href="mailto:info@quick-shop.co.il" className="hover:text-emerald-600 transition-colors">
                   info@quick-shop.co.il
