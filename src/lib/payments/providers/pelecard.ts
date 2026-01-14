@@ -344,6 +344,8 @@ export class PelecardProvider extends BasePaymentProvider {
    * - Invoice shows original prices (for clarity)
    * - Discount is visible as a separate line
    * - Total matches exactly what was paid
+   * 
+   * VERSION: 2026-01-14-v2 - Fixed agorot conversion
    */
   private buildPayperParameters(request: InitiatePaymentRequest): PayperParameters | undefined {
     // Check if auto invoice is enabled in settings
@@ -397,6 +399,7 @@ export class PelecardProvider extends BasePaymentProvider {
     // Calculate total discount (difference between full price and what was paid)
     const totalDiscountInAgorot = invoiceSubtotalInAgorot - totalPaidInAgorot;
     
+    console.log('[Pelecard] ===== VERSION 2026-01-14-v2 =====');
     console.log('[Pelecard] Discount calculation:', {
       invoiceSubtotalInAgorot,
       totalPaidInAgorot,
