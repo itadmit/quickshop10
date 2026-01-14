@@ -29,9 +29,10 @@ import type {
 interface PayperInvoiceLine {
   description: string;
   quantity: string;
-  price_per_unit: string; // In agorot, BEFORE VAT
-  include_vat: string; // 'True' or 'False'
+  price_per_unit: string; // In agorot (price already includes VAT when include_vat="false")
+  include_vat: string; // "true" = add VAT to price, "false" = price already includes VAT
   catalog_id?: string;
+  No_vat?: string; // "true" = item exempt from VAT, "false" = normal VAT
 }
 
 // Receipt line for Payper (payment details)
@@ -45,11 +46,12 @@ interface PayperReceiptLine {
 }
 
 // PayperParameters for automatic invoice generation
+// NOTE: All boolean-like fields are strings "true"/"false" per Pelecard API
 interface PayperParameters {
   typeDocument: 'Invoice-Receipt' | 'Invoice' | 'Receipt';
   DataPayper: {
     document_lang: string; // 'hb' or 'en'
-    customer_unique_id?: string; // Customer ID number
+    customer_unique_id?: string; // Customer ID number (ת.ז. או ח.פ.)
     customer_mail: string;
     customer_name: string;
     customer_mobile?: string;
@@ -57,10 +59,10 @@ interface PayperParameters {
     customer_address?: string;
     document_subject: string;
     document_remarks?: string;
-    document_no_vat: boolean;
-    document_rounded: boolean;
-    send_by_mail: boolean; // CRITICAL! Must be true
-    discount_with_vat?: string;
+    document_no_vat: string; // "true" or "false" - without VAT
+    document_rounded: string; // "true" or "false" - round amounts
+    send_by_mail: string; // CRITICAL! Must be "true" for invoice to be sent
+    discount_with_vat?: string; // Discount amount in agorot
     income_id?: number;
     invoice_lines: PayperInvoiceLine[];
     receipt_lines: PayperReceiptLine[];
@@ -89,6 +91,7 @@ interface PelecardInitRequest {
   CustomerName?: string;
   CustomerEmail?: string;
   CustomerPhone?: string;
+  CardHolderName?: string; // Pre-fill card holder name field
   // Payper invoice parameters (optional)
   PayperParameters?: PayperParameters;
   // Index signature for Record<string, unknown> compatibility
@@ -351,14 +354,15 @@ export class PelecardProvider extends BasePaymentProvider {
     );
     
     // Build invoice lines with itemized products
-    // Prices INCLUDE VAT, so we use include_vat: "False"
+    // Prices INCLUDE VAT, so we use include_vat: "false"
     const invoiceLines: PayperInvoiceLine[] = productItems.map(item => {
       const priceInAgorot = Math.round(item.price * 100);
       return {
         description: item.name,
         quantity: String(item.quantity),
         price_per_unit: String(priceInAgorot), // Price in agorot, INCLUDING VAT
-        include_vat: 'False', // Price already includes VAT
+        include_vat: 'false', // Price already includes VAT
+        No_vat: 'false', // Normal VAT item
         catalog_id: item.sku || '',
       };
     });
@@ -370,7 +374,8 @@ export class PelecardProvider extends BasePaymentProvider {
         description: shippingItem.name || 'משלוח',
         quantity: '1',
         price_per_unit: String(Math.round(shippingItem.price * 100)),
-        include_vat: 'False',
+        include_vat: 'false', // Price already includes VAT
+        No_vat: 'false',
         catalog_id: '',
       });
     }
@@ -389,7 +394,8 @@ export class PelecardProvider extends BasePaymentProvider {
         description: `הזמנה #${request.orderReference}`,
         quantity: '1',
         price_per_unit: String(totalInAgorot),
-        include_vat: 'False',
+        include_vat: 'false', // Price already includes VAT
+        No_vat: 'false',
         catalog_id: '',
       });
     }
@@ -426,9 +432,9 @@ export class PelecardProvider extends BasePaymentProvider {
         customer_address: request.customer.address || '',
         document_subject: `הזמנה #${request.orderReference}`,
         document_remarks: '',
-        document_no_vat: false,
-        document_rounded: true, // Let Payper round to avoid decimal issues
-        send_by_mail: true, // CRITICAL! Must be true for invoice to be sent
+        document_no_vat: 'false', // Price includes VAT
+        document_rounded: 'true', // Let Payper round to avoid decimal issues
+        send_by_mail: 'true', // CRITICAL! Must be "true" for invoice to be sent
         discount_with_vat: discountInAgorot > 0 ? String(discountInAgorot) : '0',
         income_id: -100000000, // Default per Pelecard docs
         invoice_lines: invoiceLines,
@@ -480,6 +486,7 @@ export class PelecardProvider extends BasePaymentProvider {
         CustomerName: request.customer.name,
         CustomerEmail: request.customer.email,
         CustomerPhone: request.customer.phone,
+        CardHolderName: request.customer.name, // Pre-fill card holder name
       };
       
       // Add PayperParameters if auto invoice is enabled
