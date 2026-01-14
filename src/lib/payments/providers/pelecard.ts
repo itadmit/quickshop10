@@ -333,10 +333,10 @@ export class PelecardProvider extends BasePaymentProvider {
    * Build PayperParameters for automatic invoice generation
    * 
    * IMPORTANT: All prices are in AGOROT (1/100 of ILS)
-   * - include_vat: "false" = price already includes VAT (המחיר כולל מע"מ)
-   * - include_vat: "true" = price does NOT include VAT, Payper will add it
+   * - include_vat: "true" = המחיר כבר כולל מע"מ (Payper לא יוסיף)
+   * - include_vat: "false" = המחיר לא כולל מע"מ (Payper יוסיף 17%!)
    * 
-   * Since store prices include VAT, we use include_vat: "false"
+   * Since store prices ALREADY include VAT, we use include_vat: "true"
    * 
    * DISCOUNT HANDLING:
    * Products are listed at FULL price, then a discount line with NEGATIVE amount
@@ -345,7 +345,7 @@ export class PelecardProvider extends BasePaymentProvider {
    * - Discount is visible as a separate line
    * - Total matches exactly what was paid
    * 
-   * VERSION: 2026-01-14-v2 - Fixed agorot conversion
+   * VERSION: 2026-01-14-v4 - CRITICAL FIX: include_vat: "true" for prices that already include VAT!
    */
   private buildPayperParameters(request: InitiatePaymentRequest): PayperParameters | undefined {
     // Check if auto invoice is enabled in settings
@@ -369,7 +369,7 @@ export class PelecardProvider extends BasePaymentProvider {
         description: item.name,
         quantity: String(item.quantity),
         price_per_unit: String(priceInAgorot), // Full price in agorot
-        include_vat: 'false', // Price already includes VAT
+        include_vat: 'true', // Price ALREADY includes VAT - don't add more!
         No_vat: 'false', // Normal VAT item
         catalog_id: item.sku || '',
       };
@@ -390,7 +390,7 @@ export class PelecardProvider extends BasePaymentProvider {
         description: shippingItem.name || 'משלוח',
         quantity: '1',
         price_per_unit: String(shippingInAgorot),
-        include_vat: 'false',
+        include_vat: 'true', // Price ALREADY includes VAT
         No_vat: 'false',
         catalog_id: '',
       });
@@ -399,7 +399,7 @@ export class PelecardProvider extends BasePaymentProvider {
     // Calculate total discount (difference between full price and what was paid)
     const totalDiscountInAgorot = invoiceSubtotalInAgorot - totalPaidInAgorot;
     
-    console.log('[Pelecard] ===== VERSION 2026-01-14-v2 =====');
+    console.log('[Pelecard] ===== VERSION 2026-01-14-v4 (include_vat=true) =====');
     console.log('[Pelecard] Discount calculation:', {
       invoiceSubtotalInAgorot,
       totalPaidInAgorot,
@@ -414,7 +414,7 @@ export class PelecardProvider extends BasePaymentProvider {
         description: request.discountCode ? `הנחה (${request.discountCode})` : 'הנחה',
         quantity: '1',
         price_per_unit: String(-totalDiscountInAgorot), // Negative amount!
-        include_vat: 'false',
+        include_vat: 'true', // Price ALREADY includes VAT
         No_vat: 'false',
         catalog_id: '',
       });
@@ -426,7 +426,7 @@ export class PelecardProvider extends BasePaymentProvider {
         description: `הזמנה #${request.orderReference}`,
         quantity: '1',
         price_per_unit: String(totalPaidInAgorot),
-        include_vat: 'false',
+        include_vat: 'true', // Price ALREADY includes VAT
         No_vat: 'false',
         catalog_id: '',
       });
