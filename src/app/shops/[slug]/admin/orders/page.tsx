@@ -19,6 +19,8 @@ interface OrdersPageProps {
     search?: string; 
     page?: string;
     perPage?: string;
+    // Sort order
+    sortOrder?: 'newest' | 'oldest';
     // Date range picker (like reports)
     period?: string;
     from?: string;
@@ -46,6 +48,8 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const { slug } = await params;
   const { 
     status, search, page, perPage: perPageParam,
+    // Sort order
+    sortOrder = 'newest',
     // Date range picker params
     period, from, to,
     itemCountMin, itemCountMax, categoryId, couponCode,
@@ -95,7 +99,10 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     // הזמנות שבוטלו
     filteredOrders = activeOrders.filter(o => o.status === 'cancelled');
   } else if (effectiveStatus === 'unfulfilled') {
-    filteredOrders = activeOrders.filter(o => o.fulfillmentStatus === 'unfulfilled');
+    // ממתינות למשלוח = שולמו אבל עדיין לא נשלחו
+    filteredOrders = activeOrders.filter(o => 
+      o.financialStatus === 'paid' && o.fulfillmentStatus === 'unfulfilled'
+    );
   } else if (effectiveStatus === 'open') {
     filteredOrders = activeOrders.filter(o => 
       o.status !== 'cancelled' && o.status !== 'refunded' && o.fulfillmentStatus !== 'fulfilled'
@@ -210,14 +217,21 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     filteredOrders = filteredOrders.filter(o => o.utmSource === trafficSource);
   }
   
+  // Sort orders by date
+  const sortedOrders = [...filteredOrders].sort((a, b) => {
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return sortOrder === 'oldest' ? dateA - dateB : dateB - dateA;
+  });
+
   // Pagination - support 20, 50, 100, 200 (stored in localStorage via client component)
   const validPerPages = [20, 50, 100, 200];
   const perPage = perPageParam && validPerPages.includes(parseInt(perPageParam)) 
     ? parseInt(perPageParam) 
     : 20;
   const currentPage = parseInt(page || '1', 10);
-  const totalPages = Math.ceil(filteredOrders.length / perPage);
-  const paginatedOrders = filteredOrders.slice(
+  const totalPages = Math.ceil(sortedOrders.length / perPage);
+  const paginatedOrders = sortedOrders.slice(
     (currentPage - 1) * perPage,
     currentPage * perPage
   );
@@ -282,10 +296,11 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
         tabs={tabs}
         currentTab={effectiveStatus}
         searchValue={search}
+        sortOrder={sortOrder}
         pagination={{
           currentPage,
           totalPages,
-          totalItems: filteredOrders.length,
+          totalItems: sortedOrders.length,
           perPage,
         }}
       />

@@ -155,16 +155,17 @@ export const getSalesByDay = cache(async (
   const isSingleDay = (to.getTime() - from.getTime()) < 25 * 60 * 60 * 1000;
   
   if (isSingleDay) {
-    // Group by hour for single day - get actual data
+    // Group by hour for single day - get actual data (only paid orders)
     const result = await db
       .select({
         date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')`,
-        revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
-        orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+        revenue: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+        orderCount: sql<number>`COUNT(*)`,
       })
       .from(orders)
       .where(and(
         eq(orders.storeId, storeId),
+        eq(orders.financialStatus, 'paid'),
         gte(orders.createdAt, from),
         lte(orders.createdAt, to)
       ))
@@ -205,16 +206,17 @@ export const getSalesByDay = cache(async (
 
     return allHours;
   } else {
-    // Group by day for multiple days
+    // Group by day for multiple days (only paid orders)
   const result = await db
     .select({
       date: sql<string>`to_char(${orders.createdAt}, 'YYYY-MM-DD')`,
-      revenue: sql<number>`COALESCE(SUM(CASE WHEN ${orders.status} != 'cancelled' THEN ${orders.total}::numeric ELSE 0 END), 0)`,
-      orderCount: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+      revenue: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+      orderCount: sql<number>`COUNT(*)`,
     })
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
       lte(orders.createdAt, to)
     ))
@@ -339,7 +341,7 @@ export const getTrafficSources = cache(async (
 
   // If no analytics data, create fallback from order data
   if (sessions.length === 0) {
-    // Get order stats as fallback - group by UTM source if available in metadata
+    // Get order stats as fallback - group by UTM source if available in metadata (only paid orders)
     const ordersBySource = await db
       .select({
         totalOrders: sql<number>`COUNT(*)`,
@@ -348,9 +350,9 @@ export const getTrafficSources = cache(async (
       .from(orders)
       .where(and(
         eq(orders.storeId, storeId),
+        eq(orders.financialStatus, 'paid'),
         gte(orders.createdAt, from),
-        lte(orders.createdAt, to),
-        sql`${orders.status} != 'cancelled'`
+        lte(orders.createdAt, to)
       ));
 
     const totalOrders = Number(ordersBySource[0]?.totalOrders || 0);
@@ -620,9 +622,9 @@ export const getNewVsReturning = cache(async (
     )
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
-      lte(orders.createdAt, to),
-      sql`${orders.status} != 'cancelled'`
+      lte(orders.createdAt, to)
     ))
     .groupBy(isSingleDay ? sql`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')` : sql`DATE(${orders.createdAt})`)
     .orderBy(asc(isSingleDay ? sql`to_char(${orders.createdAt}, 'YYYY-MM-DD HH24:00:00')` : sql`DATE(${orders.createdAt})`));
@@ -703,15 +705,16 @@ export const getConversionFunnel = cache(async (
 
   // If no analytics data, use order data as fallback to show at least purchases
   if (pageViews === 0 && purchase === 0) {
-    // Get order count from orders table
+    // Get order count from orders table (only paid orders)
     const [orderStats] = await db
       .select({
-        totalOrders: sql<number>`COUNT(CASE WHEN ${orders.status} != 'cancelled' THEN 1 END)`,
+        totalOrders: sql<number>`COUNT(*)`,
         uniqueCustomers: sql<number>`COUNT(DISTINCT ${orders.customerEmail})`,
       })
       .from(orders)
       .where(and(
         eq(orders.storeId, storeId),
+        eq(orders.financialStatus, 'paid'),
         gte(orders.createdAt, from),
         lte(orders.createdAt, to)
       ));
@@ -1177,7 +1180,8 @@ export const getCouponStats = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
-  // Get all orders with discount codes in period (including discountDetails for filtering)
+  // Get all PAID orders with discount codes in period (including discountDetails for filtering)
+  // Only count orders that were actually paid - not pending payment
   const ordersWithCoupons = await db
     .select({
       discountCode: orders.discountCode,
@@ -1188,6 +1192,7 @@ export const getCouponStats = cache(async (
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
       lte(orders.createdAt, to),
       sql`${orders.discountCode} IS NOT NULL AND ${orders.discountCode} != ''`
@@ -1348,6 +1353,7 @@ export const getCouponOrders = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
+  // Only get PAID orders - not pending payment
   const result = await db
     .select({
       id: orders.id,
@@ -1362,6 +1368,7 @@ export const getCouponOrders = cache(async (
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       eq(orders.discountCode, couponCode),
       gte(orders.createdAt, from),
       lte(orders.createdAt, to)
@@ -1409,6 +1416,7 @@ export const getShippingStats = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
+  // Only paid orders - not pending payment
   const shippingData = await db
     .select({
       shippingMethod: orders.shippingMethod,
@@ -1418,7 +1426,7 @@ export const getShippingStats = cache(async (
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
-      sql`${orders.status} != 'cancelled'`,
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
       lte(orders.createdAt, to)
     ));
@@ -1571,7 +1579,7 @@ export const getInfluencerOrders = cache(async (
     matchCondition = eq(orders.influencerId, influencerId);
   }
 
-  // Find orders linked to this influencer
+  // Find PAID orders linked to this influencer (not pending payment)
   const result = await db
     .select({
       id: orders.id,
@@ -1585,6 +1593,7 @@ export const getInfluencerOrders = cache(async (
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
       lte(orders.createdAt, to),
       matchCondition

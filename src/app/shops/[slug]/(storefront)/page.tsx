@@ -23,6 +23,7 @@ import {
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
+import { ScrollToTop } from '@/components/scroll-to-top';
 import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { headers, cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
@@ -569,6 +570,9 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
 
   return (
     <div className="min-h-screen">
+      {/* Scroll to top on page load */}
+      <ScrollToTop />
+      
       {/* Editor Section Highlighter - ONLY in preview mode */}
       {isPreviewMode && <EditorSectionHighlighter />}
       

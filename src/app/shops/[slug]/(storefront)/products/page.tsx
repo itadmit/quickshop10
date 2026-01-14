@@ -2,6 +2,7 @@ import { getStoreBySlug, getProductsByStore, getCategoriesByStore, getFooterMenu
 import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
+import { ScrollToTop } from '@/components/scroll-to-top';
 import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { isOutOfStock } from '@/lib/inventory';
 import Link from 'next/link';
@@ -81,6 +82,9 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Scroll to top on page load */}
+      <ScrollToTop />
+      
       {/* Hero Banner */}
       <section className="relative h-[40vh] min-h-[300px] bg-gray-100 overflow-hidden">
         <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200" />

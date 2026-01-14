@@ -15,6 +15,7 @@ import { ProductCard } from '@/components/product-card';
 import { StoreFooter } from '@/components/store-footer';
 import { TrackViewCategory } from '@/components/tracking-events';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
+import { ScrollToTop } from '@/components/scroll-to-top';
 import type { CategoryPageSettings, BannerAspectRatio } from '@/lib/category-page-settings';
 import { bannerHeightClasses, aspectRatioClasses, bannerAspectRatioClasses } from '@/lib/category-page-settings';
 
@@ -156,6 +157,9 @@ export function CategoryPageContent({
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Scroll to top on page load */}
+      <ScrollToTop />
+      
       {/* Editor Section Highlighter - only in preview mode */}
       {isPreviewMode && <EditorSectionHighlighter />}
 

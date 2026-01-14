@@ -38,6 +38,7 @@ interface OrdersDataTableProps {
   tabs: Tab[];
   currentTab: string;
   searchValue?: string;
+  sortOrder?: 'newest' | 'oldest';
   pagination: {
     currentPage: number;
     totalPages: number;
@@ -90,14 +91,25 @@ export function OrdersDataTable({
   tabs,
   currentTab,
   searchValue,
+  sortOrder = 'newest',
   pagination,
 }: OrdersDataTableProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [ordersToDelete, setOrdersToDelete] = useState<string[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSortMenu, setShowSortMenu] = useState(false);
   
   const isArchiveTab = currentTab === 'archived';
+
+  // Handle sort change
+  const handleSortChange = (newSort: 'newest' | 'oldest') => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('sortOrder', newSort);
+    url.searchParams.set('page', '1'); // Reset to first page
+    router.push(url.pathname + url.search);
+    setShowSortMenu(false);
+  };
 
   // Handle permanent delete confirmation
   const handleDeleteConfirm = async () => {
@@ -338,7 +350,63 @@ export function OrdersDataTable({
         searchPlaceholder="חיפוש לפי מספר הזמנה, שם או אימייל..."
         searchValue={searchValue}
         pagination={pagination}
-        paginationExtra={<PerPageSelector currentPerPage={pagination.perPage} />}
+        paginationExtra={
+          <div className="flex items-center gap-3">
+            {/* Sort Button */}
+            <div className="relative">
+              <button
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+                {sortOrder === 'newest' ? 'חדש לישן' : 'ישן לחדש'}
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showSortMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)} />
+                  <div className="absolute left-0 bottom-full mb-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20 min-w-[160px]">
+                    <button
+                      onClick={() => handleSortChange('newest')}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right hover:bg-gray-50 ${sortOrder === 'newest' ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                      חדש לישן
+                      {sortOrder === 'newest' && (
+                        <svg className="w-4 h-4 mr-auto text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleSortChange('oldest')}
+                      className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-right hover:bg-gray-50 ${sortOrder === 'oldest' ? 'text-blue-600 font-medium' : 'text-gray-700'}`}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                      </svg>
+                      ישן לחדש
+                      {sortOrder === 'oldest' && (
+                        <svg className="w-4 h-4 mr-auto text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <PerPageSelector currentPerPage={pagination.perPage} />
+          </div>
+        }
         emptyState={
           <EmptyState
             icon="orders"
