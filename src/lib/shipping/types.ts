@@ -87,6 +87,92 @@ export interface CancelShipmentRequest {
   reason?: string;
 }
 
+// ============ RETURN/EXCHANGE SHIPMENT TYPES ============
+
+/**
+ * Request to create a return pickup shipment
+ * Customer → Store (pickup from customer)
+ */
+export interface CreateReturnShipmentRequest {
+  storeId: string;
+  
+  // Return request reference
+  returnRequestId: string;
+  returnRequestNumber: string;
+  originalOrderNumber: string;
+  
+  // Pickup from (customer's address)
+  pickupFrom: ShipmentAddress;
+  
+  // Return to (store address)
+  returnTo?: ShipmentAddress;
+  
+  // Package details
+  package?: ShipmentPackage;
+  numberOfPackages?: number;
+  
+  // Options
+  notes?: string;
+  
+  // Items being returned
+  items?: Array<{
+    name: string;
+    quantity: number;
+  }>;
+}
+
+/**
+ * Request to create exchange shipments (pickup + delivery)
+ */
+export interface CreateExchangeShipmentsRequest {
+  storeId: string;
+  
+  // Return request reference
+  returnRequestId: string;
+  returnRequestNumber: string;
+  
+  // Exchange order reference
+  exchangeOrderId: string;
+  exchangeOrderNumber: string;
+  
+  // Customer address (for both pickup and delivery)
+  customerAddress: ShipmentAddress;
+  
+  // Store address
+  storeAddress: ShipmentAddress;
+  
+  // Packages
+  returnPackage?: ShipmentPackage;
+  deliveryPackage?: ShipmentPackage;
+  
+  notes?: string;
+}
+
+/**
+ * Response for exchange shipments (contains both shipments)
+ */
+export interface CreateExchangeShipmentsResponse {
+  success: boolean;
+  
+  // Return pickup shipment (customer → store)
+  returnShipment?: {
+    providerShipmentId: string;
+    trackingNumber: string;
+    labelUrl: string;
+  };
+  
+  // Delivery shipment (store → customer)
+  deliveryShipment?: {
+    providerShipmentId: string;
+    trackingNumber: string;
+    labelUrl: string;
+  };
+  
+  // Error
+  errorCode?: string;
+  errorMessage?: string;
+}
+
 // ============ RESPONSE TYPES ============
 
 export interface CreateShipmentResponse {
@@ -212,6 +298,10 @@ export interface IShippingProvider {
   createShipment(request: CreateShipmentRequest): Promise<CreateShipmentResponse>;
   getTrackingInfo(request: GetTrackingRequest): Promise<TrackingInfo>;
   cancelShipment(request: CancelShipmentRequest): Promise<CancelShipmentResponse>;
+  
+  // Return/Exchange operations
+  createReturnShipment?(request: CreateReturnShipmentRequest): Promise<CreateShipmentResponse>;
+  createExchangeShipments?(request: CreateExchangeShipmentsRequest): Promise<CreateExchangeShipmentsResponse>;
   
   // Label
   getLabel(providerShipmentId: string): Promise<LabelResponse>;

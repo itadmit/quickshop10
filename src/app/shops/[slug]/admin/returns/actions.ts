@@ -1,12 +1,14 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores, productImages } from '@/lib/db/schema';
+import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores, productImages, shipments, shippingProviders } from '@/lib/db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { sendReturnRequestUpdateEmail, sendExchangePaymentEmail } from '@/lib/email';
 import { getDefaultProvider } from '@/lib/payments';
+import { getConfiguredShippingProvider } from '@/lib/shipping/factory';
+import type { ShipmentAddress } from '@/lib/shipping/types';
 
 // ============================================
 // Create Return Request - Manual creation
@@ -438,6 +440,7 @@ interface CreateExchangeOrderInput {
   requestId: string;
   newProductId: string;
   newVariantId?: string;
+  paymentMethod?: 'send_to_customer' | 'manual_charge';
 }
 
 export async function createExchangeOrder(input: CreateExchangeOrderInput) {
@@ -609,27 +612,29 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
               type: 'exchange_difference',
               returnRequestId: request.id,
             },
-            successUrl: `${customerFacingUrl}${storePath}/checkout/thank-you/${orderNumber}`,
+            successUrl: `${customerFacingUrl}${storePath}/account/orders/${orderNumber}?exchange_paid=true`,
             failureUrl: `${customerFacingUrl}${storePath}/account/orders`,
           });
 
           if (paymentResult.success && paymentResult.paymentUrl) {
             paymentUrl = paymentResult.paymentUrl;
             
-            // Send email with payment link
-            sendExchangePaymentEmail({
-              customerEmail: customer.email,
-              customerName: customer.firstName || undefined,
-              storeName: store.name,
-              storeSlug: store.slug,
-              orderNumber: newOrder.orderNumber,
-              originalProductName: (request.items as Array<{ name?: string }>)?.[0]?.name || 'המוצר המקורי',
-              newProductName: newProduct.name + (variantTitle ? ` - ${variantTitle}` : ''),
-              originalValue,
-              newProductPrice,
-              priceDifference,
-              paymentUrl,
-            }).catch(err => console.error('Failed to send exchange payment email:', err));
+            // Send email with payment link only if method is 'send_to_customer' or not specified
+            if (input.paymentMethod !== 'manual_charge') {
+              sendExchangePaymentEmail({
+                customerEmail: customer.email,
+                customerName: customer.firstName || undefined,
+                storeName: store.name,
+                storeSlug: store.slug,
+                orderNumber: newOrder.orderNumber,
+                originalProductName: (request.items as Array<{ name?: string }>)?.[0]?.name || 'המוצר המקורי',
+                newProductName: newProduct.name + (variantTitle ? ` - ${variantTitle}` : ''),
+                originalValue,
+                newProductPrice,
+                priceDifference,
+                paymentUrl,
+              }).catch(err => console.error('Failed to send exchange payment email:', err));
+            }
           }
         }
       }
@@ -671,6 +676,26 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
     // Return original items to inventory
     await returnItemsToInventory(request.items as Array<{ productId?: string; variantId?: string; quantity: number }>);
 
+    // ===== CREATE EXCHANGE SHIPMENTS (if shipping provider configured) =====
+    let exchangeShipmentResult: {
+      returnLabelUrl?: string;
+      deliveryLabelUrl?: string;
+      returnTrackingNumber?: string;
+      deliveryTrackingNumber?: string;
+    } | undefined;
+    
+    // Only create shipments if payment is not required (or after payment is confirmed)
+    if (priceDifference <= 0) {
+      exchangeShipmentResult = await createExchangeShipmentsInternal({
+        storeId: store.id,
+        storeSlug: input.storeSlug,
+        storeName: store.name,
+        returnRequest: request,
+        newOrder,
+        customerId: request.customerId,
+      });
+    }
+
     revalidatePath(`/shops/${input.storeSlug}/admin/returns`);
     revalidatePath(`/shops/${input.storeSlug}/admin/returns/${input.requestId}`);
     revalidatePath(`/shops/${input.storeSlug}/admin/orders`);
@@ -682,10 +707,177 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
       priceDifference,
       paymentUrl,
       creditIssued: priceDifference < 0 ? Math.abs(priceDifference) : undefined,
+      // Shipment info
+      returnLabelUrl: exchangeShipmentResult?.returnLabelUrl,
+      deliveryLabelUrl: exchangeShipmentResult?.deliveryLabelUrl,
+      returnTrackingNumber: exchangeShipmentResult?.returnTrackingNumber,
+      deliveryTrackingNumber: exchangeShipmentResult?.deliveryTrackingNumber,
     };
   } catch (error) {
     console.error('Error creating exchange order:', error);
     return { success: false, error: 'אירעה שגיאה ביצירת הזמנת ההחלפה' };
+  }
+}
+
+// ============================================
+// Internal: Create Exchange Shipments
+// ============================================
+
+interface CreateExchangeShipmentsInternalInput {
+  storeId: string;
+  storeSlug: string;
+  storeName: string;
+  returnRequest: {
+    id: string;
+    requestNumber: string;
+    orderId: string;
+    customerId: string | null;
+  };
+  newOrder: {
+    id: string;
+    orderNumber: string;
+  };
+  customerId: string | null;
+}
+
+async function createExchangeShipmentsInternal(input: CreateExchangeShipmentsInternalInput): Promise<{
+  returnLabelUrl?: string;
+  deliveryLabelUrl?: string;
+  returnTrackingNumber?: string;
+  deliveryTrackingNumber?: string;
+} | undefined> {
+  try {
+    // Get shipping provider
+    const provider = await getConfiguredShippingProvider(input.storeId);
+    if (!provider || !('createExchangeShipments' in provider) || typeof provider.createExchangeShipments !== 'function') {
+      console.log('[Exchange] No shipping provider with exchange support configured');
+      return undefined;
+    }
+    
+    // Get provider config for sender address
+    const [providerConfig] = await db
+      .select()
+      .from(shippingProviders)
+      .where(and(eq(shippingProviders.storeId, input.storeId), eq(shippingProviders.isActive, true)))
+      .limit(1);
+    
+    if (!providerConfig) {
+      console.log('[Exchange] No active shipping provider config found');
+      return undefined;
+    }
+    
+    const settings = (providerConfig.settings || {}) as Record<string, string>;
+    
+    // Get original order for customer address
+    const [originalOrder] = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.id, input.returnRequest.orderId))
+      .limit(1);
+    
+    if (!originalOrder?.shippingAddress) {
+      console.log('[Exchange] No shipping address found on original order');
+      return undefined;
+    }
+    
+    const shippingAddr = originalOrder.shippingAddress as Record<string, string>;
+    
+    // Build customer address
+    const customerAddress: ShipmentAddress = {
+      name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || originalOrder.customerName || '',
+      phone: shippingAddr.phone || originalOrder.customerPhone || '',
+      email: originalOrder.customerEmail || undefined,
+      street: shippingAddr.address || shippingAddr.street || '',
+      city: shippingAddr.city || '',
+      zipCode: shippingAddr.zipCode,
+      apartment: shippingAddr.apartment,
+      floor: shippingAddr.floor,
+      entrance: shippingAddr.entrance,
+      notes: shippingAddr.notes,
+    };
+    
+    // Build store address
+    const storeAddress: ShipmentAddress = {
+      name: settings.senderName || input.storeName,
+      phone: settings.senderPhone || '',
+      street: settings.senderStreet || '',
+      city: settings.senderCity || '',
+      zipCode: settings.senderZipCode || undefined,
+    };
+    
+    console.log('[Exchange] Creating shipments for:', input.returnRequest.requestNumber);
+    
+    // Create both shipments
+    const result = await provider.createExchangeShipments({
+      storeId: input.storeId,
+      returnRequestId: input.returnRequest.id,
+      returnRequestNumber: input.returnRequest.requestNumber,
+      exchangeOrderId: input.newOrder.id,
+      exchangeOrderNumber: input.newOrder.orderNumber,
+      customerAddress,
+      storeAddress,
+    });
+    
+    if (!result.success) {
+      console.error('[Exchange] Failed to create shipments:', result.errorMessage);
+      return undefined;
+    }
+    
+    // Save return shipment to database
+    if (result.returnShipment) {
+      await db.insert(shipments).values({
+        storeId: input.storeId,
+        orderId: input.returnRequest.orderId,
+        provider: providerConfig.provider,
+        providerShipmentId: result.returnShipment.providerShipmentId,
+        trackingNumber: result.returnShipment.trackingNumber,
+        status: 'created',
+        statusDescription: 'משלוח איסוף להחזרה',
+        labelUrl: result.returnShipment.labelUrl,
+        recipientName: storeAddress.name,
+        recipientPhone: storeAddress.phone,
+        recipientAddress: storeAddress,
+      });
+    }
+    
+    // Save delivery shipment to database
+    if (result.deliveryShipment) {
+      await db.insert(shipments).values({
+        storeId: input.storeId,
+        orderId: input.newOrder.id,
+        provider: providerConfig.provider,
+        providerShipmentId: result.deliveryShipment.providerShipmentId,
+        trackingNumber: result.deliveryShipment.trackingNumber,
+        status: 'created',
+        statusDescription: 'משלוח מוצר החלפה',
+        labelUrl: result.deliveryShipment.labelUrl,
+        recipientName: customerAddress.name,
+        recipientPhone: customerAddress.phone,
+        recipientAddress: customerAddress,
+      });
+      
+      // Update exchange order fulfillment status
+      await db.update(orders)
+        .set({
+          fulfillmentStatus: 'fulfilled',
+          updatedAt: new Date(),
+        })
+        .where(eq(orders.id, input.newOrder.id));
+    }
+    
+    console.log('[Exchange] Shipments created successfully');
+    console.log('[Exchange] Return label:', result.returnShipment?.labelUrl);
+    console.log('[Exchange] Delivery label:', result.deliveryShipment?.labelUrl);
+    
+    return {
+      returnLabelUrl: result.returnShipment?.labelUrl,
+      deliveryLabelUrl: result.deliveryShipment?.labelUrl,
+      returnTrackingNumber: result.returnShipment?.trackingNumber,
+      deliveryTrackingNumber: result.deliveryShipment?.trackingNumber,
+    };
+  } catch (error) {
+    console.error('[Exchange] Error creating shipments:', error);
+    return undefined;
   }
 }
 

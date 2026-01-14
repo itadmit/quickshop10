@@ -19,6 +19,9 @@ import type {
   LabelResponse,
   ShipmentStatus,
   TrackingEvent,
+  CreateReturnShipmentRequest,
+  CreateExchangeShipmentsRequest,
+  CreateExchangeShipmentsResponse,
 } from '../types';
 
 // Status code mapping from Run ERP
@@ -613,6 +616,194 @@ export class FocusProvider extends BaseShippingProvider {
       cancelled: 'בוטל',
     };
     return descriptions[status] || status;
+  }
+  
+  /**
+   * Create return pickup shipment (customer → store)
+   * Uses P2 = 'איסוף' for return pickups
+   */
+  async createReturnShipment(request: CreateReturnShipmentRequest): Promise<CreateShipmentResponse> {
+    this.ensureConfigured();
+    
+    const credentials = this.config!.credentials;
+    const pickupFrom = request.pickupFrom;
+    const returnTo = request.returnTo || this.getSenderAddress();
+    const pkg = request.package || this.getDefaultPackage();
+    
+    console.log('[Focus] Creating return pickup for:', request.returnRequestNumber);
+    console.log('[Focus] Pickup from:', pickupFrom);
+    console.log('[Focus] Return to:', returnTo);
+    
+    // Build the 42 parameters for WS Simple - RETURN PICKUP
+    // P2 = 'איסוף' for returns
+    const params: (string | number | null)[] = [
+      credentials.customerNumber || '',  // P1: Customer number
+      'איסוף',                           // P2: Return type (איסוף for pickup/return)
+      credentials.shipmentType && credentials.shipmentType !== '1' ? credentials.shipmentType : '100', // P3: Shipment type
+      '',                                 // P4: Shipment stage
+      returnTo.name,                      // P5: Ordered by (store name)
+      '',                                 // P6: Leave blank
+      '',                                 // P7: Shipped cargo type (not used for returns)
+      credentials.cargoType && credentials.cargoType !== '1' ? credentials.cargoType : '100', // P8: Returned cargo type
+      request.numberOfPackages || 1,      // P9: Number of returned packages
+      '',                                 // P10: Leave blank
+      pickupFrom.name,                    // P11: Consignee's name (pickup from)
+      '',                                 // P12: City code
+      pickupFrom.city,                    // P13: City name
+      '',                                 // P14: Street code
+      pickupFrom.street,                  // P15: Street name
+      '',                                 // P16: Building No
+      pickupFrom.entrance || '',          // P17: Entrance No
+      pickupFrom.floor || '',             // P18: Floor No
+      pickupFrom.apartment || '',         // P19: Apartment No
+      pickupFrom.phone,                   // P20: Primary phone
+      '',                                 // P21: Additional phone
+      `RET-${request.returnRequestNumber}:${request.originalOrderNumber}`, // P22: Reference
+      request.numberOfPackages || 1,      // P23: Number of packages
+      pickupFrom.notes || '',             // P24: Address remarks
+      request.notes || `איסוף החזרה - ${request.returnRequestNumber}`, // P25: Additional remarks
+      request.returnRequestNumber,        // P26: Second reference
+      '',                                 // P27: Pickup date
+      '',                                 // P28: Pickup time
+      '',                                 // P29: Leave blank
+      '',                                 // P30: Payment type code
+      '',                                 // P31: Sum to collect
+      '',                                 // P32: Collection date
+      '',                                 // P33: Collection notes
+      '',                                 // P34: Source pickup point (will be filled by system)
+      '',                                 // P35: Destination pickup point
+      'XML',                              // P36: Response type
+      'N',                                // P37: Auto pickup assignment
+      pickupFrom.email || '',             // P38: Consignee email
+      pkg.weight || 1,                    // P39: Weight
+      pkg.width || 20,                    // P40: Width
+      pkg.height || 20,                   // P41: Height
+      pkg.length || 20,                   // P42: Length
+    ];
+    
+    try {
+      const args = this.buildArguments(params);
+      const encodedArgs = encodeURIComponent(args);
+      const endpoint = `APPNAME=run&PRGNAME=ship_create_anonymous&ARGUMENTS=${encodedArgs}`;
+      
+      console.log('[Focus] Creating return shipment...');
+      const response = await this.makeRequest<Record<string, string>>(endpoint, 'GET');
+      console.log('[Focus] Return API Response:', JSON.stringify(response, null, 2));
+      
+      if (response.error || response.shgiya_yn === 'y' || response.shgiya_yn === 'Y') {
+        const errorMsg = response.message || 'שגיאה ביצירת משלוח איסוף';
+        return {
+          success: false,
+          errorCode: response.errorCode || 'CREATE_RETURN_FAILED',
+          errorMessage: errorMsg,
+          providerResponse: response,
+        };
+      }
+      
+      const shipmentNumber = response.ship_create_num;
+      const randomNumber = response.ship_num_rand;
+      
+      if (!shipmentNumber || shipmentNumber === '0') {
+        return {
+          success: false,
+          errorCode: 'NO_SHIPMENT_NUMBER',
+          errorMessage: 'לא התקבל מספר משלוח מהשרת',
+          providerResponse: response,
+        };
+      }
+      
+      const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${shipmentNumber},-A,-A,-A,-A,-A,-A,-N,-ARET-${request.returnRequestNumber}`;
+      
+      return {
+        success: true,
+        providerShipmentId: randomNumber || shipmentNumber,
+        trackingNumber: shipmentNumber,
+        labelUrl,
+        providerResponse: response,
+      };
+    } catch (error) {
+      this.logError('Create return shipment error', error);
+      return {
+        success: false,
+        errorCode: 'API_ERROR',
+        errorMessage: error instanceof Error ? error.message : 'שגיאה לא צפויה',
+      };
+    }
+  }
+  
+  /**
+   * Create exchange shipments (return pickup + new delivery)
+   * Returns two shipments with two separate labels
+   */
+  async createExchangeShipments(request: CreateExchangeShipmentsRequest): Promise<CreateExchangeShipmentsResponse> {
+    this.ensureConfigured();
+    
+    console.log('[Focus] Creating exchange shipments for:', request.returnRequestNumber);
+    
+    // Step 1: Create return pickup (customer → store)
+    const returnResult = await this.createReturnShipment({
+      storeId: request.storeId,
+      returnRequestId: request.returnRequestId,
+      returnRequestNumber: request.returnRequestNumber,
+      originalOrderNumber: request.exchangeOrderNumber,
+      pickupFrom: request.customerAddress,
+      returnTo: request.storeAddress,
+      package: request.returnPackage,
+      notes: `איסוף עבור החלפה - הזמנה ${request.exchangeOrderNumber}`,
+    });
+    
+    if (!returnResult.success) {
+      return {
+        success: false,
+        errorCode: returnResult.errorCode,
+        errorMessage: `שגיאה ביצירת משלוח איסוף: ${returnResult.errorMessage}`,
+      };
+    }
+    
+    // Step 2: Create delivery (store → customer)
+    const deliveryResult = await this.createShipment({
+      storeId: request.storeId,
+      orderId: request.exchangeOrderId,
+      orderNumber: request.exchangeOrderNumber,
+      recipient: request.customerAddress,
+      sender: request.storeAddress,
+      package: request.deliveryPackage,
+      notes: `החלפה - ${request.returnRequestNumber}`,
+    });
+    
+    if (!deliveryResult.success) {
+      // Return pickup was created but delivery failed
+      // We still return partial success with the return shipment
+      console.warn('[Focus] Exchange: Return created but delivery failed');
+      return {
+        success: false,
+        returnShipment: {
+          providerShipmentId: returnResult.providerShipmentId!,
+          trackingNumber: returnResult.trackingNumber!,
+          labelUrl: returnResult.labelUrl!,
+        },
+        errorCode: deliveryResult.errorCode,
+        errorMessage: `משלוח האיסוף נוצר, אבל שגיאה במשלוח המסירה: ${deliveryResult.errorMessage}`,
+      };
+    }
+    
+    console.log('[Focus] Exchange shipments created successfully');
+    console.log('[Focus] Return tracking:', returnResult.trackingNumber);
+    console.log('[Focus] Delivery tracking:', deliveryResult.trackingNumber);
+    
+    return {
+      success: true,
+      returnShipment: {
+        providerShipmentId: returnResult.providerShipmentId!,
+        trackingNumber: returnResult.trackingNumber!,
+        labelUrl: returnResult.labelUrl!,
+      },
+      deliveryShipment: {
+        providerShipmentId: deliveryResult.providerShipmentId!,
+        trackingNumber: deliveryResult.trackingNumber!,
+        labelUrl: deliveryResult.labelUrl!,
+      },
+    };
   }
 }
 

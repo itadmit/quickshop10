@@ -22,11 +22,16 @@ import {
   paymentProviders,
   orders,
   orderItems,
+  returnRequests,
+  shipments,
+  shippingProviders,
 } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { getConfiguredProvider } from '@/lib/payments';
 import type { TransactionStatus, PaymentProviderType } from '@/lib/payments/types';
 import { executePostPaymentActions, type CartItem } from '@/lib/orders/post-payment';
+import { getConfiguredShippingProvider } from '@/lib/shipping/factory';
+import type { ShipmentAddress } from '@/lib/shipping/types';
 
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
@@ -332,6 +337,170 @@ export async function POST(request: NextRequest) {
           }).catch(err => console.error(`[POS] Post-payment actions failed:`, err));
           
           console.log(`Payment callback [${providerName}]: POS order ${posOrderId} marked as paid, post-payment actions triggered`);
+        }
+      }
+      
+      // ============================================
+      // Handle Exchange Difference Payments
+      // Create shipments after payment is confirmed
+      // ============================================
+      const isExchangeDifference = (orderData as { type?: string })?.type === 'exchange_difference';
+      const exchangeOrderId = (orderData as { orderId?: string })?.orderId;
+      const returnRequestId = (orderData as { returnRequestId?: string })?.returnRequestId;
+      
+      if (isExchangeDifference && exchangeOrderId && returnRequestId) {
+        console.log(`Payment callback [${providerName}]: Processing exchange difference for order ${exchangeOrderId}`);
+        
+        try {
+          // Update order to paid
+          await db
+            .update(orders)
+            .set({
+              financialStatus: 'paid',
+              paidAt: new Date(),
+              paymentMethod: 'credit_card',
+              paymentDetails: {
+                provider: providerName,
+                transactionId: parsed.providerTransactionId,
+                approvalNumber: parsed.approvalNumber,
+              },
+            })
+            .where(eq(orders.id, exchangeOrderId));
+          
+          // Get return request
+          const [returnRequest] = await db
+            .select()
+            .from(returnRequests)
+            .where(eq(returnRequests.id, returnRequestId))
+            .limit(1);
+          
+          if (returnRequest) {
+            // Update return request status to completed
+            await db
+              .update(returnRequests)
+              .set({
+                status: 'completed',
+                updatedAt: new Date(),
+              })
+              .where(eq(returnRequests.id, returnRequestId));
+            
+            // Get exchange order
+            const [exchangeOrder] = await db
+              .select()
+              .from(orders)
+              .where(eq(orders.id, exchangeOrderId))
+              .limit(1);
+            
+            // Get original order for customer address
+            const [originalOrder] = await db
+              .select()
+              .from(orders)
+              .where(eq(orders.id, returnRequest.orderId))
+              .limit(1);
+            
+            if (exchangeOrder && originalOrder?.shippingAddress) {
+              // Create shipments
+              const shippingProvider = await getConfiguredShippingProvider(store.id);
+              
+              if (shippingProvider && 'createExchangeShipments' in shippingProvider && typeof shippingProvider.createExchangeShipments === 'function') {
+                // Get provider config for sender address
+                const [providerConfig] = await db
+                  .select()
+                  .from(shippingProviders)
+                  .where(and(eq(shippingProviders.storeId, store.id), eq(shippingProviders.isActive, true)))
+                  .limit(1);
+                
+                if (providerConfig) {
+                  const settings = (providerConfig.settings || {}) as Record<string, string>;
+                  const shippingAddr = originalOrder.shippingAddress as Record<string, string>;
+                  
+                  const customerAddress: ShipmentAddress = {
+                    name: `${shippingAddr.firstName || ''} ${shippingAddr.lastName || ''}`.trim() || originalOrder.customerName || '',
+                    phone: shippingAddr.phone || originalOrder.customerPhone || '',
+                    email: originalOrder.customerEmail || undefined,
+                    street: shippingAddr.address || shippingAddr.street || '',
+                    city: shippingAddr.city || '',
+                    zipCode: shippingAddr.zipCode,
+                    apartment: shippingAddr.apartment,
+                    floor: shippingAddr.floor,
+                    entrance: shippingAddr.entrance,
+                  };
+                  
+                  const storeAddress: ShipmentAddress = {
+                    name: settings.senderName || store.name,
+                    phone: settings.senderPhone || '',
+                    street: settings.senderStreet || '',
+                    city: settings.senderCity || '',
+                    zipCode: settings.senderZipCode || undefined,
+                  };
+                  
+                  console.log(`[Exchange Callback] Creating shipments for return ${returnRequest.requestNumber}`);
+                  
+                  const shipmentResult = await shippingProvider.createExchangeShipments({
+                    storeId: store.id,
+                    returnRequestId: returnRequest.id,
+                    returnRequestNumber: returnRequest.requestNumber,
+                    exchangeOrderId: exchangeOrder.id,
+                    exchangeOrderNumber: exchangeOrder.orderNumber,
+                    customerAddress,
+                    storeAddress,
+                  });
+                  
+                  if (shipmentResult.success) {
+                    // Save return shipment
+                    if (shipmentResult.returnShipment) {
+                      await db.insert(shipments).values({
+                        storeId: store.id,
+                        orderId: returnRequest.orderId,
+                        provider: providerConfig.provider,
+                        providerShipmentId: shipmentResult.returnShipment.providerShipmentId,
+                        trackingNumber: shipmentResult.returnShipment.trackingNumber,
+                        status: 'created',
+                        statusDescription: 'משלוח איסוף להחזרה',
+                        labelUrl: shipmentResult.returnShipment.labelUrl,
+                        recipientName: storeAddress.name,
+                        recipientPhone: storeAddress.phone,
+                        recipientAddress: storeAddress,
+                      });
+                    }
+                    
+                    // Save delivery shipment
+                    if (shipmentResult.deliveryShipment) {
+                      await db.insert(shipments).values({
+                        storeId: store.id,
+                        orderId: exchangeOrder.id,
+                        provider: providerConfig.provider,
+                        providerShipmentId: shipmentResult.deliveryShipment.providerShipmentId,
+                        trackingNumber: shipmentResult.deliveryShipment.trackingNumber,
+                        status: 'created',
+                        statusDescription: 'משלוח מוצר החלפה',
+                        labelUrl: shipmentResult.deliveryShipment.labelUrl,
+                        recipientName: customerAddress.name,
+                        recipientPhone: customerAddress.phone,
+                        recipientAddress: customerAddress,
+                      });
+                      
+                      // Update exchange order fulfillment status
+                      await db.update(orders)
+                        .set({
+                          fulfillmentStatus: 'fulfilled',
+                          updatedAt: new Date(),
+                        })
+                        .where(eq(orders.id, exchangeOrder.id));
+                    }
+                    
+                    console.log(`[Exchange Callback] Shipments created successfully`);
+                  } else {
+                    console.error(`[Exchange Callback] Failed to create shipments: ${shipmentResult.errorMessage}`);
+                  }
+                }
+              }
+            }
+          }
+          
+          console.log(`Payment callback [${providerName}]: Exchange difference paid, shipments created for ${exchangeOrderId}`);
+        } catch (err) {
+          console.error(`[Exchange Callback] Error processing exchange:`, err);
         }
       }
       

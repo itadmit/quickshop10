@@ -1,5 +1,5 @@
 import { getStoreBySlug, getOrderDetails } from '@/lib/db/queries';
-import { markOrderAsRead, getOrderShipment } from '@/lib/actions/orders';
+import { markOrderAsRead, getOrderShipments } from '@/lib/actions/orders';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/admin/ui';
@@ -68,8 +68,8 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
   // Use order alias for cleaner code
   const order = orderData;
 
-  // Get existing shipment info (for label printing)
-  const shipment = await getOrderShipment(id);
+  // Get all shipments for this order (for exchanges there may be multiple)
+  const orderShipments = await getOrderShipments(id);
 
   const shippingAddress = order.shippingAddress as {
     firstName?: string;
@@ -121,7 +121,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
           fulfillmentStatus={order.fulfillmentStatus!}
           financialStatus={order.financialStatus!}
           status={order.status!}
-          shipment={shipment}
+          shipment={orderShipments[0] || null}
         />
       </div>
 
@@ -419,8 +419,8 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
             </div>
           )}
 
-          {/* Shipment Info */}
-          {shipment && (
+          {/* Shipments Info */}
+          {orderShipments.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-green-500">
@@ -429,46 +429,67 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                   <circle cx="5.5" cy="18.5" r="2.5"/>
                   <circle cx="18.5" cy="18.5" r="2.5"/>
                 </svg>
-                <h3 className="text-sm font-semibold text-gray-900">משלוח</h3>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {orderShipments.length > 1 ? `משלוחים (${orderShipments.length})` : 'משלוח'}
+                </h3>
               </div>
-              <div className="px-4 py-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">מספר מעקב</span>
-                  <span className="text-sm font-mono font-medium text-gray-900 select-all">
-                    {shipment.trackingNumber}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">ספק</span>
-                  <span className="text-sm text-gray-700">{shipment.provider}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">סטטוס</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                    {shipment.status === 'created' ? 'נוצר' : 
-                     shipment.status === 'in_transit' ? 'בדרך' :
-                     shipment.status === 'delivered' ? 'נמסר' : shipment.status}
-                  </span>
-                </div>
-                {/* Generate correct label URL for Focus (ship_print_ws endpoint) */}
-                {shipment.trackingNumber && (
-                  <a
-                    href={shipment.provider === 'focus' 
-                      ? `https://focusdelivery.co.il/RunCom.Server/Request.aspx?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${shipment.trackingNumber},-A,-A,-A,-A,-A,-A,-N,-A${order.orderNumber}`
-                      : shipment.labelUrl || '#'
-                    }
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                      <path d="M6 9V2h12v7"/>
-                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-                      <rect x="6" y="14" width="12" height="8"/>
-                    </svg>
-                    הדפס תווית
-                  </a>
-                )}
+              <div className="divide-y divide-gray-100">
+                {orderShipments.map((shipment, index) => (
+                  <div key={shipment.id} className="px-4 py-3 space-y-3">
+                    {orderShipments.length > 1 && (
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          shipment.statusDescription?.includes('איסוף') 
+                            ? 'bg-orange-100 text-orange-700' 
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {shipment.statusDescription?.includes('איסוף') ? '📦 איסוף' : '🚚 מסירה'}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">מספר מעקב</span>
+                      <span className="text-sm font-mono font-medium text-gray-900 select-all">
+                        {shipment.trackingNumber}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">ספק</span>
+                      <span className="text-sm text-gray-700">{shipment.provider}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">סטטוס</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                        {shipment.status === 'created' ? 'נוצר' : 
+                         shipment.status === 'in_transit' ? 'בדרך' :
+                         shipment.status === 'delivered' ? 'נמסר' : shipment.status}
+                      </span>
+                    </div>
+                    {/* Generate correct label URL for Focus (ship_print_ws endpoint) */}
+                    {shipment.trackingNumber && (
+                      <a
+                        href={shipment.provider === 'focus' 
+                          ? `https://focusdelivery.co.il/RunCom.Server/Request.aspx?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${shipment.trackingNumber},-A,-A,-A,-A,-A,-A,-N,-A${order.orderNumber}`
+                          : shipment.labelUrl || '#'
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-2 w-full flex items-center justify-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors cursor-pointer ${
+                          shipment.statusDescription?.includes('איסוף')
+                            ? 'bg-orange-500 hover:bg-orange-600'
+                            : 'bg-gray-900 hover:bg-gray-800'
+                        }`}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <path d="M6 9V2h12v7"/>
+                          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                          <rect x="6" y="14" width="12" height="8"/>
+                        </svg>
+                        {shipment.statusDescription?.includes('איסוף') ? 'הדפס מדבקת איסוף' : 'הדפס מדבקת משלוח'}
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           )}

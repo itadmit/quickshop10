@@ -80,6 +80,7 @@ export async function getOrderShipment(orderId: string) {
         trackingNumber: shipments.trackingNumber,
         labelUrl: shipments.labelUrl,
         status: shipments.status,
+        statusDescription: shipments.statusDescription,
         provider: shipments.provider,
         createdAt: shipments.createdAt,
       })
@@ -91,6 +92,31 @@ export async function getOrderShipment(orderId: string) {
     return shipment || null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Get all shipments for an order (for exchanges with multiple shipments)
+ */
+export async function getOrderShipments(orderId: string) {
+  try {
+    const result = await db
+      .select({
+        id: shipments.id,
+        trackingNumber: shipments.trackingNumber,
+        labelUrl: shipments.labelUrl,
+        status: shipments.status,
+        statusDescription: shipments.statusDescription,
+        provider: shipments.provider,
+        createdAt: shipments.createdAt,
+      })
+      .from(shipments)
+      .where(eq(shipments.orderId, orderId))
+      .orderBy(desc(shipments.createdAt));
+    
+    return result;
+  } catch {
+    return [];
   }
 }
 
