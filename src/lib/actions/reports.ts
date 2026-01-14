@@ -258,9 +258,9 @@ export const getTopProducts = cache(async (
     ))
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
-      lte(orders.createdAt, to),
-      sql`${orders.status} != 'cancelled'`
+      lte(orders.createdAt, to)
     ))
     .groupBy(products.id, products.name, productImages.url)
     .orderBy(desc(sql`SUM(${orderItems.total}::numeric)`))
@@ -298,9 +298,9 @@ export const getSalesByCategory = cache(async (
     .leftJoin(categories, eq(products.categoryId, categories.id))
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
-      lte(orders.createdAt, to),
-      sql`${orders.status} != 'cancelled'`
+      lte(orders.createdAt, to)
     ))
     .groupBy(categories.id, categories.name)
     .orderBy(desc(sql`SUM(${orderItems.total}::numeric)`));
@@ -1118,7 +1118,7 @@ export const getRecentOrders = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
-  // Get orders with their item counts via a subquery
+  // Get PAID orders with their item counts via a subquery (exclude pending payment)
   const result = await db
     .select({
       id: orders.id,
@@ -1137,6 +1137,7 @@ export const getRecentOrders = cache(async (
     .from(orders)
     .where(and(
       eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
       gte(orders.createdAt, from),
       lte(orders.createdAt, to)
     ))
