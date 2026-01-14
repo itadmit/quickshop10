@@ -59,8 +59,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       .map(id => ordersWithDetails.find(o => o.id === id))
       .filter(Boolean);
 
-    // Generate HTML
-    const html = generatePrintHTML(sortedOrders, store);
+    // Get print settings from store
+    const storeSettings = (store.settings as Record<string, unknown>) || {};
+    const printSettings = (storeSettings.print as Record<string, boolean>) || {};
+
+    // Generate HTML with settings
+    const html = generatePrintHTML(sortedOrders, store, printSettings);
 
     return new NextResponse(html, {
       headers: {
@@ -85,7 +89,28 @@ interface ShippingAddress {
   phone?: string;
 }
 
-function generatePrintHTML(orders: any[], store: any): string {
+// Default print settings (all visible)
+const defaultPrintSettings = {
+  showProductImage: true,
+  showProductPrice: true,
+  showProductSku: true,
+  showProductVariant: true,
+  showOrderTotal: true,
+  showSubtotal: true,
+  showShipping: true,
+  showDiscount: true,
+  showCustomerDetails: true,
+  showShippingAddress: true,
+  showCustomerPhone: true,
+  showStatusBadges: true,
+  showOrderNotes: true,
+  showThankYouMessage: true,
+  showStoreLogo: true,
+};
+
+function generatePrintHTML(orders: any[], store: any, settings: Record<string, boolean>): string {
+  // Merge with defaults
+  const ps = { ...defaultPrintSettings, ...settings };
   const formatDate = (date: Date | null) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('he-IL', { 
@@ -118,12 +143,21 @@ function generatePrintHTML(orders: any[], store: any): string {
   const ordersHTML = orders.map((order, index) => {
     const shippingAddress = order.shippingAddress as ShippingAddress | null;
     
+    // Build dynamic table headers based on settings
+    const tableHeaders = [
+      '<th class="col-product">מוצר</th>',
+      ps.showProductSku ? '<th class="col-sku">מק"ט</th>' : '',
+      '<th class="col-qty">כמות</th>',
+      ps.showProductPrice ? '<th class="col-price">מחיר</th>' : '',
+      ps.showProductPrice ? '<th class="col-total">סה"כ</th>' : '',
+    ].filter(Boolean).join('');
+    
     return `
       <div class="order-page ${index > 0 ? 'page-break' : ''}">
         <!-- Header -->
         <header class="print-header">
           <div class="store-info">
-            ${store.logoUrl 
+            ${ps.showStoreLogo && store.logoUrl 
               ? `<img src="${store.logoUrl}" alt="${store.name}" class="store-logo" />`
               : `<h1 class="store-name">${store.name}</h1>`
             }
@@ -134,6 +168,7 @@ function generatePrintHTML(orders: any[], store: any): string {
           </div>
         </header>
 
+        ${ps.showStatusBadges ? `
         <!-- Status -->
         <div class="status-bar">
           <span class="status-badge ${order.financialStatus === 'paid' ? 'paid' : ''}">
@@ -143,17 +178,22 @@ function generatePrintHTML(orders: any[], store: any): string {
             ${order.status === 'cancelled' ? statusLabels.cancelled : fulfillmentLabels[order.fulfillmentStatus || 'unfulfilled']}
           </span>
         </div>
+        ` : ''}
 
         <!-- Customer & Address -->
+        ${ps.showCustomerDetails || ps.showShippingAddress ? `
         <div class="print-columns">
+          ${ps.showCustomerDetails ? `
           <div class="print-column">
             <h3>פרטי לקוח</h3>
             <div class="info-block">
               <p class="customer-name">${order.customer?.firstName || ''} ${order.customer?.lastName || ''}</p>
               <p>${order.customer?.email || order.customerEmail || ''}</p>
-              ${order.customer?.phone || order.customerPhone ? `<p>${order.customer?.phone || order.customerPhone}</p>` : ''}
+              ${ps.showCustomerPhone && (order.customer?.phone || order.customerPhone) ? `<p>${order.customer?.phone || order.customerPhone}</p>` : ''}
             </div>
           </div>
+          ` : ''}
+          ${ps.showShippingAddress ? `
           <div class="print-column">
             <h3>כתובת למשלוח</h3>
             ${shippingAddress ? `
@@ -166,61 +206,81 @@ function generatePrintHTML(orders: any[], store: any): string {
               </div>
             ` : '<p class="no-data">לא צוינה כתובת</p>'}
           </div>
+          ` : ''}
         </div>
+        ` : ''}
 
         <!-- Items Table -->
         <table class="items-table">
           <thead>
             <tr>
-              <th class="col-product">מוצר</th>
-              <th class="col-sku">מק"ט</th>
-              <th class="col-qty">כמות</th>
-              <th class="col-price">מחיר</th>
-              <th class="col-total">סה"כ</th>
+              ${tableHeaders}
             </tr>
           </thead>
           <tbody>
             ${order.items.map((item: any) => `
               <tr>
                 <td class="col-product">
-                  <span class="item-name">${item.name}</span>
-                  ${item.variantTitle ? `<span class="item-variant">${item.variantTitle}</span>` : ''}
+                  <div class="product-cell">
+                    ${ps.showProductImage ? (item.imageUrl 
+                      ? `<img src="${item.imageUrl}" alt="${item.name}" class="item-image" />`
+                      : `<div class="item-image-placeholder"></div>`
+                    ) : ''}
+                    <div class="item-details">
+                      <span class="item-name">${item.name}</span>
+                      ${ps.showProductVariant && item.variantTitle ? `<span class="item-variant">${item.variantTitle}</span>` : ''}
+                    </div>
+                  </div>
                 </td>
-                <td class="col-sku">${item.sku || '-'}</td>
+                ${ps.showProductSku ? `<td class="col-sku">${item.sku || '-'}</td>` : ''}
                 <td class="col-qty">${item.quantity}</td>
-                <td class="col-price">₪${Number(item.price).toFixed(2)}</td>
-                <td class="col-total">₪${Number(item.total).toFixed(2)}</td>
+                ${ps.showProductPrice ? `<td class="col-price">₪${Number(item.price).toFixed(2)}</td>` : ''}
+                ${ps.showProductPrice ? `<td class="col-total">₪${Number(item.total).toFixed(2)}</td>` : ''}
               </tr>
             `).join('')}
           </tbody>
         </table>
 
         <!-- Summary -->
+        ${ps.showSubtotal || ps.showDiscount || ps.showShipping || ps.showOrderTotal ? `
         <div class="order-summary">
+          ${ps.showSubtotal ? `
           <div class="summary-row">
             <span>סכום ביניים (${order.items.length} פריטים)</span>
             <span>₪${Number(order.subtotal).toFixed(2)}</span>
           </div>
-          ${Number(order.discountAmount) > 0 ? `
+          ` : ''}
+          ${ps.showDiscount && Number(order.discountAmount) > 0 ? `
             <div class="summary-row discount">
               <span>הנחה ${order.discountCode ? `(${order.discountCode})` : ''}</span>
               <span>-₪${Number(order.discountAmount).toFixed(2)}</span>
             </div>
           ` : ''}
+          ${ps.showShipping ? `
           <div class="summary-row">
             <span>משלוח</span>
             <span>${Number(order.shippingAmount) === 0 ? 'חינם' : `₪${Number(order.shippingAmount).toFixed(2)}`}</span>
           </div>
+          ` : ''}
+          ${ps.showOrderTotal ? `
           <div class="summary-row total">
             <span>סה"כ לתשלום</span>
             <span>₪${Number(order.total).toFixed(2)}</span>
           </div>
+          ` : ''}
         </div>
+        ` : ''}
 
-        ${order.note ? `
+        ${ps.showOrderNotes && order.note ? `
           <div class="order-notes">
             <h3>הערות הלקוח</h3>
             <p>${order.note}</p>
+          </div>
+        ` : ''}
+
+        ${ps.showThankYouMessage ? `
+          <div class="print-footer">
+            <p>תודה על הקנייה!</p>
           </div>
         ` : ''}
       </div>
@@ -392,6 +452,36 @@ function generatePrintHTML(orders: any[], store: any): string {
     .col-price { text-align: left; width: 15%; }
     .col-total { text-align: left; width: 20%; font-weight: 600; }
     
+    /* Product cell with image */
+    .product-cell {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    
+    .item-image {
+      width: 40px;
+      height: 40px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid #eee;
+      flex-shrink: 0;
+    }
+    
+    .item-image-placeholder {
+      width: 40px;
+      height: 40px;
+      background: #f5f5f5;
+      border-radius: 4px;
+      border: 1px solid #eee;
+      flex-shrink: 0;
+    }
+    
+    .item-details {
+      flex: 1;
+      min-width: 0;
+    }
+    
     .item-name { display: block; font-weight: 500; }
     .item-variant { display: block; font-size: 11px; color: #666; margin-top: 2px; }
     
@@ -436,9 +526,29 @@ function generatePrintHTML(orders: any[], store: any): string {
     
     .order-notes p { margin: 0; font-size: 13px; }
     
+    /* Footer */
+    .print-footer {
+      text-align: center;
+      padding-top: 24px;
+      margin-top: 24px;
+      border-top: 1px solid #eee;
+    }
+    
+    .print-footer p {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+    }
+    
     @media print {
       .order-page {
         padding: 0;
+      }
+      
+      /* Ensure images print properly */
+      .item-image, .store-logo {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
       }
     }
   </style>

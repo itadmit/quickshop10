@@ -253,3 +253,72 @@ export async function updateNotificationSettings(storeId: string, data: Notifica
   }
 }
 
+interface PrintSettingsData {
+  showProductImage: boolean;
+  showProductPrice: boolean;
+  showProductSku: boolean;
+  showProductVariant: boolean;
+  showOrderTotal: boolean;
+  showSubtotal: boolean;
+  showShipping: boolean;
+  showDiscount: boolean;
+  showCustomerDetails: boolean;
+  showShippingAddress: boolean;
+  showCustomerPhone: boolean;
+  showStatusBadges: boolean;
+  showOrderNotes: boolean;
+  showThankYouMessage: boolean;
+  showStoreLogo: boolean;
+}
+
+export async function updatePrintSettings(storeId: string, data: PrintSettingsData) {
+  try {
+    const [store] = await db
+      .select()
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+
+    if (!store) {
+      return { error: 'חנות לא נמצאה' };
+    }
+
+    const currentSettings = (store.settings as Record<string, unknown>) || {};
+
+    const newSettings = {
+      ...currentSettings,
+      print: {
+        showProductImage: data.showProductImage,
+        showProductPrice: data.showProductPrice,
+        showProductSku: data.showProductSku,
+        showProductVariant: data.showProductVariant,
+        showOrderTotal: data.showOrderTotal,
+        showSubtotal: data.showSubtotal,
+        showShipping: data.showShipping,
+        showDiscount: data.showDiscount,
+        showCustomerDetails: data.showCustomerDetails,
+        showShippingAddress: data.showShippingAddress,
+        showCustomerPhone: data.showCustomerPhone,
+        showStatusBadges: data.showStatusBadges,
+        showOrderNotes: data.showOrderNotes,
+        showThankYouMessage: data.showThankYouMessage,
+        showStoreLogo: data.showStoreLogo,
+      },
+    };
+
+    await db
+      .update(stores)
+      .set({
+        settings: newSettings,
+        updatedAt: new Date(),
+      })
+      .where(eq(stores.id, storeId));
+
+    revalidatePath('/shops/[slug]/admin/settings/print', 'page');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating print settings:', error);
+    return { error: 'אירעה שגיאה בשמירת ההגדרות' };
+  }
+}
+

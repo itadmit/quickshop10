@@ -23,6 +23,7 @@ const settingsTabs = [
   { id: 'tracking', label: 'מעקב', path: '/tracking' },
   { id: 'checkout', label: 'קופה', path: '/checkout' },
   { id: 'shipping', label: 'משלוח', path: '/shipping' },
+  { id: 'print', label: 'הדפסה', path: '/print' },
   { id: 'tax', label: 'מיסים', path: '/tax' },
   { id: 'notifications', label: 'התראות', path: '/notifications' },
   { id: 'gdpr', label: 'עוגיות', path: '/gdpr' },
