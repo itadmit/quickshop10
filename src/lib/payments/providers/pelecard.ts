@@ -29,7 +29,7 @@ import type {
 interface PayperInvoiceLine {
   description: string;
   quantity: string;
-  price_per_unit: string; // In agorot (price already includes VAT when include_vat="false")
+  price_per_unit: string; // In SHEKELS (not agorot!)
   include_vat: string; // "true" = add VAT to price, "false" = price already includes VAT
   catalog_id?: string;
   No_vat?: string; // "true" = item exempt from VAT, "false" = normal VAT
@@ -42,7 +42,7 @@ interface PayperReceiptLine {
   cc_num: string; // Last 4 digits (use '0000' if not known)
   cc_payment_type: string; // '1' = regular
   num_of_payments: string;
-  amount: string; // In agorot, INCLUDING VAT
+  amount: string; // In SHEKELS (not agorot!)
 }
 
 // PayperParameters for automatic invoice generation
@@ -332,7 +332,10 @@ export class PelecardProvider extends BasePaymentProvider {
   /**
    * Build PayperParameters for automatic invoice generation
    * 
-   * IMPORTANT: All prices are in AGOROT (1/100 of ILS)
+   * IMPORTANT: Payper prices are in SHEKELS (not agorot!)
+   * - Total for Pelecard is in AGOROT
+   * - But PayperParameters uses SHEKELS
+   * 
    * - include_vat: "false" = price already includes VAT (המחיר כולל מע"מ)
    * - include_vat: "true" = price does NOT include VAT, Payper will add it
    * 
@@ -340,12 +343,9 @@ export class PelecardProvider extends BasePaymentProvider {
    * 
    * DISCOUNT HANDLING:
    * Products are listed at FULL price, then a discount line with NEGATIVE amount
-   * is added to show the total discount. This ensures:
-   * - Invoice shows original prices (for clarity)
-   * - Discount is visible as a separate line
-   * - Total matches exactly what was paid
+   * is added to show the total discount.
    * 
-   * VERSION: 2026-01-14-v2 - Fixed agorot conversion
+   * VERSION: 2026-01-14-v3 - Payper uses SHEKELS not agorot!
    */
   private buildPayperParameters(request: InitiatePaymentRequest): PayperParameters | undefined {
     // Check if auto invoice is enabled in settings
@@ -355,41 +355,40 @@ export class PelecardProvider extends BasePaymentProvider {
     }
     
     const invoiceLang = (this.config?.settings?.invoiceLang as string) || 'hb';
-    const totalPaidInAgorot = Math.round(request.amount * 100);
+    // Payper uses SHEKELS, not agorot!
+    const totalPaidInShekels = request.amount;
     
     // Filter out discount items (negative prices) and shipping
     const productItems = request.items.filter(item => 
       item.price > 0 && !item.isShipping
     );
     
-    // Build invoice lines with FULL prices (in agorot)
+    // Build invoice lines with FULL prices (in SHEKELS!)
     const invoiceLines: PayperInvoiceLine[] = productItems.map(item => {
-      const priceInAgorot = Math.round(item.price * 100);
       return {
         description: item.name,
         quantity: String(item.quantity),
-        price_per_unit: String(priceInAgorot), // Full price in agorot
+        price_per_unit: String(item.price), // Price in SHEKELS
         include_vat: 'false', // Price already includes VAT
         No_vat: 'false', // Normal VAT item
         catalog_id: item.sku || '',
       };
     });
     
-    // Calculate subtotal from products (full prices)
-    let invoiceSubtotalInAgorot = invoiceLines.reduce((sum, line) => {
-      return sum + (parseInt(line.price_per_unit) * parseInt(line.quantity));
+    // Calculate subtotal from products (full prices in shekels)
+    let invoiceSubtotalInShekels = invoiceLines.reduce((sum, line) => {
+      return sum + (parseFloat(line.price_per_unit) * parseInt(line.quantity));
     }, 0);
     
     // Add shipping as a separate line if exists
     const shippingItem = request.items.find(item => item.isShipping && item.price > 0);
     if (shippingItem) {
-      const shippingInAgorot = Math.round(shippingItem.price * 100);
-      invoiceSubtotalInAgorot += shippingInAgorot;
+      invoiceSubtotalInShekels += shippingItem.price;
       
       invoiceLines.push({
         description: shippingItem.name || 'משלוח',
         quantity: '1',
-        price_per_unit: String(shippingInAgorot),
+        price_per_unit: String(shippingItem.price), // In shekels
         include_vat: 'false',
         No_vat: 'false',
         catalog_id: '',
@@ -397,23 +396,24 @@ export class PelecardProvider extends BasePaymentProvider {
     }
     
     // Calculate total discount (difference between full price and what was paid)
-    const totalDiscountInAgorot = invoiceSubtotalInAgorot - totalPaidInAgorot;
+    const totalDiscountInShekels = invoiceSubtotalInShekels - totalPaidInShekels;
     
-    console.log('[Pelecard] ===== VERSION 2026-01-14-v2 =====');
+    console.log('[Pelecard] ===== VERSION 2026-01-14-v3 (SHEKELS) =====');
     console.log('[Pelecard] Discount calculation:', {
-      invoiceSubtotalInAgorot,
-      totalPaidInAgorot,
-      totalDiscountInAgorot,
-      hasDiscount: totalDiscountInAgorot > 0,
+      invoiceSubtotalInShekels,
+      totalPaidInShekels,
+      totalDiscountInShekels,
+      hasDiscount: totalDiscountInShekels > 0.01,
     });
     
     // Add discount line with NEGATIVE amount if there's a discount
-    if (totalDiscountInAgorot > 0) {
-      // Use negative price to represent discount
+    if (totalDiscountInShekels > 0.01) {
+      // Round to 2 decimal places to avoid floating point issues
+      const discountRounded = Math.round(totalDiscountInShekels * 100) / 100;
       invoiceLines.push({
         description: request.discountCode ? `הנחה (${request.discountCode})` : 'הנחה',
         quantity: '1',
-        price_per_unit: String(-totalDiscountInAgorot), // Negative amount!
+        price_per_unit: String(-discountRounded), // Negative amount in shekels
         include_vat: 'false',
         No_vat: 'false',
         catalog_id: '',
@@ -425,7 +425,7 @@ export class PelecardProvider extends BasePaymentProvider {
       invoiceLines.push({
         description: `הזמנה #${request.orderReference}`,
         quantity: '1',
-        price_per_unit: String(totalPaidInAgorot),
+        price_per_unit: String(totalPaidInShekels),
         include_vat: 'false',
         No_vat: 'false',
         catalog_id: '',
@@ -442,18 +442,20 @@ export class PelecardProvider extends BasePaymentProvider {
       cc_num: '0000', // Will be filled by Pelecard after payment
       cc_payment_type: '1',
       num_of_payments: '1',
-      amount: String(totalPaidInAgorot), // In agorot, must match invoice total
+      amount: String(totalPaidInShekels), // In SHEKELS, must match invoice total
     }];
     
     // Final validation - calculate invoice total (including negative discount line)
     const finalInvoiceTotal = invoiceLines.reduce((sum, line) => {
-      return sum + (parseInt(line.price_per_unit) * parseInt(line.quantity));
+      return sum + (parseFloat(line.price_per_unit) * parseInt(line.quantity));
     }, 0);
+    // Round to avoid floating point issues
+    const finalInvoiceTotalRounded = Math.round(finalInvoiceTotal * 100) / 100;
     
     console.log('[Pelecard] PayperParameters final:', {
-      invoiceTotal: finalInvoiceTotal,
-      receiptTotal: totalPaidInAgorot,
-      match: finalInvoiceTotal === totalPaidInAgorot ? '✓' : '✗ MISMATCH!',
+      invoiceTotal: finalInvoiceTotalRounded,
+      receiptTotal: totalPaidInShekels,
+      match: Math.abs(finalInvoiceTotalRounded - totalPaidInShekels) < 0.01 ? '✓' : '✗ MISMATCH!',
       itemsCount: invoiceLines.length,
       invoiceLines: invoiceLines.map(l => ({ desc: l.description, price: l.price_per_unit, qty: l.quantity })),
     });
