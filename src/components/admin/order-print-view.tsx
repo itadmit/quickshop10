@@ -173,10 +173,23 @@ export function OrderPrintView({ order, store }: OrderPrintViewProps) {
           {order.items.map((item) => (
             <tr key={item.id}>
               <td className="col-product">
-                <span className="item-name">{item.name}</span>
-                {item.variantTitle && (
-                  <span className="item-variant">{item.variantTitle}</span>
-                )}
+                <div className="product-cell">
+                  {item.imageUrl ? (
+                    <img 
+                      src={item.imageUrl} 
+                      alt={item.name} 
+                      className="item-image"
+                    />
+                  ) : (
+                    <div className="item-image-placeholder" />
+                  )}
+                  <div className="item-details">
+                    <span className="item-name">{item.name}</span>
+                    {item.variantTitle && (
+                      <span className="item-variant">{item.variantTitle}</span>
+                    )}
+                  </div>
+                </div>
               </td>
               <td className="col-sku">{item.sku || '-'}</td>
               <td className="col-qty">{item.quantity}</td>
