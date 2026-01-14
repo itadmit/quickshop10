@@ -6,6 +6,9 @@ import { WelcomeModal } from '@/components/admin/welcome-modal';
 import { auth } from '@/lib/auth';
 import { getNotifications, getUnreadCount } from '@/lib/actions/notifications';
 import { getPluginMenuItems } from '@/lib/plugins/loader';
+import { db } from '@/lib/db';
+import { storeMembers } from '@/lib/db/schema';
+import { and, eq } from 'drizzle-orm';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -40,8 +43,26 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
     notFound();
   }
 
-  // Verify user owns this store (or is platform admin)
-  if (store.ownerId !== session.user.id && session.user.role !== 'admin') {
+  // Verify user has access to this store (owner, platform admin, or team member)
+  const isOwner = store.ownerId === session.user.id;
+  const isPlatformAdmin = session.user.role === 'admin';
+  
+  let isTeamMember = false;
+  if (!isOwner && !isPlatformAdmin) {
+    // Check if user is a team member of this store
+    const [membership] = await db
+      .select()
+      .from(storeMembers)
+      .where(and(
+        eq(storeMembers.storeId, store.id),
+        eq(storeMembers.userId, session.user.id)
+      ))
+      .limit(1);
+    
+    isTeamMember = !!membership;
+  }
+  
+  if (!isOwner && !isPlatformAdmin && !isTeamMember) {
     redirect('/dashboard');
   }
 
