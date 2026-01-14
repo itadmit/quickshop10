@@ -462,7 +462,8 @@ export class PelecardProvider extends BasePaymentProvider {
       typeDocument: 'Invoice-Receipt',
       DataPayper: {
         document_lang: invoiceLang,
-        customer_unique_id: request.customer.vatNumber || '',
+        // Use phone as unique ID if no VAT number - helps Payper identify returning customers
+        customer_unique_id: request.customer.vatNumber || request.customer.phone || '',
         customer_mail: request.customer.email,
         customer_name: request.customer.name,
         customer_mobile: request.customer.phone || '',
