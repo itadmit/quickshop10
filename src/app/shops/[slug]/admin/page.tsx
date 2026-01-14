@@ -36,39 +36,60 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat('he-IL').format(value);
 }
 
-function formatDate(): string {
+function formatDate(timezone: string): string {
   return new Date().toLocaleDateString('he-IL', { 
     weekday: 'long',
     day: 'numeric', 
     month: 'long', 
-    year: 'numeric' 
+    year: 'numeric',
+    timeZone: timezone,
   });
 }
 
-function getRevenueByDay(orders: { createdAt: Date | null; total: string; financialStatus: string | null }[], days = 14) {
+// Check if an order date is "today" in the store's timezone
+function isOrderFromToday(orderDate: Date | null, timezone: string): boolean {
+  if (!orderDate) return false;
+  const orderDateStr = orderDate.toLocaleDateString('en-CA', { timeZone: timezone });
+  const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+  return orderDateStr === todayDateStr;
+}
+
+// Check if an order date is in the current month in the store's timezone
+function isOrderFromThisMonth(orderDate: Date | null, timezone: string): boolean {
+  if (!orderDate) return false;
+  const orderDateStr = orderDate.toLocaleDateString('en-CA', { timeZone: timezone });
+  const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+  return orderDateStr.substring(0, 7) === todayDateStr.substring(0, 7); // Compare YYYY-MM
+}
+
+function getRevenueByDay(
+  orders: { createdAt: Date | null; total: string; financialStatus: string | null }[], 
+  timezone: string,
+  days = 14
+) {
   const data: Array<{ date: string; revenue: number; orders: number }> = [];
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
   
   // Only include paid orders in revenue calculations
   const paidOrders = orders.filter(o => o.financialStatus === 'paid');
   
+  // Get today's date in the store's timezone
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+  
   for (let i = days - 1; i >= 0; i--) {
-    const dayStart = new Date(now);
-    dayStart.setDate(dayStart.getDate() - i);
-    dayStart.setHours(0, 0, 0, 0);
+    // Calculate the date for this day
+    const targetDate = new Date(todayStr);
+    targetDate.setDate(targetDate.getDate() - i);
+    const targetDateStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'UTC' });
     
-    const dayEnd = new Date(dayStart);
-    dayEnd.setHours(23, 59, 59, 999);
-    
+    // Filter orders that match this date in the store's timezone
     const dayOrders = paidOrders.filter(order => {
       if (!order.createdAt) return false;
-      const date = new Date(order.createdAt);
-      return date >= dayStart && date <= dayEnd;
+      const orderDateStr = new Date(order.createdAt).toLocaleDateString('en-CA', { timeZone: timezone });
+      return orderDateStr === targetDateStr;
     });
     
     data.push({
-      date: dayStart.toISOString().split('T')[0],
+      date: targetDateStr,
       revenue: dayOrders.reduce((sum, o) => sum + Number(o.total), 0),
       orders: dayOrders.length,
     });
@@ -354,29 +375,25 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
     getStoreProducts(store.id),
   ]);
 
-  // Calculate today's metrics - only count PAID orders
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
+  // Get store timezone (default to Israel if not set)
+  const storeTimezone = store.timezone || 'Asia/Jerusalem';
+
+  // Calculate today's metrics - only count PAID orders (using store timezone)
   const todayOrders = orders.filter(o => {
     if (!o.createdAt) return false;
     // Only count paid orders
     if (o.financialStatus !== 'paid') return false;
-    return new Date(o.createdAt) >= today;
+    return isOrderFromToday(new Date(o.createdAt), storeTimezone);
   });
   const todaySales = todayOrders.reduce((sum, o) => sum + Number(o.total), 0);
   const todayOrdersCount = todayOrders.length;
   
-  // Calculate monthly metrics - only count PAID orders
-  const thisMonth = new Date();
-  thisMonth.setDate(1);
-  thisMonth.setHours(0, 0, 0, 0);
-  
+  // Calculate monthly metrics - only count PAID orders (using store timezone)
   const monthlyOrders = orders.filter(o => {
     if (!o.createdAt) return false;
     // Only count paid orders
     if (o.financialStatus !== 'paid') return false;
-    return new Date(o.createdAt) >= thisMonth;
+    return isOrderFromThisMonth(new Date(o.createdAt), storeTimezone);
   });
   const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + Number(o.total), 0);
   
@@ -396,7 +413,7 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
   ).length;
 
   // Chart data
-  const salesByDay = getRevenueByDay(orders, 14);
+  const salesByDay = getRevenueByDay(orders, storeTimezone, 14);
 
   // Has alerts
   const hasAlerts = pendingOrders > 0 || lowStockProducts > 0 || outOfStockProducts > 0;
@@ -406,7 +423,7 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl sm:text-2xl font-medium">שלום, {store.name}</h1>
-        <p className="text-gray-500 text-sm mt-1">{formatDate()}</p>
+        <p className="text-gray-500 text-sm mt-1">{formatDate(storeTimezone)}</p>
       </div>
 
       {/* Main Stats */}
