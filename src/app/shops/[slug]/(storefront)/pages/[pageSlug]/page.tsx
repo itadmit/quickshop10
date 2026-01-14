@@ -320,12 +320,13 @@ export default async function InternalPage({ params }: InternalPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             products={productsToShow}
-            settings={settings as { columns?: number; gap?: number; showCount?: boolean; textAlign?: 'right' | 'center' | 'left' }}
+            settings={settings as { columns?: number; gap?: number; showCount?: boolean; textAlign?: 'right' | 'center' | 'left'; showAddToCart?: boolean }}
             basePath={basePath}
             showDecimalPrices={showDecimalPrices}
             sectionId={section.id}
             displayLimit={isPreviewMode && productContent.type !== 'specific' ? productLimit : undefined}
             discountsMap={discountsMap}
+            storeSlug={slug}
           />
         );
         break;

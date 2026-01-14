@@ -49,6 +49,7 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export interface CheckoutSettings {
+  layout: 'steps' | 'single-page';
   requirePhone: boolean;
   requireCompany: boolean;
   showZipCode: boolean;
@@ -81,6 +82,7 @@ interface CheckoutFormProps {
 }
 
 const defaultCheckoutSettings: CheckoutSettings = {
+  layout: 'steps',
   requirePhone: true,
   requireCompany: false,
   showZipCode: false,
@@ -112,6 +114,13 @@ export function CheckoutForm({
   const errorParam = searchParams.get('error');
   const paymentError = errorParam === 'payment_failed' || errorParam === 'payment_error' || errorParam === 'payment_cancelled';
   const [step, setStep] = useState<'details' | 'shipping' | 'payment'>('details');
+  
+  // 🆕 Single-page checkout layout
+  const isSinglePage = checkoutSettings.layout === 'single-page';
+  
+  // Refs for single-page scrolling
+  const shippingSectionRef = useRef<HTMLDivElement>(null);
+  const paymentSectionRef = useRef<HTMLDivElement>(null);
   
   // Track recovery state
   const [recoveryAttempted, setRecoveryAttempted] = useState(false);
@@ -412,9 +421,11 @@ export function CheckoutForm({
     }
   }, [formData.city, formData.street, selectedCity]);
 
-  // 🚚 Fetch shipping options when entering shipping step
+  // 🚚 Fetch shipping options when entering shipping step (or immediately for single-page)
   useEffect(() => {
-    if (step !== 'shipping' || !storeSlug) return;
+    // For single-page: fetch immediately. For steps: fetch only on shipping step
+    if (!storeSlug) return;
+    if (!isSinglePage && step !== 'shipping') return;
     
     const fetchShippingOptions = async () => {
       setLoadingShippingOptions(true);
@@ -458,7 +469,7 @@ export function CheckoutForm({
     };
     
     fetchShippingOptions();
-  }, [step, storeSlug, cartOriginalTotal, shippingSettings]);
+  }, [step, storeSlug, cartOriginalTotal, shippingSettings, isSinglePage]);
 
   // Fetch auto discounts on mount and when email changes
   useEffect(() => {
@@ -782,7 +793,21 @@ export function CheckoutForm({
       currency: 'ILS',
     };
     
-    if (step === 'details') {
+    // 🆕 Single-page checkout: always submit directly
+    if (isSinglePage) {
+      // Track all events at once for single-page
+      tracker.initiateCheckout(cartData);
+      if (!isVirtualCartOnly) {
+        tracker.addShippingInfo({
+          ...cartData,
+          shippingMethod: selectedMethodName,
+        });
+      }
+      tracker.addPaymentInfo({
+        ...cartData,
+        paymentMethod: hasActivePaymentProvider ? 'credit_card' : 'demo',
+      });
+    } else if (step === 'details') {
       // Track InitiateCheckout when moving from details to shipping
       tracker.initiateCheckout(cartData);
       // 🎁 Skip shipping step for virtual cart (gift cards only)
@@ -793,6 +818,7 @@ export function CheckoutForm({
       }
       // Scroll to top so next section is visible
       window.scrollTo({ top: 0, behavior: 'instant' });
+      return; // Don't proceed to payment yet
     } else if (step === 'shipping') {
       // Track AddShippingInfo when moving from shipping to payment
       tracker.addShippingInfo({
@@ -802,12 +828,18 @@ export function CheckoutForm({
       setStep('payment');
       // Scroll to top so payment section is visible
       window.scrollTo({ top: 0, behavior: 'instant' });
-    } else if (step === 'payment') {
-      // Track AddPaymentInfo when submitting payment
-      tracker.addPaymentInfo({
-        ...cartData,
-        paymentMethod: hasActivePaymentProvider ? 'credit_card' : 'demo',
-      });
+      return; // Don't proceed to payment yet
+    }
+    
+    // Now proceed with payment (for single-page or when step === 'payment')
+    if (isSinglePage || step === 'payment') {
+      // Track AddPaymentInfo when submitting payment (only if not already tracked for single-page)
+      if (!isSinglePage) {
+        tracker.addPaymentInfo({
+          ...cartData,
+          paymentMethod: hasActivePaymentProvider ? 'credit_card' : 'demo',
+        });
+      }
       setIsSubmitting(true);
       
       try {
@@ -1367,35 +1399,37 @@ export function CheckoutForm({
   return (
     <div className="py-12 px-6">
       <div className="max-w-6xl mx-auto">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-4 mb-12">
-          {['details', 'shipping', 'payment'].map((s, i) => (
-            <div key={s} className="flex items-center gap-4">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                step === s ? 'bg-black text-white' : 
-                ['details', 'shipping', 'payment'].indexOf(step) > i ? 'bg-black text-white' : 
-                'bg-gray-200 text-gray-500'
-              }`}>
-                {i + 1}
+        {/* Progress Steps - only show for steps layout */}
+        {!isSinglePage && (
+          <div className="flex items-center justify-center gap-4 mb-12">
+            {['details', 'shipping', 'payment'].map((s, i) => (
+              <div key={s} className="flex items-center gap-4">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                  step === s ? 'bg-black text-white' : 
+                  ['details', 'shipping', 'payment'].indexOf(step) > i ? 'bg-black text-white' : 
+                  'bg-gray-200 text-gray-500'
+                }`}>
+                  {i + 1}
+                </div>
+                <span className={`text-[11px] tracking-[0.15em] uppercase hidden sm:block ${
+                  step === s ? 'text-black' : 'text-gray-400'
+                }`}>
+                  {s === 'details' && 'פרטים'}
+                  {s === 'shipping' && 'משלוח'}
+                  {s === 'payment' && 'תשלום'}
+                </span>
+                {i < 2 && <div className="w-12 h-px bg-gray-200" />}
               </div>
-              <span className={`text-[11px] tracking-[0.15em] uppercase hidden sm:block ${
-                step === s ? 'text-black' : 'text-gray-400'
-              }`}>
-                {s === 'details' && 'פרטים'}
-                {s === 'shipping' && 'משלוח'}
-                {s === 'payment' && 'תשלום'}
-              </span>
-              {i < 2 && <div className="w-12 h-px bg-gray-200" />}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-5 gap-6">
           {/* Form */}
           <div className="lg:col-span-3">
             <form onSubmit={handleSubmit} className="bg-white p-8 shadow-sm">
-              {step === 'details' && (
-                <>
+              {(isSinglePage || step === 'details') && (
+                <div className={isSinglePage ? 'mb-8 pb-8 border-b border-gray-100' : ''}>
                   <h2 className="font-display text-xl mb-6">פרטי התקשרות</h2>
                   
                   {/* Login/Logged-in Section */}
@@ -1617,11 +1651,11 @@ export function CheckoutForm({
                       </div>
                     </label>
                   </div>
-                </>
+                </div>
               )}
 
-              {step === 'shipping' && (
-                <>
+              {(isSinglePage || step === 'shipping') && !isVirtualCartOnly && (
+                <div ref={shippingSectionRef} className={isSinglePage ? 'mb-8 pb-8 border-b border-gray-100' : ''}>
                   <h2 className="font-display text-xl mb-6">כתובת למשלוח</h2>
                   <div className="space-y-4">
                     {/* Company field - based on settings */}
@@ -1902,15 +1936,15 @@ export function CheckoutForm({
                       )}
                     </div>
                   </div>
-                </>
+                </div>
               )}
 
-              {step === 'payment' && (
-                <>
+              {(isSinglePage || step === 'payment') && (
+                <div ref={paymentSectionRef}>
                   <h2 className="font-display text-xl mb-6">פרטי תשלום</h2>
                   <div className="space-y-4">
                     {/* Show payment error from URL - only if we're on payment step and error exists */}
-                    {paymentError && step === 'payment' && (
+                    {paymentError && (isSinglePage || step === 'payment') && (
                       <div className="bg-red-50 border border-red-200 p-4 text-sm text-red-600">
                         <div className="flex items-center gap-2">
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -2021,11 +2055,12 @@ export function CheckoutForm({
                       </label>
                     )}
                   </div>
-                </>
+                </div>
               )}
 
               <div className="flex gap-4 mt-8">
-                {step !== 'details' && (
+                {/* Back button - only show for steps layout (not in single-page) */}
+                {!isSinglePage && step !== 'details' && (
                   <button
                     type="button"
                     onClick={() => {
@@ -2048,7 +2083,7 @@ export function CheckoutForm({
                   className="btn-primary flex-1"
                 >
                   {isSubmitting ? 'מעבד...' : 
-                   step === 'payment' 
+                   (isSinglePage || step === 'payment')
                      ? (total <= 0 ? 'השלם הזמנה' : `לתשלום ${formatPrice(total)}`)
                      : 'המשך'}
                 </button>
@@ -2274,7 +2309,7 @@ export function CheckoutForm({
                 
                 <div className="flex justify-between">
                   <span className="text-gray-500">משלוח</span>
-                  {step === 'details' ? (
+                  {!isSinglePage && step === 'details' ? (
                     <span className="text-gray-400 text-xs">יחושב בשלב הבא</span>
                   ) : hasFreeShipping ? (
                     <span className="text-green-600 flex items-center gap-1">
@@ -2346,7 +2381,7 @@ export function CheckoutForm({
 
               <div className="flex justify-between text-lg font-display">
                 <span>סה״כ</span>
-                <span>{step === 'details' ? formatPrice(cartOriginalTotal - totalDiscount) : formatPrice(total)}</span>
+                <span>{!isSinglePage && step === 'details' ? formatPrice(cartOriginalTotal - totalDiscount) : formatPrice(total)}</span>
               </div>
             </div>
           </div>

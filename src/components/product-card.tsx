@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { AddToCartButton } from './add-to-cart-button';
+import { ProductCardAddToCart } from './product-card-add-to-cart';
 import { ProductImage } from './product-image';
 import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
@@ -32,6 +33,11 @@ interface ProductCardProps {
     discountPercent: number;
     categoryIds?: string[]; // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
   } | null;
+  // 🆕 Quick Add support
+  hasVariants?: boolean;
+  showAddToCart?: boolean; // כפתור קבוע (לא רק hover)
+  addToCartStyle?: 'outline' | 'filled'; // סגנון הכפתור
+  storeSlug?: string; // Required for variants modal
 }
 
 export function ProductCard({ 
@@ -50,6 +56,10 @@ export function ProductCard({
   trackInventory = true,
   allowBackorder = false,
   automaticDiscount,
+  hasVariants = false,
+  showAddToCart = false,
+  addToCartStyle = 'outline',
+  storeSlug,
 }: ProductCardProps) {
   // Use video thumbnail (cardImage) if available, otherwise use regular image
   // If cardImage is a video URL, generate a thumbnail from it
@@ -73,9 +83,9 @@ export function ProductCard({
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
 
   return (
-    <article className="group animate-slide-up" dir="rtl">
+    <article className={`group animate-slide-up ${showAddToCart ? 'h-full flex flex-col' : ''}`} dir="rtl">
       {/* Image or Video */}
-      <Link href={productUrl} className="block img-zoom mb-4">
+      <Link href={productUrl} className="block img-zoom mb-4 flex-shrink-0">
         <div className="aspect-[3/4] bg-gray-50 relative overflow-hidden">
           {isVideoCard ? (
             // Autoplay muted video for video cards
@@ -125,10 +135,28 @@ export function ProductCard({
             )}
           </div>
           
-          {/* Quick Add - Shows on Hover (only if in stock) */}
+          {/* Quick Add Button - Hover only (when showAddToCart is OFF) */}
           {/* ⚠️ IMPORTANT: Always pass ORIGINAL price! Discount is calculated at checkout */}
-          {!outOfStock && (
-            <div className="absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+          {!showAddToCart && !outOfStock && hasVariants && storeSlug && (
+            // Product with variants - needs modal for selection (hover mode)
+            <ProductCardAddToCart
+              productId={id}
+              name={name}
+              price={price}
+              image={image}
+              inventory={inventory}
+              trackInventory={trackInventory}
+              allowBackorder={allowBackorder}
+              hasVariants={true}
+              storeSlug={storeSlug}
+              showAlways={false}
+              automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+              categoryIds={automaticDiscount?.categoryIds}
+            />
+          )}
+          {!showAddToCart && !outOfStock && !hasVariants && (
+            // Simple product - hover only
+            <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
               <AddToCartButton 
                 productId={id}
                 name={name}
@@ -147,7 +175,7 @@ export function ProductCard({
       </Link>
 
       {/* Content */}
-      <div className="text-center">
+      <div className={`text-center ${showAddToCart ? 'flex-1 flex flex-col' : ''}`}>
         <Link href={productUrl}>
           <h3 className={`text-sm font-medium mb-2 group-hover:underline underline-offset-4 transition-all ${outOfStock ? 'text-gray-400' : 'text-black'}`}>
             {name}
@@ -163,6 +191,44 @@ export function ProductCard({
             <span className="text-sm text-gray-400 line-through">{format(originalPrice)}</span>
           )}
         </div>
+        
+        {/* Add to Cart Button - BELOW the card (when showAddToCart is ON) */}
+        {showAddToCart && !outOfStock && (
+          <div className="mt-auto pt-3">
+            {hasVariants && storeSlug ? (
+              <ProductCardAddToCart
+                productId={id}
+                name={name}
+                price={price}
+                image={image}
+                inventory={inventory}
+                trackInventory={trackInventory}
+                allowBackorder={allowBackorder}
+                hasVariants={true}
+                storeSlug={storeSlug}
+                showAlways={true}
+                automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                categoryIds={automaticDiscount?.categoryIds}
+                positionBelow={true}
+                buttonStyle={addToCartStyle}
+              />
+            ) : (
+              <AddToCartButton 
+                productId={id}
+                name={name}
+                price={price}
+                image={image}
+                inventory={inventory}
+                trackInventory={trackInventory}
+                allowBackorder={allowBackorder}
+                className="w-full"
+                variant={addToCartStyle === 'filled' ? 'primary' : 'outline'}
+                automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                categoryIds={automaticDiscount?.categoryIds}
+              />
+            )}
+          </div>
+        )}
       </div>
     </article>
   );

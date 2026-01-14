@@ -507,7 +507,7 @@ function PaginationButton({
 
 interface BadgeProps {
   children: React.ReactNode;
-  variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
+  variant?: 'default' | 'success' | 'warning' | 'error' | 'info' | 'purple';
 }
 
 export function Badge({ children, variant = 'default' }: BadgeProps) {
@@ -517,10 +517,11 @@ export function Badge({ children, variant = 'default' }: BadgeProps) {
     warning: 'bg-amber-50 text-amber-700',
     error: 'bg-red-50 text-red-700',
     info: 'bg-blue-50 text-blue-700',
+    purple: 'bg-purple-50 text-purple-700',
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${variants[variant]}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${variants[variant as keyof typeof variants] || variants.default}`}>
       {children}
     </span>
   );

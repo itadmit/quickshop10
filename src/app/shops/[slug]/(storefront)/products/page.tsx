@@ -7,13 +7,14 @@ import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount'
 import { isOutOfStock } from '@/lib/inventory';
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 // ISR - Revalidate every 60 seconds for performance ⚡
 export const revalidate = 60;
 
 interface ProductsPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ category?: string }>;
 }
 
 /**
@@ -23,12 +24,35 @@ interface ProductsPageProps {
  * Server Component for maximum performance (per REQUIREMENTS.md).
  * Can be linked from navigation menu using URL type with "/products".
  */
-export default async function ProductsPage({ params }: ProductsPageProps) {
+export default async function ProductsPage({ params, searchParams }: ProductsPageProps) {
   const { slug } = await params;
+  const { category: categoryParam } = await searchParams;
   const store = await getStoreBySlug(slug);
   
   if (!store) {
     notFound();
+  }
+  
+  // Check if preview mode (from middleware header)
+  const headersList = await headers();
+  const isPreviewMode = headersList.get('x-preview-mode') === 'true';
+  const isCustomDomain = !!headersList.get('x-custom-domain');
+  const basePath = isCustomDomain ? '' : `/shops/${slug}`;
+
+  // If category parameter is provided, redirect to the actual category page
+  // This fixes breadcrumb links that use ?category= format
+  if (categoryParam) {
+    // Try to find category by name/slug
+    const allCategories = await getCategoriesByStore(store.id);
+    const targetCategory = allCategories.find(c => 
+      c.slug === categoryParam || 
+      c.name === categoryParam ||
+      c.name === decodeURIComponent(categoryParam)
+    );
+    
+    if (targetCategory) {
+      redirect(`${basePath}/category/${targetCategory.slug}`);
+    }
   }
 
   // Fetch all products, categories and footer menu in parallel ⚡
@@ -68,10 +92,7 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
     }))
   );
 
-  // Check for custom domain
-  const headersList = await headers();
-  const isCustomDomain = !!headersList.get('x-custom-domain');
-  const basePath = isCustomDomain ? '' : `/shops/${slug}`;
+  // basePath and isCustomDomain already defined above
   
   // Get price display settings
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
@@ -84,23 +105,20 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
     <div className="min-h-screen bg-white">
       {/* Scroll to top on page load */}
       <ScrollToTop />
-      
-      {/* Hero Banner */}
-      <section className="relative h-[40vh] min-h-[300px] bg-gray-100 overflow-hidden">
-        <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200" />
-        <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-          <div className="text-center">
-            <h1 className="font-display text-4xl md:text-6xl lg:text-7xl text-white font-extralight tracking-[0.3em] uppercase">
-              {allProductsTitle}
-            </h1>
-            {allProductsDescription && (
-              <p className="text-white/80 mt-4 text-sm tracking-wide max-w-md mx-auto">
-                {allProductsDescription}
-              </p>
-            )}
-          </div>
+
+      {/* Page Header - Simple title without banner */}
+      <div className="pt-8 pb-4 px-6">
+        <div className="max-w-7xl mx-auto text-center">
+          <h1 className="font-display text-3xl md:text-4xl font-light tracking-wide">
+            {allProductsTitle}
+          </h1>
+          {allProductsDescription && (
+            <p className="text-gray-500 mt-2 text-sm max-w-md mx-auto">
+              {allProductsDescription}
+            </p>
+          )}
         </div>
-      </section>
+      </div>
 
       {/* Breadcrumb */}
       <nav className="py-6 px-6 border-b border-gray-100">
@@ -191,8 +209,8 @@ export default async function ProductsPage({ params }: ProductsPageProps) {
         footerMenuItems={footerMenuItems}
       />
       
-      {/* Editor Section Highlighter (only in preview mode) */}
-      <EditorSectionHighlighter />
+      {/* Editor Section Highlighter - ONLY in preview mode */}
+      {isPreviewMode && <EditorSectionHighlighter />}
     </div>
   );
 }

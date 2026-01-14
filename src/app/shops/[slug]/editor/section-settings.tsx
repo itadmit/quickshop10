@@ -1724,6 +1724,23 @@ function DesignSettings({
             ]}
             onChange={(v) => updateSettings('hoverEffect', v)}
           />
+          <SwitchField
+            label="הצג כפתור הוספה לסל"
+            description="כפתור קבוע בכרטיס (לא רק ב-hover)"
+            value={(section.settings.showAddToCart as boolean) || false}
+            onChange={(v) => updateSettings('showAddToCart', v)}
+          />
+          {(section.settings.showAddToCart as boolean) && (
+            <SelectField
+              label="סגנון כפתור"
+              value={(section.settings.addToCartStyle as string) || 'outline'}
+              options={[
+                { value: 'outline', label: 'מתאר (שקוף)' },
+                { value: 'filled', label: 'מלא (שחור)' },
+              ]}
+              onChange={(v) => updateSettings('addToCartStyle', v)}
+            />
+          )}
         </SettingsGroup>
 
         <SettingsGroup title="ריווחים">
@@ -7476,6 +7493,28 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                 products: { ...categorySettings.products, desktopColumns: parseInt(v) as 3 | 4 | 5 } 
               })}
             />
+            
+            <SwitchField
+              label="הצג כפתור הוספה לסל"
+              description="כפתור קבוע בכרטיס (לא רק ב-hover)"
+              value={categorySettings.products.showAddToCart || false}
+              onChange={(v) => updateCategorySettings({ 
+                products: { ...categorySettings.products, showAddToCart: v } 
+              })}
+            />
+            {categorySettings.products.showAddToCart && (
+              <SelectField
+                label="סגנון כפתור"
+                value={categorySettings.products.addToCartStyle || 'outline'}
+                options={[
+                  { value: 'outline', label: 'מתאר (שקוף)' },
+                  { value: 'filled', label: 'מלא (שחור)' },
+                ]}
+                onChange={(v) => updateCategorySettings({ 
+                  products: { ...categorySettings.products, addToCartStyle: v as 'outline' | 'filled' } 
+                })}
+              />
+            )}
           </SettingsGroup>
         )}
       </div>

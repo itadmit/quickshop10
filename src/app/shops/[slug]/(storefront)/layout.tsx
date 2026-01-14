@@ -136,6 +136,10 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   
   // On custom domain: use root paths. On platform: use /shops/slug
   const basePath = isCustomDomain ? '' : `/shops/${slug}`;
+  
+  // 🆕 Check if we're on checkout page - no plugins/widgets should appear there
+  const pathname = headersList.get('x-pathname') || '';
+  const isCheckoutPage = pathname.includes('/checkout');
 
   // Check if we should show header (only if there's content)
   const showHeader = categories.length > 0;
@@ -309,8 +313,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             <>
               {HeaderContent}
               <CartSidebar basePath={basePath} storeSlug={slug} freeShippingThreshold={freeShippingThreshold} />
-              {/* Stories Bar - Renders only if plugin is active and there are stories */}
-              {storiesEnabled && storiesSettings && stories.length > 0 && (
+              {/* Stories Bar - Renders only if plugin is active and there are stories (not on checkout) */}
+              {!isCheckoutPage && storiesEnabled && storiesSettings && stories.length > 0 && (
                 <StoriesBar
                   storeSlug={slug}
                   stories={stories}
@@ -323,8 +327,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           )}
           <main>{children}</main>
           
-          {/* Floating Advisor Button - Renders only if plugin is active and has advisors */}
-          {advisorEnabled && activeAdvisors.length > 0 && (
+          {/* Floating Advisor Button - Renders only if plugin is active and has advisors (not on checkout) */}
+          {!isCheckoutPage && advisorEnabled && activeAdvisors.length > 0 && (
             <FloatingAdvisorButton 
               storeSlug={slug} 
               storeId={store.id} 
@@ -334,8 +338,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             />
           )}
 
-          {/* Popup Display - Renders active popups */}
-          {activePopups.length > 0 && (
+          {/* Popup Display - Renders active popups (not on checkout) */}
+          {!isCheckoutPage && activePopups.length > 0 && (
             <PopupDisplay 
               popups={activePopups.map(p => ({
                 id: p.id,
@@ -357,14 +361,16 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             />
           )}
 
-          {/* Gamification Popup - Wheel of Fortune / Scratch Card */}
-          <GamificationPopupLoader 
-            campaigns={activeGamificationCampaigns}
-            storeSlug={slug}
-            storeName={store.name}
-            wheelEnabled={wheelEnabled}
-            scratchEnabled={scratchEnabled}
-          />
+          {/* Gamification Popup - Wheel of Fortune / Scratch Card (not on checkout) */}
+          {!isCheckoutPage && (
+            <GamificationPopupLoader 
+              campaigns={activeGamificationCampaigns}
+              storeSlug={slug}
+              storeName={store.name}
+              wheelEnabled={wheelEnabled}
+              scratchEnabled={scratchEnabled}
+            />
+          )}
 
           {/* Cookie Consent Banner - GDPR Compliance */}
           {gdprSettings?.enabled && (

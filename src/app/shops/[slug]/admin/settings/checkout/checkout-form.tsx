@@ -15,6 +15,7 @@ export function CheckoutSettingsForm({ storeId, settings }: CheckoutSettingsForm
   const router = useRouter();
 
   const [formData, setFormData] = useState({
+    layout: (settings.layout as 'steps' | 'single-page') || 'steps',
     requirePhone: (settings.requirePhone as boolean) ?? true,
     requireCompany: (settings.requireCompany as boolean) ?? false,
     showZipCode: (settings.showZipCode as boolean) ?? false,
@@ -39,6 +40,83 @@ export function CheckoutSettingsForm({ storeId, settings }: CheckoutSettingsForm
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Checkout Layout */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">סוג צ׳ק אאוט</h2>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <label 
+            className={`relative flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              formData.layout === 'steps' 
+                ? 'border-black bg-gray-50' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="layout"
+              value="steps"
+              checked={formData.layout === 'steps'}
+              onChange={() => setFormData(prev => ({ ...prev, layout: 'steps' }))}
+              className="sr-only"
+            />
+            {/* Steps Icon */}
+            <div className="w-12 h-12 mb-3 flex flex-col items-center justify-center gap-1">
+              <div className="flex items-center gap-1">
+                <div className="w-6 h-6 rounded-full bg-black text-white text-xs flex items-center justify-center">1</div>
+                <div className="w-3 h-0.5 bg-gray-300" />
+                <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center">2</div>
+                <div className="w-3 h-0.5 bg-gray-300" />
+                <div className="w-6 h-6 rounded-full bg-gray-200 text-gray-500 text-xs flex items-center justify-center">3</div>
+              </div>
+            </div>
+            <p className="font-medium text-gray-900">שלבים</p>
+            <p className="text-xs text-gray-500 text-center mt-1">פרטים ← משלוח ← תשלום</p>
+            {formData.layout === 'steps' && (
+              <div className="absolute top-2 left-2">
+                <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+          </label>
+
+          <label 
+            className={`relative flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+              formData.layout === 'single-page' 
+                ? 'border-black bg-gray-50' 
+                : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <input
+              type="radio"
+              name="layout"
+              value="single-page"
+              checked={formData.layout === 'single-page'}
+              onChange={() => setFormData(prev => ({ ...prev, layout: 'single-page' }))}
+              className="sr-only"
+            />
+            {/* Single Page Icon */}
+            <div className="w-12 h-12 mb-3 flex flex-col items-center justify-center">
+              <div className="w-10 h-12 border-2 border-gray-400 rounded flex flex-col gap-1 p-1">
+                <div className="w-full h-1.5 bg-gray-300 rounded-sm" />
+                <div className="w-full h-1.5 bg-gray-300 rounded-sm" />
+                <div className="w-full h-1.5 bg-gray-300 rounded-sm" />
+              </div>
+            </div>
+            <p className="font-medium text-gray-900">עמוד אחד</p>
+            <p className="text-xs text-gray-500 text-center mt-1">הכל בעמוד אחד</p>
+            {formData.layout === 'single-page' && (
+              <div className="absolute top-2 left-2">
+                <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+              </div>
+            )}
+          </label>
+        </div>
+      </div>
+
       {/* Required Fields */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">שדות נדרשים</h2>

@@ -54,6 +54,7 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
     const shipping = (settings.shipping as Record<string, unknown>) || {};
     
     const checkoutSettings: CheckoutSettings = {
+      layout: (checkout.layout as 'steps' | 'single-page') || 'steps',
       requirePhone: (checkout.requirePhone as boolean) ?? true,
       requireCompany: (checkout.requireCompany as boolean) ?? false,
       showZipCode: (checkout.showZipCode as boolean) ?? false,
@@ -93,6 +94,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   const storeId = storeData?.storeId ?? '';
   const hasActivePaymentProvider = storeData?.hasActivePaymentProvider ?? false;
   const checkoutSettings = storeData?.checkoutSettings ?? {
+    layout: 'steps' as const,
     requirePhone: true,
     requireCompany: false,
     showZipCode: false,

@@ -1,10 +1,11 @@
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { db } from '@/lib/db';
 import { products } from '@/lib/db/schema';
 import { eq, and, ilike, or } from 'drizzle-orm';
 import { ProductCard } from '@/components/product-card';
 import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
+import { trackSearchQuery } from '@/lib/actions/reports';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -103,6 +104,20 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
         searchResults.map(p => ({ id: p.id, price: p.price }))
       )
     : new Map();
+
+  // Track search query for analytics (fire-and-forget, non-blocking) ⚡
+  if (query && query.length >= 2) {
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get('session_id')?.value || `anon_${Date.now()}`;
+    
+    // Fire and forget - don't await, don't block render
+    trackSearchQuery({
+      storeId: store.id,
+      sessionId,
+      query,
+      resultsCount: searchResults.length,
+    }).catch(() => {}); // Silent fail
+  }
   
   return (
     <div className="min-h-screen bg-white" dir="rtl">

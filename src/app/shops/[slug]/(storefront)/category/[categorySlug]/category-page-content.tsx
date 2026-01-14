@@ -55,6 +55,7 @@ interface ProductData {
   inventory: number | null;
   trackInventory: boolean;
   allowBackorder: boolean;
+  hasVariants?: boolean;
   automaticDiscount: { 
     name: string;
     names?: string[];
@@ -470,9 +471,9 @@ export function CategoryPageContent({
               <p className="text-gray-400">אין מוצרים בקטגוריה זו</p>
             </div>
           ) : (
-            <div className={`grid ${getProductsGridClasses()} gap-4 md:gap-8`}>
+            <div className={`grid ${getProductsGridClasses()} gap-4 md:gap-8 ${settings.products.showAddToCart ? 'items-stretch' : ''}`}>
               {products.map((product, i) => (
-                <div key={product.id} className="animate-slide-up" style={{ animationDelay: `${i * 50}ms` }}>
+                <div key={product.id} className={`animate-slide-up ${settings.products.showAddToCart ? 'h-full' : ''}`} style={{ animationDelay: `${i * 50}ms` }}>
                   <ProductCard
                     id={product.id}
                     slug={product.slug}
@@ -489,6 +490,10 @@ export function CategoryPageContent({
                     trackInventory={product.trackInventory}
                     allowBackorder={product.allowBackorder}
                     automaticDiscount={product.automaticDiscount}
+                    hasVariants={product.hasVariants}
+                    showAddToCart={settings.products.showAddToCart}
+                    addToCartStyle={settings.products.addToCartStyle}
+                    storeSlug={storeSlug}
                   />
                 </div>
               ))}

@@ -151,8 +151,10 @@ export async function updateTrackingSettings(storeId: string, data: TrackingSett
 }
 
 interface CheckoutSettingsData {
+  layout: 'steps' | 'single-page';
   requirePhone: boolean;
   requireCompany: boolean;
+  showZipCode: boolean;
   allowNotes: boolean;
   termsRequired: boolean;
   successMessage: string;
@@ -175,8 +177,10 @@ export async function updateCheckoutSettings(storeId: string, data: CheckoutSett
     const newSettings = {
       ...currentSettings,
       checkout: {
+        layout: data.layout,
         requirePhone: data.requirePhone,
         requireCompany: data.requireCompany,
+        showZipCode: data.showZipCode,
         allowNotes: data.allowNotes,
         termsRequired: data.termsRequired,
         successMessage: data.successMessage || undefined,
@@ -192,6 +196,7 @@ export async function updateCheckoutSettings(storeId: string, data: CheckoutSett
       .where(eq(stores.id, storeId));
 
     revalidatePath('/shops/[slug]/admin/settings/checkout', 'page');
+    revalidatePath('/shops/[slug]/checkout', 'page'); // Revalidate storefront checkout
     return { success: true };
   } catch (error) {
     console.error('Error updating checkout settings:', error);

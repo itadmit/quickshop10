@@ -8,7 +8,7 @@ import {
   customerCreditTransactions, productImages, discounts,
   gamificationWins, gamificationCampaigns, productVariants
 } from '@/lib/db/schema';
-import { eq, and, gte, lte, desc, asc, sql, count, sum, inArray } from 'drizzle-orm';
+import { eq, and, or, gte, lte, desc, asc, sql, count, sum, inArray } from 'drizzle-orm';
 import { cache } from 'react';
 
 // ============ TYPES ============
@@ -112,6 +112,7 @@ export const getSalesOverview = cache(async (
     .select({
       total: sql<number>`COUNT(DISTINCT ${customers.id})`,
       newCustomers: sql<number>`COUNT(DISTINCT CASE WHEN ${customers.createdAt} >= ${from} THEN ${customers.id} END)`,
+      clubMembers: sql<number>`COUNT(DISTINCT CASE WHEN ${customers.passwordHash} IS NOT NULL THEN ${customers.id} END)`,
     })
     .from(customers)
     .where(eq(customers.storeId, storeId));
@@ -138,7 +139,7 @@ export const getSalesOverview = cache(async (
     averageOrderValue: Number(salesStats?.avgOrderValue || 0),
     totalCustomers: Number(customerStats?.total || 0),
     newCustomers: Number(customerStats?.newCustomers || 0),
-    returningCustomers: Number(customerStats?.total || 0) - Number(customerStats?.newCustomers || 0),
+    clubMembers: Number(customerStats?.clubMembers || 0),
     conversionRate: sessions > 0 ? (totalOrders / sessions) * 100 : 0,
   };
 });
@@ -586,7 +587,7 @@ export const getTopCustomers = cache(async (
     })
     .from(customers)
     .where(eq(customers.storeId, storeId))
-    .orderBy(desc(sql`${customers.totalSpent}::numeric`))
+    .orderBy(desc(customers.totalOrders), desc(sql`${customers.totalSpent}::numeric`))
     .limit(limit);
 
   return result.map(c => ({
@@ -1574,7 +1575,10 @@ export const getInfluencerOrders = cache(async (
   let matchCondition;
   if (allCouponCodes.length > 0) {
     // Match by influencerId OR by any of the coupon codes
-    matchCondition = sql`(${orders.influencerId} = ${influencerId} OR ${orders.discountCode} = ANY(${allCouponCodes}))`;
+    matchCondition = or(
+      eq(orders.influencerId, influencerId),
+      inArray(orders.discountCode, allCouponCodes)
+    );
   } else {
     // Only match by influencerId
     matchCondition = eq(orders.influencerId, influencerId);
@@ -1607,4 +1611,32 @@ export const getInfluencerOrders = cache(async (
     discountAmount: Number(o.discountAmount || 0),
   }));
 });
+
+// ============ SEARCH TRACKING ============
+
+/**
+ * Track a search query for analytics
+ * Called async (fire-and-forget) to not block page render
+ * Per REQUIREMENTS.md - maintain speed, no blocking operations
+ */
+export async function trackSearchQuery(params: {
+  storeId: string;
+  sessionId: string;
+  query: string;
+  resultsCount: number;
+  customerId?: string;
+}) {
+  try {
+    await db.insert(searchQueries).values({
+      storeId: params.storeId,
+      sessionId: params.sessionId,
+      query: params.query.slice(0, 255), // Limit to varchar(255)
+      resultsCount: params.resultsCount,
+      customerId: params.customerId || null,
+    });
+  } catch (error) {
+    // Silent fail - analytics should never break the user experience
+    console.error('[trackSearchQuery] Failed:', error);
+  }
+}
 

@@ -314,8 +314,9 @@ async function CustomersContent({
           <p className="text-xs text-gray-400 mt-1">בתקופה הנבחרת</p>
         </div>
         <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">לקוחות חוזרים</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(overview.returningCustomers)}</p>
+          <p className="text-sm text-gray-500">חברי מועדון</p>
+          <p className="text-2xl font-medium mt-1">{formatNumber(overview.clubMembers)}</p>
+          <p className="text-xs text-gray-400 mt-1">נרשמו לאזור אישי</p>
         </div>
         <div className="bg-white border border-gray-200 p-6">
           <p className="text-sm text-gray-500">ממוצע להזמנה</p>

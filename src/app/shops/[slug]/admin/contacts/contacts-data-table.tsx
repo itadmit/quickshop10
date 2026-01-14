@@ -50,12 +50,29 @@ interface ContactsDataTableProps {
   };
 }
 
-const typeLabels: Record<string, { label: string; color: 'default' | 'info' | 'warning' | 'success' }> = {
+const typeLabels: Record<string, { label: string; color: 'default' | 'info' | 'warning' | 'success' | 'purple' }> = {
   customer: { label: 'לקוח', color: 'success' },
   newsletter: { label: 'ניוזלטר', color: 'info' },
-  club_member: { label: 'מועדון', color: 'success' },
+  club_member: { label: 'מועדון', color: 'purple' },
   contact_form: { label: 'יצירת קשר', color: 'warning' },
   popup_form: { label: 'פופאפ', color: 'default' },
+};
+
+// תרגום ערכי מקור (source) לעברית
+const sourceLabels: Record<string, string> = {
+  checkout: 'צ׳קאאוט',
+  contact_page: 'עמוד יצירת קשר',
+  registration: 'הרשמה',
+  popup: 'פופאפ',
+  newsletter: 'ניוזלטר',
+  import: 'יבוא',
+  manual: 'ידני',
+  api: 'API',
+  homepage: 'עמוד הבית',
+  product_page: 'עמוד מוצר',
+  category_page: 'עמוד קטגוריה',
+  cart: 'עגלה',
+  account: 'אזור אישי',
 };
 
 const statusLabels: Record<string, { label: string; color: 'default' | 'success' | 'warning' | 'error' }> = {
@@ -244,7 +261,7 @@ export function ContactsDataTable({
       width: '120px',
       render: (contact) => (
         <span className="text-gray-500 text-sm">
-          {contact.source || '-'}
+          {contact.source ? (sourceLabels[contact.source] || contact.source) : '-'}
         </span>
       ),
     },

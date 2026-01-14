@@ -13,7 +13,7 @@ interface AddToCartButtonProps {
   name: string;
   price: number;
   image: string;
-  variant?: 'primary' | 'secondary';
+  variant?: 'primary' | 'secondary' | 'outline';
   className?: string;
   category?: string; // לטראקינג
   sku?: string; // מק"ט מוצר
@@ -93,16 +93,30 @@ export function AddToCartButton({
     });
   };
 
-  const baseStyles = variant === 'primary' ? 'btn-primary' : 'btn-secondary';
+  // Different styles based on variant
+  const getButtonClasses = () => {
+    if (variant === 'outline') {
+      return `
+        py-2.5 px-4 text-sm font-medium transition-all duration-200 border rounded-none
+        ${added 
+          ? 'bg-black text-white border-black' 
+          : outOfStock 
+            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
+            : 'bg-white text-black border-black hover:bg-black hover:text-white hover:scale-[1.02] active:scale-[0.98]'
+        }
+      `;
+    }
+    return variant === 'primary' ? 'btn-primary' : 'btn-secondary';
+  };
 
   return (
     <button
       onClick={handleClick}
       disabled={added || outOfStock}
       className={`
-        ${baseStyles}
-        ${added ? '!bg-black !text-white !border-black' : ''}
-        ${outOfStock ? '!bg-gray-100 !text-gray-400 !border-gray-200 cursor-not-allowed' : ''}
+        ${getButtonClasses()}
+        ${variant !== 'outline' && added ? '!bg-black !text-white !border-black' : ''}
+        ${variant !== 'outline' && outOfStock ? '!bg-gray-100 !text-gray-400 !border-gray-200 cursor-not-allowed' : ''}
         disabled:cursor-not-allowed
         ${className}
       `}

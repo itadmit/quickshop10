@@ -352,7 +352,7 @@ async function SalesContent({
     getSalesByDay(storeId, period, customRange),
     getTopProducts(storeId, period, 20, customRange),
     getSalesByCategory(storeId, period, customRange),
-    getRecentOrders(storeId, period, customRange),
+    getRecentOrders(storeId, period, customRange, 5),
   ]);
 
   return (

@@ -44,6 +44,8 @@ export interface CategoryPageSettings {
     mobileColumns: 2 | 3;        // כמות בשורה במובייל
     desktopColumns: 3 | 4 | 5;   // כמות בשורה במחשב
     showCount: boolean;          // הצג מספר פריטים
+    showAddToCart: boolean;      // הצג כפתור הוספה לסל קבוע
+    addToCartStyle: 'outline' | 'filled'; // סגנון הכפתור
   };
   
   // Breadcrumb settings
@@ -82,6 +84,8 @@ export const defaultCategoryPageSettings: CategoryPageSettings = {
     mobileColumns: 2,
     desktopColumns: 4,
     showCount: true,
+    showAddToCart: false,
+    addToCartStyle: 'outline',
   },
   
   breadcrumb: {

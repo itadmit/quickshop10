@@ -16,6 +16,8 @@ interface Product {
   // Video card fields
   cardImage?: string | null;
   cardVideoUrl?: string | null;
+  // Variant support
+  hasVariants?: boolean;
 }
 
 // הנחה אוטומטית - תומך במספר הנחות!
@@ -36,15 +38,18 @@ interface ProductsSectionProps {
     gap?: number;
     showCount?: boolean;
     textAlign?: 'right' | 'center' | 'left';
+    showAddToCart?: boolean; // 🆕 הצג כפתור הוספה לסל קבוע
+    addToCartStyle?: 'outline' | 'filled'; // סגנון הכפתור
   };
   basePath: string;
   showDecimalPrices?: boolean;
   displayLimit?: number; // For preview mode - hide products beyond limit
   // הנחות אוטומטיות - Map של productId -> discount
   discountsMap?: Map<string, AutomaticDiscount>;
+  storeSlug?: string; // 🆕 Required for variants modal
 }
 
-export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap }: ProductsSectionProps & { sectionId?: string }) {
+export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap, storeSlug }: ProductsSectionProps & { sectionId?: string }) {
   // Text alignment classes
   const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
   
@@ -73,11 +78,11 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
           {subtitle || ''}
         </p>
         
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8" data-products-grid>
+        <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 ${settings.showAddToCart ? 'items-stretch' : ''}`} data-products-grid>
           {products.map((product, i) => (
             <div 
               key={product.id} 
-              className={`animate-slide-up ${displayLimit && i >= displayLimit ? 'hidden' : ''}`}
+              className={`animate-slide-up ${displayLimit && i >= displayLimit ? 'hidden' : ''} ${settings.showAddToCart ? 'h-full' : ''}`}
               style={{ animationDelay: `${i * 50}ms` }}
               data-product-index={i}
               data-product-id={product.id}
@@ -99,6 +104,10 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 trackInventory={product.trackInventory}
                 allowBackorder={product.allowBackorder}
                 automaticDiscount={discountsMap?.get(product.id) || null}
+                hasVariants={product.hasVariants}
+                showAddToCart={settings.showAddToCart}
+                addToCartStyle={settings.addToCartStyle}
+                storeSlug={storeSlug}
               />
             </div>
           ))}
