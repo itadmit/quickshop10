@@ -328,7 +328,7 @@ export function DataTable<T>({
           </div>
         )}
 
-        <table className="w-full min-w-[640px]">
+        <table className="w-full min-w-[640px] table-fixed">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
               {/* Selection Column */}
