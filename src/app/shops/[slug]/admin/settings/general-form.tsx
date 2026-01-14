@@ -182,26 +182,46 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
             <label className="block text-sm font-medium text-gray-700 mb-2">
               לוגו
             </label>
-            <MediaUploader
-              value={formData.logoUrl ? [{ 
-                id: 'logo', 
-                url: formData.logoUrl, 
-                filename: 'logo', 
-                size: 0 
-              }] : []}
-              onChange={(files) => setFormData(prev => ({ 
-                ...prev, 
-                logoUrl: files[0]?.url || '' 
-              }))}
-              maxFiles={1}
-              multiple={false}
-              folder={`quickshop/stores/${store.slug}`}
-              storeId={store.id}
-              storeSlug={store.slug}
-              aspectRatio="16:9"
-              compact={true}
-              placeholder="העלה לוגו"
-            />
+            
+            {/* Logo Preview Container */}
+            {formData.logoUrl ? (
+              <div className="mb-3">
+                <div className="relative inline-block border border-gray-200 rounded-lg p-4 bg-gray-50">
+                  <img 
+                    src={formData.logoUrl} 
+                    alt="לוגו החנות" 
+                    className="max-h-24 max-w-48 object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, logoUrl: '' }))}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            
+            {!formData.logoUrl && (
+              <MediaUploader
+                value={[]}
+                onChange={(files) => setFormData(prev => ({ 
+                  ...prev, 
+                  logoUrl: files[0]?.url || '' 
+                }))}
+                maxFiles={1}
+                multiple={false}
+                folder={`quickshop/stores/${store.slug}`}
+                storeId={store.id}
+                storeSlug={store.slug}
+                aspectRatio="16:9"
+                compact={true}
+                placeholder="העלה לוגו"
+              />
+            )}
             <p className="text-xs text-gray-500 mt-1">
               מומלץ: PNG שקוף, רוחב מינימלי 200px
             </p>
@@ -212,26 +232,46 @@ export function GeneralSettingsForm({ store, settings }: GeneralSettingsFormProp
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Favicon
             </label>
-            <MediaUploader
-              value={formData.faviconUrl ? [{ 
-                id: 'favicon', 
-                url: formData.faviconUrl, 
-                filename: 'favicon', 
-                size: 0 
-              }] : []}
-              onChange={(files) => setFormData(prev => ({ 
-                ...prev, 
-                faviconUrl: files[0]?.url || '' 
-              }))}
-              maxFiles={1}
-              multiple={false}
-              folder={`quickshop/stores/${store.slug}`}
-              storeId={store.id}
-              storeSlug={store.slug}
-              aspectRatio="1:1"
-              compact={true}
-              placeholder="העלה favicon"
-            />
+            
+            {/* Favicon Preview Container */}
+            {formData.faviconUrl ? (
+              <div className="mb-3">
+                <div className="relative inline-block border border-gray-200 rounded-lg p-3 bg-gray-50">
+                  <img 
+                    src={formData.faviconUrl} 
+                    alt="Favicon" 
+                    className="w-12 h-12 object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, faviconUrl: '' }))}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors shadow-sm"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+            
+            {!formData.faviconUrl && (
+              <MediaUploader
+                value={[]}
+                onChange={(files) => setFormData(prev => ({ 
+                  ...prev, 
+                  faviconUrl: files[0]?.url || '' 
+                }))}
+                maxFiles={1}
+                multiple={false}
+                folder={`quickshop/stores/${store.slug}`}
+                storeId={store.id}
+                storeSlug={store.slug}
+                aspectRatio="1:1"
+                compact={true}
+                placeholder="העלה favicon"
+              />
+            )}
             <p className="text-xs text-gray-500 mt-1">
               מומלץ: 32x32 או 64x64 פיקסלים
             </p>
