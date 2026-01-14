@@ -65,18 +65,15 @@ export async function middleware(request: NextRequest) {
   // ========== CUSTOM DOMAIN ROUTING ==========
   const cleanHostname = hostname.replace(/^www\./, '');
   
-  console.log('[Middleware] Custom domain detected:', cleanHostname);
-  
   // Check in-memory cache first (fastest - ~0ms)
   const cached = domainCache.get(cleanHostname);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    console.log('[Middleware] Cache hit for:', cleanHostname, '-> slug:', cached.slug);
+    // Cache hit - no logging needed for performance
     return rewriteToStore(request, cached.slug, cleanHostname, requestHeaders);
   }
 
   // Query Neon directly from Edge (fast - ~20-50ms with connection pooling)
   try {
-    console.log('[Middleware] Querying DB for domain:', cleanHostname);
     const sql = neon(process.env.DATABASE_URL!);
     const result = await sql`
       SELECT slug FROM stores 
@@ -84,21 +81,17 @@ export async function middleware(request: NextRequest) {
       LIMIT 1
     `;
 
-    console.log('[Middleware] DB result:', result);
-
     if (result.length > 0) {
       const slug = result[0].slug as string;
       
       // Cache for next requests
       domainCache.set(cleanHostname, { slug, timestamp: Date.now() });
       
-      console.log('[Middleware] Rewriting to store:', slug);
       return rewriteToStore(request, slug, cleanHostname, requestHeaders);
-    } else {
-      console.log('[Middleware] No store found for domain:', cleanHostname);
     }
+    // Domain not found - continue to default behavior (will show 404)
   } catch (error) {
-    console.error('[Middleware] Domain lookup error:', error);
+    console.error('[Middleware] Domain lookup error:', cleanHostname, error);
     // On error, continue to default behavior
   }
 
@@ -122,7 +115,6 @@ function rewriteToStore(
     const adminPath = pathname === '/admin' ? '' : pathname.slice(6); // remove '/admin'
     const adminUrl = new URL(`https://my-quickshop.com/shops/${slug}/admin${adminPath}`);
     adminUrl.search = request.nextUrl.search;
-    console.log('[Middleware] Redirecting to admin:', adminUrl.toString());
     return NextResponse.redirect(adminUrl);
   }
   

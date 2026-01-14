@@ -61,8 +61,6 @@ export class FocusProvider extends BaseShippingProvider {
   ): Promise<T> {
     const url = `${this.getApiUrl()}?${endpoint}`;
     
-    console.log('[Focus] Full Request URL:', url);
-    
     const requestHeaders: Record<string, string> = {
       ...headers,
     };
@@ -78,12 +76,14 @@ export class FocusProvider extends BaseShippingProvider {
       headers: requestHeaders,
     });
     
-    console.log('[Focus] Response status:', response.status);
-    
     if (!response.ok) {
+      // Don't log full HTML error pages - just the status
+      const isHtml = response.headers.get('content-type')?.includes('text/html');
+      if (isHtml) {
+        throw new Error(`Focus API error: ${response.status} - Server returned HTML error page`);
+      }
       const errorText = await response.text();
-      console.error('[Focus] API Error response:', errorText);
-      throw new Error(`Focus API error: ${response.status} - ${errorText}`);
+      throw new Error(`Focus API error: ${response.status} - ${errorText.substring(0, 200)}`);
     }
     
     // Get response as buffer first to handle encoding properly
@@ -100,8 +100,6 @@ export class FocusProvider extends BaseShippingProvider {
     } catch {
       text = new TextDecoder('windows-1255').decode(buffer);
     }
-    
-    console.log('[Focus] Raw Response:', text);
     
     // Check if response is XML or plain text
     if (text.startsWith('<?xml') || text.startsWith('<')) {
@@ -120,8 +118,6 @@ export class FocusProvider extends BaseShippingProvider {
   private parseTextResponse(text: string): Record<string, string> {
     const result: Record<string, string> = {};
     
-    console.log('[Focus] Parsing text response:', text);
-    
     // Check for error format: 0,error message|errorCode
     if (text.startsWith('0,') || text.startsWith('-')) {
       result.error = 'true';
@@ -134,8 +130,6 @@ export class FocusProvider extends BaseShippingProvider {
       } else {
         result.message = text.substring(2).trim();
       }
-      
-      console.log('[Focus] Text response - Error:', result.message, 'Code:', result.errorCode);
     } else {
       // Success format: shipmentNumber,randomNumber or just shipmentNumber
       const parts = text.split(',');
@@ -144,7 +138,6 @@ export class FocusProvider extends BaseShippingProvider {
         if (parts.length >= 2) {
           result.ship_num_rand = parts[1].trim();
         }
-        console.log('[Focus] Text response - Shipment:', result.ship_create_num, 'Random:', result.ship_num_rand);
       }
     }
     
@@ -190,12 +183,6 @@ export class FocusProvider extends BaseShippingProvider {
       }
     }
     
-    // Also try to extract any tag that contains "num" or "shipment"
-    const numMatch = xml.match(/<([^>]*(?:num|shipment|mishloah)[^>]*)>([^<]+)<\/\1>/gi);
-    if (numMatch) {
-      console.log('[Focus] Found number-related tags:', numMatch);
-    }
-    
     // Check for error
     if (xml.includes('<shgiya_yn>y</shgiya_yn>') || 
         xml.includes('<shgiya_yn>Y</shgiya_yn>') ||
@@ -209,7 +196,6 @@ export class FocusProvider extends BaseShippingProvider {
       }
     }
     
-    console.log('[Focus] Parsed response:', result);
     return result;
   }
   
