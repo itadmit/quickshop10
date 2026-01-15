@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Wand2, X, Sparkles } from 'lucide-react';
 
@@ -34,6 +35,10 @@ export function FloatingAdvisorButton({ storeSlug, storeId, advisors, basePath, 
   const [isOpen, setIsOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  
+  // Hide on checkout pages (client-side navigation aware)
+  const pathname = usePathname();
+  const isCheckoutPage = pathname?.includes('/checkout');
 
   // Check if dismissed in localStorage and show after short delay
   useEffect(() => {
@@ -47,7 +52,8 @@ export function FloatingAdvisorButton({ storeSlug, storeId, advisors, basePath, 
     return () => clearTimeout(timer);
   }, [storeId]);
 
-  if (advisors.length === 0 || dismissed) {
+  // Don't render on checkout pages
+  if (isCheckoutPage || advisors.length === 0 || dismissed) {
     return null;
   }
 

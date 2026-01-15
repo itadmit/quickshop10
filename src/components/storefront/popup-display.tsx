@@ -89,6 +89,8 @@ export function PopupDisplay({ popups, storeSlug }: PopupDisplayProps) {
 
     // Check target pages
     const path = pathname || '/';
+    // Never show popups on checkout pages
+    if (path.includes('/checkout')) return false;
     if (popup.targetPages === 'homepage' && !path.match(/\/shops\/[^/]+\/?$/)) return false;
     if (popup.targetPages === 'products' && !path.includes('/product/')) return false;
     if (popup.targetPages === 'categories' && !path.includes('/category/')) return false;

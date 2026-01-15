@@ -79,6 +79,8 @@ export function GamificationPopup({ campaigns, storeSlug, storeName }: Gamificat
     if (!isMobile && !campaign.showOnDesktop) return false;
 
     // Check target pages
+    // Never show on checkout pages
+    if (pathname.includes('/checkout')) return false;
     if (campaign.targetPages === 'homepage' && pathname !== `/shops/${storeSlug}`) return false;
     if (campaign.targetPages === 'products' && !pathname.includes('/product/')) return false;
     if (campaign.targetPages === 'categories' && !pathname.includes('/category/')) return false;
