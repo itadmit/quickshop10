@@ -27,7 +27,7 @@ interface MediaPickerModalProps {
   selectedIds?: string[];
 }
 
-// ===== Server Upload =====
+// ===== Server Upload (Vercel Blob with WebP conversion) =====
 async function uploadToServer(
   file: File,
   options: { folder?: string; storeId?: string }
@@ -37,7 +37,8 @@ async function uploadToServer(
   if (options.folder) formData.append('folder', options.folder);
   if (options.storeId) formData.append('storeId', options.storeId);
 
-  const response = await fetch('/api/upload', {
+  // Use Vercel Blob for new uploads
+  const response = await fetch('/api/upload-blob', {
     method: 'POST',
     body: formData,
   });

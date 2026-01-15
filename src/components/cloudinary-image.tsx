@@ -1,25 +1,28 @@
 /**
- * CloudinaryImage - Optimized Image Component
+ * OptimizedImage - Unified Image Component
  * 
  * ⚡ Performance Features:
  * - Uses next/image for automatic optimization
- * - Cloudinary CDN with global edge caching
+ * - Supports both Vercel Blob and Cloudinary URLs
  * - Auto format (WebP/AVIF based on browser)
  * - Auto quality compression
  * - Responsive srcset generation
  * - Blur-up placeholder for lazy loading
  * - Proper aspect ratio to prevent CLS
+ * 
+ * 🔄 Migration: Works with both storage providers during transition
  */
 
 import Image, { ImageProps } from 'next/image';
 import {
   cloudinaryLoader,
-  isCloudinaryUrl,
+  isCloudinaryUrl as isCloudinaryUrlOriginal,
   extractPublicId,
   getOptimizedUrl,
   getBlurPlaceholder,
   cloudinaryConfig,
 } from '@/lib/cloudinary';
+import { isBlobUrl, getStorageProvider } from '@/lib/blob';
 
 export interface CloudinaryImageProps extends Omit<ImageProps, 'loader' | 'src'> {
   /** Image source - can be URL or Cloudinary public ID */
@@ -95,17 +98,20 @@ export function CloudinaryImage({
   ...props
 }: CloudinaryImageProps) {
   // Check if Cloudinary is configured
-  const isConfigured = Boolean(cloudinaryConfig.cloudName);
+  const isCloudinaryConfigured = Boolean(cloudinaryConfig.cloudName);
+  
+  // Determine storage provider
+  const storageProvider = getStorageProvider(src);
   
   // Get optimized source URL
   const getImageSrc = (): string => {
-    if (!isConfigured) {
-      // Fallback to original URL if Cloudinary not configured
-      return src;
+    // Vercel Blob URLs - use directly with next/image optimization
+    if (storageProvider === 'blob') {
+      return src; // next/image will handle optimization
     }
     
-    // If it's a Cloudinary URL, extract and transform
-    if (isCloudinaryUrl(src)) {
+    // Cloudinary URLs - use Cloudinary transformations
+    if (storageProvider === 'cloudinary' && isCloudinaryConfigured) {
       const publicId = extractPublicId(src);
       if (publicId) {
         return getOptimizedUrl(publicId, {
@@ -117,8 +123,8 @@ export function CloudinaryImage({
       }
     }
     
-    // If it's just a public ID (no http)
-    if (!src.startsWith('http')) {
+    // If it's just a public ID (no http) - assume Cloudinary
+    if (!src.startsWith('http') && isCloudinaryConfigured) {
       return getOptimizedUrl(src, {
         width: typeof width === 'number' ? width : undefined,
         height: typeof height === 'number' ? height : undefined,
@@ -127,15 +133,20 @@ export function CloudinaryImage({
       });
     }
     
-    // External URL - return as-is (could use fetch optimization)
+    // External URL - return as-is (next/image will optimize)
     return src;
   };
 
-  // Get blur placeholder URL
+  // Get blur placeholder URL (only for Cloudinary)
   const getPlaceholder = (): string | undefined => {
-    if (!showPlaceholder || !isConfigured) return undefined;
+    if (!showPlaceholder) return undefined;
     
-    const publicId = isCloudinaryUrl(src) 
+    // For Blob URLs, next/image handles placeholders automatically
+    if (storageProvider === 'blob') return undefined;
+    
+    if (!isCloudinaryConfigured) return undefined;
+    
+    const publicId = isCloudinaryUrlOriginal(src) 
       ? extractPublicId(src) 
       : (!src.startsWith('http') ? src : null);
     
@@ -173,6 +184,9 @@ export function CloudinaryImage({
   );
 }
 
+// Export an alias for new code
+export const OptimizedImage = CloudinaryImage;
+
 /**
  * Cloudinary Background Image Component
  * For CSS background images with optimization
@@ -195,7 +209,7 @@ export function CloudinaryBackground({
   const getBackgroundUrl = (): string => {
     if (!isConfigured) return src;
     
-    if (isCloudinaryUrl(src)) {
+    if (isCloudinaryUrlOriginal(src)) {
       const publicId = extractPublicId(src);
       if (publicId) {
         return getOptimizedUrl(publicId, { width: 1920 });

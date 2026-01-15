@@ -15,7 +15,7 @@ async function uploadToServer(
   if (options.tags) formData.append('tags', options.tags.join(','));
   if (options.storeId) formData.append('storeId', options.storeId);
 
-  const response = await fetch('/api/upload', {
+  const response = await fetch('/api/upload-blob', {
     method: 'POST',
     body: formData,
   });

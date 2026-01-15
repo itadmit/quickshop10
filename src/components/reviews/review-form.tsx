@@ -71,12 +71,12 @@ export function ReviewForm({
       // Add with loading state
       setMedia(prev => [...prev, { file, url: tempUrl, type, uploading: true }]);
 
-      // Upload to Cloudinary
+      // Upload to Vercel Blob (with WebP conversion)
       try {
         const formData = new FormData();
         formData.append('file', file);
 
-        const res = await fetch('/api/upload', {
+        const res = await fetch('/api/upload-blob', {
           method: 'POST',
           body: formData,
         });
@@ -88,7 +88,7 @@ export function ReviewForm({
         // Update with real URL
         setMedia(prev => prev.map(m => 
           m.url === tempUrl 
-            ? { ...m, url: data.url, uploading: false }
+            ? { ...m, url: data.secure_url || data.url, uploading: false }
             : m
         ));
       } catch {

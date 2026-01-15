@@ -76,7 +76,7 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
         formData.append('tags', ['quickshop', 'media-library', slug].join(','));
         formData.append('storeId', storeId); // Save to media library
         
-        const response = await fetch('/api/upload', {
+        const response = await fetch('/api/upload-blob', {
           method: 'POST',
           body: formData,
         });

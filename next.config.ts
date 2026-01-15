@@ -33,6 +33,15 @@ const nextConfig: NextConfig = {
         protocol: 'https',
         hostname: 'quickshopil-storage.s3.amazonaws.com',
       },
+      // Vercel Blob storage
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.blob.vercel-storage.com',
+      },
     ],
   },
   

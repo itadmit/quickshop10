@@ -16,7 +16,7 @@ import {
 export const ALLOWED_MEDIA_TYPES = [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES];
 import { MediaPickerModal, MediaItem } from './media-picker-modal';
 
-// ===== Server Upload (WebP conversion + signed upload) =====
+// ===== Server Upload (WebP conversion + Vercel Blob storage) =====
 async function uploadToServer(
   file: File,
   options: { folder?: string; tags?: string[]; storeId?: string } = {}
@@ -27,7 +27,8 @@ async function uploadToServer(
   if (options.tags) formData.append('tags', options.tags.join(','));
   if (options.storeId) formData.append('storeId', options.storeId); // Save to media library
 
-  const response = await fetch('/api/upload', {
+  // Use Vercel Blob for new uploads (with WebP conversion)
+  const response = await fetch('/api/upload-blob', {
     method: 'POST',
     body: formData,
   });
@@ -40,16 +41,23 @@ async function uploadToServer(
   return response.json();
 }
 
-// ===== Server Delete (Remove from Cloudinary + DB) =====
+// ===== Server Delete (Remove from Blob/Cloudinary + DB) =====
 async function deleteFromServer(publicId: string, mediaId?: string): Promise<void> {
-  // Delete from Cloudinary
-  const cloudinaryResponse = await fetch(`/api/upload/${encodeURIComponent(publicId)}`, {
+  // Try to delete from Vercel Blob first (for new uploads)
+  const blobResponse = await fetch(`/api/upload-blob?url=${encodeURIComponent(publicId)}`, {
     method: 'DELETE',
   });
 
-  if (!cloudinaryResponse.ok) {
-    const error = await cloudinaryResponse.json();
-    console.error('Cloudinary delete failed:', error);
+  // If Blob delete failed and it looks like a Cloudinary URL, try Cloudinary
+  if (!blobResponse.ok && publicId.includes('cloudinary')) {
+    const cloudinaryResponse = await fetch(`/api/upload/${encodeURIComponent(publicId)}`, {
+      method: 'DELETE',
+    });
+
+    if (!cloudinaryResponse.ok) {
+      const error = await cloudinaryResponse.json();
+      console.error('Cloudinary delete failed:', error);
+    }
   }
 
   // Delete from media library DB if mediaId exists

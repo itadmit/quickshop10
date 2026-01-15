@@ -5154,7 +5154,7 @@ function LogoUploadField({
       if (storeSlug) formData.append('folder', `quickshop/stores/${storeSlug}`);
       if (storeId) formData.append('storeId', storeId);
 
-      const response = await fetch('/api/upload', {
+      const response = await fetch('/api/upload-blob', {
         method: 'POST',
         body: formData,
       });
