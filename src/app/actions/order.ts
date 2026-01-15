@@ -247,24 +247,42 @@ export async function createOrder(
           .limit(1);
         
         if (dbCoupon) {
-          const usageOk = !dbCoupon.usageLimit || (dbCoupon.usageCount ?? 0) < dbCoupon.usageLimit;
           // Check minimum against ORIGINAL subtotal (before auto discounts)
           const minAmount = dbCoupon.minimumAmount ? Number(dbCoupon.minimumAmount) : 0;
           
-          if (usageOk && serverSubtotal >= minAmount) {
-            // Apply coupon to amount AFTER automatic discounts ⚠️ IMPORTANT
-            if (dbCoupon.type === 'percentage') {
-              couponDiscount = (afterAutoDiscounts * Number(dbCoupon.value)) / 100;
-            } else if (dbCoupon.type === 'fixed_amount') {
-              couponDiscount = Math.min(Number(dbCoupon.value), afterAutoDiscounts);
-            }
-            validatedCouponCode = dbCoupon.code;
+          if (serverSubtotal >= minAmount) {
+            // SECURITY: Atomic increment with condition to prevent race condition
+            // Only increment if still under limit (or no limit)
+            let usageOk = false;
             
-            // Increment usage (non-blocking)
-            db.update(discounts)
-              .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
-              .where(eq(discounts.id, dbCoupon.id))
-              .then(() => {});
+            if (!dbCoupon.usageLimit) {
+              // No limit - just increment
+              await db.update(discounts)
+                .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
+                .where(eq(discounts.id, dbCoupon.id));
+              usageOk = true;
+            } else {
+              // Has limit - atomic increment with check
+              const result = await db.update(discounts)
+                .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
+                .where(and(
+                  eq(discounts.id, dbCoupon.id),
+                  sql`COALESCE(${discounts.usageCount}, 0) < ${dbCoupon.usageLimit}`
+                ))
+                .returning({ id: discounts.id });
+              
+              usageOk = result.length > 0;
+            }
+            
+            if (usageOk) {
+              // Apply coupon to amount AFTER automatic discounts ⚠️ IMPORTANT
+              if (dbCoupon.type === 'percentage') {
+                couponDiscount = (afterAutoDiscounts * Number(dbCoupon.value)) / 100;
+              } else if (dbCoupon.type === 'fixed_amount') {
+                couponDiscount = Math.min(Number(dbCoupon.value), afterAutoDiscounts);
+              }
+              validatedCouponCode = dbCoupon.code;
+            }
           }
         }
       }
@@ -415,63 +433,67 @@ export async function createOrder(
 
     // 4. Deduct credit from customer if used
     if (creditUsed > 0) {
-      // Get current balance before deduction
-      const [currentCustomer] = await db
-        .select({ creditBalance: customers.creditBalance })
-        .from(customers)
-        .where(eq(customers.id, customerId))
-        .limit(1);
-      
-      const currentBalance = Number(currentCustomer?.creditBalance) || 0;
-      const newBalance = currentBalance - creditUsed;
-      
-      // Update customer credit balance
-      await db
+      // SECURITY: Atomic decrement with condition to prevent race condition
+      // Only deduct if balance is sufficient
+      const [updatedCustomer] = await db
         .update(customers)
-        .set({ creditBalance: newBalance.toFixed(2) })
-        .where(eq(customers.id, customerId));
+        .set({ 
+          creditBalance: sql`CAST(${customers.creditBalance} AS NUMERIC) - ${creditUsed.toFixed(2)}` 
+        })
+        .where(and(
+          eq(customers.id, customerId),
+          sql`CAST(${customers.creditBalance} AS NUMERIC) >= ${creditUsed}`
+        ))
+        .returning({ creditBalance: customers.creditBalance });
       
-      // Create credit transaction record
-      await db.insert(customerCreditTransactions).values({
-        customerId,
-        storeId: store.id,
-        type: 'debit',
-        amount: (-creditUsed).toFixed(2),
-        balanceAfter: newBalance.toFixed(2),
-        reason: `שימוש בקרדיט בהזמנה #${orderNumber}`,
-        orderId: order.id,
-      });
+      if (!updatedCustomer) {
+        // Credit wasn't deducted - insufficient balance (race condition prevented)
+        console.warn(`Credit deduction failed for customer ${customerId} - insufficient balance`);
+      } else {
+        // Create credit transaction record with the new balance
+        await db.insert(customerCreditTransactions).values({
+          customerId,
+          storeId: store.id,
+          type: 'debit',
+          amount: (-creditUsed).toFixed(2),
+          balanceAfter: updatedCustomer.creditBalance || '0.00',
+          reason: `שימוש בקרדיט בהזמנה #${orderNumber}`,
+          orderId: order.id,
+        });
+      }
     }
 
     // 5. Deduct gift card balance if used
     if (usedGiftCardId && giftCardAmountUsed > 0) {
-      const [currentGiftCard] = await db
-        .select({ currentBalance: giftCards.currentBalance })
-        .from(giftCards)
-        .where(eq(giftCards.id, usedGiftCardId))
-        .limit(1);
-      
-      const currentBalance = Number(currentGiftCard?.currentBalance) || 0;
-      const newBalance = currentBalance - giftCardAmountUsed;
-      
-      // Update gift card balance
-      await db
+      // SECURITY: Atomic decrement with condition to prevent race condition
+      // Calculate new balance in DB and only deduct if sufficient
+      const [updatedGiftCard] = await db
         .update(giftCards)
         .set({ 
-          currentBalance: newBalance.toFixed(2),
+          currentBalance: sql`CAST(${giftCards.currentBalance} AS NUMERIC) - ${giftCardAmountUsed.toFixed(2)}`,
           lastUsedAt: new Date(),
-          status: newBalance <= 0 ? 'used' : 'active',
+          // Set status based on new balance
+          status: sql`CASE WHEN CAST(${giftCards.currentBalance} AS NUMERIC) - ${giftCardAmountUsed} <= 0 THEN 'used' ELSE 'active' END`,
         })
-        .where(eq(giftCards.id, usedGiftCardId));
+        .where(and(
+          eq(giftCards.id, usedGiftCardId),
+          sql`CAST(${giftCards.currentBalance} AS NUMERIC) >= ${giftCardAmountUsed}`
+        ))
+        .returning({ currentBalance: giftCards.currentBalance });
       
-      // Create gift card transaction record
-      await db.insert(giftCardTransactions).values({
-        giftCardId: usedGiftCardId,
-        orderId: order.id,
-        amount: (-giftCardAmountUsed).toFixed(2),
-        balanceAfter: newBalance.toFixed(2),
-        note: `הזמנה #${orderNumber}`,
-      });
+      if (!updatedGiftCard) {
+        // Gift card balance wasn't deducted - insufficient balance (race condition prevented)
+        console.warn(`Gift card deduction failed for ${usedGiftCardId} - insufficient balance`);
+      } else {
+        // Create gift card transaction record with the new balance
+        await db.insert(giftCardTransactions).values({
+          giftCardId: usedGiftCardId,
+          orderId: order.id,
+          amount: (-giftCardAmountUsed).toFixed(2),
+          balanceAfter: updatedGiftCard.currentBalance || '0.00',
+          note: `הזמנה #${orderNumber}`,
+        });
+      }
     }
 
     // 7. Create order items and update inventory

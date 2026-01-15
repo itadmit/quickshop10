@@ -4,6 +4,7 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { getCurrentCustomer } from '@/lib/customer-auth';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
+import { getSafeRedirectUrl } from '@/lib/security/url-validator';
 
 export const metadata = {
   title: 'התחברות',
@@ -17,7 +18,7 @@ interface LoginPageProps {
 
 export default async function CustomerLoginPage({ params, searchParams }: LoginPageProps) {
   const { slug } = await params;
-  const { callbackUrl } = await searchParams;
+  const { callbackUrl: rawCallbackUrl } = await searchParams;
   
   const store = await getStoreBySlug(slug);
   if (!store) {
@@ -27,10 +28,17 @@ export default async function CustomerLoginPage({ params, searchParams }: LoginP
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   
+  // SECURITY: Validate callback URL to prevent Open Redirect
+  // Allow store's custom domain if exists
+  const allowedDomains = store.customDomain 
+    ? ['my-quickshop.com', 'quickshop.co.il', 'localhost:3000', 'localhost', store.customDomain]
+    : ['my-quickshop.com', 'quickshop.co.il', 'localhost:3000', 'localhost'];
+  const callbackUrl = getSafeRedirectUrl(rawCallbackUrl, `${basePath}/account`, allowedDomains);
+  
   // If already logged in, redirect
   const customer = await getCurrentCustomer();
   if (customer) {
-    redirect(callbackUrl || `${basePath}/account`);
+    redirect(callbackUrl);
   }
 
   return (

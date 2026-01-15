@@ -1,15 +1,46 @@
 'use client';
 
-import { Suspense, useState, useTransition } from 'react';
+import { Suspense, useState, useTransition, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { RecaptchaCheckbox } from '@/components/recaptcha-checkbox';
 
+// SECURITY: Validate redirect URLs to prevent Open Redirect attacks
+function isValidRedirectUrl(url: string | null): boolean {
+  if (!url) return false;
+  
+  // Allow relative paths starting with / (but not //)
+  if (url.startsWith('/') && !url.startsWith('//')) {
+    // Block encoded protocols
+    if (url.includes('://') || url.includes('%3A')) {
+      return false;
+    }
+    return true;
+  }
+  
+  // For absolute URLs, only allow our domains
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) return false;
+    
+    const allowedDomains = ['my-quickshop.com', 'quickshop.co.il', 'localhost:3000', 'localhost'];
+    const host = parsed.host.toLowerCase();
+    return allowedDomains.some(d => host === d || host.endsWith(`.${d}`));
+  } catch {
+    return false;
+  }
+}
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const rawCallbackUrl = searchParams.get('callbackUrl');
+  // SECURITY: Validate callback URL to prevent Open Redirect
+  const callbackUrl = useMemo(() => 
+    isValidRedirectUrl(rawCallbackUrl) ? rawCallbackUrl! : '/dashboard',
+    [rawCallbackUrl]
+  );
   const error = searchParams.get('error');
   
   const [email, setEmail] = useState('');

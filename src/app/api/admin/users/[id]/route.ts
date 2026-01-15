@@ -27,7 +27,10 @@ export async function GET(
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
 
-  return NextResponse.json(user);
+  // SECURITY: Never expose passwordHash!
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { passwordHash: _, ...safeUser } = user;
+  return NextResponse.json(safeUser);
 }
 
 export async function PATCH(
@@ -76,9 +79,12 @@ export async function PATCH(
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // SECURITY: Never expose passwordHash!
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { passwordHash: _, ...safeUser } = updatedUser;
     return NextResponse.json({
       success: true,
-      user: updatedUser,
+      user: safeUser,
     });
   } catch (error) {
     console.error('Error updating user:', error);

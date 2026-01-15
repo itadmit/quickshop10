@@ -87,6 +87,8 @@ export function formatDiscount(
   return `-${formatted}`;
 }
 
+import { sanitizeProductDescription } from '@/lib/security/html-sanitizer';
+
 /**
  * ניקוי HTML entities מטקסט
  * ממיר entities נפוצים כמו &nbsp; לתווים רגילים
@@ -95,6 +97,10 @@ export function formatDiscount(
  */
 export function decodeHtmlEntities(text: string | null | undefined): string {
   if (!text) return '';
+  
+  // SECURITY: First sanitize to remove XSS vectors, then decode entities
+  // This ensures scripts/event handlers are stripped before rendering
+  const sanitized = sanitizeProductDescription(text);
   
   // Common HTML entities mapping - fast O(1) lookup
   // Using Unicode escape sequences for special characters
@@ -120,7 +126,7 @@ export function decodeHtmlEntities(text: string | null | undefined): string {
   };
   
   // Single regex pass for all entities - O(n) complexity
-  return text.replace(/&(?:nbsp|amp|lt|gt|quot|#39|apos|ndash|mdash|lsquo|rsquo|ldquo|rdquo|bull|hellip|copy|reg|trade);/gi, 
+  return sanitized.replace(/&(?:nbsp|amp|lt|gt|quot|#39|apos|ndash|mdash|lsquo|rsquo|ldquo|rdquo|bull|hellip|copy|reg|trade);/gi, 
     (match) => entities[match.toLowerCase()] || match
   );
 }

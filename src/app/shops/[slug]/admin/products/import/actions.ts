@@ -18,6 +18,7 @@ import { eq, and, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
 import { v2 as cloudinary } from 'cloudinary';
+import { isValidImageUrl } from '@/lib/security/url-validator';
 
 // Configure Cloudinary
 cloudinary.config({
@@ -63,12 +64,21 @@ interface CloudinaryUploadResult {
 /**
  * Upload image from external URL to Cloudinary
  * Converts to WebP automatically
+ * 
+ * SECURITY: Validates URL to prevent SSRF attacks
  */
 async function uploadImageFromUrl(
   imageUrl: string, 
   folder: string
 ): Promise<CloudinaryUploadResult | null> {
   try {
+    // SECURITY: Validate URL to prevent SSRF attacks
+    // Blocks internal IPs (127.x.x.x, 10.x.x.x, 192.168.x.x, 169.254.x.x, etc.)
+    if (!isValidImageUrl(imageUrl)) {
+      console.warn(`SSRF Protection: Blocked potentially unsafe URL: ${imageUrl}`);
+      return null;
+    }
+    
     const result = await cloudinary.uploader.upload(imageUrl, {
       folder,
       resource_type: 'image',
