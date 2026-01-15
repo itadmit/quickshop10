@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Badge } from '@/components/admin/ui';
 import { OrderDetailActions, FulfillButton } from '@/components/admin/order-detail-actions';
+import { calculateItemDiscounts, type OrderItemWithDiscount } from '@/lib/order-item-discount';
 
 interface OrderPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -70,6 +71,25 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
   // Get all shipments for this order (for exchanges there may be multiple)
   const orderShipments = await getOrderShipments(id);
+
+  // Calculate per-item discounts (for showing strikethrough prices)
+  const itemsWithDiscounts = await calculateItemDiscounts(
+    store.id,
+    order.items.map(item => ({
+      id: item.id,
+      productId: item.productId,
+      name: item.name,
+      variantTitle: item.variantTitle,
+      sku: item.sku,
+      quantity: item.quantity,
+      price: item.price,
+      total: item.total,
+      imageUrl: item.imageUrl,
+      properties: item.properties as Record<string, unknown> | null,
+    })),
+    order.discountCode,
+    order.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}> | null
+  );
 
   const shippingAddress = order.shippingAddress as {
     firstName?: string;
@@ -152,7 +172,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
             </div>
             
             <div className="divide-y divide-gray-50">
-              {order.items.map((item) => (
+              {itemsWithDiscounts.map((item) => (
                 <div key={item.id} className="px-4 py-3 flex items-center gap-4">
                   {/* Image */}
                   <div className="w-10 h-10 bg-gray-50 rounded shrink-0 overflow-hidden border border-gray-100">
@@ -204,11 +224,25 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                     })()}
                   </div>
 
-                  {/* Price & Quantity */}
+                  {/* Price & Quantity - with discount indication */}
                   <div className="text-left flex items-center gap-6">
-                    <span className="text-sm text-gray-500">₪{Number(item.price).toFixed(2)}</span>
+                    {item.hasDiscount ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-xs text-gray-400 line-through">₪{Number(item.price).toFixed(2)}</span>
+                        <span className="text-sm text-emerald-600 font-medium">₪{item.discountedPrice?.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500">₪{Number(item.price).toFixed(2)}</span>
+                    )}
                     <span className="text-sm text-gray-500">×{item.quantity}</span>
-                    <span className="text-sm font-medium text-gray-900 w-20 text-left">₪{Number(item.total).toFixed(2)}</span>
+                    {item.hasDiscount ? (
+                      <div className="flex flex-col items-end w-20">
+                        <span className="text-xs text-gray-400 line-through">₪{Number(item.total).toFixed(2)}</span>
+                        <span className="text-sm font-medium text-emerald-600">₪{item.discountedTotal?.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <span className="text-sm font-medium text-gray-900 w-20 text-left">₪{Number(item.total).toFixed(2)}</span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -217,11 +251,38 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
           {/* Payment Card */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${order.financialStatus === 'paid' ? 'bg-gray-400' : 'bg-yellow-400'}`}></span>
-              <h3 className="text-sm font-semibold text-gray-900">
-                {order.financialStatus === 'paid' ? 'שולם' : order.financialStatus === 'refunded' ? 'הוחזר' : 'ממתין לתשלום'}
-              </h3>
+            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${order.financialStatus === 'paid' ? 'bg-gray-400' : 'bg-yellow-400'}`}></span>
+                <h3 className="text-sm font-semibold text-gray-900">
+                  {order.financialStatus === 'paid' ? 'שולם' : order.financialStatus === 'refunded' ? 'הוחזר' : 'ממתין לתשלום'}
+                </h3>
+              </div>
+              {/* Payment method info */}
+              {(() => {
+                const paymentDetails = order.paymentDetails as { 
+                  cardLastFour?: string; 
+                  cardBrand?: string; 
+                  approvalNumber?: string;
+                  provider?: string;
+                } | null;
+                if (paymentDetails?.cardLastFour || order.paymentMethod) {
+                  return (
+                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="1" y="4" width="22" height="16" rx="2"/>
+                        <line x1="1" y1="10" x2="23" y2="10"/>
+                      </svg>
+                      {paymentDetails?.cardBrand && <span>{paymentDetails.cardBrand}</span>}
+                      {paymentDetails?.cardLastFour && <span className="font-mono">•••• {paymentDetails.cardLastFour}</span>}
+                      {!paymentDetails?.cardLastFour && order.paymentMethod && (
+                        <span>{order.paymentMethod === 'credit_card' ? 'כרטיס אשראי' : order.paymentMethod}</span>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
             
             <div className="px-4 py-3 space-y-2.5 text-sm">

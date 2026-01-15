@@ -162,6 +162,7 @@ export function ContactsDataTable({
     {
       key: 'contact',
       header: 'איש קשר',
+      width: '180px',
       render: (contact) => (
         <div 
           className={`flex items-center gap-3 cursor-pointer ${!contact.isRead ? 'font-medium' : ''}`}
@@ -184,18 +185,29 @@ export function ContactsDataTable({
             </span>
           </div>
           
-          {/* Info */}
+          {/* Name */}
           <div className="min-w-0">
             <p className={`text-gray-900 truncate ${!contact.isRead ? 'font-semibold' : ''}`}>
               {contact.firstName || contact.lastName 
                 ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
-                : contact.email}
+                : '-'}
             </p>
-            {(contact.firstName || contact.lastName) && (
-              <p className="text-sm text-gray-500 truncate">{contact.email}</p>
-            )}
           </div>
         </div>
+      ),
+    },
+    {
+      key: 'email',
+      header: 'אימייל',
+      width: '200px',
+      render: (contact) => (
+        <a 
+          href={`mailto:${contact.email}`}
+          className="text-blue-600 hover:underline text-sm truncate block"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {contact.email}
+        </a>
       ),
     },
     {
@@ -330,7 +342,7 @@ export function ContactsDataTable({
     
     return (
       <tr className="bg-gray-50">
-        <td colSpan={8} className="px-6 py-4">
+        <td colSpan={9} className="px-6 py-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             {/* Contact Details */}
             <div>

@@ -290,6 +290,7 @@ export default async function ReturnDetailPage({ params }: ReturnDetailPageProps
             storeSlug={slug}
             request={{
               id: request.id,
+              orderId: request.orderId,
               status: request.status,
               type: request.type,
               requestedResolution: request.requestedResolution,

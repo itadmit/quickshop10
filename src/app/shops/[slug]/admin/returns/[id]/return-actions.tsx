@@ -8,6 +8,7 @@ interface ReturnRequestActionsProps {
   storeSlug: string;
   request: {
     id: string;
+    orderId: string;
     status: string;
     type: string;
     requestedResolution: string;
@@ -303,7 +304,7 @@ export function ReturnRequestActions({ storeSlug, request, canProcess, canComple
         <h2 className="font-medium mb-4">קישורים מהירים</h2>
         <div className="space-y-2">
           <a
-            href={`/shops/${storeSlug}/admin/orders?search=${request.id}`}
+            href={`/shops/${storeSlug}/admin/orders/${request.orderId}`}
             className="block text-sm text-blue-600 hover:underline"
           >
             צפה בהזמנה המקורית →

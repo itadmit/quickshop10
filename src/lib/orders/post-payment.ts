@@ -39,6 +39,7 @@ import { sendOrderConfirmationEmail, sendGiftCardEmail } from '@/lib/email';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 import { addPointsFromOrder } from '@/lib/actions/loyalty';
 import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
+import { calculateItemDiscounts } from '@/lib/order-item-discount';
 
 // ============ TYPES ============
 
@@ -493,39 +494,68 @@ async function deductCustomerCredit(
  * Send order confirmation email
  */
 async function sendConfirmationEmail(params: PostPaymentParams): Promise<void> {
-  const { storeSlug, storeName, order, cartItems, orderData, discountAmount, paymentInfo } = params;
+  const { storeId, storeSlug, storeName, order, cartItems, orderData, discountCode, discountAmount, paymentInfo } = params;
   
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingCost = orderData.shipping?.cost || 0;
   const creditUsed = orderData.creditUsed || 0;
   
+  // Calculate per-item discounts for email display
+  const discountDetails = order.discountDetails as Array<{
+    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+    code?: string;
+    name: string;
+    description?: string;
+    amount: number;
+  }> | undefined;
+  
+  const itemsWithDiscounts = await calculateItemDiscounts(
+    storeId,
+    cartItems.map((item, idx) => ({
+      id: String(idx),
+      productId: item.productId || null,
+      name: item.name,
+      variantTitle: item.variantTitle || null,
+      sku: item.sku || null,
+      quantity: item.quantity,
+      price: String(item.price),
+      total: String(item.price * item.quantity),
+      imageUrl: item.image || item.imageUrl || null,
+      properties: null,
+    })),
+    discountCode || null,
+    discountDetails || null
+  );
+  
   await sendOrderConfirmationEmail({
     orderNumber: order.orderNumber,
     customerName: order.customerName || 'לקוח יקר',
     customerEmail: order.customerEmail || '',
-    items: cartItems.map(item => ({
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      image: item.image || undefined,
-      variantTitle: item.variantTitle || undefined,
-      addons: item.addons?.map(a => ({
-        name: a.name,
-        displayValue: a.displayValue,
-        priceAdjustment: a.priceAdjustment,
-      })),
-      addonTotal: item.addonTotal,
-    })),
+    items: cartItems.map((item, idx) => {
+      const discountInfo = itemsWithDiscounts[idx];
+      return {
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        image: item.image || undefined,
+        variantTitle: item.variantTitle || undefined,
+        addons: item.addons?.map(a => ({
+          name: a.name,
+          displayValue: a.displayValue,
+          priceAdjustment: a.priceAdjustment,
+        })),
+        addonTotal: item.addonTotal,
+        // Discount info
+        hasDiscount: discountInfo?.hasDiscount || false,
+        discountedPrice: discountInfo?.discountedPrice ?? undefined,
+        discountedTotal: discountInfo?.discountedTotal ?? undefined,
+        discountPercent: discountInfo?.discountPercent ?? undefined,
+      };
+    }),
     subtotal,
     shippingAmount: shippingCost,
     discountAmount: discountAmount || 0,
-    discountDetails: order.discountDetails as Array<{
-      type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
-      code?: string;
-      name: string;
-      description?: string;
-      amount: number;
-    }> | undefined,
+    discountDetails,
     creditUsed,
     total: Number(order.total),
     shippingAddress: orderData.shippingAddress,

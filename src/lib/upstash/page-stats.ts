@@ -213,6 +213,46 @@ export async function getTrafficSources(
 }
 
 /**
+ * Get traffic sources for a date range
+ * Aggregates data from multiple days
+ */
+export async function getTrafficSourcesForRange(
+  storeId: string,
+  startDate: Date,
+  endDate: Date,
+  limit: number = 20
+): Promise<{ source: string; visits: number }[]> {
+  const sourceMap = new Map<string, number>();
+  const current = new Date(startDate);
+
+  while (current <= endDate) {
+    const dateKey = current.toISOString().split('T')[0];
+    const results = await redis.zrange<string[]>(
+      `sources:${storeId}:${dateKey}`,
+      0,
+      -1, // Get all sources for aggregation
+      { rev: true, withScores: true }
+    );
+
+    for (let i = 0; i < results.length; i += 2) {
+      const source = results[i];
+      const visits = Number(results[i + 1]);
+      sourceMap.set(source, (sourceMap.get(source) || 0) + visits);
+    }
+
+    current.setDate(current.getDate() + 1);
+  }
+
+  // Convert to array and sort by visits
+  const sources = Array.from(sourceMap.entries())
+    .map(([source, visits]) => ({ source, visits }))
+    .sort((a, b) => b.visits - a.visits)
+    .slice(0, limit);
+
+  return sources;
+}
+
+/**
  * Get device breakdown for a date
  */
 export async function getDeviceBreakdown(
@@ -341,6 +381,52 @@ export async function getTodayFunnel(
     purchases: purchases || 0,
     revenue: revenue || 0,
     orders: ordersCount || 0,
+  };
+}
+
+/**
+ * Get funnel data for the last hour (for realtime dashboard)
+ */
+export async function getLastHourFunnel(
+  storeId: string
+): Promise<{
+  productViews: number;
+  addToCart: number;
+  beginCheckout: number;
+  purchases: number;
+}> {
+  const now = new Date();
+  const currentHour = getHourKey();
+  
+  // Also get the previous hour to have a fuller picture
+  const prevHour = new Date(now.getTime() - 60 * 60 * 1000);
+  const prevHourKey = `${prevHour.toISOString().split('T')[0]}:${prevHour.getHours().toString().padStart(2, '0')}`;
+
+  const [
+    productViewsCurrent, productViewsPrev,
+    addToCartCurrent, addToCartPrev,
+    beginCheckoutCurrent, beginCheckoutPrev,
+    purchasesCurrent, purchasesPrev,
+  ] = await Promise.all([
+    redis.get<number>(`funnel:${storeId}:product_view:${currentHour}`) || 0,
+    redis.get<number>(`funnel:${storeId}:product_view:${prevHourKey}`) || 0,
+    redis.get<number>(`funnel:${storeId}:add_to_cart:${currentHour}`) || 0,
+    redis.get<number>(`funnel:${storeId}:add_to_cart:${prevHourKey}`) || 0,
+    redis.get<number>(`funnel:${storeId}:begin_checkout:${currentHour}`) || 0,
+    redis.get<number>(`funnel:${storeId}:begin_checkout:${prevHourKey}`) || 0,
+    redis.get<number>(`funnel:${storeId}:purchase:${currentHour}`) || 0,
+    redis.get<number>(`funnel:${storeId}:purchase:${prevHourKey}`) || 0,
+  ]);
+
+  // Get proportion of current hour that has passed (for weighting previous hour)
+  const minutesIntoCurrent = now.getMinutes();
+  const prevHourWeight = (60 - minutesIntoCurrent) / 60;
+
+  return {
+    productViews: (productViewsCurrent || 0) + Math.round((productViewsPrev || 0) * prevHourWeight),
+    addToCart: (addToCartCurrent || 0) + Math.round((addToCartPrev || 0) * prevHourWeight),
+    beginCheckout: (beginCheckoutCurrent || 0) + Math.round((beginCheckoutPrev || 0) * prevHourWeight),
+    purchases: (purchasesCurrent || 0) + Math.round((purchasesPrev || 0) * prevHourWeight),
   };
 }
 

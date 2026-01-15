@@ -15,6 +15,16 @@ import {
   TabletIcon,
 } from '@/components/admin/icons';
 
+// Redis traffic sources (realtime data)
+async function getRedisTrafficSources(storeId: string, from: Date, to: Date) {
+  try {
+    const pageStats = await import('@/lib/upstash/page-stats');
+    return await pageStats.getTrafficSourcesForRange(storeId, from, to, 20);
+  } catch {
+    return null;
+  }
+}
+
 // Format helpers
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('he-IL', {
@@ -273,6 +283,55 @@ function ConversionFunnel({
   );
 }
 
+// Redis Traffic Sources Component
+function RedisTrafficSourcesList({ 
+  sources 
+}: { 
+  sources: Array<{ source: string; visits: number }> 
+}) {
+  if (!sources.length) {
+    return <p className="text-gray-500 text-center py-8">אין נתוני ביקורים</p>;
+  }
+
+  const sourceLabels: Record<string, string> = {
+    google: 'Google',
+    facebook: 'Facebook',
+    instagram: 'Instagram',
+    tiktok: 'TikTok',
+    email: 'אימייל',
+    direct: 'ישיר',
+    referral: 'הפניות',
+  };
+
+  const totalVisits = sources.reduce((sum, s) => sum + s.visits, 0);
+
+  return (
+    <div className="space-y-3">
+      {sources.slice(0, 10).map((source, i) => {
+        const percentage = totalVisits > 0 ? (source.visits / totalVisits) * 100 : 0;
+        return (
+          <div key={source.source} className="flex items-center gap-4">
+            <span className="w-5 text-xs font-bold text-gray-400">#{i + 1}</span>
+            <div className="flex-1">
+              <div className="flex justify-between mb-1">
+                <span className="font-medium">{sourceLabels[source.source] || source.source}</span>
+                <span className="text-gray-600">{formatNumber(source.visits)} ביקורים</span>
+              </div>
+              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-blue-500 transition-all duration-500"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-gray-500">{formatPercent(percentage)}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Content Component
 async function TrafficContent({ 
   storeId, 
@@ -283,19 +342,46 @@ async function TrafficContent({
   period: '7d' | '30d' | '90d' | 'custom';
   customRange?: { from: Date; to: Date };
 }) {
-  // Parallel data fetching
-  const [sources, devices, landingPages, funnel, utmStats] = await Promise.all([
+  // Calculate date range for Redis
+  const getDateRange = () => {
+    const to = new Date();
+    to.setHours(23, 59, 59, 999);
+    let from: Date;
+    switch (period) {
+      case '7d':
+        from = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case '30d':
+        from = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case '90d':
+        from = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'custom':
+        return customRange || { from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), to };
+    }
+    from.setHours(0, 0, 0, 0);
+    return { from, to };
+  };
+  const dateRange = getDateRange();
+
+  // Parallel data fetching (including Redis traffic sources)
+  const [sources, devices, landingPages, funnel, utmStats, redisTrafficSources] = await Promise.all([
     getTrafficSources(storeId, period, customRange),
     getDeviceStats(storeId, period, customRange),
     getLandingPages(storeId, period, 10, customRange),
     getConversionFunnel(storeId, period, customRange),
     getUtmStats(storeId, period, customRange),
+    getRedisTrafficSources(storeId, dateRange.from, dateRange.to),
   ]);
 
-  // Calculate totals
+  // Calculate totals from PostgreSQL sources
   const totalSessions = sources.reduce((sum, s) => sum + s.sessions, 0);
   const totalOrders = sources.reduce((sum, s) => sum + s.orders, 0);
   const totalRevenue = sources.reduce((sum, s) => sum + s.revenue, 0);
+  
+  // Calculate total visits from Redis
+  const totalVisits = redisTrafficSources?.reduce((sum, s) => sum + s.visits, 0) || 0;
 
   return (
     <>
@@ -303,7 +389,10 @@ async function TrafficContent({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-200 p-6">
           <p className="text-sm text-gray-500">סה״כ ביקורים</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(totalSessions)}</p>
+          <p className="text-2xl font-medium mt-1">{formatNumber(totalVisits > 0 ? totalVisits : totalSessions)}</p>
+          {totalVisits > 0 && totalSessions > 0 && totalVisits !== totalSessions && (
+            <p className="text-xs text-gray-400 mt-1">Sessions: {formatNumber(totalSessions)}</p>
+          )}
         </div>
         <div className="bg-white border border-gray-200 p-6">
           <p className="text-sm text-gray-500">הזמנות</p>
@@ -312,7 +401,7 @@ async function TrafficContent({
         <div className="bg-white border border-gray-200 p-6">
           <p className="text-sm text-gray-500">שיעור המרה כולל</p>
           <p className="text-2xl font-medium mt-1">
-            {formatPercent(totalSessions > 0 ? (totalOrders / totalSessions) * 100 : 0)}
+            {formatPercent((totalVisits > 0 ? totalVisits : totalSessions) > 0 ? (totalOrders / (totalVisits > 0 ? totalVisits : totalSessions)) * 100 : 0)}
           </p>
         </div>
         <div className="bg-white border border-gray-200 p-6">
@@ -321,9 +410,26 @@ async function TrafficContent({
         </div>
       </div>
 
-      {/* Traffic Sources */}
+      {/* Traffic Sources - Redis (realtime visits) */}
+      {redisTrafficSources && redisTrafficSources.length > 0 && (
+        <div className="bg-white border border-gray-200 p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-medium">מקורות תנועה (ביקורים)</h2>
+            <span className="text-xs text-gray-400 flex items-center gap-1">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              זמן אמת
+            </span>
+          </div>
+          <RedisTrafficSourcesList sources={redisTrafficSources} />
+        </div>
+      )}
+
+      {/* Traffic Sources - PostgreSQL (with conversions) */}
       <div className="bg-white border border-gray-200 p-6 mb-8">
-        <h2 className="font-medium mb-4">מקורות תנועה (UTM Source)</h2>
+        <h2 className="font-medium mb-4">מקורות תנועה (עם המרות)</h2>
         <TrafficSourcesTable sources={sources} />
       </div>
 

@@ -164,6 +164,11 @@ interface OrderItem {
   image?: string;
   addons?: OrderItemAddon[];
   addonTotal?: number;
+  // Discount info per item
+  hasDiscount?: boolean;
+  discountedPrice?: number;
+  discountedTotal?: number;
+  discountPercent?: number;
 }
 
 // Type for discount details in email
@@ -252,6 +257,24 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
         </div>`
       : '';
     
+    // Build price HTML with discount indication
+    const priceHtml = item.hasDiscount 
+      ? `<p style="margin: 4px 0 0 0; font-size: 14px;">
+          <span style="color: #9ca3af; text-decoration: line-through;">₪${item.price.toFixed(2)}</span>
+          <span style="color: #16a34a; font-weight: 500; margin-right: 6px;">₪${item.discountedPrice?.toFixed(2)}</span>
+          <span style="background: #dcfce7; color: #16a34a; font-size: 11px; padding: 2px 6px; border-radius: 4px;">-${item.discountPercent}%</span>
+        </p>`
+      : `<p style="margin: 4px 0 0 0; font-size: 14px; color: #1a1a1a;">₪${item.price.toFixed(2)}</p>`;
+    
+    // Build total HTML with discount indication
+    const displayTotal = item.hasDiscount ? item.discountedTotal : itemTotal;
+    const totalHtml = item.hasDiscount 
+      ? `<div>
+          <span style="font-size: 13px; color: #9ca3af; text-decoration: line-through; display: block;">₪${itemTotal.toFixed(2)}</span>
+          <span style="font-weight: 600; font-size: 18px; color: #16a34a;">₪${displayTotal?.toFixed(2)}</span>
+        </div>`
+      : `<span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${itemTotal.toFixed(2)}</span>`;
+    
     return `
     <tr>
       <td style="padding: 16px 0; border-bottom: 1px solid #f0f0f0;" colspan="2">
@@ -270,12 +293,12 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
               <p style="margin: 0 0 4px 0; font-weight: 500; color: #1a1a1a; font-size: 16px;">${item.name}</p>
               ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
               <p style="margin: 0; font-size: 14px; color: #666;">כמות: ${item.quantity}</p>
-              <p style="margin: 4px 0 0 0; font-size: 14px; color: #1a1a1a;">₪${item.price.toFixed(2)}</p>
+              ${priceHtml}
               ${addonsHtml}
             </td>
             <!-- Price on LEFT -->
             <td style="width: 100px; vertical-align: top; text-align: left;">
-              <span style="font-weight: 600; font-size: 18px; color: #1a1a1a;">₪${itemTotal.toFixed(2)}</span>
+              ${totalHtml}
             </td>
           </tr>
         </table>

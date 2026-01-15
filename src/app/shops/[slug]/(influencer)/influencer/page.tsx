@@ -27,6 +27,42 @@ function formatDate(date: Date): string {
   }).format(date);
 }
 
+// Format discount description for display
+function formatDiscountDescription(discount: {
+  type: string;
+  value: string | null;
+  buyQuantity?: number | null;
+  getQuantity?: number | null;
+  getDiscountPercent?: number | null;
+}): string {
+  switch (discount.type) {
+    case 'percentage':
+      return `${discount.value}% הנחה`;
+    case 'fixed_amount':
+      return `${formatCurrency(discount.value)} הנחה`;
+    case 'free_shipping':
+      return 'משלוח חינם';
+    case 'buy_x_get_y':
+      const buy = discount.buyQuantity || 1;
+      const get = discount.getQuantity || 1;
+      const discountPercent = discount.getDiscountPercent ?? 100;
+      if (discountPercent === 100) {
+        return `${buy}+${get} (קנה ${buy} קבל ${get} חינם)`;
+      }
+      return `${buy}+${get} (${discountPercent}% הנחה על ה-${get})`;
+    case 'buy_x_pay_y':
+      return 'קנה X שלם Y';
+    case 'gift_product':
+      return 'מוצר במתנה';
+    case 'quantity_discount':
+      return 'הנחות כמות';
+    case 'spend_x_pay_y':
+      return 'קנה ב-X שלם Y';
+    default:
+      return `${discount.value || ''} הנחה`;
+  }
+}
+
 // Status badge component
 function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
@@ -268,8 +304,20 @@ export default async function InfluencerDashboardPage({ params, searchParams }: 
                 {linkedCoupon?.code || influencer.couponCode || linkedAutoDiscount?.name}
               </p>
               <p className="text-purple-100 text-xs sm:text-sm mt-1 sm:mt-2">
-                {linkedCoupon && `${linkedCoupon.value}${linkedCoupon.type === 'percentage' ? '%' : '₪'} הנחה`}
-                {linkedAutoDiscount && `${linkedAutoDiscount.value}${linkedAutoDiscount.type === 'percentage' ? '%' : '₪'} הנחה אוטומטית`}
+                {linkedCoupon && formatDiscountDescription({
+                  type: linkedCoupon.type,
+                  value: linkedCoupon.value,
+                  buyQuantity: linkedCoupon.buyQuantity,
+                  getQuantity: linkedCoupon.getQuantity,
+                  getDiscountPercent: linkedCoupon.getDiscountPercent,
+                })}
+                {linkedAutoDiscount && formatDiscountDescription({
+                  type: linkedAutoDiscount.type,
+                  value: linkedAutoDiscount.value,
+                  buyQuantity: linkedAutoDiscount.buyQuantity,
+                  getQuantity: linkedAutoDiscount.getQuantity,
+                  getDiscountPercent: linkedAutoDiscount.getDiscountPercent,
+                })}
               </p>
             </div>
             <div className="text-4xl sm:text-5xl opacity-20 hidden sm:block">🎟️</div>

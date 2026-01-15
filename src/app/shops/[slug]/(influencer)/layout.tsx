@@ -53,6 +53,7 @@ export default async function InfluencerLayout({
             <InfluencerHeader 
               storeName={store.name} 
               storeSlug={slug}
+              customDomain={store.customDomain}
               influencer={{
                 name: influencer.name,
                 email: influencer.email,

@@ -42,7 +42,8 @@ async function getRealtimeData(storeId: string) {
     trafficSources,
     deviceBreakdown,
     hourlyTraffic,
-    funnelData,
+    todayFunnelData,
+    lastHourFunnelData,
     recentOrders,
   ] = await Promise.all([
     redisStats?.getOnlineUsersCount(storeId) ?? 0,
@@ -58,6 +59,13 @@ async function getRealtimeData(storeId: string) {
       purchases: 0,
       revenue: 0,
       orders: 0,
+    },
+    // Get last hour funnel for realtime behavior display
+    redisStats?.getLastHourFunnel(storeId) ?? {
+      productViews: 0,
+      addToCart: 0,
+      beginCheckout: 0,
+      purchases: 0,
     },
     db
       .select({
@@ -84,14 +92,15 @@ async function getRealtimeData(storeId: string) {
       hourlyTraffic,
     },
     sales: {
-      todayRevenue: funnelData.revenue,
-      todayOrders: funnelData.orders,
+      todayRevenue: todayFunnelData.revenue,
+      todayOrders: todayFunnelData.orders,
     },
+    // Funnel shows LAST HOUR data for realtime feel
     funnel: {
-      productViews: funnelData.productViews,
-      addToCart: funnelData.addToCart,
-      checkoutStarted: funnelData.beginCheckout,
-      purchases: funnelData.purchases,
+      productViews: lastHourFunnelData.productViews,
+      addToCart: lastHourFunnelData.addToCart,
+      checkoutStarted: lastHourFunnelData.beginCheckout,
+      purchases: lastHourFunnelData.purchases,
     },
     recentOrders: recentOrders.map((o) => ({
       ...o,
@@ -151,9 +160,12 @@ export default async function RealtimeAnalyticsPage({ params }: PageProps) {
             </div>
           </div>
 
-          {/* Funnel */}
+          {/* Funnel - Last Hour Data */}
           <div>
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">התנהגות גולשים</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">התנהגות גולשים</h3>
+              <span className="text-xs text-gray-400">בשעה האחרונה</span>
+            </div>
             <div className="space-y-3">
               <FunnelStep
                 icon={<EyeIcon />}

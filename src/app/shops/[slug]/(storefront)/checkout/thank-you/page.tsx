@@ -36,6 +36,7 @@ import { addPointsFromOrder } from '@/lib/actions/loyalty';
 import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
 import { parseRedirectParams, isSuccessfulRedirect } from '@/lib/payments/factory';
 import { executePostPaymentActions, type CartItem, type OrderData } from '@/lib/orders/post-payment';
+import { calculateItemDiscounts } from '@/lib/order-item-discount';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
@@ -978,17 +979,26 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   }
   
   // Map items with images and properties (includes addons)
-  const items = rawItems.map(item => ({
+  const mappedItems = rawItems.map(item => ({
     id: item.id,
     productId: item.productId,
     name: item.name,
     variantTitle: item.variantTitle,
+    sku: item.sku,
     quantity: item.quantity,
     price: item.price,
     total: item.total,
     imageUrl: item.imageUrl || (item.productId ? productImageMap.get(item.productId) || null : null),
-    properties: item.properties, // Include properties for addon display
+    properties: item.properties as Record<string, unknown> | null, // Include properties for addon display
   }));
+  
+  // Calculate per-item discounts (for showing strikethrough prices)
+  const items = await calculateItemDiscounts(
+    store.id,
+    mappedItems,
+    order.discountCode,
+    order.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}> | null
+  );
 
   // Payment info from query params or order
   const paymentDetails = (order.paymentDetails || {}) as Record<string, string>;
@@ -1103,12 +1113,28 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                       return null;
                     })()}
                     
-                    <p className="text-sm font-medium text-gray-900 mt-1">
-                      {format(item.total)}
-                    </p>
+                    {/* Price with discount indication */}
+                    {item.hasDiscount ? (
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-sm text-gray-400 line-through">{format(item.total)}</span>
+                        <span className="text-sm font-medium text-emerald-600">{format(item.discountedTotal || 0)}</span>
+                        <span className="text-xs bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded">-{item.discountPercent}%</span>
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-gray-900 mt-1">
+                        {format(item.total)}
+                      </p>
+                    )}
                   </div>
                   <div className="text-left font-medium">
-                    {format(item.total)}
+                    {item.hasDiscount ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm text-gray-400 line-through">{format(item.total)}</span>
+                        <span className="text-emerald-600">{format(item.discountedTotal || 0)}</span>
+                      </div>
+                    ) : (
+                      format(item.total)
+                    )}
                   </div>
                 </div>
               );
