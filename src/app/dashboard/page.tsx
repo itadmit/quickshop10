@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { stores, storeMembers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import Link from 'next/link';
+import { ClientRedirect } from './client-redirect';
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -44,14 +45,14 @@ export default async function DashboardPage() {
     ...memberOnlyStores,
   ];
 
-  // If user has exactly one store, redirect to it
+  // If user has exactly one store, show loading and redirect client-side
   if (userStores.length === 1) {
     const store = userStores[0];
     // Influencers go to influencer dashboard
     const targetUrl = store.memberRole === 'influencer' 
       ? `/shops/${store.slug}/influencer`
       : `/shops/${store.slug}/admin`;
-    redirect(targetUrl);
+    return <ClientRedirect to={targetUrl} />;
   }
 
   // If no stores, show create store prompt
