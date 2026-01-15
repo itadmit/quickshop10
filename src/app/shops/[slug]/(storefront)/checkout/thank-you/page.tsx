@@ -612,30 +612,52 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         
         // Create order items (only for legacy flow - new flow already has items)
         if (cartItems.length > 0) {
-          await db.insert(orderItems).values(
-            cartItems.map(item => {
-              // Calculate item total including addons
-              const addonTotal = (item as { addonTotal?: number }).addonTotal || 0;
-              const itemTotal = (item.price + addonTotal) * item.quantity;
-              
-              return {
-                orderId: newOrder.id,
-                productId: item.productId,
-                name: item.name,
-                variantTitle: item.variantTitle || null,
-                sku: item.sku || '',
-                price: String(item.price),
-                quantity: item.quantity,
-                total: String(itemTotal),
-                imageUrl: item.image || item.imageUrl || null,
-                // Store addons in properties field
-                properties: {
-                  addons: (item as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}> }).addons || [],
-                  addonTotal: addonTotal,
-                },
-              };
-            })
-          );
+          console.log(`Thank you page: Creating ${cartItems.length} order items for order ${newOrder.id}`);
+          
+          try {
+            await db.insert(orderItems).values(
+              cartItems.map(item => {
+                // Calculate item total including addons
+                const addonTotal = (item as { addonTotal?: number }).addonTotal || 0;
+                const itemTotal = (item.price + addonTotal) * item.quantity;
+                
+                return {
+                  orderId: newOrder.id,
+                  productId: item.productId,
+                  name: item.name,
+                  variantTitle: item.variantTitle || null,
+                  sku: item.sku || '',
+                  price: String(item.price),
+                  quantity: item.quantity,
+                  total: String(itemTotal),
+                  imageUrl: item.image || item.imageUrl || null,
+                  // Store addons in properties field
+                  properties: {
+                    addons: (item as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}> }).addons || [],
+                    addonTotal: addonTotal,
+                  },
+                };
+              })
+            );
+            
+            // Verify items were created
+            const createdItemsCount = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(orderItems)
+              .where(eq(orderItems.orderId, newOrder.id));
+            
+            const count = Number(createdItemsCount[0]?.count) || 0;
+            console.log(`Thank you page: Successfully created ${count} order items for order ${orderNumber}`);
+            
+            if (count === 0) {
+              console.error(`Thank you page: CRITICAL - Order ${orderNumber} has 0 items after insert!`);
+            }
+          } catch (insertError) {
+            console.error(`Thank you page: CRITICAL - Failed to insert order items for order ${orderNumber}:`, insertError);
+            // Don't throw - order is already created, items can be recovered from pending_payments
+          }
+        } else {
+          console.warn(`Thank you page: No cart items to create for order ${orderNumber}`);
         }
         
         // Increment discount usage count (for reports/influencers)
