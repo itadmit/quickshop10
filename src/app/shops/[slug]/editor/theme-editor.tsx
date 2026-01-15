@@ -167,6 +167,20 @@ export function ThemeEditor({
   const [templateDescription, setTemplateDescription] = useState('');
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Debounced auto-refresh for product page sections
+  const productPageRefreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const sectionsRef = useRef(sections); // Track sections for debounced save
+  sectionsRef.current = sections;
+  
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (productPageRefreshTimeoutRef.current) {
+        clearTimeout(productPageRefreshTimeoutRef.current);
+      }
+    };
+  }, []);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   
   // Get current page info - check internal pages first
@@ -610,9 +624,17 @@ export function ThemeEditor({
     }
   }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate, currentPage]);
   
-  // Listen for PREVIEW_READY message from iframe and send settings
+  // Listen for messages from iframe (PREVIEW_READY, SECTION_CLICKED, etc.)
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      // Handle section click from preview - select the section in the editor
+      if (event.data?.type === 'SECTION_CLICKED') {
+        const sectionId = event.data.sectionId as string;
+        if (sectionId) {
+          setSelectedSectionId(sectionId);
+        }
+      }
+      
       if (event.data?.type === 'PREVIEW_READY') {
         // Send current settings
         sendPreviewUpdate(themeSettings);
@@ -648,34 +670,32 @@ export function ThemeEditor({
     return () => window.removeEventListener('message', handleMessage);
   }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate, currentPage]);
 
-  // Update section data
+  // Update section data - updates local state only, no auto-save
+  // Save happens when user clicks "שמור"
   const updateSection = useCallback((sectionId: string, updates: Partial<Section>) => {
-    setSections(prev => {
-      const newSections = prev.map(s => {
-        if (s.id === sectionId) {
-          const updated = { ...s };
-          
-          if (updates.title !== undefined) updated.title = updates.title;
-          if (updates.subtitle !== undefined) updated.subtitle = updates.subtitle;
-          if (updates.isActive !== undefined) updated.isActive = updates.isActive;
-          
-          if (updates.content) {
-            updated.content = { ...s.content, ...updates.content };
-          }
-          
-          if (updates.settings) {
-            updated.settings = { ...s.settings, ...updates.settings };
-          }
-          
-          return updated;
+    setSections(prev => prev.map(s => {
+      if (s.id === sectionId) {
+        const updated = { ...s };
+        
+        if (updates.title !== undefined) updated.title = updates.title;
+        if (updates.subtitle !== undefined) updated.subtitle = updates.subtitle;
+        if (updates.isActive !== undefined) updated.isActive = updates.isActive;
+        
+        if (updates.content) {
+          updated.content = { ...s.content, ...updates.content };
         }
-        return s;
-      });
-      return newSections;
-    });
+        
+        if (updates.settings) {
+          updated.settings = { ...s.settings, ...updates.settings };
+        }
+        
+        return updated;
+      }
+      return s;
+    }));
     setHasChanges(true);
     
-    // Send live update to iframe (no DB save!)
+    // Send live update to iframe for visual preview (both home and product pages)
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
         type: 'SECTION_CONTENT_UPDATE',
@@ -683,7 +703,8 @@ export function ThemeEditor({
         updates,
       }, '*');
     }
-  }, [sections]);
+  }, []);
+
 
   // Save all changes to DB (sections + theme settings)
   const handleSave = async () => {
@@ -803,7 +824,7 @@ export function ThemeEditor({
     setSelectedSectionId(newSection.id);
     setHasChanges(true);
     
-    // Send message to iframe to inject a placeholder for the new section
+    // Send message to iframe to add section (works for both home and product pages)
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
         type: 'SECTION_ADD',
@@ -811,7 +832,9 @@ export function ThemeEditor({
         sectionType: type,
         title: newSection.title,
         subtitle: newSection.subtitle,
-        content: newSection.content, // Include default content for better placeholder
+        content: newSection.content,
+        settings: newSection.settings,
+        sortOrder: newSection.sortOrder,
         afterSectionId,
       }, '*');
 
@@ -873,16 +896,29 @@ export function ThemeEditor({
     });
   };
 
-  // Reorder sections - update local state (iframe will refresh on save)
-  const reorderSections = (fromIndex: number, toIndex: number) => {
-    const newSections = [...sections];
-    const [removed] = newSections.splice(fromIndex, 1);
-    newSections.splice(toIndex, 0, removed);
-    const orderedSections = newSections.map((s, i) => ({ ...s, sortOrder: i }));
+  // Reorder sections - update local state only, no auto-save
+  // Save happens when user clicks "שמור"
+  // fromSortOrder and toSortOrder are the sortOrder values of the sections being moved
+  const reorderSections = (fromSortOrder: number, toSortOrder: number) => {
+    // First, sort sections by sortOrder to work with the correct order
+    const sortedSections = [...sections].sort((a, b) => a.sortOrder - b.sortOrder);
+    
+    // Find the indices in the sorted array
+    const fromIndex = sortedSections.findIndex(s => s.sortOrder === fromSortOrder);
+    const toIndex = sortedSections.findIndex(s => s.sortOrder === toSortOrder);
+    
+    if (fromIndex === -1 || toIndex === -1) return;
+    
+    // Perform the splice on the sorted array
+    const [removed] = sortedSections.splice(fromIndex, 1);
+    sortedSections.splice(toIndex, 0, removed);
+    
+    // Update sortOrder for all sections
+    const orderedSections = sortedSections.map((s, i) => ({ ...s, sortOrder: i }));
     setSections(orderedSections);
     setHasChanges(true);
     
-    // Send message to iframe to reorder sections visually
+    // Send message to iframe to reorder sections visually (both home and product pages)
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
         type: 'SECTION_REORDER',

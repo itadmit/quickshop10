@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Image, 
   Video, 
@@ -34,6 +34,7 @@ interface Section {
   title: string | null;
   subtitle: string | null;
   isActive: boolean;
+  sortOrder: number;
 }
 
 interface SectionTreeProps {
@@ -89,26 +90,31 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   { type: 'custom', label: 'מותאם אישית', icon: Code, category: 'אחר' },
 ];
 
-// Section types for PRODUCT PAGE (V2 - fully editable)
+// Section types for PRODUCT PAGE - fully editable sections
 const productSectionTypes: Array<{ type: string; label: string; icon: SectionIconComponent; category: string }> = [
-  // מוצר (חובה)
-  { type: 'product_gallery', label: 'גלריית מוצר', icon: Images, category: 'מוצר' },
-  { type: 'product_info', label: 'מידע מוצר', icon: ShoppingBag, category: 'מוצר' },
+  // פריסה
+  { type: 'breadcrumb', label: 'פירורי לחם', icon: Tag, category: 'פריסה' },
+  { type: 'divider', label: 'קו מפריד', icon: Code, category: 'פריסה' },
+  { type: 'spacer', label: 'רווח', icon: Code, category: 'פריסה' },
+  // מוצר - סקשנים ייעודיים
+  { type: 'product_gallery', label: 'גלריה', icon: Images, category: 'מוצר' },
+  { type: 'product_badges', label: 'מדבקות מבצעים', icon: Tag, category: 'מוצר' },
+  { type: 'product_title', label: 'שם מוצר', icon: FileText, category: 'מוצר' },
+  { type: 'product_price', label: 'מחירים', icon: ShoppingBag, category: 'מוצר' },
+  { type: 'product_short_desc', label: 'תיאור קצר', icon: FileText, category: 'מוצר' },
+  { type: 'product_inventory', label: 'חיווי מלאי', icon: ShoppingBag, category: 'מוצר' },
+  { type: 'product_add_to_cart', label: 'כפתור הוספה לסל', icon: ShoppingBag, category: 'מוצר' },
   { type: 'product_description', label: 'תיאור מוצר', icon: FileText, category: 'מוצר' },
   { type: 'product_reviews', label: 'ביקורות', icon: Star, category: 'מוצר' },
-  { type: 'product_related', label: 'מוצרים דומים', icon: Grid3X3, category: 'מוצר' },
+  { type: 'product_related', label: 'אולי יעניין אותך', icon: Grid3X3, category: 'מוצר' },
   { type: 'product_upsells', label: 'מוצרי אפסייל', icon: ShoppingBag, category: 'מוצר' },
-  // תוכן (עם תמיכה בתוכן דינמי)
+  // תוכן (עם תמיכה בתוכן דינמי {{product.x}})
   { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
   { type: 'accordion', label: 'אקורדיון', icon: Layers, category: 'תוכן' },
   { type: 'tabs', label: 'לשוניות', icon: LayoutGrid, category: 'תוכן' },
-  { type: 'features', label: 'חוזקות/יתרונות', icon: Sparkles, category: 'תוכן' },
+  { type: 'features', label: 'חוזקות', icon: Sparkles, category: 'תוכן' },
   { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },
   { type: 'video', label: 'וידאו', icon: Video, category: 'תוכן' },
-  // פריסה
-  { type: 'breadcrumb', label: 'ניווט (Breadcrumb)', icon: Tag, category: 'פריסה' },
-  { type: 'divider', label: 'קו מפריד', icon: Code, category: 'פריסה' },
-  { type: 'spacer', label: 'רווח', icon: Code, category: 'פריסה' },
 ];
 
 // Get label for product page sections
@@ -119,21 +125,31 @@ const getProductSectionLabel = (type: string): string => {
 // Get icon name for product page sections
 const getProductSectionIcon = (type: string): string => {
   const icons: Record<string, string> = {
+    // פריסה
+    breadcrumb: 'breadcrumb',
+    divider: 'divider',
+    spacer: 'spacer',
+    // מוצר
     product_gallery: 'gallery',
-    product_info: 'product-info',
+    product_badges: 'badge',
+    product_title: 'text',
+    product_price: 'price',
+    product_short_desc: 'description',
+    product_inventory: 'inventory',
+    product_add_to_cart: 'cart',
     product_description: 'description',
     product_reviews: 'reviews',
     product_related: 'related',
     product_upsells: 'upsell',
+    // Legacy
+    product_info: 'product-info',
+    // תוכן
     text_block: 'text',
     accordion: 'accordion',
     tabs: 'tabs',
     features: 'features',
     image_text: 'image',
     video: 'video',
-    breadcrumb: 'breadcrumb',
-    divider: 'divider',
-    spacer: 'spacer',
   };
   return icons[type] || 'section';
 };
@@ -157,6 +173,12 @@ export function SectionTree({
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  
+  // Sort sections by sortOrder for display
+  const sortedSections = useMemo(() => 
+    [...sections].sort((a, b) => a.sortOrder - b.sortOrder),
+    [sections]
+  );
 
   const toggleExpand = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
@@ -168,20 +190,43 @@ export function SectionTree({
     setExpandedSections(newExpanded);
   };
 
+  const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
+    setDropTargetIndex(null);
   };
 
   const handleDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
+    // Only update visual indicator, don't reorder yet
     if (draggedIndex !== null && draggedIndex !== index) {
-      onReorderSections(draggedIndex, index);
-      setDraggedIndex(index);
+      setDropTargetIndex(index);
     }
   };
 
   const handleDragEnd = () => {
+    // Perform reorder only on drop
+    if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
+      // Get the section IDs in the new order
+      const newSortedSections = [...sortedSections];
+      const [removed] = newSortedSections.splice(draggedIndex, 1);
+      newSortedSections.splice(dropTargetIndex, 0, removed);
+      
+      // Find the original indices for reordering
+      // We need to pass the sortOrder values, not array indices
+      const fromSection = sortedSections[draggedIndex];
+      const toSection = sortedSections[dropTargetIndex];
+      
+      // Pass sortOrder values as indices (since sections are sorted by sortOrder)
+      onReorderSections(fromSection.sortOrder, toSection.sortOrder);
+    }
     setDraggedIndex(null);
+    setDropTargetIndex(null);
+  };
+  
+  const handleDragLeave = () => {
+    // Clear drop target when leaving
   };
 
   const getSectionLabel = (type: string): string => {
@@ -279,14 +324,15 @@ export function SectionTree({
             )}
             
             {/* Draggable sections */}
-            {sections.map((section, index) => (
+            {sortedSections.map((section, index) => (
               <div
                 key={section.id}
                 draggable
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={draggedIndex === index ? 'opacity-50' : ''}
+                onDragLeave={handleDragLeave}
+                className={`${draggedIndex === index ? 'opacity-50' : ''} ${dropTargetIndex === index ? 'border-t-2 border-blue-500' : ''}`}
               >
                 <SectionItem
                   icon={getProductSectionIcon(section.type)}
@@ -509,14 +555,15 @@ export function SectionTree({
             </div>
           )}
           
-          {sections.map((section, index) => (
+          {sortedSections.map((section, index) => (
             <div
               key={section.id}
               draggable
               onDragStart={() => handleDragStart(index)}
               onDragOver={(e) => handleDragOver(e, index)}
               onDragEnd={handleDragEnd}
-              className={draggedIndex === index ? 'opacity-50' : ''}
+              onDragLeave={handleDragLeave}
+              className={`${draggedIndex === index ? 'opacity-50' : ''} ${dropTargetIndex === index ? 'border-t-2 border-blue-500' : ''}`}
             >
               <SectionItem
                 icon={getSectionIcon(section.type)}
@@ -1009,6 +1056,65 @@ function SectionIcon({ type }: { type: string }) {
           <rect x="14" y="3" width="7" height="7" rx="1" />
           <rect x="3" y="14" width="7" height="7" rx="1" />
           <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      );
+    case 'badge':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6L12 2z" />
+        </svg>
+      );
+    case 'price':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      );
+    case 'inventory':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      );
+    case 'cart':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <circle cx="9" cy="21" r="1" />
+          <circle cx="20" cy="21" r="1" />
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+        </svg>
+      );
+    case 'upsell':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 19V5M5 12l7-7 7 7" />
+        </svg>
+      );
+    case 'accordion':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="3" width="18" height="4" rx="1" />
+          <rect x="3" y="10" width="18" height="4" rx="1" />
+          <rect x="3" y="17" width="18" height="4" rx="1" />
+        </svg>
+      );
+    case 'tabs':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <rect x="3" y="8" width="18" height="13" rx="2" />
+          <path d="M7 3h10a2 2 0 0 1 2 2v3H5V5a2 2 0 0 1 2-2z" />
+        </svg>
+      );
+    case 'divider':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M4 12h16" />
+        </svg>
+      );
+    case 'spacer':
+      return (
+        <svg className={iconClasses} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 5v14M5 12h14" strokeDasharray="2 2" />
         </svg>
       );
     case 'settings':

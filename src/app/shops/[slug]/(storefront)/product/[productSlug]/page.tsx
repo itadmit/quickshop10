@@ -26,7 +26,7 @@ import {
 } from '@/components/storefront/product-page-preview';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import { ProductSection } from '@/components/product-sections';
-import { V2ProductPage } from '@/components/product-sections/v2-product-page';
+import { ProductPage as SectionBasedProductPage } from '@/components/product-sections/product-page';
 import { type ProductPageSection } from '@/lib/product-page-sections';
 import { type DynamicContentContext } from '@/lib/dynamic-content';
 import Link from 'next/link';
@@ -132,6 +132,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   
   // Get related products (all available for preview mode, limited for production)
   const relatedProducts = inStockProducts.slice(0, isPreviewMode ? 8 : pageSettings.related.count);
+  
+  // Get upsell products if defined
+  const upsellProductIds = (product.upsellProductIds as string[] | undefined) || [];
+  const upsellProducts = upsellProductIds.length > 0 
+    ? inStockProducts.filter(p => upsellProductIds.includes(p.id))
+    : [];
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
   
@@ -536,7 +542,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       {/* 🆕 V2 RENDERING: When V2 sections exist, use the new section-based product page */}
       {hasV2Sections ? (
         <>
-          <V2ProductPage
+          <SectionBasedProductPage
             sections={v2Sections}
             product={v2ProductData}
             variants={variants.map(v => ({
@@ -573,6 +579,17 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               trackInventory: p.trackInventory,
               allowBackorder: p.allowBackorder,
               hasVariants: p.hasVariants,
+            }))}
+            upsellProducts={upsellProducts.map(p => ({
+              id: p.id,
+              name: p.name,
+              slug: p.slug,
+              price: p.price ?? '0',
+              comparePrice: p.comparePrice,
+              images: p.image ? [p.image] : [],
+              inventory: p.inventory,
+              trackInventory: p.trackInventory,
+              allowBackorder: p.allowBackorder,
             }))}
             productAddons={productAddons.map(a => ({
               id: a.id,

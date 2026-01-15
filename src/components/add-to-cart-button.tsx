@@ -27,6 +27,12 @@ interface AddToCartButtonProps {
   discountedPrice?: number;
   // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
   categoryIds?: string[];
+  // טקסט מותאם אישית
+  buttonText?: string;
+  outOfStockText?: string;
+  // סגנון
+  buttonStyle?: 'filled' | 'outline';
+  fullWidth?: boolean;
 }
 
 export function AddToCartButton({ 
@@ -44,6 +50,10 @@ export function AddToCartButton({
   automaticDiscountName,
   discountedPrice,
   categoryIds,
+  buttonText = 'הוסף לעגלה',
+  outOfStockText = 'אזל מהמלאי',
+  buttonStyle = 'filled',
+  fullWidth = true,
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
@@ -55,7 +65,7 @@ export function AddToCartButton({
     const baseStyles = variant === 'primary' ? 'btn-primary' : 'btn-secondary';
     return (
       <button disabled className={`${baseStyles} opacity-50 cursor-not-allowed ${className}`}>
-        {outOfStock ? 'אזל מהמלאי' : 'הוסף לעגלה'}
+        {outOfStock ? outOfStockText : buttonText}
       </button>
     );
   }
@@ -113,6 +123,8 @@ export function AddToCartButton({
     <button
       onClick={handleClick}
       disabled={added || outOfStock}
+      data-add-to-cart-button
+      data-out-of-stock={outOfStock ? 'true' : 'false'}
       className={`
         ${getButtonClasses()}
         ${variant !== 'outline' && added ? '!bg-black !text-white !border-black' : ''}
@@ -121,7 +133,7 @@ export function AddToCartButton({
         ${className}
       `}
     >
-      {added ? 'נוסף לעגלה ✓' : outOfStock ? 'אזל מהמלאי' : 'הוסף לעגלה'}
+      {added ? 'נוסף לעגלה ✓' : outOfStock ? outOfStockText : buttonText}
     </button>
   );
 }

@@ -19,6 +19,15 @@ interface ReturnRequestItem {
   imageUrl?: string;
 }
 
+interface ExchangeProductPreference {
+  productId: string;
+  productName: string;
+  variantId?: string;
+  variantTitle?: string;
+  price: number;
+  imageUrl?: string | null;
+}
+
 interface CreateReturnRequestInput {
   storeSlug: string;
   orderId: string;
@@ -28,6 +37,7 @@ interface CreateReturnRequestInput {
   reasonDetails?: string;
   requestedResolution: 'exchange' | 'store_credit' | 'refund';
   images?: { url: string; publicId: string }[];
+  exchangeProductPreference?: ExchangeProductPreference;
 }
 
 export async function createReturnRequest(input: CreateReturnRequestInput) {
@@ -98,6 +108,10 @@ export async function createReturnRequest(input: CreateReturnRequestInput) {
       requestedResolution: input.requestedResolution,
       totalValue: String(totalValue),
       images: input.images || [],
+      // Store customer's preferred exchange product (if provided)
+      resolutionDetails: input.exchangeProductPreference 
+        ? { preferredExchangeProduct: input.exchangeProductPreference }
+        : null,
     }).returning();
 
     revalidatePath(`/shops/${input.storeSlug}/account/returns`);

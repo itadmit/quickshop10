@@ -17,6 +17,7 @@ import type {
 } from './types';
 import { PayPlusProvider } from './providers/payplus';
 import { PelecardProvider } from './providers/pelecard';
+import { QuickPaymentsProvider } from './providers/quick-payments';
 
 // Re-export from provider-info for convenience
 export { PROVIDER_INFO, getAvailableProviders, getProviderInfo } from './provider-info';
@@ -25,7 +26,7 @@ export { PROVIDER_INFO, getAvailableProviders, getProviderInfo } from './provide
 const providerRegistry: Record<PaymentProviderType, new () => IPaymentProvider> = {
   payplus: PayPlusProvider,
   pelecard: PelecardProvider,
-  quick_payments: PayPlusProvider, // TODO: Implement QuickPaymentsProvider
+  quick_payments: QuickPaymentsProvider,
 };
 
 /**
@@ -126,6 +127,11 @@ export function detectProviderFromParams(
     return 'payplus';
   }
   
+  // Quick Payments (PayMe) specific params
+  if (params.payme_sale_id || params.seller_payme_id) {
+    return 'quick_payments';
+  }
+  
   return null;
 }
 
@@ -167,6 +173,25 @@ export function isSuccessfulRedirect(params: Record<string, string | undefined>)
     return true;
   }
   
+  // Quick Payments (PayMe) success - after 3DS redirect
+  if (params.status_code === '0' || params.sale_status === 'completed') {
+    return true;
+  }
+  
   return false;
+}
+
+/**
+ * Get Quick Payments provider instance for a store
+ * Specialized function for Hosted Fields integration
+ */
+export async function getQuickPaymentsProvider(
+  storeId: string
+): Promise<QuickPaymentsProvider | null> {
+  const provider = await getConfiguredProvider(storeId, 'quick_payments');
+  if (provider && provider.providerType === 'quick_payments') {
+    return provider as QuickPaymentsProvider;
+  }
+  return null;
 }
 

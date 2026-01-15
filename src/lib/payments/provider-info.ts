@@ -52,8 +52,8 @@ export const PROVIDER_INFO: Record<PaymentProviderType, PaymentProviderInfo> = {
     type: 'quick_payments',
     name: 'Quick Payments',
     nameHe: 'קוויק פיימנטס',
-    description: 'Recommended - Our in-house payment solution with best rates',
-    descriptionHe: 'מומלץ - פתרון התשלומים הפנימי שלנו עם העמלות הטובות ביותר',
+    description: 'Recommended - Inline payment form with best checkout experience',
+    descriptionHe: 'מומלץ - טופס תשלום משובץ באתר עם חווית קנייה מהירה',
     supportedFeatures: {
       creditCard: true,
       bit: true,
@@ -63,9 +63,9 @@ export const PROVIDER_INFO: Record<PaymentProviderType, PaymentProviderInfo> = {
       recurring: true,
     },
     requiredCredentials: [
-      { key: 'merchantId', label: 'Merchant ID', labelHe: 'מזהה סוחר', type: 'text', required: true },
-      { key: 'apiKey', label: 'API Key', labelHe: 'מפתח API', type: 'password', required: true },
-      { key: 'secretKey', label: 'Secret Key', labelHe: 'מפתח סודי', type: 'password', required: true },
+      { key: 'sellerPaymeId', label: 'Seller ID (MPL)', labelHe: 'מזהה סוחר (MPL)', type: 'text', required: true },
+      { key: 'sellerPublicKey', label: 'Public Key', labelHe: 'מפתח ציבורי', type: 'text', required: true },
+      { key: 'sellerSecret', label: 'Secret Key', labelHe: 'מפתח סודי', type: 'password', required: false },
     ],
   },
 };

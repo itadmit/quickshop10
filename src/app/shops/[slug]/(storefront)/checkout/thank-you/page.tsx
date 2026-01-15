@@ -268,6 +268,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             };
           }>;
           
+          // Get payment details from callback (saved by callback route, especially for Pelecard)
+          const savedPaymentDetails = (orderData.paymentDetails || {}) as {
+            cardLastFour?: string;
+            cardBrand?: string;
+            transactionId?: string;
+            approvalNumber?: string;
+          };
+          
           // UPDATE order to PAID!
           const [updatedOrder] = await db.update(orders)
             .set({
@@ -276,10 +284,10 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               paymentMethod: 'credit_card',
               paymentDetails: {
                 provider: pendingPayment.provider,
-                transactionId: paymentResult?.transactionId || search.transaction_uid,
-                approvalNumber: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo,
-                cardBrand: paymentResult?.cardBrand || search.brand_name,
-                cardLastFour: paymentResult?.cardLastFour || search.four_digits,
+                transactionId: paymentResult?.transactionId || search.transaction_uid || savedPaymentDetails.transactionId,
+                approvalNumber: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo || savedPaymentDetails.approvalNumber,
+                cardBrand: paymentResult?.cardBrand || search.brand_name || savedPaymentDetails.cardBrand,
+                cardLastFour: paymentResult?.cardLastFour || search.four_digits || savedPaymentDetails.cardLastFour,
               },
               paidAt: new Date(),
               updatedAt: new Date(),
@@ -332,9 +340,9 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             discountCode: pendingPayment.discountCode,
             discountAmount: Number(pendingPayment.discountAmount) || 0,
             paymentInfo: {
-              lastFour: paymentResult?.cardLastFour || search.four_digits,
-              brand: paymentResult?.cardBrand || search.brand_name,
-              approvalNum: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo,
+              lastFour: paymentResult?.cardLastFour || search.four_digits || savedPaymentDetails.cardLastFour,
+              brand: paymentResult?.cardBrand || search.brand_name || savedPaymentDetails.cardBrand,
+              approvalNum: paymentResult?.approvalNumber || search.approval_num || search.ApprovalNo || savedPaymentDetails.approvalNumber,
             },
           }).catch(err => console.error('Thank you page: Post-payment actions failed:', err));
         } else {

@@ -18,8 +18,20 @@ export {
   getConfiguredProvider,
   getActiveProviders,
   getDefaultProvider,
+  getQuickPaymentsProvider,
+  detectProviderFromParams,
+  parseRedirectParams,
+  isSuccessfulRedirect,
 } from './factory';
 
 // Providers (server-only - use crypto)
 export { PayPlusProvider } from './providers/payplus';
+export { PelecardProvider } from './providers/pelecard';
+export { QuickPaymentsProvider } from './providers/quick-payments';
 export { BasePaymentProvider } from './providers/base';
+
+// Quick Payments specific types
+export type { 
+  QuickPaymentsGenerateSaleRequest, 
+  QuickPaymentsGenerateSaleResponse 
+} from './providers/quick-payments';

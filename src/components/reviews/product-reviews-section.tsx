@@ -30,6 +30,8 @@ interface ProductReviewsSectionProps {
   productId: string;
   storeId: string;
   storeSlug: string;
+  title?: string;
+  subtitle?: string;
 }
 
 type ReviewWithMedia = ProductReview & {
@@ -172,6 +174,8 @@ export async function ProductReviewsSection({
   productId, 
   storeId,
   storeSlug,
+  title = 'ביקורות לקוחות',
+  subtitle = 'מה הלקוחות שלנו אומרים',
 }: ProductReviewsSectionProps) {
   // Check if plugin is enabled
   const config = await getPluginConfig(storeId);
@@ -202,12 +206,16 @@ export async function ProductReviewsSection({
       <div className="max-w-4xl mx-auto">
         {/* Section Title */}
         <div className="text-center mb-8">
-          <h2 className="font-display text-2xl md:text-3xl font-light tracking-widest mb-2">
-            ביקורות לקוחות
-          </h2>
-          <p className="text-gray-500 text-sm">
-            מה הלקוחות שלנו אומרים
-          </p>
+          {title && (
+            <h2 className="font-display text-2xl md:text-3xl font-light tracking-widest mb-2">
+              {title}
+            </h2>
+          )}
+          {subtitle && (
+            <p className="text-gray-500 text-sm">
+              {subtitle}
+            </p>
+          )}
         </div>
 
         {/* Summary - Server Rendered (pre-fetched, no extra query) */}

@@ -1059,6 +1059,189 @@ export function EditorSectionHighlighter() {
             bottomGradient.style.display = updates.settings.showGradient ? '' : 'none';
           }
         }
+        
+        // =====================================================
+        // PRODUCT PAGE SECTION LIVE UPDATES
+        // =====================================================
+        const sectionType = (element as HTMLElement).dataset.sectionType;
+        
+        // Product badges visibility
+        if (sectionType === 'product_badges') {
+          if (updates.settings?.showDiscount !== undefined) {
+            const discountBadge = element.querySelector('[data-discount-badge]') as HTMLElement;
+            if (discountBadge) discountBadge.style.display = updates.settings.showDiscount ? '' : 'none';
+          }
+          if (updates.settings?.showPromoLabels !== undefined) {
+            const promoLabels = element.querySelectorAll('[data-promo-label]');
+            promoLabels.forEach(el => (el as HTMLElement).style.display = updates.settings!.showPromoLabels ? '' : 'none');
+          }
+          if (updates.settings?.showFeatured !== undefined) {
+            const featuredBadge = element.querySelector('[data-featured-badge]') as HTMLElement;
+            if (featuredBadge) featuredBadge.style.display = updates.settings.showFeatured ? '' : 'none';
+          }
+        }
+        
+        // Product title styling - LIVE UPDATES
+        if (sectionType === 'product_title') {
+          const h1 = element.querySelector('h1') as HTMLElement || element as HTMLElement;
+          
+          // Font size (direct style)
+          if (updates.settings?.fontSize !== undefined) {
+            const unit = updates.settings?.fontSizeUnit || 'px';
+            h1.style.fontSize = `${updates.settings.fontSize}${unit}`;
+          }
+          
+          // Font weight (direct style)
+          if (updates.settings?.fontWeight !== undefined) {
+            const weightMap: Record<string, string> = {
+              light: '300',
+              normal: '400',
+              medium: '500',
+              semibold: '600',
+              bold: '700',
+              extrabold: '800',
+            };
+            h1.style.fontWeight = weightMap[updates.settings.fontWeight as string] || '300';
+          }
+          
+          // Color
+          if (updates.settings?.color !== undefined) {
+            h1.style.color = updates.settings.color as string;
+          }
+          
+          // Letter spacing
+          if (updates.settings?.letterSpacing !== undefined) {
+            const unit = updates.settings?.letterSpacingUnit || 'px';
+            h1.style.letterSpacing = `${updates.settings.letterSpacing}${unit}`;
+          }
+          
+          // Line height
+          if (updates.settings?.lineHeight !== undefined) {
+            const unit = updates.settings?.lineHeightUnit || 'rem';
+            h1.style.lineHeight = `${updates.settings.lineHeight}${unit}`;
+          }
+        }
+        
+        // Product price styling - LIVE UPDATES
+        if (sectionType === 'product_price') {
+          // Show/hide compare price
+          if (updates.settings?.showComparePrice !== undefined) {
+            const compareEl = element.querySelector('[data-compare-price]') as HTMLElement;
+            if (compareEl) compareEl.style.display = updates.settings.showComparePrice ? '' : 'none';
+          }
+          
+          // Main price styling
+          const priceEl = element.querySelector('[data-price]') as HTMLElement;
+          if (priceEl) {
+            if (updates.settings?.priceFontSize !== undefined) {
+              const unit = updates.settings?.priceFontSizeUnit || 'px';
+              priceEl.style.fontSize = `${updates.settings.priceFontSize}${unit}`;
+            }
+            if (updates.settings?.priceFontWeight !== undefined) {
+              const weightMap: Record<string, string> = { light: '300', normal: '400', medium: '500', semibold: '600', bold: '700' };
+              priceEl.style.fontWeight = weightMap[updates.settings.priceFontWeight as string] || '500';
+            }
+            if (updates.settings?.priceColor !== undefined) {
+              priceEl.style.color = updates.settings.priceColor as string;
+            }
+          }
+          
+          // Compare price styling
+          const compareEl = element.querySelector('[data-compare-price]') as HTMLElement;
+          if (compareEl) {
+            if (updates.settings?.comparePriceFontSize !== undefined) {
+              const unit = updates.settings?.comparePriceFontSizeUnit || 'px';
+              compareEl.style.fontSize = `${updates.settings.comparePriceFontSize}${unit}`;
+            }
+            if (updates.settings?.comparePriceFontWeight !== undefined) {
+              const weightMap: Record<string, string> = { light: '300', normal: '400', medium: '500', semibold: '600', bold: '700' };
+              compareEl.style.fontWeight = weightMap[updates.settings.comparePriceFontWeight as string] || '400';
+            }
+            if (updates.settings?.comparePriceColor !== undefined) {
+              compareEl.style.color = updates.settings.comparePriceColor as string;
+            }
+          }
+        }
+        
+        // Product inventory display
+        if (sectionType === 'product_inventory') {
+          if (updates.settings?.displayStyle !== undefined) {
+            (element as HTMLElement).style.display = updates.settings.displayStyle === 'hidden' ? 'none' : '';
+          }
+        }
+        
+        // Product Add to Cart - LIVE UPDATES
+        if (sectionType === 'product_add_to_cart') {
+          const btn = element.querySelector('button') as HTMLButtonElement;
+          if (btn) {
+            const isOutOfStock = btn.disabled || btn.classList.contains('disabled');
+            const isAdded = btn.textContent?.includes('✓');
+            
+            // Button text
+            if (!isAdded) {
+              if (updates.settings?.buttonText !== undefined && !isOutOfStock) {
+                btn.textContent = updates.settings.buttonText as string || 'הוסף לעגלה';
+              }
+              if (updates.settings?.outOfStockText !== undefined && isOutOfStock) {
+                btn.textContent = updates.settings.outOfStockText as string || 'אזל מהמלאי';
+              }
+            }
+            
+            // Typography
+            if (updates.settings?.textFontSize !== undefined) {
+              const unit = updates.settings?.textFontSizeUnit || 'px';
+              btn.style.fontSize = `${updates.settings.textFontSize}${unit}`;
+            }
+            if (updates.settings?.textFontWeight !== undefined) {
+              const weightMap: Record<string, string> = { light: '300', normal: '400', medium: '500', semibold: '600', bold: '700' };
+              btn.style.fontWeight = weightMap[updates.settings.textFontWeight as string] || '500';
+            }
+            if (updates.settings?.textColor !== undefined) {
+              btn.style.color = updates.settings.textColor as string;
+            }
+          }
+        }
+        
+        // Product short description - LIVE UPDATES
+        if (sectionType === 'product_short_desc') {
+          const p = element.tagName === 'P' ? element as HTMLElement : element.querySelector('p') as HTMLElement;
+          if (p) {
+            if (updates.settings?.fontSize !== undefined) {
+              const unit = updates.settings?.fontSizeUnit || 'px';
+              p.style.fontSize = `${updates.settings.fontSize}${unit}`;
+            }
+            if (updates.settings?.fontWeight !== undefined) {
+              const weightMap: Record<string, string> = { light: '300', normal: '400', medium: '500', semibold: '600', bold: '700' };
+              p.style.fontWeight = weightMap[updates.settings.fontWeight as string] || '400';
+            }
+            if (updates.settings?.color !== undefined) {
+              p.style.color = updates.settings.color as string;
+            }
+          }
+        }
+        
+        // Section visibility (isActive)
+        if (updates.isActive !== undefined) {
+          (element as HTMLElement).style.display = updates.isActive ? '' : 'none';
+        }
+      }
+      
+      // =====================================================
+      // PRODUCT PAGE SECTIONS UPDATE - Refresh for real-time preview
+      // =====================================================
+      if (event.data?.type === 'PRODUCT_PAGE_SECTIONS_UPDATE') {
+        // For product page, we need to trigger a refresh of the page content
+        // Since the product page is SSR, we dispatch a custom event that
+        // client components can listen to for live updates
+        const sectionsData = event.data.sections;
+        
+        // Store in window for immediate access by Live* components
+        (window as unknown as { __productPageSections?: unknown[] }).__productPageSections = sectionsData;
+        
+        // Dispatch event for any listening components
+        window.dispatchEvent(new CustomEvent('product-page-sections-updated', {
+          detail: { sections: sectionsData }
+        }));
       }
       
       // =====================================================
@@ -1558,46 +1741,56 @@ export function EditorSectionHighlighter() {
     return () => window.removeEventListener('message', handleMessage);
   }, [scrollToSection]);
 
-  // Add hover/click listeners to sections
+  // Add hover/click listeners to sections using event delegation
+  // This works better with dynamically added sections
   useEffect(() => {
-    const sections = getSectionElements();
-    
-    const handleMouseEnter = (e: Event) => {
-      const target = e.currentTarget as HTMLElement;
-      const sectionId = target.dataset.sectionId;
-      if (sectionId) setHoveredSection(sectionId);
-    };
-
-    const handleMouseLeave = () => {
-      setHoveredSection(null);
-    };
-
-    const handleClick = (e: Event) => {
-      const target = e.currentTarget as HTMLElement;
-      const sectionId = target.dataset.sectionId;
-      if (sectionId) {
-        window.parent.postMessage({
-          type: 'SECTION_CLICKED',
-          sectionId,
-        }, '*');
-        setSelectedSection(sectionId);
+    const handleMouseOver = (e: MouseEvent) => {
+      // Find closest section element
+      const target = (e.target as HTMLElement).closest('[data-section-id]') as HTMLElement;
+      if (target) {
+        const sectionId = target.dataset.sectionId;
+        if (sectionId && sectionId !== hoveredSection) {
+          setHoveredSection(sectionId);
+        }
       }
     };
 
-    sections.forEach(section => {
-      section.addEventListener('mouseenter', handleMouseEnter);
-      section.addEventListener('mouseleave', handleMouseLeave);
-      section.addEventListener('click', handleClick);
-    });
+    const handleMouseOut = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest('[data-section-id]') as HTMLElement;
+      const relatedTarget = (e.relatedTarget as HTMLElement)?.closest('[data-section-id]') as HTMLElement;
+      
+      // Only clear if we're leaving all sections
+      if (target && !relatedTarget) {
+        setHoveredSection(null);
+      }
+    };
+
+    const handleClick = (e: MouseEvent) => {
+      // Stop propagation to prevent parent sections from also being selected
+      const target = (e.target as HTMLElement).closest('[data-section-id]') as HTMLElement;
+      if (target) {
+        const sectionId = target.dataset.sectionId;
+        if (sectionId) {
+          e.stopPropagation();
+          window.parent.postMessage({
+            type: 'SECTION_CLICKED',
+            sectionId,
+          }, '*');
+          setSelectedSection(sectionId);
+        }
+      }
+    };
+
+    document.addEventListener('mouseover', handleMouseOver, true);
+    document.addEventListener('mouseout', handleMouseOut, true);
+    document.addEventListener('click', handleClick, true);
 
     return () => {
-      sections.forEach(section => {
-        section.removeEventListener('mouseenter', handleMouseEnter);
-        section.removeEventListener('mouseleave', handleMouseLeave);
-        section.removeEventListener('click', handleClick);
-      });
+      document.removeEventListener('mouseover', handleMouseOver, true);
+      document.removeEventListener('mouseout', handleMouseOut, true);
+      document.removeEventListener('click', handleClick, true);
     };
-  }, [getSectionElements]);
+  }, [hoveredSection]);
 
   // Inject styles for highlighted sections + disable links
   useEffect(() => {

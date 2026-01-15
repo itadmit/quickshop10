@@ -125,6 +125,40 @@ export async function POST(request: NextRequest) {
       amount: parsed.amount,
     });
     
+    // ============================================
+    // PELECARD: Fetch card details via GetTransaction
+    // Pelecard doesn't send card info in callback, we need to fetch it
+    // ============================================
+    if (providerName === 'pelecard' && parsed.success && parsed.providerTransactionId && !parsed.cardLastFour) {
+      try {
+        console.log(`Payment callback [pelecard]: Fetching card details via GetTransaction`);
+        const transactionDetails = await provider.getTransactionStatus({
+          storeId: store.id,
+          providerTransactionId: parsed.providerTransactionId,
+        });
+        
+        if (transactionDetails.success) {
+          // Enrich parsed data with card details
+          parsed.cardLastFour = transactionDetails.cardLastFour;
+          parsed.cardBrand = transactionDetails.cardBrand;
+          // Also update amount if it was 0 (Pelecard doesn't send amount in callback)
+          if (parsed.amount === 0 && transactionDetails.amount) {
+            parsed.amount = transactionDetails.amount;
+          }
+          console.log(`Payment callback [pelecard]: Card details fetched`, {
+            cardLastFour: parsed.cardLastFour,
+            cardBrand: parsed.cardBrand,
+            amount: parsed.amount,
+          });
+        } else {
+          console.warn(`Payment callback [pelecard]: Failed to fetch card details:`, transactionDetails.errorMessage);
+        }
+      } catch (err) {
+        // Non-blocking - we don't want to fail the callback if this fails
+        console.error(`Payment callback [pelecard]: Error fetching card details:`, err);
+      }
+    }
+    
     // Find pending payment by requestId or orderReference
     let pendingPayment = null;
     

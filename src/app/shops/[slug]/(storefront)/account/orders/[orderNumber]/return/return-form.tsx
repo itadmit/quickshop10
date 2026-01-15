@@ -3,6 +3,16 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createReturnRequest } from '../../../returns/actions';
+import { ExchangeProductPicker } from './exchange-product-picker';
+
+interface SelectedExchangeProduct {
+  productId: string;
+  productName: string;
+  variantId?: string;
+  variantTitle?: string;
+  price: number;
+  imageUrl: string | null;
+}
 
 interface OrderItem {
   id: string;
@@ -46,6 +56,7 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, base
   const [reason, setReason] = useState<typeof reasonOptions[number]['value'] | ''>('');
   const [reasonDetails, setReasonDetails] = useState('');
   const [resolution, setResolution] = useState<typeof resolutionOptions[number]['value'] | ''>('');
+  const [exchangeProduct, setExchangeProduct] = useState<SelectedExchangeProduct | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<{ requestNumber: string } | null>(null);
 
@@ -94,6 +105,14 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, base
         reason: reason as typeof reasonOptions[number]['value'],
         reasonDetails: reasonDetails || undefined,
         requestedResolution: resolution as typeof resolutionOptions[number]['value'],
+        exchangeProductPreference: exchangeProduct ? {
+          productId: exchangeProduct.productId,
+          productName: exchangeProduct.productName,
+          variantId: exchangeProduct.variantId,
+          variantTitle: exchangeProduct.variantTitle,
+          price: exchangeProduct.price,
+          imageUrl: exchangeProduct.imageUrl,
+        } : undefined,
       });
 
       if (result.success) {
@@ -259,7 +278,12 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, base
             <button
               key={option.value}
               type="button"
-              onClick={() => setResolution(option.value)}
+              onClick={() => {
+                setResolution(option.value);
+                if (option.value !== 'exchange') {
+                  setExchangeProduct(null);
+                }
+              }}
               className={`w-full p-4 border rounded-lg text-right transition-colors cursor-pointer ${
                 resolution === option.value 
                   ? 'border-black bg-gray-50' 
@@ -282,6 +306,19 @@ export function ReturnRequestForm({ storeSlug, orderId, orderNumber, items, base
             </button>
           ))}
         </div>
+
+        {/* Exchange Product Picker */}
+        {resolution === 'exchange' && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <label className="block text-sm font-medium mb-2">בחר מוצר להחלפה</label>
+            <p className="text-xs text-gray-500 mb-3">חפש ובחר את המוצר שתרצה לקבל במקום</p>
+            <ExchangeProductPicker
+              storeSlug={storeSlug}
+              selectedProduct={exchangeProduct}
+              onSelect={setExchangeProduct}
+            />
+          </div>
+        )}
       </div>
 
       {/* Summary & Submit */}

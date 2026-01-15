@@ -61,6 +61,9 @@ interface VariantSelectorProps {
   onOptionChange?: (optionName: string, value: string, valueMetadata?: OptionValue['metadata']) => void;
   // Store slug for waitlist
   storeSlug: string;
+  // טקסט מותאם אישית לכפתור
+  buttonText?: string;
+  outOfStockText?: string;
 }
 
 export function VariantSelector({
@@ -76,6 +79,8 @@ export function VariantSelector({
   categoryIds,
   onOptionChange,
   storeSlug,
+  buttonText = 'הוסף לעגלה',
+  outOfStockText = 'אזל מהמלאי',
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -377,7 +382,7 @@ export function VariantSelector({
             disabled:cursor-not-allowed
           `}
         >
-          {added ? 'נוסף לעגלה ✓' : 'הוסף לעגלה'}
+          {added ? 'נוסף לעגלה ✓' : buttonText}
         </button>
       )}
 

@@ -201,8 +201,8 @@ export async function initiateSubscriptionPayment(
   const planNameHe = params.plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
 
   try {
-    // Get or create customer first
-    const customerUid = await getOrCreatePayPlusCustomer(params.customer);
+    // Note: Customers API requires special permissions, so we pass customer info directly
+    // If you need customer_uid, contact PayPlus to enable Customers API access
 
     const response = await makePayPlusRequest<GenerateLinkResponse>(
       'PaymentPages/generateLink',
@@ -218,8 +218,7 @@ export async function initiateSubscriptionPayment(
         // Generate invoice via PayPlus
         initial_invoice: true,
         
-        // Customer info
-        customer_uid: customerUid,
+        // Customer info - passed directly without customer_uid
         customer: {
           customer_name: params.customer.name,
           email: params.customer.email,

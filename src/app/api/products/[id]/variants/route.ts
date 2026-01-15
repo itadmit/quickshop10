@@ -16,6 +16,7 @@ export async function GET(
         title: productVariants.title,
         price: productVariants.price,
         inventory: productVariants.inventory,
+        allowBackorder: productVariants.allowBackorder,
       })
       .from(productVariants)
       .where(eq(productVariants.productId, id));

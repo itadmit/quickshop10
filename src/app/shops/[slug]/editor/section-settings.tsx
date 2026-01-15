@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { MediaPickerModal, type MediaItem } from '@/components/admin/media-picker-modal';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import { TypographyPopover } from '@/components/admin/typography-popover';
+import { DynamicSourceButton, WithDynamicSource } from '@/components/admin/dynamic-source-picker';
 import { 
   defaultCategoryPageSettings, 
   type CategoryPageSettings,
@@ -525,8 +526,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     );
   }
 
-  // Handle NEW product page sections V2 (product_* prefix)
-  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video'].includes(section.type)) {
+  // Handle NEW product page sections V2 (product_* prefix and content sections)
+  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video', 'features', 'text_block', 'image_text'].includes(section.type)) {
     return (
       <ProductPageSectionSettingsV2 
         section={section}
@@ -3736,16 +3737,38 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
     onUpdate({ content: { ...section.content, [key]: value } });
   };
 
+  // Insert dynamic variable at cursor position in text
+  const handleInsertDynamic = (path: string) => {
+    const currentText = (section.content.text as string) || '';
+    updateContent('text', currentText + path);
+  };
+
   return (
     <>
       <SettingsGroup title="תוכן">
-        <RichTextEditor
-          label="טקסט"
-          value={(section.content.text as string) || ''}
-          onChange={(v) => updateContent('text', v)}
-          placeholder="הזן טקסט..."
-          minHeight={200}
-        />
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium text-gray-600">טקסט</label>
+            <DynamicSourceButton 
+              onSelect={(v) => handleInsertDynamic(`{{${v.path}}}`)}
+              categories={['product', 'store', 'custom']}
+            />
+          </div>
+          <RichTextEditor
+            value={(section.content.text as string) || ''}
+            onChange={(v) => updateContent('text', v)}
+            placeholder="הזן טקסט... אפשר להשתמש ב-{{product.title}} לתוכן דינמי"
+            minHeight={200}
+          />
+          {(section.content.text as string)?.includes('{{') && (
+            <div className="flex items-center gap-1 text-xs text-blue-600">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span>מכיל תוכן דינמי</span>
+            </div>
+          )}
+        </div>
       </SettingsGroup>
       <SettingsGroup title="כפתור">
         <TextField
@@ -4716,11 +4739,20 @@ function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { sectio
 // =====================================================
 
 // UI Components
-function SettingsGroup({ title, children }: { title: string; children: React.ReactNode }) {
+function SettingsGroup({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
   return (
     <div className="space-y-3">
-      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">{title}</h4>
-      {children}
+      <button 
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center justify-between w-full text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700"
+      >
+        {title}
+        <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+      </button>
+      {isOpen && children}
     </div>
   );
 }
@@ -6243,19 +6275,29 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
   };
 
   const sectionLabels: Record<string, string> = {
-    product_gallery: 'גלריית מוצר',
-    product_info: 'מידע מוצר',
+    // מוצר - סקשנים ייעודיים (חדש!)
+    product_gallery: 'גלריה',
+    product_badges: 'מדבקות מבצעים',
+    product_title: 'שם מוצר',
+    product_price: 'מחירים',
+    product_short_desc: 'תיאור קצר',
+    product_inventory: 'חיווי מלאי',
+    product_add_to_cart: 'כפתור הוספה לסל',
     product_description: 'תיאור מוצר',
     product_reviews: 'ביקורות',
-    product_related: 'מוצרים דומים',
+    product_related: 'אולי יעניין אותך',
     product_upsells: 'מוצרי אפסייל',
+    // Legacy
+    product_info: 'מידע מוצר (Legacy)',
+    // תוכן
     text_block: 'בלוק טקסט',
     accordion: 'אקורדיון',
     tabs: 'לשוניות',
     features: 'חוזקות',
     image_text: 'תמונה + טקסט',
     video: 'וידאו',
-    breadcrumb: 'ניווט (Breadcrumb)',
+    // פריסה
+    breadcrumb: 'פירורי לחם',
     divider: 'קו מפריד',
     spacer: 'רווח',
   };
@@ -6335,7 +6377,253 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
           </>
         )}
 
-        {/* Product Info Settings */}
+        {/* Product Badges Settings - NEW! */}
+        {section.type === 'product_badges' && (
+          <SettingsGroup title="מדבקות מבצעים">
+            <p className="text-xs text-gray-500 mb-3">
+              מציג אוטומטית הנחות, מבצעים ותגיות &quot;מומלץ&quot;
+            </p>
+            <SwitchField
+              label="הצג אחוז הנחה"
+              value={(section.settings.showDiscount as boolean) ?? true}
+              onChange={(v) => updateSettings({ showDiscount: v })}
+            />
+            <SwitchField
+              label="הצג תגיות מבצעים"
+              value={(section.settings.showPromoLabels as boolean) ?? true}
+              onChange={(v) => updateSettings({ showPromoLabels: v })}
+            />
+            <SwitchField
+              label="הצג תגית מומלץ"
+              value={(section.settings.showFeatured as boolean) ?? true}
+              onChange={(v) => updateSettings({ showFeatured: v })}
+            />
+            <SelectField
+              label="סגנון"
+              value={(section.settings.style as string) || 'badge'}
+              options={[
+                { value: 'badge', label: 'תג' },
+                { value: 'text', label: 'טקסט' },
+                { value: 'pill', label: 'כדור' },
+              ]}
+              onChange={(v) => updateSettings({ style: v })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Product Title Settings - NEW! */}
+        {section.type === 'product_title' && (
+          <SettingsGroup title="הגדרות שם מוצר">
+            <TypographyPopover
+              label="טיפוגרפיה"
+              value={{
+                color: (section.settings.color as string) || '#000000',
+                fontSize: (section.settings.fontSize as number) || 30,
+                fontSizeUnit: (section.settings.fontSizeUnit as 'px' | 'rem') || 'px',
+                fontSizeMobile: (section.settings.fontSizeMobile as number) || 24,
+                fontSizeMobileUnit: (section.settings.fontSizeMobileUnit as 'px' | 'rem') || 'px',
+                fontWeight: (section.settings.fontWeight as 'light' | 'normal' | 'medium' | 'bold' | 'extrabold') || 'light',
+                letterSpacing: (section.settings.letterSpacing as number) || 0,
+                letterSpacingUnit: (section.settings.letterSpacingUnit as 'px' | 'rem') || 'px',
+                lineHeight: (section.settings.lineHeight as number) || 1.5,
+                lineHeightUnit: (section.settings.lineHeightUnit as 'px' | 'rem') || 'rem',
+              }}
+              onChange={(typography) => {
+                updateSettings({ 
+                  color: typography.color,
+                  fontSize: typography.fontSize,
+                  fontSizeUnit: typography.fontSizeUnit,
+                  fontSizeMobile: typography.fontSizeMobile,
+                  fontSizeMobileUnit: typography.fontSizeMobileUnit,
+                  fontWeight: typography.fontWeight,
+                  letterSpacing: typography.letterSpacing,
+                  letterSpacingUnit: typography.letterSpacingUnit,
+                  lineHeight: typography.lineHeight,
+                  lineHeightUnit: typography.lineHeightUnit,
+                });
+              }}
+              defaultColor="#000000"
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Product Price Settings - NEW! */}
+        {section.type === 'product_price' && (
+          <>
+            <SettingsGroup title="הגדרות מחיר">
+              <SwitchField
+                label="הצג מחיר השוואה"
+                value={(section.settings.showComparePrice as boolean) ?? true}
+                onChange={(v) => updateSettings({ showComparePrice: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="טיפוגרפיה - מחיר">
+              <TypographyPopover
+                label="מחיר"
+                value={{
+                  color: (section.settings.priceColor as string) || '#000000',
+                  fontSize: (section.settings.priceFontSize as number) || 20,
+                  fontSizeUnit: (section.settings.priceFontSizeUnit as 'px' | 'rem') || 'px',
+                  fontSizeMobile: (section.settings.priceFontSizeMobile as number) || 18,
+                  fontSizeMobileUnit: (section.settings.priceFontSizeMobileUnit as 'px' | 'rem') || 'px',
+                  fontWeight: (section.settings.priceFontWeight as 'light' | 'normal' | 'medium' | 'bold') || 'medium',
+                }}
+                onChange={(typography) => {
+                  updateSettings({ 
+                    priceColor: typography.color,
+                    priceFontSize: typography.fontSize,
+                    priceFontSizeUnit: typography.fontSizeUnit,
+                    priceFontSizeMobile: typography.fontSizeMobile,
+                    priceFontSizeMobileUnit: typography.fontSizeMobileUnit,
+                    priceFontWeight: typography.fontWeight,
+                  });
+                }}
+                defaultColor="#000000"
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="טיפוגרפיה - מחיר השוואה">
+              <TypographyPopover
+                label="מחיר השוואה"
+                value={{
+                  color: (section.settings.comparePriceColor as string) || '#9ca3af',
+                  fontSize: (section.settings.comparePriceFontSize as number) || 16,
+                  fontSizeUnit: (section.settings.comparePriceFontSizeUnit as 'px' | 'rem') || 'px',
+                  fontSizeMobile: (section.settings.comparePriceFontSizeMobile as number) || 14,
+                  fontSizeMobileUnit: (section.settings.comparePriceFontSizeMobileUnit as 'px' | 'rem') || 'px',
+                  fontWeight: (section.settings.comparePriceFontWeight as 'light' | 'normal' | 'medium' | 'bold') || 'normal',
+                }}
+                onChange={(typography) => {
+                  updateSettings({ 
+                    comparePriceColor: typography.color,
+                    comparePriceFontSize: typography.fontSize,
+                    comparePriceFontSizeUnit: typography.fontSizeUnit,
+                    comparePriceFontSizeMobile: typography.fontSizeMobile,
+                    comparePriceFontSizeMobileUnit: typography.fontSizeMobileUnit,
+                    comparePriceFontWeight: typography.fontWeight,
+                  });
+                }}
+                defaultColor="#9ca3af"
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Product Short Description - NEW! */}
+        {section.type === 'product_short_desc' && (
+          <SettingsGroup title="תיאור קצר">
+            <p className="text-xs text-gray-500 mb-3">
+              מציג את התיאור הקצר של המוצר (אם קיים)
+            </p>
+            <TypographyPopover
+              label="טיפוגרפיה"
+              value={{
+                color: (section.settings.color as string) || '#4b5563',
+                fontSize: (section.settings.fontSize as number) || 16,
+                fontSizeUnit: (section.settings.fontSizeUnit as 'px' | 'rem') || 'px',
+                fontSizeMobile: (section.settings.fontSizeMobile as number) || 14,
+                fontSizeMobileUnit: (section.settings.fontSizeMobileUnit as 'px' | 'rem') || 'px',
+                fontWeight: (section.settings.fontWeight as 'light' | 'normal' | 'medium' | 'bold') || 'normal',
+              }}
+              onChange={(typography) => {
+                updateSettings({ 
+                  color: typography.color,
+                  fontSize: typography.fontSize,
+                  fontSizeUnit: typography.fontSizeUnit,
+                  fontSizeMobile: typography.fontSizeMobile,
+                  fontSizeMobileUnit: typography.fontSizeMobileUnit,
+                  fontWeight: typography.fontWeight,
+                });
+              }}
+              defaultColor="#4b5563"
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Product Inventory Settings - NEW! */}
+        {section.type === 'product_inventory' && (
+          <SettingsGroup title="תצוגת מלאי">
+            <SelectField
+              label="סגנון תצוגה"
+              value={(section.settings.displayStyle as string) || 'count'}
+              options={[
+                { value: 'in_stock', label: 'במלאי / אזל מהמלאי' },
+                { value: 'count', label: 'X יחידות במלאי' },
+                { value: 'low_stock', label: 'נותרו יחידות אחרונות (כשמעט)' },
+                { value: 'hidden', label: 'להסתיר' },
+              ]}
+              onChange={(v) => updateSettings({ displayStyle: v })}
+            />
+            <SliderField
+              label="סף מלאי נמוך"
+              value={(section.settings.lowStockThreshold as number) || 5}
+              min={1}
+              max={20}
+              onChange={(v) => updateSettings({ lowStockThreshold: v })}
+            />
+          </SettingsGroup>
+        )}
+
+        {/* Product Add to Cart Settings - NEW! */}
+        {section.type === 'product_add_to_cart' && (
+          <>
+            <SettingsGroup title="כפתור הוספה לסל">
+              <TextField
+                label="טקסט כפתור"
+                value={(section.settings.buttonText as string) || 'הוסף לסל'}
+                onChange={(v) => updateSettings({ buttonText: v })}
+              />
+              <TextField
+                label="טקסט אזל מהמלאי"
+                value={(section.settings.outOfStockText as string) || 'אזל מהמלאי'}
+                onChange={(v) => updateSettings({ outOfStockText: v })}
+              />
+              <SelectField
+                label="סגנון כפתור"
+                value={(section.settings.style as string) || 'filled'}
+                options={[
+                  { value: 'filled', label: 'מלא' },
+                  { value: 'outline', label: 'מסגרת' },
+                  { value: 'minimal', label: 'מינימלי' },
+                ]}
+                onChange={(v) => updateSettings({ style: v })}
+              />
+              <SwitchField
+                label="כפתור ברוחב מלא"
+                value={(section.settings.fullWidth as boolean) ?? true}
+                onChange={(v) => updateSettings({ fullWidth: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="טיפוגרפיה">
+              <TypographyPopover
+                label="טקסט כפתור"
+                value={{
+                  color: (section.settings.textColor as string) || '#ffffff',
+                  fontSize: (section.settings.textFontSize as number) || 14,
+                  fontSizeUnit: (section.settings.textFontSizeUnit as 'px' | 'rem') || 'px',
+                  fontSizeMobile: (section.settings.textFontSizeMobile as number) || 14,
+                  fontSizeMobileUnit: (section.settings.textFontSizeMobileUnit as 'px' | 'rem') || 'px',
+                  fontWeight: (section.settings.textFontWeight as 'light' | 'normal' | 'medium' | 'bold') || 'medium',
+                }}
+                onChange={(typography) => {
+                  updateSettings({ 
+                    textColor: typography.color,
+                    textFontSize: typography.fontSize,
+                    textFontSizeUnit: typography.fontSizeUnit,
+                    textFontSizeMobile: typography.fontSizeMobile,
+                    textFontSizeMobileUnit: typography.fontSizeMobileUnit,
+                    textFontWeight: typography.fontWeight,
+                  });
+                }}
+                defaultColor="#ffffff"
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Product Info Settings - LEGACY */}
         {section.type === 'product_info' && (
           <>
             <SettingsGroup title="הגדרות מחיר">
@@ -6420,8 +6708,14 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
             <SettingsGroup title="הגדרות ביקורות">
               <TextField
                 label="כותרת"
-                value={section.title || 'ביקורות'}
+                value={section.title || 'ביקורות לקוחות'}
                 onChange={(v) => onUpdate({ title: v })}
+              />
+              
+              <TextField
+                label="תת-כותרת"
+                value={section.subtitle || 'מה הלקוחות שלנו אומרים'}
+                onChange={(v) => onUpdate({ subtitle: v })}
               />
               
               <SwitchField
@@ -6471,6 +6765,55 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
               
               <SwitchField
                 label="הצג גם כשאין מוצרים"
+                value={(section.settings.showIfEmpty as boolean) ?? false}
+                onChange={(v) => updateSettings({ showIfEmpty: v })}
+              />
+            </SettingsGroup>
+          </>
+        )}
+
+        {/* Product Upsells Settings */}
+        {section.type === 'product_upsells' && (
+          <>
+            <SettingsGroup title="מוצרי אפסייל">
+              <TextField
+                label="כותרת"
+                value={section.title || 'לקוחות גם קנו'}
+                onChange={(v) => onUpdate({ title: v })}
+              />
+              
+              <TextField
+                label="תת-כותרת"
+                value={section.subtitle || ''}
+                onChange={(v) => onUpdate({ subtitle: v })}
+              />
+              
+              <SliderField
+                label="כמות מוצרים"
+                value={(section.settings.count as number) || 4}
+                min={2}
+                max={6}
+                onChange={(v) => updateSettings({ count: v })}
+              />
+              
+              <p className="text-xs text-gray-500 mt-3">
+                💡 מוצרי אפסייל מוגדרים בעריכת מוצר
+              </p>
+            </SettingsGroup>
+            
+            <SettingsGroup title="סגנון">
+              <SelectField
+                label="פריסה"
+                value={(section.settings.layout as string) || 'grid'}
+                options={[
+                  { value: 'grid', label: 'רשת' },
+                  { value: 'carousel', label: 'קרוסלה' },
+                ]}
+                onChange={(v) => updateSettings({ layout: v })}
+              />
+              
+              <SwitchField
+                label="הצג גם כשאין אפסיילים"
                 value={(section.settings.showIfEmpty as boolean) ?? false}
                 onChange={(v) => updateSettings({ showIfEmpty: v })}
               />
@@ -6653,17 +6996,33 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
         {/* Text Block Settings */}
         {section.type === 'text_block' && (
           <SettingsGroup title="תוכן">
-            <p className="text-xs text-gray-500 mb-2">
-              ניתן להשתמש בתוכן דינמי: {"{{product.title}}"}, {"{{product.custom.xxx}}"}
-            </p>
-            <div className="border rounded-lg p-2">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-500">
+                ניתן להשתמש בתוכן דינמי
+              </p>
+              <DynamicSourceButton 
+                onSelect={(v) => updateContent({ text: ((section.content.text as string) || '') + `{{${v.path}}}` })}
+                categories={['product', 'store', 'custom']}
+              />
+            </div>
+            <div className={`border rounded-lg p-2 ${
+              (section.content.text as string)?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200'
+            }`}>
               <textarea
                 value={(section.content.text as string) || ''}
                 onChange={(e) => updateContent({ text: e.target.value })}
-                className="w-full h-32 text-sm resize-none focus:outline-none"
-                placeholder="הזן טקסט כאן... ניתן להשתמש ב-{{product.xxx}}"
+                className="w-full h-32 text-sm resize-none focus:outline-none bg-transparent"
+                placeholder="הזן טקסט כאן... אפשר להשתמש ב-{{product.title}}"
               />
             </div>
+            {(section.content.text as string)?.includes('{{') && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>מכיל תוכן דינמי</span>
+              </div>
+            )}
             
             <SelectField
               label="יישור טקסט"
@@ -6677,6 +7036,39 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
             />
           </SettingsGroup>
         )}
+        
+        {/* 🆕 Section Spacing Settings - For ALL sections */}
+        <SettingsGroup title="רווחים" defaultOpen={false}>
+          <SelectField
+            label="רווח למעלה"
+            value={(section.settings.paddingTop as string) || 'none'}
+            options={[
+              { value: 'none', label: 'ללא' },
+              { value: 'xs', label: 'קטן מאוד (8px)' },
+              { value: 'sm', label: 'קטן (16px)' },
+              { value: 'md', label: 'בינוני (24px)' },
+              { value: 'lg', label: 'גדול (32px)' },
+              { value: 'xl', label: 'גדול מאוד (48px)' },
+              { value: '2xl', label: 'ענק (64px)' },
+            ]}
+            onChange={(v) => updateSettings({ paddingTop: v })}
+          />
+          
+          <SelectField
+            label="רווח למטה"
+            value={(section.settings.paddingBottom as string) || 'none'}
+            options={[
+              { value: 'none', label: 'ללא' },
+              { value: 'xs', label: 'קטן מאוד (8px)' },
+              { value: 'sm', label: 'קטן (16px)' },
+              { value: 'md', label: 'בינוני (24px)' },
+              { value: 'lg', label: 'גדול (32px)' },
+              { value: 'xl', label: 'גדול מאוד (48px)' },
+              { value: '2xl', label: 'ענק (64px)' },
+            ]}
+            onChange={(v) => updateSettings({ paddingBottom: v })}
+          />
+        </SettingsGroup>
       </div>
     </div>
   );
@@ -6959,13 +7351,29 @@ function AccordionItemsEditor({
           
           {item.contentSource === 'static' ? (
             <div>
-              <label className="text-xs text-gray-600 mb-1 block">תוכן</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-gray-600">תוכן</label>
+                <DynamicSourceButton 
+                  onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
+                  categories={['product', 'store', 'custom']}
+                />
+              </div>
               <textarea
                 value={item.content}
                 onChange={(e) => updateItem(item.id, { content: e.target.value })}
-                className="w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="הזן תוכן..."
+                className={`w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  item.content?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : ''
+                }`}
+                placeholder="הזן תוכן... אפשר להשתמש ב-{{product.title}}"
               />
+              {item.content?.includes('{{') && (
+                <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span>מכיל תוכן דינמי</span>
+                </div>
+              )}
             </div>
           ) : (
             <DynamicFieldPicker
@@ -7054,13 +7462,29 @@ function TabItemsEditor({
           
           {item.contentSource === 'static' ? (
             <div>
-              <label className="text-xs text-gray-600 mb-1 block">תוכן</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs text-gray-600">תוכן</label>
+                <DynamicSourceButton 
+                  onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
+                  categories={['product', 'store', 'custom']}
+                />
+              </div>
               <textarea
                 value={item.content}
                 onChange={(e) => updateItem(item.id, { content: e.target.value })}
-                className="w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500"
-                placeholder="הזן תוכן..."
+                className={`w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                  item.content?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : ''
+                }`}
+                placeholder="הזן תוכן... אפשר להשתמש ב-{{product.title}}"
               />
+              {item.content?.includes('{{') && (
+                <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span>מכיל תוכן דינמי</span>
+                </div>
+              )}
             </div>
           ) : (
             <DynamicFieldPicker
@@ -7149,11 +7573,32 @@ function FeaturesItemsEditor({
             onChange={(v) => updateItem(item.id, { icon: v })}
           />
           
-          <TextField
-            label="טקסט"
-            value={item.text}
-            onChange={(v) => updateItem(item.id, { text: v })}
-          />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-gray-600">טקסט</label>
+              <DynamicSourceButton 
+                onSelect={(v) => updateItem(item.id, { text: item.text + `{{${v.path}}}` })}
+                categories={['product', 'store', 'custom']}
+              />
+            </div>
+            <input
+              type="text"
+              value={item.text}
+              onChange={(e) => updateItem(item.id, { text: e.target.value })}
+              className={`w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-blue-500 ${
+                item.text?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200'
+              }`}
+              placeholder="הזן טקסט... אפשר להשתמש ב-{{product.title}}"
+            />
+            {item.text?.includes('{{') && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>מכיל תוכן דינמי</span>
+              </div>
+            )}
+          </div>
         </div>
       ))}
       

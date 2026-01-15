@@ -198,6 +198,12 @@ export interface PaymentProviderCredentials {
   password?: string;
   shopNumber?: string;
   
+  // Quick Payments specific (PayMe white-label)
+  sellerPaymeId?: string;      // MPL - Seller's private key in PayMe
+  sellerPublicKey?: string;    // Public key for Hosted Fields
+  sellerSecret?: string;       // Secret for signature verification
+  partnerKey?: string;         // Partner key (for platform operations)
+  
   // Generic fields for other providers
   merchantId?: string;
   publicKey?: string;

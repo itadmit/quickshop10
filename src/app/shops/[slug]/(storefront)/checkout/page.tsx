@@ -20,6 +20,8 @@ interface CheckoutPageProps {
 async function getStoreDataForCheckout(storeSlug: string): Promise<{
   storeId: string;
   hasActivePaymentProvider: boolean;
+  activePaymentProvider: 'payplus' | 'pelecard' | 'quick_payments' | null;
+  quickPaymentsConfig: { publicKey: string; testMode: boolean } | null;
   checkoutSettings: CheckoutSettings;
   shippingSettings: ShippingSettings;
 } | null> {
@@ -36,17 +38,27 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
     
     if (!store) return null;
     
-    // Check for active payment provider
-    const [activeProvider] = await db
-      .select({ id: paymentProviders.id })
+    // Check for active payment provider (prefer quick_payments if active)
+    const activeProviders = await db
+      .select({ 
+        id: paymentProviders.id,
+        provider: paymentProviders.provider,
+        credentials: paymentProviders.credentials,
+        testMode: paymentProviders.testMode,
+        isDefault: paymentProviders.isDefault,
+      })
       .from(paymentProviders)
       .where(
         and(
           eq(paymentProviders.storeId, store.id),
           eq(paymentProviders.isActive, true)
         )
-      )
-      .limit(1);
+      );
+    
+    // Find the default provider or prefer quick_payments
+    const activeProvider = activeProviders.find(p => p.isDefault) 
+      || activeProviders.find(p => p.provider === 'quick_payments')
+      || activeProviders[0];
     
     // Parse settings
     const settings = (store.settings as Record<string, unknown>) || {};
@@ -71,9 +83,26 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
       enableFreeShipping: (shipping.enableFreeShipping as boolean) ?? true,
     };
     
+    // Build QuickPayments config if it's the active provider
+    let quickPaymentsConfig: { publicKey: string; testMode: boolean } | null = null;
+    if (activeProvider?.provider === 'quick_payments') {
+      const creds = activeProvider.credentials as Record<string, string> | null;
+      // Try sellerPublicKey first, fallback to sellerPaymeId (MPL)
+      // The API key for PayMe.create() might be the MPL ID, not the public key UUID
+      const publicKey = creds?.sellerPublicKey || creds?.sellerPaymeId;
+      if (publicKey) {
+        quickPaymentsConfig = {
+          publicKey,
+          testMode: activeProvider.testMode ?? true,
+        };
+      }
+    }
+    
     return {
       storeId: store.id,
       hasActivePaymentProvider: !!activeProvider,
+      activePaymentProvider: (activeProvider?.provider as 'payplus' | 'pelecard' | 'quick_payments') ?? null,
+      quickPaymentsConfig,
       checkoutSettings,
       shippingSettings,
     };
@@ -93,6 +122,8 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   // Default settings if store not found
   const storeId = storeData?.storeId ?? '';
   const hasActivePaymentProvider = storeData?.hasActivePaymentProvider ?? false;
+  const activePaymentProvider = storeData?.activePaymentProvider ?? null;
+  const quickPaymentsConfig = storeData?.quickPaymentsConfig ?? null;
   const checkoutSettings = storeData?.checkoutSettings ?? {
     layout: 'steps' as const,
     requirePhone: true,
@@ -126,6 +157,8 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
           storeSlug={slug}
           storeId={storeId}
           hasActivePaymentProvider={hasActivePaymentProvider}
+          activePaymentProvider={activePaymentProvider}
+          quickPaymentsConfig={quickPaymentsConfig}
           checkoutSettings={checkoutSettings}
           shippingSettings={shippingSettings}
         />

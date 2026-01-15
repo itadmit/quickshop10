@@ -136,20 +136,31 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
 
   // For product page: auto-create default sections if none exist
   // NEW ARCHITECTURE: Product page is fully editable like home page
-  if (currentPage === 'product' && sections.length === 0) {
-    // Generate unique IDs for default sections
-    const productSectionsWithIds = defaultProductPageSections.map(s => ({
-      ...s,
-      id: randomUUID(),
-    }));
+  if (currentPage === 'product') {
+    // Check if we need to migrate from old product_info to new granular sections
+    const hasOldProductInfo = sections.some(s => s.type === 'product_info');
+    const hasNewSections = sections.some(s => 
+      s.type === 'product_badges' || 
+      s.type === 'product_title' || 
+      s.type === 'product_price'
+    );
     
-    // Update stores table with product page sections
-    await db.update(stores)
-      .set({ productPageSections: productSectionsWithIds })
-      .where(eq(stores.id, store.id));
-    
-    // Refetch after creation
-    sections = await getPageSections(store.id, currentPage);
+    // Migrate if using old structure OR no sections exist
+    if (sections.length === 0 || (hasOldProductInfo && !hasNewSections)) {
+      // Generate unique IDs for default sections
+      const productSectionsWithIds = defaultProductPageSections.map(s => ({
+        ...s,
+        id: randomUUID(),
+      }));
+      
+      // Update stores table with product page sections
+      await db.update(stores)
+        .set({ productPageSections: productSectionsWithIds })
+        .where(eq(stores.id, store.id));
+      
+      // Refetch after creation
+      sections = await getPageSections(store.id, currentPage);
+    }
   }
 
   // Type-cast sections to match expected interface

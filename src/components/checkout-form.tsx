@@ -4,6 +4,7 @@ import { useStore } from '@/lib/store-context';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { CouponInput } from './coupon-input';
 import type { AppliedCoupon } from '@/lib/store-context';
 import { CheckoutLogin } from './checkout-login';
@@ -14,6 +15,32 @@ import { tracker } from '@/lib/tracking';
 import { getProductsByIds } from '@/app/actions/products';
 import { useCitySearch, useStreetSearch } from '@/hooks/useIsraelAddress';
 import { Autocomplete } from '@/components/ui/autocomplete';
+
+// Import QuickPaymentForm types
+import type { QuickPaymentFormRef } from './checkout/QuickPaymentForm';
+
+// Lazy load QuickPaymentForm for performance (only loads when quick_payments is active)
+const QuickPaymentForm = dynamic(
+  () => import('./checkout/QuickPaymentForm').then(mod => ({ default: mod.QuickPaymentForm })),
+  { 
+    ssr: false,
+    loading: () => <QuickPaymentSkeleton />,
+  }
+);
+
+// Skeleton for QuickPayment form (prevents CLS)
+function QuickPaymentSkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse" style={{ minHeight: '220px' }}>
+      <div className="h-12 bg-gray-200 rounded" />
+      <div className="flex gap-4">
+        <div className="h-12 bg-gray-200 rounded flex-1" />
+        <div className="h-12 bg-gray-200 rounded w-24" />
+      </div>
+      <div className="h-12 bg-gray-200 rounded" />
+    </div>
+  );
+}
 
 interface LoggedInCustomer {
   id: string;
@@ -72,11 +99,18 @@ export interface ShippingSettings {
   enableFreeShipping: boolean;
 }
 
+export interface QuickPaymentsConfig {
+  publicKey: string;
+  testMode: boolean;
+}
+
 interface CheckoutFormProps {
   basePath?: string;
   storeSlug?: string;
   storeId?: string;
   hasActivePaymentProvider?: boolean;
+  activePaymentProvider?: 'payplus' | 'pelecard' | 'quick_payments' | null;
+  quickPaymentsConfig?: QuickPaymentsConfig | null;
   checkoutSettings?: CheckoutSettings;
   shippingSettings?: ShippingSettings;
 }
@@ -102,6 +136,8 @@ export function CheckoutForm({
   storeSlug, 
   storeId,
   hasActivePaymentProvider = false,
+  activePaymentProvider = null,
+  quickPaymentsConfig = null,
   checkoutSettings = defaultCheckoutSettings,
   shippingSettings = defaultShippingSettings,
 }: CheckoutFormProps) {
@@ -121,6 +157,9 @@ export function CheckoutForm({
   // Refs for single-page scrolling
   const shippingSectionRef = useRef<HTMLDivElement>(null);
   const paymentSectionRef = useRef<HTMLDivElement>(null);
+  
+  // Ref for QuickPaymentForm (for calling tokenize)
+  const quickPaymentRef = useRef<QuickPaymentFormRef>(null);
   
   // Track recovery state
   const [recoveryAttempted, setRecoveryAttempted] = useState(false);
@@ -1028,7 +1067,156 @@ export function CheckoutForm({
             }
           }
           
-          // Real payment flow - redirect to payment provider (total > 0)
+          // 🆕 QuickPayments - inline payment (no redirect)
+          if (activePaymentProvider === 'quick_payments' && quickPaymentsConfig && quickPaymentRef.current?.isReady()) {
+            // Step 1: Create order first (pending payment)
+            const primaryCoupon = appliedCoupons.length > 0 ? appliedCoupons[0] : null;
+            
+            const orderResult = await createOrder(
+              storeId || '',
+              cart.map(item => ({
+                productId: item.productId,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity,
+                variantTitle: item.variantTitle,
+                isGiftCard: item.isGiftCard,
+                giftCardDetails: item.giftCardDetails,
+              })),
+              formData,
+              primaryCoupon ? {
+                id: primaryCoupon.id,
+                code: primaryCoupon.code,
+                type: primaryCoupon.type,
+                value: primaryCoupon.value,
+              } : null,
+              cartOriginalTotal,
+              totalDiscount,
+              shippingAfterDiscount,
+              total,
+              creditUsed,
+              discountDetails
+            );
+
+            if (!orderResult.success || !orderResult.orderId) {
+              setOrderError('error' in orderResult ? orderResult.error : 'שגיאה ביצירת ההזמנה');
+              setIsSubmitting(false);
+              return;
+            }
+
+            try {
+              // Step 2: Tokenize card data
+              const tokenResult = await quickPaymentRef.current.tokenize({
+                amount: total,
+                currency: 'ILS',
+                orderId: orderResult.orderId,
+                customerEmail: formData.email,
+                customerName: `${formData.firstName} ${formData.lastName}`.trim(),
+                customerPhone: formData.phone,
+              });
+
+              // Step 3: Charge using the token
+              const chargeResponse = await fetch(`/api/shops/${storeSlug}/payments/quick/charge`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  token: tokenResult.token,
+                  orderId: orderResult.orderId,
+                  amount: total,
+                  currency: 'ILS',
+                  cardMask: tokenResult.cardMask,
+                  cardType: tokenResult.cardType,
+                }),
+              });
+
+              const chargeResult = await chargeResponse.json();
+              
+              console.log('=== Charge response ===');
+              console.log('HTTP ok:', chargeResponse.ok);
+              console.log('HTTP status:', chargeResponse.status);
+              console.log('Result:', JSON.stringify(chargeResult, null, 2));
+
+              if (!chargeResponse.ok) {
+                console.error('Charge failed:', chargeResult);
+                throw new Error(chargeResult.error || 'שגיאה בביצוע התשלום');
+              }
+
+              // Handle 3D Secure redirect if needed
+              if (chargeResult.requires3DS && chargeResult.redirectUrl) {
+                window.location.href = chargeResult.redirectUrl;
+                return;
+              }
+
+              // Success! Redirect to thank you page
+              if (chargeResult.success) {
+                // Save order summary to localStorage for thank you page
+                const token = crypto.randomUUID().replace(/-/g, '').substring(0, 16);
+                const orderData = {
+                  items: cart.map(item => ({
+                    productId: item.productId,
+                    name: item.name,
+                    quantity: item.quantity,
+                    price: item.price,
+                    variantTitle: item.variantTitle,
+                    image: item.image,
+                    addons: item.addons,
+                    addonTotal: item.addonTotal,
+                  })),
+                  subtotal: cartOriginalTotal,
+                  discount: totalDiscount,
+                  shipping: shippingAfterDiscount,
+                  total,
+                  couponCodes: appliedCoupons.map(c => c.code),
+                  orderDate: new Date().toISOString(),
+                  orderNumber: orderResult.orderNumber,
+                  token,
+                  customer: {
+                    email: formData.email,
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    phone: formData.phone,
+                    address: buildFullAddress(),
+                    city: formData.city,
+                    zipCode: formData.zipCode,
+                  },
+                };
+                
+                localStorage.setItem(ORDER_STORAGE_KEY, JSON.stringify(orderData));
+                
+                // Track purchase
+                tracker.purchase({
+                  items: cart.map(item => ({
+                    id: item.productId,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    image: item.image,
+                  })),
+                  value: total,
+                  currency: 'ILS',
+                  orderId: orderResult.orderId,
+                  orderNumber: orderResult.orderNumber,
+                  paymentMethod: 'quick_payments',
+                });
+                
+                // Mark as redirecting, clear cart
+                setIsRedirecting(true);
+                clearCart();
+                clearCoupons();
+                
+                // Redirect to thank you page
+                router.push(`${basePath}/checkout/thank-you/${orderResult.orderNumber}?t=${token}`);
+                return;
+              }
+            } catch (tokenError) {
+              const message = tokenError instanceof Error ? tokenError.message : 'שגיאה בביצוע התשלום';
+              setOrderError(message);
+              setIsSubmitting(false);
+              return;
+            }
+          }
+
+          // Real payment flow - redirect to payment provider (PayPlus, Pelecard)
           
           const response = await fetch('/api/payments/initiate', {
             method: 'POST',
@@ -1955,8 +2143,17 @@ export function CheckoutForm({
                       </div>
                     )}
                     
-                    {hasActivePaymentProvider ? (
-                      // Real payment - will redirect to payment provider
+                    {activePaymentProvider === 'quick_payments' && quickPaymentsConfig ? (
+                      // Quick Payments - Hosted Fields (inline payment form)
+                      <QuickPaymentForm
+                        ref={quickPaymentRef}
+                        publicKey={quickPaymentsConfig.publicKey}
+                        testMode={quickPaymentsConfig.testMode}
+                        storeSlug={storeSlug || ''}
+                        disabled={isSubmitting}
+                      />
+                    ) : hasActivePaymentProvider ? (
+                      // Redirect payment providers (PayPlus, Pelecard)
                       <div className="space-y-4">
                         <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg">
                           <div className="flex items-center gap-3">

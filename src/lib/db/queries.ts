@@ -420,6 +420,7 @@ export async function getProductBySlug(storeId: string, slug: string) {
       isFeatured: products.isFeatured,
       hasVariants: products.hasVariants,
       categoryId: products.categoryId,
+      upsellProductIds: products.upsellProductIds,
     })
     .from(products)
     .where(and(eq(products.storeId, storeId), eq(products.slug, slug)))

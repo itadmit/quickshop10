@@ -18,13 +18,21 @@ import { TypographySettings } from './product-page-settings';
 // ============================================
 
 export type ProductSectionType = 
-  // Product-specific sections (contain product data)
-  | 'product_gallery'       // Gallery with zoom, thumbnails, videos
-  | 'product_info'          // Title, price, variants, add to cart
-  | 'product_description'   // Full description (text or accordion)
-  | 'product_reviews'       // Reviews section
-  | 'product_related'       // Related products grid
-  | 'product_upsells'       // Upsell products
+  // Product-specific sections (contain product data) - פירוק מלא!
+  | 'breadcrumb'            // פירורי לחם
+  | 'product_gallery'       // גלריית תמונות
+  | 'product_badges'        // מדבקות מבצעים
+  | 'product_title'         // שם המוצר
+  | 'product_price'         // מחירים
+  | 'product_short_desc'    // תיאור קצר
+  | 'product_inventory'     // חיווי מלאי
+  | 'product_add_to_cart'   // כפתור הוספה + וריאציות
+  | 'product_description'   // תיאור מלא
+  | 'product_reviews'       // ביקורות
+  | 'product_related'       // מוצרים דומים
+  | 'product_upsells'       // מוצרי אפסייל
+  // Legacy - תאימות לאחור
+  | 'product_info'          // [DEPRECATED] משמש למיגרציה בלבד
   // Generic content sections (with dynamic content support)
   | 'text_block'            // Rich text with {{product.x}} support
   | 'accordion'             // Accordion items (specs, care, shipping)
@@ -32,7 +40,6 @@ export type ProductSectionType =
   | 'features'              // Icon + text list
   | 'image_text'            // Image with text (left/right)
   | 'video'                 // Video embed
-  | 'breadcrumb'            // Breadcrumb navigation
   | 'divider'               // Simple divider line
   | 'spacer';               // Empty space
 
@@ -255,9 +262,38 @@ export const defaultProductPageSections: ProductPageSection[] = [
     sortOrder: 1,
     isActive: true,
   },
+  // 🆕 סקשנים מפורקים במקום product_info
   {
-    id: 'info',
-    type: 'product_info',
+    id: 'badges',
+    type: 'product_badges',
+    title: null,
+    subtitle: null,
+    content: {},
+    settings: {
+      showDiscount: true,
+      showPromoLabels: true,
+      showFeatured: true,
+      style: 'badge',
+    } as Record<string, unknown>,
+    sortOrder: 2,
+    isActive: true,
+  },
+  {
+    id: 'title',
+    type: 'product_title',
+    title: null,
+    subtitle: null,
+    content: {},
+    settings: {
+      size: 'lg',
+      weight: 'light',
+    } as Record<string, unknown>,
+    sortOrder: 3,
+    isActive: true,
+  },
+  {
+    id: 'price',
+    type: 'product_price',
     title: null,
     subtitle: null,
     content: {},
@@ -265,22 +301,60 @@ export const defaultProductPageSections: ProductPageSection[] = [
       showComparePrice: true,
       showDiscount: true,
       discountStyle: 'badge',
-      inventoryDisplay: 'count',
+    } as Record<string, unknown>,
+    sortOrder: 4,
+    isActive: true,
+  },
+  {
+    id: 'short-desc',
+    type: 'product_short_desc',
+    title: null,
+    subtitle: null,
+    content: {},
+    settings: {
+      size: 'md',
+    } as Record<string, unknown>,
+    sortOrder: 5,
+    isActive: true,
+  },
+  {
+    id: 'inventory',
+    type: 'product_inventory',
+    title: null,
+    subtitle: null,
+    content: {},
+    settings: {
+      displayStyle: 'count',
       lowStockThreshold: 5,
-    } satisfies InfoSectionSettings as Record<string, unknown>,
-    sortOrder: 2,
+    } as Record<string, unknown>,
+    sortOrder: 6,
+    isActive: true,
+  },
+  {
+    id: 'add-to-cart',
+    type: 'product_add_to_cart',
+    title: null,
+    subtitle: null,
+    content: {},
+    settings: {
+      buttonText: 'הוסף לסל',
+      outOfStockText: 'אזל מהמלאי',
+      style: 'filled',
+      fullWidth: true,
+    } as Record<string, unknown>,
+    sortOrder: 7,
     isActive: true,
   },
   {
     id: 'description',
     type: 'product_description',
-    title: null,
+    title: 'תיאור',
     subtitle: null,
     content: {},
     settings: {
       style: 'text',
     } satisfies DescriptionSectionSettings as Record<string, unknown>,
-    sortOrder: 3,
+    sortOrder: 8,
     isActive: true,
   },
   {
@@ -299,7 +373,7 @@ export const defaultProductPageSections: ProductPageSection[] = [
       layout: 'horizontal',
       iconSize: 'small',
     } satisfies FeaturesSectionSettings as Record<string, unknown>,
-    sortOrder: 4,
+    sortOrder: 9,
     isActive: true,
   },
   {
@@ -314,7 +388,7 @@ export const defaultProductPageSections: ProductPageSection[] = [
       showPhotos: true,
       style: 'list',
     } satisfies ReviewsSectionSettings as Record<string, unknown>,
-    sortOrder: 5,
+    sortOrder: 10,
     isActive: true,
   },
   {
@@ -328,7 +402,7 @@ export const defaultProductPageSections: ProductPageSection[] = [
       source: 'same_category',
       showIfEmpty: false,
     } satisfies RelatedSectionSettings as Record<string, unknown>,
-    sortOrder: 6,
+    sortOrder: 11,
     isActive: true,
   },
 ];
@@ -358,8 +432,9 @@ export const productPageTemplates: ProductPageTemplate[] = [
     name: 'מפורט עם אקורדיון',
     description: 'עם אקורדיון למידע טכני, חומרים והוראות',
     thumbnail: '/templates/product/detailed.png',
+    // Uses new sections + adds accordion after add-to-cart
     sections: [
-      ...defaultProductPageSections.slice(0, 4), // breadcrumb, gallery, info, description
+      ...defaultProductPageSections.slice(0, 8), // breadcrumb through add-to-cart
       {
         id: 'specs-accordion',
         type: 'accordion',
@@ -377,10 +452,10 @@ export const productPageTemplates: ProductPageTemplate[] = [
           allowMultiple: false,
           style: 'bordered',
         } satisfies AccordionSectionSettings as Record<string, unknown>,
-        sortOrder: 4,
+        sortOrder: 8,
         isActive: true,
       },
-      ...defaultProductPageSections.slice(4), // features, reviews, related
+      ...defaultProductPageSections.slice(8), // description, features, reviews, related
     ].map((s, i) => ({ ...s, sortOrder: i })) as ProductPageSection[],
   },
   {
@@ -388,51 +463,30 @@ export const productPageTemplates: ProductPageTemplate[] = [
     name: 'אופנה',
     description: 'גלריה גדולה בסגנון לוקבוק',
     thumbnail: '/templates/product/fashion.png',
-    sections: [
-      {
-        id: 'gallery',
-        type: 'product_gallery',
-        title: null,
-        subtitle: null,
-        content: {},
-        settings: {
-          layout: 'grid',
-          thumbnailsPosition: 'hidden',
-          thumbnailsPositionMobile: 'bottom',
-          aspectRatio: '3:4',
-          enableZoom: true,
-          showArrows: false,
-          showDotsOnMobile: false,
-        } satisfies GallerySectionSettings as Record<string, unknown>,
-        sortOrder: 0,
-        isActive: true,
-      },
-      {
-        id: 'info',
-        type: 'product_info',
-        title: null,
-        subtitle: null,
-        content: {},
-        settings: {
-          showComparePrice: true,
-          showDiscount: true,
-          discountStyle: 'text',
-          inventoryDisplay: 'low_stock',
-          lowStockThreshold: 3,
-        } satisfies InfoSectionSettings as Record<string, unknown>,
-        sortOrder: 1,
-        isActive: true,
-      },
-      ...defaultProductPageSections.slice(3), // description onwards
-    ].map((s, i) => ({ ...s, sortOrder: i })) as ProductPageSection[],
+    // Fashion uses same new sections but with different gallery settings
+    sections: defaultProductPageSections.map(s => {
+      if (s.type === 'product_gallery') {
+        return {
+          ...s,
+          settings: {
+            ...s.settings,
+            layout: 'grid',
+            thumbnailsPosition: 'hidden',
+            showArrows: false,
+          },
+        };
+      }
+      return s;
+    }),
   },
   {
     id: 'tabs',
     name: 'עם לשוניות',
     description: 'מידע מוצר מאורגן בלשוניות',
     thumbnail: '/templates/product/tabs.png',
+    // Uses new sections + adds tabs after add-to-cart (instead of description)
     sections: [
-      ...defaultProductPageSections.slice(0, 4), // breadcrumb, gallery, info, description
+      ...defaultProductPageSections.slice(0, 8), // breadcrumb through add-to-cart
       {
         id: 'product-tabs',
         type: 'tabs',
@@ -449,10 +503,10 @@ export const productPageTemplates: ProductPageTemplate[] = [
           style: 'underline',
           alignment: 'right',
         } satisfies TabsSectionSettings as Record<string, unknown>,
-        sortOrder: 4,
+        sortOrder: 8,
         isActive: true,
       },
-      ...defaultProductPageSections.slice(5), // reviews, related
+      ...defaultProductPageSections.slice(9), // features, reviews, related (skip description)
     ].map((s, i) => ({ ...s, sortOrder: i })) as ProductPageSection[],
   },
 ];
@@ -512,19 +566,29 @@ export function applyProductPageTemplate(templateId: string): ProductPageSection
 // ============================================
 
 export const sectionTypeLabels: Record<ProductSectionType, string> = {
-  product_gallery: 'גלריית מוצר',
-  product_info: 'מידע מוצר',
+  // מוצר - סקשנים ייעודיים
+  product_gallery: 'גלריה',
+  product_badges: 'מדבקות מבצעים',
+  product_title: 'שם מוצר',
+  product_price: 'מחירים',
+  product_short_desc: 'תיאור קצר',
+  product_inventory: 'חיווי מלאי',
+  product_add_to_cart: 'כפתור הוספה לסל',
   product_description: 'תיאור מוצר',
   product_reviews: 'ביקורות',
-  product_related: 'מוצרים דומים',
+  product_related: 'אולי יעניין אותך',
   product_upsells: 'מוצרי אפסייל',
+  // Legacy
+  product_info: 'מידע מוצר (Legacy)',
+  // תוכן
   text_block: 'בלוק טקסט',
   accordion: 'אקורדיון',
   tabs: 'לשוניות',
-  features: 'חוזקות/יתרונות',
+  features: 'חוזקות',
   image_text: 'תמונה + טקסט',
   video: 'וידאו',
-  breadcrumb: 'ניווט (Breadcrumb)',
+  // פריסה
+  breadcrumb: 'פירורי לחם',
   divider: 'קו מפריד',
   spacer: 'רווח',
 };
