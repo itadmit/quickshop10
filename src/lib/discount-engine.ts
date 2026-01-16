@@ -43,6 +43,8 @@ export interface CartItem {
   price: number;        // מחיר ליחידה
   quantity: number;
   imageUrl?: string;
+  // 🎁 מוצר מתנה מקופון - לא נספר בהנחות כמות!
+  isGift?: boolean;
 }
 
 export interface Discount {
@@ -144,27 +146,30 @@ function doesItemMatchDiscount(item: CartItem, discount: Discount): boolean {
 
 /**
  * חישוב סכום הסל עבור פריטים מתאימים
+ * 🎁 לא כולל מוצרי מתנה (isGift) - הם לא נספרים בהנחות!
  */
 function calculateMatchingTotal(items: CartItem[], discount: Discount): number {
   return items
-    .filter(item => doesItemMatchDiscount(item, discount))
+    .filter(item => !item.isGift && doesItemMatchDiscount(item, discount))
     .reduce((sum, item) => sum + (item.price * item.quantity), 0);
 }
 
 /**
  * ספירת פריטים מתאימים (כמות כוללת)
+ * 🎁 לא כולל מוצרי מתנה (isGift) - הם לא נספרים בהנחות כמות!
  */
 function countMatchingItems(items: CartItem[], discount: Discount): number {
   return items
-    .filter(item => doesItemMatchDiscount(item, discount))
+    .filter(item => !item.isGift && doesItemMatchDiscount(item, discount))
     .reduce((sum, item) => sum + item.quantity, 0);
 }
 
 /**
  * קבלת פריטים מתאימים
+ * 🎁 לא כולל מוצרי מתנה (isGift) - הם לא נספרים בהנחות!
  */
 function getMatchingItems(items: CartItem[], discount: Discount): CartItem[] {
-  return items.filter(item => doesItemMatchDiscount(item, discount));
+  return items.filter(item => !item.isGift && doesItemMatchDiscount(item, discount));
 }
 
 // ============ DISCOUNT CALCULATORS ============
@@ -446,8 +451,11 @@ function calculateGiftProduct(
   }
   
   // בדיקת תנאי מינימום כמות (אם מוגדר)
+  // 🎁 לא כולל מוצרי מתנה (isGift) בספירת הכמות
   if (discount.minimumQuantity) {
-    const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+    const totalQty = items
+      .filter(i => !i.isGift)
+      .reduce((sum, i) => sum + i.quantity, 0);
     if (totalQty < discount.minimumQuantity) {
       return null;
     }
@@ -536,8 +544,11 @@ function calculateSingleDiscount(
   }
   
   // בדיקת מינימום כמות
+  // 🎁 לא כולל מוצרי מתנה (isGift) בספירת הכמות
   if (discount.minimumQuantity) {
-    const totalQty = items.reduce((sum, i) => sum + i.quantity, 0);
+    const totalQty = items
+      .filter(i => !i.isGift)
+      .reduce((sum, i) => sum + i.quantity, 0);
     if (totalQty < discount.minimumQuantity) {
       return null;
     }
@@ -588,6 +599,7 @@ export function calculateDiscounts(
   const { isMember = false, shippingAmount = 0 } = options;
   
   // חישוב סכום מקורי
+  // 🎁 מוצרי מתנה (isGift) כבר עם מחיר 0, אבל נסנן אותם לבטחון
   const originalTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   
   if (originalTotal === 0 || discounts.length === 0) {

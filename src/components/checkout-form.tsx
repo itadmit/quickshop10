@@ -692,6 +692,7 @@ export function CheckoutForm({
 
   // Calculate automatic discounts using the new discount engine
   // 🔑 Now using categoryIds from cart items for proper category-based discount matching
+  // 🎁 מעבירים isGift למנוע ההנחות כדי שמוצרי מתנה לא יספרו בהנחות כמות (1+1)
   const cartItemsForEngine: EngineCartItem[] = cart.map(item => ({
     id: item.id || `item-${item.productId}`,
     productId: item.productId,
@@ -701,6 +702,7 @@ export function CheckoutForm({
     quantity: item.quantity,
     imageUrl: item.image,
     categoryIds: item.categoryIds || [],
+    isGift: item.isGift || false,
   }));
   
   // Convert auto discounts to engine format
