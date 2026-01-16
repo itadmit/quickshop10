@@ -219,14 +219,14 @@ export function CouponInput({
             onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleApply())}
             placeholder={appliedCoupons.length > 0 ? "הוסף קופון נוסף" : "הזן קוד קופון"}
-            className="flex-1 px-4 py-3 border border-gray-200 focus:border-black transition-colors text-sm"
+            className="flex-1 px-4 py-3 border border-gray-200 focus:border-black transition-colors text-base"
             disabled={isValidating}
           />
           <button
             type="button"
             onClick={handleApply}
             disabled={isValidating || !couponCode.trim()}
-            className="px-5 py-3 bg-black text-white text-sm transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="px-5 py-3 bg-black text-white text-base transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {isValidating ? '...' : 'החל'}
           </button>
