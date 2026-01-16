@@ -1,10 +1,119 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { markContactAsRead, updateContactStatus, deleteContact, markAllAsRead } from './actions';
+
+// 📧 Modal לצפייה בהודעה
+function MessageModal({ 
+  isOpen, 
+  onClose, 
+  contact 
+}: { 
+  isOpen: boolean; 
+  onClose: () => void; 
+  contact: { 
+    firstName: string | null; 
+    lastName: string | null; 
+    email: string; 
+    metadata?: unknown;
+    createdAt: Date;
+  } | null;
+}) {
+  if (!isOpen || !contact) return null;
+  
+  const metadata = (contact.metadata || {}) as { subject?: string; message?: string };
+  const message = metadata.message || '';
+  const subject = metadata.subject;
+  const name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email;
+  
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/50 z-50 transition-opacity"
+        onClick={onClose}
+      />
+      
+      {/* Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div 
+          className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[80vh] overflow-hidden"
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">הודעה מ{name}</h3>
+              <p className="text-sm text-gray-500">
+                {new Date(contact.createdAt).toLocaleDateString('he-IL', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          {/* Content */}
+          <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">
+            {subject && (
+              <div className="mb-4">
+                <span className="text-sm font-medium text-gray-500">נושא:</span>
+                <p className="text-gray-900 mt-1">{subject}</p>
+              </div>
+            )}
+            
+            <div>
+              <span className="text-sm font-medium text-gray-500">הודעה:</span>
+              <div className="mt-2 p-4 bg-gray-50 rounded-lg">
+                <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  {message || 'אין הודעה'}
+                </p>
+              </div>
+            </div>
+            
+            {/* Contact info */}
+            <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-4 text-sm text-gray-500">
+              <a 
+                href={`mailto:${contact.email}`}
+                className="flex items-center gap-1 text-blue-600 hover:underline"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <path d="M22 6l-10 7L2 6"/>
+                </svg>
+                {contact.email}
+              </a>
+            </div>
+          </div>
+          
+          {/* Footer */}
+          <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            >
+              סגור
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
 // Contact with customer relation - flexible type for customers tab
 interface ContactWithCustomer {
   id: string;
@@ -92,6 +201,12 @@ export function ContactsDataTable({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // 📧 State for message modal
+  const [messageModalContact, setMessageModalContact] = useState<ContactWithCustomer | null>(null);
+  
+  const handleViewMessage = useCallback((contact: ContactWithCustomer) => {
+    setMessageModalContact(contact);
+  }, []);
 
   const handleMarkAsRead = async (contactId: string) => {
     startTransition(async () => {
@@ -277,33 +392,7 @@ export function ContactsDataTable({
         </span>
       ),
     },
-    {
-      key: 'message',
-      header: 'הודעה',
-      width: '250px',
-      render: (contact) => {
-        const metadata = (contact.metadata || {}) as { message?: string };
-        const message = metadata.message;
-        if (!message) return <span className="text-gray-400 text-sm">-</span>;
-        
-        const isLong = message.length > 40;
-        const truncated = isLong ? message.slice(0, 40) + '...' : message;
-        
-        return (
-          <div className="group relative">
-            <p className="text-gray-600 text-sm">
-              {truncated}
-            </p>
-            {/* Full message popup on hover */}
-            {isLong && (
-              <div className="hidden group-hover:block absolute z-50 top-full right-0 mt-1 p-3 bg-white border border-gray-200 rounded-lg shadow-lg max-w-sm whitespace-pre-wrap text-sm text-gray-700">
-                {message}
-              </div>
-            )}
-          </div>
-        );
-      },
-    },
+    // 📧 עמודת הודעה הוסרה - הודעות נראות דרך תפריט 3 נקודות
     {
       key: 'date',
       header: 'תאריך',
@@ -325,6 +414,7 @@ export function ContactsDataTable({
             contact={contact} 
             storeId={storeId} 
             onUpdate={() => router.refresh()}
+            onViewMessage={() => handleViewMessage(contact)}
           />
         </div>
       ),
@@ -342,7 +432,7 @@ export function ContactsDataTable({
     
     return (
       <tr className="bg-gray-50">
-        <td colSpan={9} className="px-6 py-4">
+        <td colSpan={8} className="px-6 py-4">
           <div className="grid grid-cols-2 gap-4 text-sm">
             {/* Contact Details */}
             <div>
@@ -407,6 +497,13 @@ export function ContactsDataTable({
 
   return (
     <div>
+      {/* 📧 Message Modal */}
+      <MessageModal 
+        isOpen={!!messageModalContact}
+        onClose={() => setMessageModalContact(null)}
+        contact={messageModalContact}
+      />
+      
       {/* Mark all as read button */}
       <div className="flex justify-end mb-4">
         <button
@@ -447,14 +544,20 @@ export function ContactsDataTable({
 function ContactActions({ 
   contact, 
   storeId, 
-  onUpdate 
+  onUpdate,
+  onViewMessage,
 }: { 
   contact: ContactWithCustomer; 
   storeId: string; 
   onUpdate: () => void;
+  onViewMessage: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // בדיקה אם יש הודעה
+  const metadata = (contact.metadata || {}) as { message?: string };
+  const hasMessage = !!metadata.message;
 
   const handleStatusChange = (status: 'active' | 'unsubscribed' | 'spam') => {
     startTransition(async () => {
@@ -489,6 +592,26 @@ function ContactActions({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
           <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[150px]">
+            {/* 📧 צפיה בהודעה - רק אם יש הודעה */}
+            {hasMessage && (
+              <>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    onViewMessage();
+                  }}
+                  className="w-full px-4 py-2 text-sm text-right text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <path d="M22 6l-10 7L2 6"/>
+                  </svg>
+                  צפיה בהודעה
+                </button>
+                <hr className="my-1" />
+              </>
+            )}
+            
             {contact.status !== 'active' && (
               <button
                 onClick={() => handleStatusChange('active')}
