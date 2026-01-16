@@ -3202,6 +3202,7 @@ export const storeSubscriptions = pgTable('store_subscriptions', {
   
   // Custom pricing
   customMonthlyPrice: decimal('custom_monthly_price', { precision: 10, scale: 2 }), // מחיר חודשי מותאם אישית (אופציונלי)
+  customFeePercentage: decimal('custom_fee_percentage', { precision: 5, scale: 4 }), // עמלת עסקאות מותאמת אישית (אופציונלי, ברירת מחדל 0.005 = 0.5%)
   
   // Metadata
   cancelledAt: timestamp('cancelled_at'),

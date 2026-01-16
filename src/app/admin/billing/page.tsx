@@ -5,6 +5,9 @@ import { stores, storeSubscriptions, platformInvoices, storePlugins, orders } fr
 import { sql, desc, eq, gte, and, count, sum } from 'drizzle-orm';
 import Link from 'next/link';
 import { getSubscriptionPricing, getFeeRates } from '@/lib/billing/platform-settings';
+import { CreditCard } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 export default async function PlatformBillingPage() {
   const session = await auth();
@@ -171,48 +174,17 @@ export default async function PlatformBillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="p-8">
       {/* Header */}
-      <header className="bg-black text-white">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="font-display text-xl tracking-[0.3em] uppercase">
-              QuickShop
-            </Link>
-            <span className="px-2 py-1 bg-white/20 text-xs rounded">Platform Admin</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-white/60">{session.user.email}</span>
-            <Link href="/logout" className="text-sm text-white/60 hover:text-white">
-              התנתק
-            </Link>
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-1">
+            <CreditCard className="w-7 h-7 text-emerald-600" />
+            ניהול חיובים
+          </h1>
+          <p className="text-gray-500">מעקב אחר הכנסות, מנויים וחשבוניות</p>
         </div>
-      </header>
-
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-8">
-            <Link href="/admin" className="py-4 text-sm text-gray-600 hover:text-black">
-              סקירה
-            </Link>
-            <Link href="/admin/stores" className="py-4 text-sm text-gray-600 hover:text-black">
-              חנויות
-            </Link>
-            <Link href="/admin/users" className="py-4 text-sm text-gray-600 hover:text-black">
-              משתמשים
-            </Link>
-            <Link href="/admin/billing" className="py-4 text-sm font-medium border-b-2 border-black">
-              חיובים
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">ניהול חיובים</h1>
+      </div>
 
         {/* Revenue Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
@@ -357,7 +329,7 @@ export default async function PlatformBillingPage() {
         </div>
 
         {/* MRR Calculation */}
-        <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border border-green-200 p-6">
+        <div className="mt-8 bg-linear-to-r from-green-50 to-blue-50 rounded-xl border border-green-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4">📊 הכנסה חודשית צפויה (MRR)</h3>
           <div className="grid md:grid-cols-3 gap-6">
             <div>
@@ -386,7 +358,6 @@ export default async function PlatformBillingPage() {
             * לא כולל עמלות עסקאות ({(feeRates.transactionFee * 100).toFixed(1)}%) ותוספים
           </p>
         </div>
-      </main>
     </div>
   );
 }

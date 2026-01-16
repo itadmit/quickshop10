@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { getCategory } from '../../actions';
 import { CategoryForm } from '../category-form';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ id: string }>;
 }

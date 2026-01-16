@@ -13,6 +13,9 @@ import {
 } from '@/lib/db/schema';
 import { eq, desc, and, gte, sql } from 'drizzle-orm';
 import Link from 'next/link';
+import { ArrowRight, CreditCard, Package, DollarSign, FileText, Plug } from 'lucide-react';
+
+export const dynamic = 'force-dynamic';
 
 export default async function StoreBillingDetailPage({
   params,
@@ -49,6 +52,8 @@ export default async function StoreBillingDetailPage({
         billingEmail: storeSubscriptions.billingEmail,
         billingName: storeSubscriptions.billingName,
         cancelledAt: storeSubscriptions.cancelledAt,
+        customMonthlyPrice: storeSubscriptions.customMonthlyPrice,
+        customFeePercentage: storeSubscriptions.customFeePercentage,
       },
     })
     .from(stores)
@@ -163,9 +168,9 @@ export default async function StoreBillingDetailPage({
 
   const getPlanLabel = (plan: string | null | undefined) => {
     switch (plan) {
-      case 'branding': return 'תדמית (₪299/חודש)';
-      case 'quickshop': return 'קוויק שופ (₪399/חודש)';
-      case 'trial': return 'נסיון (7 ימים)';
+      case 'branding': return 'תדמית';
+      case 'quickshop': return 'קוויק שופ';
+      case 'trial': return 'נסיון';
       default: return 'לא מוגדר';
     }
   };
@@ -179,308 +184,313 @@ export default async function StoreBillingDetailPage({
     }
   };
 
-  const currentFeeAmount = Number(transactionSummary?.total || 0) * 0.005 * 1.18;
+  // Get fee rate (custom or default 0.5%)
+  const feeRate = store.subscription?.customFeePercentage 
+    ? Number(store.subscription.customFeePercentage) 
+    : 0.005;
+  const currentFeeAmount = Number(transactionSummary?.total || 0) * feeRate * 1.18;
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
-      {/* Header */}
-      <header className="bg-black text-white">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="font-display text-xl tracking-[0.3em] uppercase">
-              QuickShop
-            </Link>
-            <span className="px-2 py-1 bg-white/20 text-xs rounded">Platform Admin</span>
+    <div className="p-8">
+      {/* Breadcrumb */}
+      <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <Link href="/admin/billing" className="hover:text-emerald-600 flex items-center gap-1">
+          <ArrowRight className="w-4 h-4" />
+          חיובים
+        </Link>
+        <span>/</span>
+        <span className="text-gray-900 font-medium">{store.name}</span>
+      </div>
+
+      {/* Store Header */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8 shadow-sm">
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <CreditCard className="w-7 h-7 text-emerald-600" />
+              {store.name}
+            </h1>
+            <p className="text-gray-500">/{store.slug}</p>
+            <p className="text-sm text-gray-400 mt-1">נוצר: {formatDate(store.createdAt)}</p>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-white/60">{session.user.email}</span>
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1.5 text-sm font-medium rounded-full ${getStatusColor(store.subscription?.status)}`}>
+              {getStatusLabel(store.subscription?.status)}
+            </span>
+            <Link 
+              href={`/admin/stores/${storeId}`}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+            >
+              הגדרות חנות
+            </Link>
           </div>
         </div>
-      </header>
+      </div>
 
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-8">
-            <Link href="/admin" className="py-4 text-sm text-gray-600 hover:text-black">
-              סקירה
-            </Link>
-            <Link href="/admin/stores" className="py-4 text-sm text-gray-600 hover:text-black">
-              חנויות
-            </Link>
-            <Link href="/admin/billing" className="py-4 text-sm font-medium border-b-2 border-black">
-              חיובים
-            </Link>
+      {/* Main Grid */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Subscription Info */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Package className="w-5 h-5 text-gray-600" />
+            <h2 className="font-semibold text-gray-900">פרטי מנוי</h2>
           </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link href="/admin/billing" className="hover:text-black">חיובים</Link>
-          <span>←</span>
-          <span className="text-gray-900">{store.name}</span>
-        </div>
-
-        {/* Store Header */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{store.name}</h1>
-              <p className="text-gray-500">/{store.slug}</p>
-              <p className="text-sm text-gray-400 mt-1">נוצר: {formatDate(store.createdAt)}</p>
+          
+          <div className="space-y-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">מסלול:</span>
+              <span className="font-medium">{getPlanLabel(store.subscription?.plan)}</span>
             </div>
-            <div className="text-left">
-              <span className={`px-3 py-1.5 text-sm rounded-full ${getStatusColor(store.subscription?.status)}`}>
-                {getStatusLabel(store.subscription?.status)}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Grid */}
-        <div className="grid md:grid-cols-3 gap-8 mb-8">
-          {/* Subscription Info */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">📦 פרטי מנוי</h2>
             
-            <div className="space-y-3 text-sm">
+            {store.subscription?.customMonthlyPrice && (
               <div className="flex justify-between">
-                <span className="text-gray-500">מסלול:</span>
-                <span className="font-medium">{getPlanLabel(store.subscription?.plan)}</span>
+                <span className="text-gray-500">מחיר מותאם:</span>
+                <span className="font-medium text-amber-600">
+                  {formatCurrency(store.subscription.customMonthlyPrice)}
+                </span>
               </div>
-              
-              {store.subscription?.status === 'trial' && store.subscription?.trialEndsAt && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">נסיון עד:</span>
-                  <span className="font-medium text-blue-600">
-                    {formatDate(store.subscription.trialEndsAt)}
+            )}
+            
+            {store.subscription?.customFeePercentage && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">עמלה מותאמת:</span>
+                <span className="font-medium text-amber-600">
+                  {(Number(store.subscription.customFeePercentage) * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+            
+            {store.subscription?.status === 'trial' && store.subscription?.trialEndsAt && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">נסיון עד:</span>
+                <span className="font-medium text-blue-600">
+                  {formatDate(store.subscription.trialEndsAt)}
+                </span>
+              </div>
+            )}
+            
+            {store.subscription?.currentPeriodEnd && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">תקופה נוכחית:</span>
+                <span className="font-medium">{formatDate(store.subscription.currentPeriodEnd)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Payment Method */}
+          {store.subscription?.cardLastFour && (
+            <div className="mt-6 pt-4 border-t border-gray-100">
+              <h3 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                <CreditCard className="w-3 h-3" />
+                אמצעי תשלום
+              </h3>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-6 bg-gray-100 rounded flex items-center justify-center text-xs font-medium">
+                  {store.subscription.cardBrand || 'Card'}
+                </div>
+                <span className="font-mono">•••• {store.subscription.cardLastFour}</span>
+                {store.subscription.cardExpiry && (
+                  <span className="text-gray-400 text-sm">{store.subscription.cardExpiry}</span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Financial Summary */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <DollarSign className="w-5 h-5 text-gray-600" />
+            <h2 className="font-semibold text-gray-900">סיכום כספי</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 rounded-xl">
+              <p className="text-xs text-green-600 mb-1">סה״כ שולם</p>
+              <p className="text-2xl font-bold text-green-700">{formatCurrency(totalPaid)}</p>
+            </div>
+            
+            {totalPending > 0 && (
+              <div className="p-4 bg-red-50 rounded-xl">
+                <p className="text-xs text-red-600 mb-1">חוב פתוח</p>
+                <p className="text-2xl font-bold text-red-700">{formatCurrency(totalPending)}</p>
+              </div>
+            )}
+            
+            <div className="p-4 bg-gray-50 rounded-xl">
+              <p className="text-xs text-gray-600 mb-1">חשבוניות</p>
+              <p className="text-lg font-medium">{allInvoices.length} חשבוניות</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Current Period Fees */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <FileText className="w-5 h-5 text-gray-600" />
+            <h2 className="font-semibold text-gray-900">עמלות תקופה נוכחית</h2>
+          </div>
+          <p className="text-xs text-gray-500 mb-4">14 ימים אחרונים</p>
+          
+          <div className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">עסקאות ששולמו:</span>
+              <span className="font-medium">{transactionSummary?.count || 0}</span>
+            </div>
+            
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-500">סה״כ מכירות:</span>
+              <span className="font-medium">{formatCurrency(transactionSummary?.total || 0)}</span>
+            </div>
+            
+            <div className="pt-3 border-t border-gray-100">
+              <div className="flex justify-between">
+                <span className="text-gray-600">עמלה ({(feeRate * 100).toFixed(1)}% + מע״מ):</span>
+                <span className="font-bold text-lg">{formatCurrency(currentFeeAmount)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Plugins */}
+      {activePlugins.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <Plug className="w-5 h-5 text-gray-600" />
+            <h2 className="font-semibold text-gray-900">תוספים פעילים</h2>
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            {activePlugins.map((plugin) => (
+              <div key={plugin.pluginSlug} className="border border-gray-100 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-medium">{plugin.pluginSlug}</span>
+                  <span className={`px-2 py-0.5 text-xs rounded-full ${
+                    plugin.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {plugin.isActive ? 'פעיל' : 'לא פעיל'}
                   </span>
                 </div>
-              )}
-              
-              {store.subscription?.currentPeriodEnd && (
-                <div className="flex justify-between">
-                  <span className="text-gray-500">תקופה נוכחית עד:</span>
-                  <span className="font-medium">{formatDate(store.subscription.currentPeriodEnd)}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Payment Method */}
-            {store.subscription?.cardLastFour && (
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <h3 className="text-xs font-medium text-gray-500 mb-2">💳 אמצעי תשלום</h3>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-6 bg-gray-100 rounded flex items-center justify-center text-xs">
-                    {store.subscription.cardBrand || 'Card'}
-                  </div>
-                  <span className="font-mono">•••• {store.subscription.cardLastFour}</span>
-                  {store.subscription.cardExpiry && (
-                    <span className="text-gray-400 text-sm">{store.subscription.cardExpiry}</span>
-                  )}
-                </div>
+                <p className="text-lg font-bold">{formatCurrency(plugin.monthlyPrice || 0)}/חודש</p>
+                {plugin.nextBillingDate && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    חיוב הבא: {formatDate(plugin.nextBillingDate)}
+                  </p>
+                )}
               </div>
-            )}
-
-            {/* Billing Contact */}
-            {store.subscription?.billingEmail && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
-                <h3 className="text-xs font-medium text-gray-500 mb-2">📧 פרטי חיוב</h3>
-                <p className="text-sm">{store.subscription.billingName}</p>
-                <p className="text-sm text-gray-500">{store.subscription.billingEmail}</p>
-              </div>
-            )}
+            ))}
           </div>
-
-          {/* Financial Summary */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">💰 סיכום כספי</h2>
-            
-            <div className="space-y-4">
-              <div className="p-3 bg-green-50 rounded-lg">
-                <p className="text-xs text-green-600">סה״כ שולם</p>
-                <p className="text-2xl font-bold text-green-700">{formatCurrency(totalPaid)}</p>
-              </div>
-              
-              {totalPending > 0 && (
-                <div className="p-3 bg-red-50 rounded-lg">
-                  <p className="text-xs text-red-600">חוב פתוח</p>
-                  <p className="text-2xl font-bold text-red-700">{formatCurrency(totalPending)}</p>
-                </div>
-              )}
-              
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-600">חשבוניות</p>
-                <p className="text-lg font-medium">{allInvoices.length} חשבוניות</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Current Period Fees */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">📊 עמלות תקופה נוכחית</h2>
-            <p className="text-xs text-gray-500 mb-4">14 ימים אחרונים</p>
-            
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">עסקאות ששולמו:</span>
-                <span className="font-medium">{transactionSummary?.count || 0}</span>
-              </div>
-              
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">סה״כ מכירות:</span>
-                <span className="font-medium">{formatCurrency(transactionSummary?.total || 0)}</span>
-              </div>
-              
-              <div className="pt-3 border-t border-gray-100">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">עמלה (0.5% + מע״מ):</span>
-                  <span className="font-bold text-lg">{formatCurrency(currentFeeAmount)}</span>
-                </div>
-              </div>
-            </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
+            <span className="text-gray-600">סה״כ תוספים חודשי:</span>
+            <span className="font-bold text-xl">
+              {formatCurrency(activePlugins.reduce((sum, p) => sum + Number(p.monthlyPrice || 0), 0) * 1.18)}
+            </span>
           </div>
         </div>
+      )}
 
-        {/* Active Plugins */}
-        {activePlugins.length > 0 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-            <h2 className="font-semibold text-gray-900 mb-4">🔌 תוספים פעילים</h2>
-            <div className="grid md:grid-cols-3 gap-4">
-              {activePlugins.map((plugin) => (
-                <div key={plugin.pluginSlug} className="border border-gray-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-medium">{plugin.pluginSlug}</span>
-                    <span className={`px-2 py-0.5 text-xs rounded-full ${
-                      plugin.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {plugin.isActive ? 'פעיל' : 'לא פעיל'}
+      {/* Invoices Table */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="p-5 border-b border-gray-100 bg-gray-50">
+          <h2 className="font-semibold text-gray-900">היסטוריית חשבוניות</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/50">
+                <th className="text-right p-4 text-sm font-medium text-gray-600">מספר</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">סוג</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">תקופה</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">סכום</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">מע״מ</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">סה״כ</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">סטטוס</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">תאריך</th>
+                <th className="text-right p-4 text-sm font-medium text-gray-600">חשבונית</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {allInvoices.map((invoice) => (
+                <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4 font-mono text-sm">{invoice.invoiceNumber}</td>
+                  <td className="p-4 text-sm">{getInvoiceTypeLabel(invoice.type)}</td>
+                  <td className="p-4 text-sm text-gray-500">
+                    {invoice.periodStart && invoice.periodEnd ? (
+                      `${formatDate(invoice.periodStart)} - ${formatDate(invoice.periodEnd)}`
+                    ) : '-'}
+                  </td>
+                  <td className="p-4 text-sm">{formatCurrency(invoice.subtotal)}</td>
+                  <td className="p-4 text-sm text-gray-500">{formatCurrency(invoice.vatAmount)}</td>
+                  <td className="p-4 font-medium">{formatCurrency(invoice.totalAmount)}</td>
+                  <td className="p-4">
+                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(invoice.status)}`}>
+                      {getStatusLabel(invoice.status)}
                     </span>
-                  </div>
-                  <p className="text-lg font-bold">{formatCurrency(plugin.monthlyPrice || 0)}/חודש</p>
-                  {plugin.nextBillingDate && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      חיוב הבא: {formatDate(plugin.nextBillingDate)}
-                    </p>
-                  )}
-                </div>
+                  </td>
+                  <td className="p-4 text-sm text-gray-500">
+                    {invoice.paidAt ? formatDate(invoice.paidAt) : formatDate(invoice.issuedAt)}
+                  </td>
+                  <td className="p-4">
+                    {invoice.payplusInvoiceUrl && (
+                      <a
+                        href={invoice.payplusInvoiceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-emerald-600 hover:text-emerald-700 hover:underline text-sm font-medium"
+                      >
+                        צפה →
+                      </a>
+                    )}
+                  </td>
+                </tr>
               ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-100 flex justify-between items-center">
-              <span className="text-gray-600">סה״כ תוספים חודשי:</span>
-              <span className="font-bold text-xl">
-                {formatCurrency(activePlugins.reduce((sum, p) => sum + Number(p.monthlyPrice || 0), 0) * 1.18)}
-              </span>
-            </div>
-          </div>
-        )}
+              {allInvoices.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="p-12 text-center text-gray-500">
+                    <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="font-medium">אין חשבוניות עדיין</p>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-        {/* Invoices Table */}
-        <div className="bg-white rounded-xl border border-gray-200">
-          <div className="p-4 border-b border-gray-100">
-            <h2 className="font-semibold">📄 היסטוריית חשבוניות</h2>
+      {/* Transaction Fees History */}
+      {transactionFeesData.length > 0 && (
+        <div className="mt-8 bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-gray-100 bg-gray-50">
+            <h2 className="font-semibold text-gray-900">היסטוריית עמלות עסקאות</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">מספר</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">סוג</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">תקופה</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">סכום</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">מע״מ</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">סה״כ</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">סטטוס</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">תאריך</th>
-                  <th className="text-right p-4 text-sm font-medium text-gray-500">חשבונית</th>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="text-right p-4 text-sm font-medium text-gray-600">תקופה</th>
+                  <th className="text-right p-4 text-sm font-medium text-gray-600">עסקאות</th>
+                  <th className="text-right p-4 text-sm font-medium text-gray-600">סה״כ מכירות</th>
+                  <th className="text-right p-4 text-sm font-medium text-gray-600">עמלה</th>
+                  <th className="text-right p-4 text-sm font-medium text-gray-600">תאריך חישוב</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {allInvoices.map((invoice) => (
-                  <tr key={invoice.id} className="hover:bg-gray-50">
-                    <td className="p-4 font-mono text-sm">{invoice.invoiceNumber}</td>
-                    <td className="p-4 text-sm">{getInvoiceTypeLabel(invoice.type)}</td>
-                    <td className="p-4 text-sm text-gray-500">
-                      {invoice.periodStart && invoice.periodEnd ? (
-                        `${formatDate(invoice.periodStart)} - ${formatDate(invoice.periodEnd)}`
-                      ) : '-'}
+                {transactionFeesData.map((fee) => (
+                  <tr key={fee.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="p-4 text-sm">
+                      {formatDate(fee.periodStart)} - {formatDate(fee.periodEnd)}
                     </td>
-                    <td className="p-4 text-sm">{formatCurrency(invoice.subtotal)}</td>
-                    <td className="p-4 text-sm text-gray-500">{formatCurrency(invoice.vatAmount)}</td>
-                    <td className="p-4 font-medium">{formatCurrency(invoice.totalAmount)}</td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(invoice.status)}`}>
-                        {getStatusLabel(invoice.status)}
-                      </span>
-                    </td>
-                    <td className="p-4 text-sm text-gray-500">
-                      {invoice.paidAt ? formatDate(invoice.paidAt) : formatDate(invoice.issuedAt)}
-                    </td>
-                    <td className="p-4">
-                      {invoice.payplusInvoiceUrl && (
-                        <a
-                          href={invoice.payplusInvoiceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline text-sm"
-                        >
-                          צפה →
-                        </a>
-                      )}
-                    </td>
+                    <td className="p-4 text-sm">{fee.totalTransactionsCount}</td>
+                    <td className="p-4 text-sm">{formatCurrency(fee.totalTransactionsAmount)}</td>
+                    <td className="p-4 font-medium">{formatCurrency(fee.feeAmount)}</td>
+                    <td className="p-4 text-sm text-gray-500">{formatDate(fee.calculatedAt)}</td>
                   </tr>
                 ))}
-                {allInvoices.length === 0 && (
-                  <tr>
-                    <td colSpan={9} className="p-8 text-center text-gray-500">
-                      אין חשבוניות עדיין
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           </div>
         </div>
-
-        {/* Transaction Fees History */}
-        {transactionFeesData.length > 0 && (
-          <div className="mt-8 bg-white rounded-xl border border-gray-200">
-            <div className="p-4 border-b border-gray-100">
-              <h2 className="font-semibold">📈 היסטוריית עמלות עסקאות</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100">
-                    <th className="text-right p-4 text-sm font-medium text-gray-500">תקופה</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-500">עסקאות</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-500">סה״כ מכירות</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-500">עמלה (0.5%)</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-500">תאריך חישוב</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {transactionFeesData.map((fee) => (
-                    <tr key={fee.id} className="hover:bg-gray-50">
-                      <td className="p-4 text-sm">
-                        {formatDate(fee.periodStart)} - {formatDate(fee.periodEnd)}
-                      </td>
-                      <td className="p-4 text-sm">{fee.totalTransactionsCount}</td>
-                      <td className="p-4 text-sm">{formatCurrency(fee.totalTransactionsAmount)}</td>
-                      <td className="p-4 font-medium">{formatCurrency(fee.feeAmount)}</td>
-                      <td className="p-4 text-sm text-gray-500">{formatDate(fee.calculatedAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </main>
+      )}
     </div>
   );
 }
-

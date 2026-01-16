@@ -1,17 +1,12 @@
 /**
  * Platform Settings Admin Page
- * ניהול הגדרות פלטפורמה - מחירים, עמלות ותוספים
+ * הגדרות כלליות של הפלטפורמה
  */
 
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { db } from '@/lib/db';
-import { platformSettings, pluginPricing, users } from '@/lib/db/schema';
-import { desc, eq } from 'drizzle-orm';
+import { Settings, Info, Globe, Mail, Shield } from 'lucide-react';
 import Link from 'next/link';
-import { PlatformSettingsForm } from './settings-form';
-import { PluginPricingForm } from './plugin-pricing-form';
-import { Settings, CreditCard, Puzzle, ArrowLeft, DollarSign, Percent } from 'lucide-react';
 
 export default async function PlatformSettingsPage() {
   const session = await auth();
@@ -20,175 +15,110 @@ export default async function PlatformSettingsPage() {
     redirect('/login');
   }
 
-  // Get all platform settings
-  const settings = await db
-    .select()
-    .from(platformSettings)
-    .orderBy(platformSettings.category, platformSettings.key);
-
-  // Group settings by category
-  const settingsByCategory: Record<string, typeof settings> = {};
-  for (const setting of settings) {
-    if (!settingsByCategory[setting.category]) {
-      settingsByCategory[setting.category] = [];
-    }
-    settingsByCategory[setting.category].push(setting);
-  }
-
-  // Get plugin pricing
-  const pluginPrices = await db
-    .select()
-    .from(pluginPricing)
-    .orderBy(pluginPricing.pluginSlug);
-
-  const categoryLabels: Record<string, { label: string; icon: React.ReactNode }> = {
-    subscription: { label: 'מחירי מנויים', icon: <CreditCard className="w-5 h-5" /> },
-    fees: { label: 'עמלות ומיסים', icon: <Percent className="w-5 h-5" /> },
-    general: { label: 'כללי', icon: <Settings className="w-5 h-5" /> },
-  };
-
-  const settingLabels: Record<string, { label: string; suffix?: string; type?: 'currency' | 'percent' | 'number' }> = {
-    subscription_branding_price: { label: 'מחיר מסלול תדמית', suffix: '₪/חודש', type: 'currency' },
-    subscription_quickshop_price: { label: 'מחיר מסלול קוויק שופ', suffix: '₪/חודש', type: 'currency' },
-    subscription_trial_days: { label: 'ימי נסיון', suffix: 'ימים', type: 'number' },
-    transaction_fee_rate: { label: 'עמלת עסקאות', suffix: '%', type: 'percent' },
-    vat_rate: { label: 'אחוז מע"מ', suffix: '%', type: 'percent' },
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="p-8">
       {/* Header */}
-      <header className="bg-black text-white">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="font-display text-xl tracking-[0.3em] uppercase">
-              QuickShop
-            </Link>
-            <span className="px-2 py-1 bg-white/20 text-xs rounded">Platform Admin</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-white/60">{session.user.email}</span>
-            <Link href="/logout" className="text-sm text-white/60 hover:text-white">
-              התנתק
-            </Link>
-          </div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-1">
+            <Settings className="w-7 h-7 text-emerald-600" />
+            הגדרות פלטפורמה
+          </h1>
+          <p className="text-gray-500">הגדרות כלליות של המערכת</p>
         </div>
-      </header>
+      </div>
 
-      {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex gap-8">
-            <Link href="/admin" className="py-4 text-sm text-gray-600 hover:text-black">
-              סקירה
-            </Link>
-            <Link href="/admin/stores" className="py-4 text-sm text-gray-600 hover:text-black">
-              חנויות
-            </Link>
-            <Link href="/admin/users" className="py-4 text-sm text-gray-600 hover:text-black">
-              משתמשים
-            </Link>
-            <Link href="/admin/billing" className="py-4 text-sm text-gray-600 hover:text-black">
-              חיובים
-            </Link>
-            <Link href="/admin/settings" className="py-4 text-sm font-medium border-b-2 border-black">
-              הגדרות
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      {/* Content */}
-      <main className="max-w-5xl mx-auto px-6 py-8">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-              <Settings className="w-7 h-7" />
-              הגדרות פלטפורמה
-            </h1>
-            <p className="text-gray-500 mt-1">ניהול מחירי מנויים, עמלות ותוספים</p>
-          </div>
-        </div>
-
-        <div className="space-y-8">
-          {/* Platform Settings */}
-          {Object.entries(settingsByCategory).map(([category, categorySettings]) => (
-            <div key={category} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-              <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-                {categoryLabels[category]?.icon || <Settings className="w-5 h-5" />}
-                <h2 className="font-semibold text-gray-900">
-                  {categoryLabels[category]?.label || category}
-                </h2>
+      <div className="space-y-6">
+        {/* Quick Links */}
+        <div className="grid md:grid-cols-2 gap-4">
+          <Link 
+            href="/admin/pricing"
+            className="bg-white rounded-2xl border border-gray-200 p-6 hover:border-emerald-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-500 transition-colors">
+                <Settings className="w-6 h-6 text-emerald-600 group-hover:text-white transition-colors" />
               </div>
-              <div className="p-6">
-                <PlatformSettingsForm 
-                  settings={categorySettings.map(s => ({
-                    key: s.key,
-                    value: s.value as string | number,
-                    description: s.description,
-                    label: settingLabels[s.key]?.label || s.key,
-                    suffix: settingLabels[s.key]?.suffix,
-                    type: settingLabels[s.key]?.type || 'number',
-                  }))}
-                />
+              <div>
+                <h3 className="font-bold text-gray-900 mb-1">מחירים ותעריפים</h3>
+                <p className="text-sm text-gray-500">ניהול מחירי מנויים, עמלות, חריגים ומשלמים</p>
               </div>
             </div>
-          ))}
+          </Link>
 
-          {/* If no settings in DB yet, show defaults */}
-          {settings.length === 0 && (
-            <>
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-                  <CreditCard className="w-5 h-5" />
-                  <h2 className="font-semibold text-gray-900">מחירי מנויים</h2>
-                </div>
-                <div className="p-6">
-                  <PlatformSettingsForm 
-                    settings={[
-                      { key: 'subscription_branding_price', value: 299, label: 'מחיר מסלול תדמית', suffix: '₪/חודש', type: 'currency' },
-                      { key: 'subscription_quickshop_price', value: 399, label: 'מחיר מסלול קוויק שופ', suffix: '₪/חודש', type: 'currency' },
-                      { key: 'subscription_trial_days', value: 7, label: 'ימי נסיון', suffix: 'ימים', type: 'number' },
-                    ]}
-                  />
-                </div>
+          <Link 
+            href="/admin/plugins"
+            className="bg-white rounded-2xl border border-gray-200 p-6 hover:border-purple-300 hover:shadow-md transition-all group"
+          >
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center group-hover:bg-purple-500 transition-colors">
+                <Settings className="w-6 h-6 text-purple-600 group-hover:text-white transition-colors" />
               </div>
-
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-                  <Percent className="w-5 h-5" />
-                  <h2 className="font-semibold text-gray-900">עמלות ומיסים</h2>
-                </div>
-                <div className="p-6">
-                  <PlatformSettingsForm 
-                    settings={[
-                      { key: 'transaction_fee_rate', value: 0.5, label: 'עמלת עסקאות', suffix: '%', type: 'percent' },
-                      { key: 'vat_rate', value: 18, label: 'אחוז מע"מ', suffix: '%', type: 'percent' },
-                    ]}
-                  />
-                </div>
+              <div>
+                <h3 className="font-bold text-gray-900 mb-1">מחירי תוספים</h3>
+                <p className="text-sm text-gray-500">הגדרת מחירים וימי נסיון לכל תוסף</p>
               </div>
-            </>
-          )}
-
-          {/* Plugin Pricing */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
-              <Puzzle className="w-5 h-5" />
-              <h2 className="font-semibold text-gray-900">מחירי תוספים</h2>
             </div>
-            <div className="p-6">
-              <PluginPricingForm plugins={pluginPrices.map(p => ({
-                slug: p.pluginSlug,
-                monthlyPrice: Number(p.monthlyPrice),
-                trialDays: p.trialDays || 14,
-                isActive: p.isActive,
-              }))} />
+          </Link>
+        </div>
+
+        {/* Platform Info */}
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+            <Info className="w-5 h-5 text-gray-600" />
+            <h2 className="font-semibold text-gray-900">מידע על הפלטפורמה</h2>
+          </div>
+          <div className="p-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-sm font-medium text-gray-600 mb-1 block">שם הפלטפורמה</label>
+                <p className="text-gray-900 font-medium">QuickShop</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600 mb-1 block">גרסה</label>
+                <p className="text-gray-900 font-medium">1.0.0</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600 mb-1 block">סביבה</label>
+                <p className="text-gray-900 font-medium">
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded text-sm">
+                    {process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}
+                  </span>
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-600 mb-1 block">מנהל ראשי</label>
+                <p className="text-gray-900 font-medium">{session.user.email}</p>
+              </div>
             </div>
           </div>
         </div>
-      </main>
+
+        {/* Coming Soon Features */}
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200 p-6">
+          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            הגדרות נוספות (בקרוב)
+          </h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="bg-white/60 rounded-xl p-4 border border-gray-200/50">
+              <Globe className="w-5 h-5 text-gray-400 mb-2" />
+              <p className="text-sm font-medium text-gray-700">הגדרות דומיין</p>
+              <p className="text-xs text-gray-500">ניהול דומיינים ו-SSL</p>
+            </div>
+            <div className="bg-white/60 rounded-xl p-4 border border-gray-200/50">
+              <Mail className="w-5 h-5 text-gray-400 mb-2" />
+              <p className="text-sm font-medium text-gray-700">הגדרות אימייל</p>
+              <p className="text-xs text-gray-500">תבניות והתראות</p>
+            </div>
+            <div className="bg-white/60 rounded-xl p-4 border border-gray-200/50">
+              <Shield className="w-5 h-5 text-gray-400 mb-2" />
+              <p className="text-sm font-medium text-gray-700">אבטחה</p>
+              <p className="text-xs text-gray-500">הגדרות אבטחה ו-2FA</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-

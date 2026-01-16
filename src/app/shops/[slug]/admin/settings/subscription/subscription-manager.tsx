@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CreditCard, Calendar, AlertTriangle, CheckCircle, Clock, FileText, ExternalLink, Zap, Crown, Star } from 'lucide-react';
+import { CreditCard, Calendar, AlertTriangle, CheckCircle, Clock, FileText, ExternalLink, Zap, Crown, Star, Shield, Sparkles, TrendingUp, Package, ShoppingCart, BarChart3, Gift } from 'lucide-react';
 
 interface SubscriptionManagerProps {
   store: {
@@ -17,6 +17,7 @@ interface SubscriptionManagerProps {
     currentPeriodStart: string | null;
     currentPeriodEnd: string | null;
     hasPaymentMethod: boolean;
+    customMonthlyPrice?: string | null;
   } | null;
   billing: {
     periodTransactionTotal: number;
@@ -31,6 +32,11 @@ interface SubscriptionManagerProps {
     createdAt: string;
     payplusInvoiceUrl: string | null;
   }[];
+  // 💰 Custom prices from database (super admin can override)
+  prices?: {
+    branding: number;
+    quickshop: number;
+  };
 }
 
 const planInfo = {
@@ -71,9 +77,18 @@ const invoiceTypeLabels = {
   plugin: 'תוספים',
 };
 
-export function SubscriptionManager({ store, subscription, billing, invoices }: SubscriptionManagerProps) {
+export function SubscriptionManager({ store, subscription, billing, invoices, prices }: SubscriptionManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'branding' | 'quickshop'>('quickshop');
+  
+  // 💰 Check if store has custom pricing from super admin
+  const hasCustomPrice = subscription?.customMonthlyPrice !== null && subscription?.customMonthlyPrice !== undefined;
+  const customPrice = hasCustomPrice ? parseFloat(subscription!.customMonthlyPrice!) : null;
+  
+  // 💰 Get actual prices (custom from store or global or default)
+  // If store has custom price, use it for both plans
+  const brandingPrice = customPrice ?? prices?.branding ?? planInfo.branding.price;
+  const quickshopPrice = customPrice ?? prices?.quickshop ?? planInfo.quickshop.price;
 
   const handleSubscribe = async (plan: 'branding' | 'quickshop') => {
     setIsLoading(true);
@@ -118,171 +133,281 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
     return new Intl.NumberFormat('he-IL', {
       style: 'currency',
       currency: 'ILS',
+      minimumFractionDigits: 0,
     }).format(amount);
+  };
+
+  // Calculate actual price (custom or default)
+  const getActualPrice = (plan: 'branding' | 'quickshop') => {
+    if (subscription?.customMonthlyPrice) {
+      return parseFloat(subscription.customMonthlyPrice);
+    }
+    return planInfo[plan].price;
   };
 
   // If no subscription or in trial/expired, show plan selection
   if (!subscription || subscription.status === 'trial' || subscription.status === 'expired') {
     return (
       <div className="space-y-8">
-        {/* Trial Banner */}
-        {subscription?.status === 'trial' && billing.trialDaysRemaining > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3">
-            <Clock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-blue-900">תקופת נסיון</h3>
-              <p className="text-blue-700 text-sm">
-                נשארו לך <strong>{billing.trialDaysRemaining}</strong> ימים לנסות את כל הפיצ&apos;רים בחינם.
-                בחר מסלול להמשך השימוש.
+        {/* Header */}
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">בחר את המסלול שלך</h1>
+          <p className="text-gray-600">הגדר את פרטי החנות, עיצוב, ואפשרויות נוספות</p>
+        </div>
+
+        {/* Trial/Expired Banner */}
+        {subscription?.status === 'trial' && billing.trialDaysRemaining > 0 ? (
+          <div className={`
+            rounded-2xl p-5 flex items-center gap-4
+            ${billing.trialDaysRemaining <= 2 
+              ? 'bg-gradient-to-r from-red-50 to-orange-50 border border-red-200' 
+              : billing.trialDaysRemaining <= 4
+                ? 'bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-200'
+                : 'bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200'
+            }
+          `}>
+            <div className={`
+              w-14 h-14 rounded-2xl flex items-center justify-center
+              ${billing.trialDaysRemaining <= 2 
+                ? 'bg-red-100' 
+                : billing.trialDaysRemaining <= 4
+                  ? 'bg-amber-100'
+                  : 'bg-blue-100'
+              }
+            `}>
+              <Clock className={`
+                w-7 h-7
+                ${billing.trialDaysRemaining <= 2 
+                  ? 'text-red-600' 
+                  : billing.trialDaysRemaining <= 4
+                    ? 'text-amber-600'
+                    : 'text-blue-600'
+                }
+              `} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className={`font-bold ${
+                  billing.trialDaysRemaining <= 2 
+                    ? 'text-red-900' 
+                    : billing.trialDaysRemaining <= 4
+                      ? 'text-amber-900'
+                      : 'text-blue-900'
+                }`}>
+                  תקופת נסיון
+                </h3>
+                <span className={`
+                  px-2.5 py-0.5 rounded-full text-xs font-bold
+                  ${billing.trialDaysRemaining <= 2 
+                    ? 'bg-red-500 text-white' 
+                    : billing.trialDaysRemaining <= 4
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-blue-500 text-white'
+                  }
+                `}>
+                  {billing.trialDaysRemaining} ימים נותרו
+                </span>
+              </div>
+              <p className={`text-sm ${
+                billing.trialDaysRemaining <= 2 
+                  ? 'text-red-700' 
+                  : billing.trialDaysRemaining <= 4
+                    ? 'text-amber-700'
+                    : 'text-blue-700'
+              }`}>
+                {billing.trialDaysRemaining <= 2 
+                  ? 'תקופת הנסיון עומדת להסתיים! בחר מסלול עכשיו כדי להמשיך.' 
+                  : 'כל הפיצ\'רים פתוחים לך בחינם. בחר מסלול להמשך השימוש.'
+                }
               </p>
             </div>
           </div>
-        )}
-
-        {/* Expired Banner */}
-        {subscription?.status === 'expired' && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-red-900">תקופת הנסיון הסתיימה</h3>
+        ) : subscription?.status === 'expired' ? (
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center">
+              <AlertTriangle className="w-7 h-7 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-red-900 mb-1">תקופת הנסיון הסתיימה</h3>
               <p className="text-red-700 text-sm">
-                בחר מסלול כדי להמשיך להשתמש בחנות שלך.
+                בחר מסלול כדי להמשיך להשתמש בחנות שלך. כל הנתונים שלך נשמרים!
               </p>
             </div>
           </div>
-        )}
-
-        {/* Plan Selection */}
-        <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">בחר את המסלול שלך</h2>
-          
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* Branding Plan */}
-            <div 
-              className={`
-                relative border-2 rounded-xl p-6 cursor-pointer transition-all
-                ${selectedPlan === 'branding' 
-                  ? 'border-purple-500 bg-purple-50' 
-                  : 'border-gray-200 hover:border-purple-300 bg-white'
-                }
-              `}
-              onClick={() => setSelectedPlan('branding')}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <Star className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900">אתר תדמית</h3>
-                  <p className="text-sm text-gray-500">לעסקים שרוצים נוכחות דיגיטלית</p>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-gray-900">₪299</span>
-                <span className="text-gray-500">/חודש + מע&quot;מ</span>
-              </div>
-              
-              <ul className="space-y-2">
-                {planInfo.branding.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-purple-500" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-              
+        ) : null}
+        
+        {/* Plans Grid */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Branding Plan */}
+          <div 
+            className={`
+              relative bg-white rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden
+              ${selectedPlan === 'branding' 
+                ? 'border-purple-500 bg-purple-50' 
+                : 'border-gray-200 hover:border-purple-300'
+              }
+            `}
+            onClick={() => setSelectedPlan('branding')}
+          >
+            {/* Selection indicator */}
+            <div className={`
+              absolute top-4 left-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all
+              ${selectedPlan === 'branding'
+                ? 'border-purple-500 bg-purple-500'
+                : 'border-gray-300'
+              }
+            `}>
               {selectedPlan === 'branding' && (
-                <div className="absolute top-3 left-3">
-                  <div className="w-5 h-5 bg-purple-500 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-3 h-3 text-white" />
-                  </div>
-                </div>
+                <CheckCircle className="w-4 h-4 text-white" />
               )}
             </div>
-
-            {/* QuickShop Plan */}
-            <div 
-              className={`
-                relative border-2 rounded-xl p-6 cursor-pointer transition-all
-                ${selectedPlan === 'quickshop' 
-                  ? 'border-emerald-500 bg-emerald-50' 
-                  : 'border-gray-200 hover:border-emerald-300 bg-white'
-                }
-              `}
-              onClick={() => setSelectedPlan('quickshop')}
-            >
-              <div className="absolute -top-3 right-4">
-                <span className="bg-emerald-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                  מומלץ
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                  <Crown className="w-5 h-5 text-emerald-600" />
+            
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center">
+                  <Star className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">קוויק שופ</h3>
-                  <p className="text-sm text-gray-500">חנות מקוונת מלאה</p>
+                  <h3 className="text-xl font-bold text-gray-900">אתר תדמית</h3>
+                  <p className="text-gray-500 text-sm">לעסקים שרוצים נוכחות דיגיטלית</p>
                 </div>
               </div>
               
-              <div className="mb-4">
-                <span className="text-3xl font-bold text-gray-900">₪399</span>
-                <span className="text-gray-500">/חודש + מע&quot;מ</span>
+              {/* Price */}
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-gray-900">₪{brandingPrice}</span>
+                  <span className="text-gray-500">/חודש</span>
+                  {hasCustomPrice && (
+                    <span className="mr-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                      מחיר מותאם
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-400 mt-1">+ מע״מ 18%</p>
               </div>
               
-              <ul className="space-y-2">
-                {planInfo.quickshop.features.map((feature, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" />
-                    {feature}
-                  </li>
-                ))}
+              {/* Features */}
+              <ul className="space-y-3">
+                <FeatureItem icon={<Globe className="w-4 h-4" />} color="purple">
+                  אתר תדמית מקצועי
+                </FeatureItem>
+                <FeatureItem icon={<Sparkles className="w-4 h-4" />} color="purple">
+                  דומיין מותאם אישית
+                </FeatureItem>
+                <FeatureItem icon={<Shield className="w-4 h-4" />} color="purple">
+                  תמיכה בעברית
+                </FeatureItem>
+                <FeatureItem icon={<Package className="w-4 h-4" />} color="purple" disabled>
+                  ללא מכירות
+                </FeatureItem>
               </ul>
-              
-              {selectedPlan === 'quickshop' && (
-                <div className="absolute top-3 left-3">
-                  <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                    <CheckCircle className="w-3 h-3 text-white" />
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Subscribe Button */}
-          <div className="mt-6">
-            <button
-              onClick={() => handleSubscribe(selectedPlan)}
-              disabled={isLoading}
-              className={`
-                w-full py-3 px-6 rounded-lg font-semibold text-white transition-colors
-                ${selectedPlan === 'quickshop' 
-                  ? 'bg-emerald-600 hover:bg-emerald-700' 
-                  : 'bg-purple-600 hover:bg-purple-700'
-                }
-                disabled:opacity-50 disabled:cursor-not-allowed
-              `}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  מעבד...
-                </span>
-              ) : (
-                `המשך לתשלום - ${formatCurrency(planInfo[selectedPlan].price)} + מע"מ`
+          {/* QuickShop Plan */}
+          <div 
+            className={`
+              relative bg-white rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden
+              ${selectedPlan === 'quickshop' 
+                ? 'border-emerald-500 bg-emerald-50' 
+                : 'border-gray-200 hover:border-emerald-300'
+              }
+            `}
+            onClick={() => setSelectedPlan('quickshop')}
+          >
+            {/* Selection indicator */}
+            <div className={`
+              absolute top-4 left-4 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all
+              ${selectedPlan === 'quickshop'
+                ? 'border-emerald-500 bg-emerald-500'
+                : 'border-gray-300'
+              }
+            `}>
+              {selectedPlan === 'quickshop' && (
+                <CheckCircle className="w-4 h-4 text-white" />
               )}
-            </button>
+            </div>
             
-            <p className="text-center text-sm text-gray-500 mt-2">
-              + 0.5% עמלה על כל עסקה (לא כולל מע&quot;מ)
-            </p>
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-start gap-4 mb-6">
+                <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center">
+                  <Crown className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">קוויק שופ</h3>
+                  <p className="text-gray-500 text-sm">חנות מקוונת מלאה</p>
+                </div>
+              </div>
+              
+              {/* Price */}
+              <div className="mb-6">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-bold text-gray-900">₪{quickshopPrice}</span>
+                  <span className="text-gray-500">/חודש</span>
+                  {hasCustomPrice && (
+                    <span className="mr-2 px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                      מחיר מותאם
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-gray-400 mt-1">+ מע״מ 18% + 0.5% עמלות</p>
+              </div>
+              
+              {/* Features */}
+              <ul className="space-y-3">
+                <FeatureItem icon={<ShoppingCart className="w-4 h-4" />} color="emerald">
+                  חנות מקוונת מלאה
+                </FeatureItem>
+                <FeatureItem icon={<CreditCard className="w-4 h-4" />} color="emerald">
+                  מכירות ותשלומים
+                </FeatureItem>
+                <FeatureItem icon={<BarChart3 className="w-4 h-4" />} color="emerald">
+                  דוחות ואנליטיקס
+                </FeatureItem>
+                <FeatureItem icon={<Gift className="w-4 h-4" />} color="emerald">
+                  תוספים מתקדמים
+                </FeatureItem>
+              </ul>
+            </div>
           </div>
+        </div>
+
+        {/* Subscribe Button */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <button
+            onClick={() => handleSubscribe(selectedPlan)}
+            disabled={isLoading}
+            className={`
+              w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all
+              ${selectedPlan === 'quickshop' 
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700' 
+                : 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700'
+              }
+              disabled:opacity-50 disabled:cursor-not-allowed
+            `}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                מעבד...
+              </span>
+            ) : (
+              <>
+                המשך לתשלום - {formatCurrency(selectedPlan === 'quickshop' ? quickshopPrice : brandingPrice)} + מע״מ
+              </>
+            )}
+          </button>
+          
+          <p className="text-center text-sm text-gray-500 mt-4 flex items-center justify-center gap-2">
+            <Shield className="w-4 h-4" />
+            תשלום מאובטח • ביטול בכל עת
+          </p>
         </div>
       </div>
     );
@@ -292,50 +417,67 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
   const currentPlan = planInfo[subscription.plan];
   const currentStatus = statusInfo[subscription.status];
   const StatusIcon = currentStatus.icon;
+  const actualPrice = subscription.customMonthlyPrice 
+    ? parseFloat(subscription.customMonthlyPrice) 
+    : currentPlan.price;
 
   return (
     <div className="space-y-6">
       {/* Current Plan Card */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 bg-${currentPlan.color}-100 rounded-xl flex items-center justify-center`}>
-              <currentPlan.icon className={`w-6 h-6 text-${currentPlan.color}-600`} />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">{currentPlan.name}</h3>
-              <div className="flex items-center gap-2">
-                <span className={`
-                  inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
-                  bg-${currentStatus.color}-100 text-${currentStatus.color}-700
-                `}>
-                  <StatusIcon className="w-3 h-3" />
-                  {currentStatus.label}
-                </span>
+      <div className={`
+        rounded-2xl overflow-hidden
+        ${subscription.plan === 'quickshop' 
+          ? 'bg-gradient-to-br from-emerald-500 to-teal-600' 
+          : 'bg-gradient-to-br from-purple-500 to-violet-600'
+        }
+      `}>
+        <div className="p-6 text-white">
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                <currentPlan.icon className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold">{currentPlan.name}</h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className={`
+                    inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+                    ${subscription.status === 'active' 
+                      ? 'bg-white/20 text-white' 
+                      : 'bg-yellow-400 text-yellow-900'
+                    }
+                  `}>
+                    <StatusIcon className="w-3 h-3" />
+                    {currentStatus.label}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="text-left">
-            <div className="text-2xl font-bold text-gray-900">
-              {formatCurrency(currentPlan.price)}
+            
+            <div className="text-left">
+              <div className="text-3xl font-bold">
+                {formatCurrency(actualPrice)}
+              </div>
+              <div className="text-white/70 text-sm">לחודש + מע״מ</div>
+              {subscription.customMonthlyPrice && (
+                <div className="text-white/50 text-xs mt-1">מחיר מותאם אישית</div>
+              )}
             </div>
-            <div className="text-sm text-gray-500">לחודש + מע&quot;מ</div>
           </div>
+
+          {/* Subscription Dates */}
+          {subscription.currentPeriodEnd && (
+            <div className="flex items-center gap-2 text-sm bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3">
+              <Calendar className="w-4 h-4" />
+              <span>
+                תקופת מנוי נוכחית עד: <strong>{formatDate(subscription.currentPeriodEnd)}</strong>
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* Subscription Dates */}
-        {subscription.currentPeriodEnd && (
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-white rounded-lg px-3 py-2">
-            <Calendar className="w-4 h-4" />
-            <span>
-              תקופת מנוי נוכחית עד: <strong>{formatDate(subscription.currentPeriodEnd)}</strong>
-            </span>
-          </div>
-        )}
-
         {/* Payment Method */}
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="bg-white px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm">
               <CreditCard className="w-4 h-4 text-gray-400" />
@@ -362,41 +504,43 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
 
       {/* Billing Stats */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
-            <Zap className="w-4 h-4" />
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
+            <TrendingUp className="w-4 h-4" />
             עסקאות בתקופה
           </div>
-          <div className="text-xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-gray-900">
             {formatCurrency(billing.periodTransactionTotal)}
           </div>
-          <div className="text-xs text-gray-500">14 ימים אחרונים</div>
+          <div className="text-xs text-gray-400 mt-1">14 ימים אחרונים</div>
         </div>
         
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <div className="flex items-center gap-2 text-gray-500 text-sm mb-1">
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
             <FileText className="w-4 h-4" />
             עמלות צפויות
           </div>
-          <div className="text-xl font-bold text-gray-900">
+          <div className="text-2xl font-bold text-gray-900">
             {formatCurrency(billing.pendingTransactionFees)}
           </div>
-          <div className="text-xs text-gray-500">0.5% + מע&quot;מ</div>
+          <div className="text-xs text-gray-400 mt-1">0.5% + מע״מ</div>
         </div>
       </div>
 
       {/* Past Due Warning */}
       {subscription.status === 'past_due' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <div className="bg-gradient-to-r from-yellow-50 to-amber-50 border border-yellow-200 rounded-2xl p-5 flex items-start gap-4">
+          <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-6 h-6 text-yellow-600" />
+          </div>
           <div>
-            <h3 className="font-semibold text-yellow-900">תשלום באיחור</h3>
-            <p className="text-yellow-700 text-sm">
+            <h3 className="font-bold text-yellow-900 mb-1">תשלום באיחור</h3>
+            <p className="text-yellow-700 text-sm mb-3">
               יש בעיה עם אמצעי התשלום שלך. אנא עדכן את פרטי התשלום כדי להמשיך להשתמש בשירות.
             </p>
             <button 
               onClick={() => handleSubscribe(subscription.plan === 'trial' ? 'quickshop' : subscription.plan)}
-              className="mt-2 text-sm font-medium text-yellow-800 underline hover:no-underline"
+              className="text-sm font-medium text-yellow-800 bg-yellow-200 hover:bg-yellow-300 px-4 py-2 rounded-lg transition-colors"
             >
               עדכן אמצעי תשלום
             </button>
@@ -405,74 +549,75 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
       )}
 
       {/* Invoices */}
-      <div>
-        <h3 className="text-lg font-bold text-gray-900 mb-4">היסטוריית חשבוניות</h3>
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-900">היסטוריית חשבוניות</h3>
+        </div>
         
         {invoices.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 bg-gray-50 rounded-xl border border-gray-200">
-            <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p>אין חשבוניות עדיין</p>
+          <div className="text-center py-12 text-gray-500">
+            <FileText className="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">אין חשבוניות עדיין</p>
+            <p className="text-sm text-gray-400 mt-1">חשבוניות יופיעו כאן לאחר התשלום הראשון</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">תאריך</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">סוג</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">סכום</th>
-                  <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">סטטוס</th>
-                  <th className="px-4 py-3"></th>
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-100">
+              <tr>
+                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">תאריך</th>
+                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">סוג</th>
+                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">סכום</th>
+                <th className="text-right px-6 py-3 text-xs font-medium text-gray-500 uppercase">סטטוס</th>
+                <th className="px-6 py-3"></th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {invoices.map((invoice) => (
+                <tr key={invoice.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-4 text-sm text-gray-900">
+                    {formatDate(invoice.createdAt)}
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-600">
+                    {invoiceTypeLabels[invoice.type]}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    {formatCurrency(invoice.amount)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`
+                      inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium
+                      ${invoice.status === 'paid' ? 'bg-green-100 text-green-700' : ''}
+                      ${invoice.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : ''}
+                      ${invoice.status === 'failed' ? 'bg-red-100 text-red-700' : ''}
+                      ${invoice.status === 'refunded' ? 'bg-gray-100 text-gray-700' : ''}
+                    `}>
+                      {invoice.status === 'paid' && 'שולם'}
+                      {invoice.status === 'pending' && 'ממתין'}
+                      {invoice.status === 'failed' && 'נכשל'}
+                      {invoice.status === 'refunded' && 'הוחזר'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-left">
+                    {invoice.payplusInvoiceUrl && (
+                      <a 
+                        href={invoice.payplusInvoiceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-700 p-2 hover:bg-blue-50 rounded-lg transition-colors inline-flex"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm text-gray-900">
-                      {formatDate(invoice.createdAt)}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-600">
-                      {invoiceTypeLabels[invoice.type]}
-                    </td>
-                    <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                      {formatCurrency(invoice.amount)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`
-                        inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
-                        ${invoice.status === 'paid' ? 'bg-green-100 text-green-700' : ''}
-                        ${invoice.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : ''}
-                        ${invoice.status === 'failed' ? 'bg-red-100 text-red-700' : ''}
-                        ${invoice.status === 'refunded' ? 'bg-gray-100 text-gray-700' : ''}
-                      `}>
-                        {invoice.status === 'paid' && 'שולם'}
-                        {invoice.status === 'pending' && 'ממתין'}
-                        {invoice.status === 'failed' && 'נכשל'}
-                        {invoice.status === 'refunded' && 'הוחזר'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-left">
-                      {invoice.payplusInvoiceUrl && (
-                        <a 
-                          href={invoice.payplusInvoiceUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
 
       {/* Change Plan Section */}
-      <div className="pt-4 border-t border-gray-200">
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <h3 className="text-lg font-bold text-gray-900 mb-2">שינוי מסלול</h3>
         <p className="text-sm text-gray-500 mb-4">
           רוצה לשנות מסלול? השינוי ייכנס לתוקף בתחילת תקופת החיוב הבאה.
@@ -483,7 +628,7 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
             <button
               onClick={() => handleSubscribe('branding')}
               disabled={isLoading}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               עבור לאתר תדמית (₪299)
             </button>
@@ -492,7 +637,7 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
             <button
               onClick={() => handleSubscribe('quickshop')}
               disabled={isLoading}
-              className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors"
+              className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
             >
               שדרג לקוויק שופ (₪399)
             </button>
@@ -500,5 +645,46 @@ export function SubscriptionManager({ store, subscription, billing, invoices }: 
         </div>
       </div>
     </div>
+  );
+}
+
+// Feature item component
+function FeatureItem({ 
+  icon, 
+  color, 
+  children, 
+  disabled = false 
+}: { 
+  icon: React.ReactNode; 
+  color: 'purple' | 'emerald'; 
+  children: React.ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <li className={`flex items-center gap-3 text-sm ${disabled ? 'text-gray-400' : 'text-gray-700'}`}>
+      <div className={`
+        w-6 h-6 rounded-lg flex items-center justify-center
+        ${disabled 
+          ? 'bg-gray-100 text-gray-400' 
+          : color === 'purple' 
+            ? 'bg-purple-100 text-purple-600' 
+            : 'bg-emerald-100 text-emerald-600'
+        }
+      `}>
+        {icon}
+      </div>
+      {children}
+    </li>
+  );
+}
+
+// Globe icon component
+function Globe({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <circle cx="12" cy="12" r="10" />
+      <path d="M2 12h20" />
+      <path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+    </svg>
   );
 }

@@ -195,8 +195,8 @@ export async function getOrCreatePayPlusCustomer(
 export async function initiateSubscriptionPayment(
   params: InitiateSubscriptionPaymentParams
 ): Promise<{ paymentPageUrl: string; pageRequestUid: string }> {
-  // Get pricing from DB
-  const { basePrice, vatAmount, totalPrice: totalAmount } = await calculateSubscriptionPriceAsync(params.plan);
+  // Get pricing from DB - pass storeId for custom pricing support
+  const { basePrice, vatAmount, totalPrice: totalAmount } = await calculateSubscriptionPriceAsync(params.plan, params.storeId);
 
   const planNameHe = params.plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
 
@@ -509,5 +509,33 @@ export async function calculateTransactionFeeAsync(transactionTotal: number): Pr
   const totalFee = feeAmount + vatAmount;
   
   return { feeAmount, vatAmount, totalFee, feeRate: feeRates.transactionFee };
+}
+
+/**
+ * Calculate transaction fee for a specific store with custom fee percentage support
+ * Uses store's customFeePercentage if set, otherwise uses platform default
+ */
+export async function calculateTransactionFeeForStore(
+  transactionTotal: number,
+  storeId: string,
+  customFeePercentage?: string | null
+): Promise<{
+  feeAmount: number;
+  vatAmount: number;
+  totalFee: number;
+  feeRate: number;
+}> {
+  const feeRates = await getFeeRates();
+  
+  // Use custom fee percentage if set for this store, otherwise use platform default
+  const feeRate = customFeePercentage 
+    ? parseFloat(customFeePercentage) 
+    : feeRates.transactionFee;
+  
+  const feeAmount = Math.round(transactionTotal * feeRate * 100) / 100;
+  const vatAmount = Math.round(feeAmount * feeRates.vatRate * 100) / 100;
+  const totalFee = feeAmount + vatAmount;
+  
+  return { feeAmount, vatAmount, totalFee, feeRate };
 }
 

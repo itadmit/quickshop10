@@ -1,6 +1,8 @@
 import { getCategories } from '../actions';
 import { GuideForm } from '../guide-form';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   searchParams: Promise<{ category?: string }>;
 }

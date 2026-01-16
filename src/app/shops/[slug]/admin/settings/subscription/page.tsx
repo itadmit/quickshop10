@@ -81,6 +81,7 @@ export default async function SubscriptionPage({ params }: SubscriptionPageProps
           currentPeriodStart: subscription.currentPeriodStart?.toISOString() || null,
           currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() || null,
           hasPaymentMethod: !!subscription.payplusTokenUid,
+          customMonthlyPrice: subscription.customMonthlyPrice,
         } : null}
         billing={{
           periodTransactionTotal: periodTotal,

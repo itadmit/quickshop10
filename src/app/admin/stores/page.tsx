@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { stores, users, storeSubscriptions } from '@/lib/db/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
-import { Search, Store, Eye, Calendar, ShoppingCart, DollarSign, Clock, Check, X } from 'lucide-react';
+import { Search, Store, Settings, Calendar, ShoppingCart, DollarSign, Clock, Check, X } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -57,11 +57,16 @@ export default async function PlatformStoresPage({
     filteredStores = filteredStores.filter(s => !s.isActive);
   }
 
-  // Stats
+  // Stats - count based on subscription status and plan
   const activeCount = allStores.filter(s => s.isActive).length;
-  const trialCount = subscriptions.filter(s => s.plan === 'trial').length;
-  const brandingCount = subscriptions.filter(s => s.plan === 'branding').length;
-  const quickshopCount = subscriptions.filter(s => s.plan === 'quickshop').length;
+  // Trial = stores with status 'trial' OR stores without subscription OR plan is 'trial'
+  const trialCount = allStores.filter(s => {
+    const sub = subMap.get(s.id);
+    if (!sub) return true; // No subscription = trial
+    return sub.status === 'trial' || sub.plan === 'trial';
+  }).length;
+  const brandingCount = subscriptions.filter(s => s.plan === 'branding' && s.status === 'active').length;
+  const quickshopCount = subscriptions.filter(s => s.plan === 'quickshop' && s.status === 'active').length;
 
   const formatCurrency = (amount: string | number) => {
     return new Intl.NumberFormat('he-IL', {
@@ -253,9 +258,9 @@ export default async function PlatformStoresPage({
                       <Link
                         href={`/admin/stores/${store.id}`}
                         className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                        title="צפה בפרטים"
+                        title="הגדרות חנות"
                       >
-                        <Eye className="w-4 h-4" />
+                        <Settings className="w-4 h-4" />
                       </Link>
                       <Link
                         href={`/shops/${store.slug}/admin`}

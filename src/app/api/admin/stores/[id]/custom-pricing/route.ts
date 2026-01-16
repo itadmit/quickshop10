@@ -21,7 +21,7 @@ export async function POST(
 
     const { id: storeId } = await params;
     const body = await req.json();
-    const { customPrice } = body;
+    const { customPrice, customFeePercentage } = body;
 
     // Validate customPrice
     if (customPrice !== null && customPrice !== undefined) {
@@ -29,6 +29,17 @@ export async function POST(
       if (isNaN(price) || price < 0) {
         return NextResponse.json(
           { error: 'מחיר לא תקין' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate customFeePercentage
+    if (customFeePercentage !== null && customFeePercentage !== undefined) {
+      const fee = parseFloat(customFeePercentage);
+      if (isNaN(fee) || fee < 0 || fee > 1) {
+        return NextResponse.json(
+          { error: 'עמלה לא תקינה (צריכה להיות בין 0 ל-1)' },
           { status: 400 }
         );
       }
@@ -46,7 +57,12 @@ export async function POST(
       await db
         .update(storeSubscriptions)
         .set({
-          customMonthlyPrice: customPrice ? customPrice.toString() : null,
+          customMonthlyPrice: customPrice !== null && customPrice !== undefined 
+            ? customPrice.toString() 
+            : null,
+          customFeePercentage: customFeePercentage !== null && customFeePercentage !== undefined 
+            ? customFeePercentage.toString() 
+            : null,
           updatedAt: new Date(),
         })
         .where(eq(storeSubscriptions.storeId, storeId));
@@ -54,22 +70,27 @@ export async function POST(
       // Create new subscription with custom price
       await db.insert(storeSubscriptions).values({
         storeId,
-        customMonthlyPrice: customPrice ? customPrice.toString() : null,
+        customMonthlyPrice: customPrice !== null && customPrice !== undefined 
+          ? customPrice.toString() 
+          : null,
+        customFeePercentage: customFeePercentage !== null && customFeePercentage !== undefined 
+          ? customFeePercentage.toString() 
+          : null,
         plan: 'trial',
         status: 'trial',
+        trialEndsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days trial
       });
     }
 
     return NextResponse.json({ 
       success: true,
-      message: 'המחיר עודכן בהצלחה' 
+      message: 'ההגדרות עודכנו בהצלחה' 
     });
   } catch (error) {
     console.error('Error updating custom pricing:', error);
     return NextResponse.json(
-      { error: 'שגיאה בעדכון המחיר' },
+      { error: 'שגיאה בעדכון ההגדרות' },
       { status: 500 }
     );
   }
 }
-

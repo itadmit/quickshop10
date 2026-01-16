@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import { getGuide, getCategories } from '../actions';
 import { GuideForm } from '../guide-form';
 
+export const dynamic = 'force-dynamic';
+
 interface Props {
   params: Promise<{ id: string }>;
 }

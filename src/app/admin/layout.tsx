@@ -1,7 +1,7 @@
 import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, Store, Users, CreditCard, Settings, LogOut, ChevronDown, BookOpen } from 'lucide-react';
+import { LayoutDashboard, Store, Users, CreditCard, Settings, LogOut, BookOpen, DollarSign, Puzzle } from 'lucide-react';
 
 // Platform admin emails - can add more here
 const ADMIN_EMAILS = ['admin@quickshop.co.il'];
@@ -24,7 +24,7 @@ export default async function AdminLayout({
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="w-9 h-9 bg-linear-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
               <span className="text-white font-bold">Q</span>
             </div>
             <div>
@@ -42,6 +42,8 @@ export default async function AdminLayout({
           <NavItem href="/admin/stores" icon={Store} label="חנויות" />
           <NavItem href="/admin/users" icon={Users} label="משתמשים" />
           <NavItem href="/admin/billing" icon={CreditCard} label="חיובים" />
+          <NavItem href="/admin/pricing" icon={DollarSign} label="מחירים" />
+          <NavItem href="/admin/plugins" icon={Puzzle} label="תוספים" />
           <NavItem href="/admin/guides" icon={BookOpen} label="מדריכים" />
           <NavItem href="/admin/settings" icon={Settings} label="הגדרות" />
         </nav>
@@ -49,7 +51,7 @@ export default async function AdminLayout({
         {/* User */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 p-2 rounded-xl bg-gray-50 mb-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-md">
+            <div className="w-9 h-9 bg-linear-to-br from-emerald-500 to-green-600 rounded-full flex items-center justify-center shadow-md">
               <span className="text-white font-medium text-sm">
                 {session.user.email?.[0].toUpperCase()}
               </span>

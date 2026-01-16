@@ -322,15 +322,15 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
             customDomain: store.customDomain,
           }} />
 
-          {/* Custom Pricing */}
-          {subscription && subscription.plan !== 'trial' && subscription.plan !== 'free' && (
-            <CustomPricingForm
-              storeId={store.id}
-              currentPrice={subscription.customMonthlyPrice}
-              defaultPrice={defaultPrice}
-              planName={planInfo.name}
-            />
-          )}
+          {/* Custom Pricing - Available for all stores including trial */}
+          <CustomPricingForm
+            storeId={store.id}
+            currentPrice={subscription?.customMonthlyPrice || null}
+            currentFeePercentage={subscription?.customFeePercentage || null}
+            defaultPrice={defaultPrice}
+            planName={subscription?.plan === 'trial' ? 'נסיון' : planInfo.name}
+            isTrial={subscription?.status === 'trial'}
+          />
 
           {/* Owner Password Change */}
           <OwnerPasswordForm 

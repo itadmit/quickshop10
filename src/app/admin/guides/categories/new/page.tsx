@@ -1,5 +1,7 @@
 import { CategoryForm } from '../category-form';
 
+export const dynamic = 'force-dynamic';
+
 export default function NewCategoryPage() {
   return (
     <div className="p-8 max-w-2xl">

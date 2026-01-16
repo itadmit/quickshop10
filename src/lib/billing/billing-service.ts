@@ -21,6 +21,7 @@ import {
   calculateSubscriptionPriceAsync,
   calculateTransactionFee,
   calculateTransactionFeeAsync,
+  calculateTransactionFeeForStore,
   PLAN_PRICING,
   VAT_RATE,
   TRANSACTION_FEE_RATE,
@@ -299,8 +300,9 @@ export async function chargeTransactionFees(
 
   // Calculate total transactions
   const totalAmount = paidOrders.reduce((sum, order) => sum + Number(order.total), 0);
-  // Use async version to get fee rate from DB
-  const fee = await calculateTransactionFeeAsync(totalAmount);
+  
+  // Use store-specific fee rate if set, otherwise use platform default
+  const fee = await calculateTransactionFeeForStore(totalAmount, storeId, subscription.customFeePercentage);
   const feePercentDisplay = (fee.feeRate * 100).toFixed(1);
 
   // Skip if fee is too small (less than ₪1)
