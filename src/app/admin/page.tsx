@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { stores, users, orders, storeSubscriptions } from '@/lib/db/schema';
 import { sql, desc, eq } from 'drizzle-orm';
 import Link from 'next/link';
-import { Store, Users, ShoppingCart, DollarSign, TrendingUp, ArrowUpRight, Clock, Calendar, Activity } from 'lucide-react';
+import { Store, Users, ShoppingCart, DollarSign, TrendingUp, ArrowUpRight, Clock, Activity } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -108,15 +108,15 @@ export default async function PlatformAdminPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">סקירת פלטפורמה</h1>
-        <p className="text-gray-500">ברוך הבא למערכת הניהול של QuickShop</p>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-1">סקירת פלטפורמה</h1>
+        <p className="text-sm sm:text-base text-gray-500">ברוך הבא למערכת הניהול של QuickShop</p>
       </div>
 
-      {/* Main Stats */}
-      <div className="grid grid-cols-4 gap-5 mb-8">
+      {/* Main Stats - Responsive Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 mb-6 sm:mb-8">
         <StatCard
           icon={Store}
           label="חנויות"
@@ -150,41 +150,42 @@ export default async function PlatformAdminPage() {
       </div>
 
       {/* Subscription Stats */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-8 shadow-sm">
-        <div className="flex items-center gap-2 mb-5">
+      <div className="bg-white rounded-2xl border border-gray-200 p-4 sm:p-6 mb-6 sm:mb-8 shadow-sm">
+        <div className="flex items-center gap-2 mb-4 sm:mb-5">
           <Activity className="w-5 h-5 text-emerald-600" />
-          <h2 className="text-lg font-bold text-gray-900">התפלגות מנויים</h2>
+          <h2 className="text-base sm:text-lg font-bold text-gray-900">התפלגות מנויים</h2>
         </div>
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-xl p-4 border border-blue-200">
-            <p className="text-3xl font-bold text-blue-700">{planCountMap['trial'] || 0}</p>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-linear-to-br from-blue-50 to-blue-100/50 rounded-xl p-3 sm:p-4 border border-blue-200">
+            <p className="text-2xl sm:text-3xl font-bold text-blue-700">{planCountMap['trial'] || 0}</p>
             <p className="text-sm text-blue-600 font-medium">נסיון</p>
-            <p className="text-xs text-blue-500 mt-1">7 ימים חינם</p>
+            <p className="text-xs text-blue-500 mt-1 hidden sm:block">7 ימים חינם</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 rounded-xl p-4 border border-purple-200">
-            <p className="text-3xl font-bold text-purple-700">{planCountMap['branding'] || 0}</p>
+          <div className="bg-linear-to-br from-purple-50 to-purple-100/50 rounded-xl p-3 sm:p-4 border border-purple-200">
+            <p className="text-2xl sm:text-3xl font-bold text-purple-700">{planCountMap['branding'] || 0}</p>
             <p className="text-sm text-purple-600 font-medium">תדמית</p>
-            <p className="text-xs text-purple-500 mt-1">₪299/חודש</p>
+            <p className="text-xs text-purple-500 mt-1 hidden sm:block">₪299/חודש</p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-4 border border-emerald-200">
-            <p className="text-3xl font-bold text-emerald-700">{planCountMap['quickshop'] || 0}</p>
+          <div className="bg-linear-to-br from-emerald-50 to-emerald-100/50 rounded-xl p-3 sm:p-4 border border-emerald-200">
+            <p className="text-2xl sm:text-3xl font-bold text-emerald-700">{planCountMap['quickshop'] || 0}</p>
             <p className="text-sm text-emerald-600 font-medium">קוויק שופ</p>
-            <p className="text-xs text-emerald-500 mt-1">₪399/חודש</p>
+            <p className="text-xs text-emerald-500 mt-1 hidden sm:block">₪399/חודש</p>
           </div>
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-4 border border-gray-200">
-            <p className="text-3xl font-bold text-gray-700">
+          <div className="bg-linear-to-br from-gray-50 to-gray-100/50 rounded-xl p-3 sm:p-4 border border-gray-200">
+            <p className="text-2xl sm:text-3xl font-bold text-gray-700">
               {(planCountMap['trial'] || 0) + (planCountMap['branding'] || 0) + (planCountMap['quickshop'] || 0)}
             </p>
             <p className="text-sm text-gray-600 font-medium">סה״כ מנויים</p>
-            <p className="text-xs text-gray-500 mt-1">כל התוכניות</p>
+            <p className="text-xs text-gray-500 mt-1 hidden sm:block">כל התוכניות</p>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      {/* Recent Stores & Users - Stack on mobile */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Stores */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Store className="w-5 h-5 text-emerald-600" />
               <h2 className="font-bold text-gray-900">חנויות אחרונות</h2>
@@ -199,19 +200,19 @@ export default async function PlatformAdminPage() {
               <Link
                 key={store.id}
                 href={`/admin/stores/${store.id}`}
-                className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-green-100 rounded-xl flex items-center justify-center border border-emerald-200">
-                    <Store className="w-5 h-5 text-emerald-600" />
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 bg-linear-to-br from-emerald-100 to-green-100 rounded-xl flex items-center justify-center border border-emerald-200 flex-shrink-0">
+                    <Store className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{store.name}</p>
-                    <p className="text-xs text-gray-500">{store.ownerEmail}</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{store.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{store.ownerEmail}</p>
                   </div>
                 </div>
-                <div className="text-left">
-                  <span className={`px-2.5 py-1 text-xs rounded-full font-medium ${
+                <div className="text-left flex-shrink-0 mr-2">
+                  <span className={`px-2 sm:px-2.5 py-1 text-[10px] sm:text-xs rounded-full font-medium ${
                     store.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' :
                     store.plan === 'branding' ? 'bg-purple-100 text-purple-700' :
                     'bg-blue-100 text-blue-700'
@@ -233,7 +234,7 @@ export default async function PlatformAdminPage() {
 
         {/* Recent Users */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+          <div className="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-600" />
               <h2 className="font-bold text-gray-900">משתמשים אחרונים</h2>
@@ -248,26 +249,26 @@ export default async function PlatformAdminPage() {
               <Link
                 key={user.id}
                 href={`/admin/users/${user.id}`}
-                className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                className="flex items-center justify-between p-3 sm:p-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-md">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-md flex-shrink-0">
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-white font-medium">
+                      <span className="text-white font-medium text-sm">
                         {(user.name || user.email)?.[0]?.toUpperCase()}
                       </span>
                     )}
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900">{user.name || 'ללא שם'}</p>
-                    <p className="text-xs text-gray-500">{user.email}</p>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-gray-900 truncate">{user.name || 'ללא שם'}</p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-gray-400">
-                  <Clock className="w-3.5 h-3.5" />
-                  {formatRelativeTime(user.lastLoginAt)}
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 flex-shrink-0 mr-2">
+                  <Clock className="w-3.5 h-3.5 hidden sm:block" />
+                  <span className="hidden sm:inline">{formatRelativeTime(user.lastLoginAt)}</span>
                 </div>
               </Link>
             ))}
@@ -329,21 +330,21 @@ function StatCard({
   const c = colors[color];
 
   return (
-    <div className={`bg-gradient-to-br ${c.bg} rounded-2xl border ${c.border} p-5 shadow-sm`}>
-      <div className="flex items-center justify-between mb-4">
-        <div className={`p-2 rounded-xl ${c.icon}`}>
-          <Icon className="w-5 h-5" />
+    <div className={`bg-linear-to-br ${c.bg} rounded-xl sm:rounded-2xl border ${c.border} p-3 sm:p-5 shadow-sm`}>
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <div className={`p-1.5 sm:p-2 rounded-lg sm:rounded-xl ${c.icon}`}>
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         {trend && (
-          <span className={`flex items-center gap-1 text-xs font-semibold px-2 py-1 rounded-full ${c.trend}`}>
-            <TrendingUp className="w-3 h-3" />
+          <span className={`flex items-center gap-1 text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full ${c.trend}`}>
+            <TrendingUp className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             {trend}
           </span>
         )}
       </div>
-      <p className="text-3xl font-bold text-gray-900 mb-1">{value}</p>
-      <p className="text-sm font-medium text-gray-600">{label}</p>
-      <p className="text-xs text-gray-500 mt-1">{subtext}</p>
+      <p className="text-xl sm:text-3xl font-bold text-gray-900 mb-0.5 sm:mb-1">{value}</p>
+      <p className="text-xs sm:text-sm font-medium text-gray-600">{label}</p>
+      <p className="text-[10px] sm:text-xs text-gray-500 mt-0.5 sm:mt-1">{subtext}</p>
     </div>
   );
 }

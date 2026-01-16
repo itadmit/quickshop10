@@ -1,10 +1,13 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { stores } from '@/lib/db/schema';
+import { stores, storeSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createAllStoreDefaults } from '@/lib/store-defaults';
+
+// Trial period in days
+const TRIAL_DAYS = 7;
 
 interface CreateStoreInput {
   userId: string;
@@ -64,6 +67,18 @@ export async function createStoreForUser({ userId, userEmail, storeName }: Creat
 
     // Create all default content (pages, sections, categories, products, menus)
     await createAllStoreDefaults(newStore.id, storeName, userId);
+
+    // Create trial subscription for the new store
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
+    
+    await db.insert(storeSubscriptions).values({
+      storeId: newStore.id,
+      plan: 'trial',
+      status: 'trial',
+      trialEndsAt,
+      billingEmail: userEmail,
+    });
 
     revalidatePath('/dashboard');
 

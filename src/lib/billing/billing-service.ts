@@ -190,6 +190,202 @@ export async function activateSubscription(
 }
 
 /**
+ * Calculate trial period transaction fees (for charging on activation)
+ */
+export async function calculateTrialPeriodFees(storeId: string): Promise<{
+  totalTransactions: number;
+  orderCount: number;
+  feeAmount: number;
+  vatAmount: number;
+  totalFee: number;
+  feeRate: number;
+  periodStart: Date | null;
+  periodEnd: Date;
+}> {
+  // Get subscription to find trial start date
+  const subscription = await db
+    .select({
+      createdAt: storeSubscriptions.createdAt,
+      trialEndsAt: storeSubscriptions.trialEndsAt,
+      customFeePercentage: storeSubscriptions.customFeePercentage,
+    })
+    .from(storeSubscriptions)
+    .where(eq(storeSubscriptions.storeId, storeId))
+    .then(rows => rows[0]);
+
+  const periodStart = subscription?.createdAt || null;
+  const periodEnd = new Date();
+
+  // Get all paid orders during trial period
+  const paidOrders = await db
+    .select({
+      id: orders.id,
+      total: orders.total,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      periodStart ? gte(orders.paidAt, periodStart) : sql`TRUE`,
+      lte(orders.paidAt, periodEnd)
+    ));
+
+  if (paidOrders.length === 0) {
+    return {
+      totalTransactions: 0,
+      orderCount: 0,
+      feeAmount: 0,
+      vatAmount: 0,
+      totalFee: 0,
+      feeRate: 0.005,
+      periodStart,
+      periodEnd,
+    };
+  }
+
+  const totalTransactions = paidOrders.reduce((sum, order) => sum + Number(order.total), 0);
+  
+  // Use store-specific fee rate if set
+  const fee = await calculateTransactionFeeForStore(
+    totalTransactions, 
+    storeId, 
+    subscription?.customFeePercentage
+  );
+
+  return {
+    totalTransactions,
+    orderCount: paidOrders.length,
+    feeAmount: fee.feeAmount,
+    vatAmount: fee.vatAmount,
+    totalFee: fee.totalFee,
+    feeRate: fee.feeRate,
+    periodStart,
+    periodEnd,
+  };
+}
+
+/**
+ * Charge trial period fees on subscription activation
+ * Returns invoice ID if fees were charged, null if no fees
+ */
+export async function chargeTrialPeriodFees(
+  storeId: string,
+  payplusTokenUid: string,
+  payplusCustomerUid: string
+): Promise<{ success: boolean; invoiceId?: string; amount?: number; error?: string }> {
+  const trialFees = await calculateTrialPeriodFees(storeId);
+  
+  // Skip if no transactions or fee is too small (less than ₪1)
+  if (trialFees.totalFee < 1) {
+    console.log(`[Trial Fees] No fees to charge for store ${storeId} (total: ₪${trialFees.totalFee.toFixed(2)})`);
+    return { success: true, amount: 0 };
+  }
+
+  console.log(`[Trial Fees] Charging ₪${trialFees.totalFee.toFixed(2)} for ${trialFees.orderCount} orders from trial period`);
+
+  const feePercentDisplay = (trialFees.feeRate * 100).toFixed(1);
+  
+  // Charge with token
+  const chargeResult = await chargeWithToken({
+    tokenUid: payplusTokenUid,
+    customerUid: payplusCustomerUid,
+    amount: trialFees.totalFee,
+    description: `עמלות עסקאות מתקופת נסיון`,
+    invoiceItems: [
+      {
+        name: `עמלות עסקאות תקופת נסיון (${feePercentDisplay}%)`,
+        quantity: 1,
+        price: trialFees.feeAmount,
+      },
+    ],
+  });
+
+  // Get subscription ID
+  const subscription = await db
+    .select({ id: storeSubscriptions.id })
+    .from(storeSubscriptions)
+    .where(eq(storeSubscriptions.storeId, storeId))
+    .then(rows => rows[0]);
+
+  const invoiceNumber = await generateInvoiceNumber();
+
+  if (!chargeResult.success) {
+    // Create failed invoice (but don't block activation)
+    await db.insert(platformInvoices).values({
+      storeId,
+      subscriptionId: subscription?.id,
+      invoiceNumber,
+      type: 'transaction_fee',
+      status: 'failed',
+      subtotal: String(trialFees.feeAmount),
+      vatRate: String(VAT_RATE * 100),
+      vatAmount: String(trialFees.vatAmount),
+      totalAmount: String(trialFees.totalFee),
+      periodStart: trialFees.periodStart,
+      periodEnd: trialFees.periodEnd,
+      description: 'עמלות עסקאות מתקופת נסיון',
+      lastChargeError: chargeResult.error,
+      chargeAttempts: 1,
+      lastChargeAttempt: new Date(),
+    });
+
+    console.error(`[Trial Fees] Failed to charge: ${chargeResult.error}`);
+    // Return success anyway - don't block activation
+    return { success: true, amount: 0, error: chargeResult.error };
+  }
+
+  // Create paid invoice
+  const [invoice] = await db.insert(platformInvoices).values({
+    storeId,
+    subscriptionId: subscription?.id,
+    invoiceNumber,
+    type: 'transaction_fee',
+    status: 'paid',
+    subtotal: String(trialFees.feeAmount),
+    vatRate: String(VAT_RATE * 100),
+    vatAmount: String(trialFees.vatAmount),
+    totalAmount: String(trialFees.totalFee),
+    periodStart: trialFees.periodStart,
+    periodEnd: trialFees.periodEnd,
+    description: 'עמלות עסקאות מתקופת נסיון',
+    payplusTransactionUid: chargeResult.transactionUid,
+    payplusInvoiceNumber: chargeResult.invoiceNumber,
+    payplusInvoiceUrl: chargeResult.invoiceUrl,
+    issuedAt: new Date(),
+    paidAt: new Date(),
+  }).returning();
+
+  // Create invoice items
+  await db.insert(platformInvoiceItems).values({
+    invoiceId: invoice.id,
+    description: `עמלות עסקאות (${feePercentDisplay}%)`,
+    quantity: 1,
+    unitPrice: String(trialFees.feeAmount),
+    totalPrice: String(trialFees.feeAmount),
+  });
+
+  // Record transaction fee
+  await db.insert(storeTransactionFees).values({
+    storeId,
+    invoiceId: invoice.id,
+    periodStart: trialFees.periodStart || new Date(),
+    periodEnd: trialFees.periodEnd,
+    totalTransactionsAmount: String(trialFees.totalTransactions),
+    totalTransactionsCount: trialFees.orderCount,
+    feePercentage: String(trialFees.feeRate),
+    feeAmount: String(trialFees.feeAmount),
+  });
+
+  console.log(`[Trial Fees] Charged ₪${trialFees.totalFee.toFixed(2)} - Invoice: ${invoiceNumber}`);
+  
+  return { 
+    success: true, 
+    invoiceId: invoice.id, 
+    amount: trialFees.totalFee 
+  };
+}
+
+/**
  * Create subscription invoice
  */
 export async function createSubscriptionInvoice(

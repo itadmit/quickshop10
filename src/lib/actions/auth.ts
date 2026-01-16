@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { users, stores } from '@/lib/db/schema';
+import { users, stores, storeSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { signIn, signOut } from '@/lib/auth';
@@ -9,6 +9,9 @@ import { redirect } from 'next/navigation';
 import { sendVerificationEmail, sendPasswordResetEmail, sendWelcomeEmail } from '@/lib/email';
 import crypto from 'crypto';
 import { createAllStoreDefaults } from '@/lib/store-defaults';
+
+// Trial period in days
+const TRIAL_DAYS = 7;
 
 // ============ REGISTER ============
 
@@ -108,6 +111,19 @@ export async function register(data: RegisterData) {
 
     // Create all default content (pages, sections, categories, products, menus)
     await createAllStoreDefaults(newStore.id, data.storeName, user.id);
+
+    // Create trial subscription for the new store
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + TRIAL_DAYS);
+    
+    await db.insert(storeSubscriptions).values({
+      storeId: newStore.id,
+      plan: 'trial',
+      status: 'trial',
+      trialEndsAt,
+      billingEmail: data.email.toLowerCase(),
+      billingName: data.name,
+    });
 
     // Send welcome email (don't await - fire and forget)
     sendWelcomeEmail(user.email, user.name || undefined, data.storeName).catch(console.error);

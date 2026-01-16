@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyPayPlusCallback } from '@/lib/billing/payplus-billing';
-import { activateSubscription, createSubscriptionInvoice } from '@/lib/billing/billing-service';
+import { activateSubscription, createSubscriptionInvoice, chargeTrialPeriodFees } from '@/lib/billing/billing-service';
 import { db } from '@/lib/db';
 import { storeSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       `${body.expiry_month}/${body.expiry_year}`
     );
 
-    // Create invoice record
+    // Create invoice record for subscription
     await createSubscriptionInvoice(
       paymentData.storeId,
       paymentData.plan,
@@ -115,10 +115,18 @@ export async function POST(request: NextRequest) {
       body.invoice_link || null
     );
 
+    // Charge trial period transaction fees (if any sales during trial)
+    const trialFeesResult = await chargeTrialPeriodFees(
+      paymentData.storeId,
+      body.token_uid,
+      body.customer_uid
+    );
+
     console.log('[Billing Callback] Subscription activated:', {
       storeId: paymentData.storeId,
       plan: paymentData.plan,
       tokenUid: body.token_uid?.substring(0, 8) + '...',
+      trialFeesCharged: trialFeesResult.amount || 0,
     });
 
     return NextResponse.json({ 

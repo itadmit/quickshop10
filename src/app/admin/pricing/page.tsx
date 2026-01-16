@@ -7,10 +7,10 @@ import { auth } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { platformSettings, stores, storeSubscriptions } from '@/lib/db/schema';
-import { eq, and, isNotNull, or, ne, desc } from 'drizzle-orm';
+import { eq, isNotNull, or, desc } from 'drizzle-orm';
 import Link from 'next/link';
 import { PlatformSettingsForm } from '../settings/settings-form';
-import { DollarSign, Percent, Users, AlertCircle, CreditCard, Store, Settings, CheckCircle } from 'lucide-react';
+import { DollarSign, Percent, AlertCircle, CreditCard, Store, Settings, CheckCircle } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
@@ -124,29 +124,29 @@ export default async function PlatformPricingPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3 mb-1">
-            <DollarSign className="w-7 h-7 text-emerald-600" />
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2 sm:gap-3 mb-1">
+            <DollarSign className="w-6 h-6 sm:w-7 sm:h-7 text-emerald-600" />
             מחירים ותעריפים
           </h1>
-          <p className="text-gray-500">ניהול מחירי מנויים, עמלות, חריגים ומשלמים</p>
+          <p className="text-sm sm:text-base text-gray-500">ניהול מחירי מנויים, עמלות, חריגים ומשלמים</p>
         </div>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-6 sm:space-y-8">
         {/* Platform Pricing Settings */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-4 sm:p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
             <Percent className="w-5 h-5 text-gray-600" />
             <div>
               <h2 className="font-semibold text-gray-900">תעריפי ברירת מחדל</h2>
-              <p className="text-sm text-gray-500">מחירים שיחולו על כל החנויות (אלא אם הוגדר חריג)</p>
+              <p className="text-xs sm:text-sm text-gray-500">מחירים שיחולו על כל החנויות (אלא אם הוגדר חריג)</p>
             </div>
           </div>
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {pricingSettings.length > 0 ? (
               <PlatformSettingsForm 
                 settings={pricingSettings.map(s => ({
@@ -173,137 +173,48 @@ export default async function PlatformPricingPage() {
         </div>
 
         {/* Exceptions Table - Stores with Custom Pricing */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-4 sm:p-5 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600" />
               <div>
                 <h2 className="font-semibold text-gray-900">חריגים</h2>
-                <p className="text-sm text-gray-500">חנויות עם מחיר או עמלה מותאמים אישית</p>
+                <p className="text-xs sm:text-sm text-gray-500">חנויות עם מחיר או עמלה מותאמים אישית</p>
               </div>
             </div>
-            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full">
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm font-medium rounded-full self-start sm:self-auto">
               {exceptions.length} חריגים
             </span>
           </div>
           
           {exceptions.length === 0 ? (
-            <div className="p-12 text-center">
-              <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <div className="p-8 sm:p-12 text-center">
+              <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 font-medium">אין חריגים</p>
               <p className="text-sm text-gray-400 mt-1">כל החנויות משתמשות בתעריפי ברירת המחדל</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">חנות</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">מסלול</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">סטטוס</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">מחיר מותאם</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">עמלה מותאמת</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {exceptions.map((store) => (
-                    <tr key={store.storeId} className="hover:bg-gray-50 transition-colors">
-                      <td className="p-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
-                            <Store className="w-4 h-4 text-amber-600" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{store.storeName}</p>
-                            <p className="text-sm text-gray-500">/{store.storeSlug}</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="p-4">
-                        <span className="text-gray-700">{getPlanLabel(store.plan)}</span>
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(store.status)}`}>
-                          {getStatusLabel(store.status)}
-                        </span>
-                      </td>
-                      <td className="p-4">
-                        {store.customMonthlyPrice ? (
-                          <span className="font-semibold text-amber-600">{formatCurrency(store.customMonthlyPrice)}</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        {store.customFeePercentage ? (
-                          <span className="font-semibold text-amber-600">{(Number(store.customFeePercentage) * 100).toFixed(1)}%</span>
-                        ) : (
-                          <span className="text-gray-400">-</span>
-                        )}
-                      </td>
-                      <td className="p-4">
-                        <Link
-                          href={`/admin/stores/${store.storeId}`}
-                          className="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex"
-                          title="עריכה"
-                        >
-                          <Settings className="w-4 h-4" />
-                        </Link>
-                      </td>
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">חנות</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">מסלול</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">סטטוס</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">מחיר מותאם</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">עמלה מותאמת</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">פעולות</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Payers Table - Active Subscriptions */}
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-          <div className="p-5 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <CreditCard className="w-5 h-5 text-green-600" />
-              <div>
-                <h2 className="font-semibold text-gray-900">משלמים פעילים</h2>
-                <p className="text-sm text-gray-500">חנויות עם מנוי פעיל</p>
-              </div>
-            </div>
-            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full">
-              {payers.length} משלמים
-            </span>
-          </div>
-          
-          {payers.length === 0 ? (
-            <div className="p-12 text-center">
-              <CreditCard className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-              <p className="text-gray-500 font-medium">אין משלמים פעילים</p>
-              <p className="text-sm text-gray-400 mt-1">אין חנויות עם מנוי פעיל כרגע</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">חנות</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">מסלול</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">מחיר חודשי</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">אמצעי תשלום</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">חידוש הבא</th>
-                    <th className="text-right p-4 text-sm font-medium text-gray-600">פעולות</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {payers.map((store) => {
-                    const defaultPrice = store.plan === 'branding' ? 299 : 399;
-                    const actualPrice = store.customMonthlyPrice ? Number(store.customMonthlyPrice) : defaultPrice;
-                    
-                    return (
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {exceptions.map((store) => (
                       <tr key={store.storeId} className="hover:bg-gray-50 transition-colors">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
-                              <CheckCircle className="w-4 h-4 text-green-600" />
+                            <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
+                              <Store className="w-4 h-4 text-amber-600" />
                             </div>
                             <div>
                               <p className="font-medium text-gray-900">{store.storeName}</p>
@@ -311,55 +222,233 @@ export default async function PlatformPricingPage() {
                             </div>
                           </div>
                         </td>
+                        <td className="p-4 text-gray-700">{getPlanLabel(store.plan)}</td>
                         <td className="p-4">
-                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                            store.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
-                          }`}>
-                            {getPlanLabel(store.plan)}
+                          <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(store.status)}`}>
+                            {getStatusLabel(store.status)}
                           </span>
                         </td>
                         <td className="p-4">
-                          <div>
-                            <span className="font-semibold text-gray-900">{formatCurrency(actualPrice)}</span>
-                            {store.customMonthlyPrice && (
-                              <span className="mr-2 text-xs text-amber-600">(מותאם)</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="p-4">
-                          {store.cardLastFour ? (
-                            <div className="flex items-center gap-2">
-                              <CreditCard className="w-4 h-4 text-gray-400" />
-                              <span className="text-gray-700">
-                                {store.cardBrand} •••• {store.cardLastFour}
-                              </span>
-                            </div>
+                          {store.customMonthlyPrice ? (
+                            <span className="font-semibold text-amber-600">{formatCurrency(store.customMonthlyPrice)}</span>
                           ) : (
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
                         <td className="p-4">
-                          <span className="text-gray-700">{formatDate(store.currentPeriodEnd)}</span>
+                          {store.customFeePercentage ? (
+                            <span className="font-semibold text-amber-600">{(Number(store.customFeePercentage) * 100).toFixed(1)}%</span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
                         </td>
                         <td className="p-4">
                           <Link
                             href={`/admin/stores/${store.storeId}`}
                             className="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex"
-                            title="פרטים"
                           >
                             <Settings className="w-4 h-4" />
                           </Link>
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="lg:hidden divide-y divide-gray-100">
+                {exceptions.map((store) => (
+                  <div key={store.storeId} className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Store className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-medium text-gray-900 truncate">{store.storeName}</p>
+                          <p className="text-xs text-gray-500">/{store.storeSlug}</p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full flex-shrink-0 ${getStatusColor(store.status)}`}>
+                        {getStatusLabel(store.status)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <p className="text-xs text-gray-500">מחיר מותאם</p>
+                        <p className="font-semibold text-amber-600">{store.customMonthlyPrice ? formatCurrency(store.customMonthlyPrice) : '-'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">עמלה מותאמת</p>
+                        <p className="font-semibold text-amber-600">{store.customFeePercentage ? `${(Number(store.customFeePercentage) * 100).toFixed(1)}%` : '-'}</p>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/admin/stores/${store.storeId}`}
+                      className="text-sm text-emerald-600 hover:underline"
+                    >
+                      עריכה →
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Payers Table - Active Subscriptions */}
+        <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+          <div className="p-4 sm:p-5 border-b border-gray-100 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <CreditCard className="w-5 h-5 text-green-600" />
+              <div>
+                <h2 className="font-semibold text-gray-900">משלמים פעילים</h2>
+                <p className="text-xs sm:text-sm text-gray-500">חנויות עם מנוי פעיל</p>
+              </div>
             </div>
+            <span className="px-3 py-1 bg-green-100 text-green-700 text-sm font-medium rounded-full self-start sm:self-auto">
+              {payers.length} משלמים
+            </span>
+          </div>
+          
+          {payers.length === 0 ? (
+            <div className="p-8 sm:p-12 text-center">
+              <CreditCard className="w-10 h-10 sm:w-12 sm:h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 font-medium">אין משלמים פעילים</p>
+              <p className="text-sm text-gray-400 mt-1">אין חנויות עם מנוי פעיל כרגע</p>
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden lg:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">חנות</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">מסלול</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">מחיר חודשי</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">אמצעי תשלום</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">חידוש הבא</th>
+                      <th className="text-right p-4 text-sm font-medium text-gray-600">פעולות</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {payers.map((store) => {
+                      const defaultPrice = store.plan === 'branding' ? 299 : 399;
+                      const actualPrice = store.customMonthlyPrice ? Number(store.customMonthlyPrice) : defaultPrice;
+                      
+                      return (
+                        <tr key={store.storeId} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
+                                <CheckCircle className="w-4 h-4 text-green-600" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-gray-900">{store.storeName}</p>
+                                <p className="text-sm text-gray-500">/{store.storeSlug}</p>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
+                              store.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
+                            }`}>
+                              {getPlanLabel(store.plan)}
+                            </span>
+                          </td>
+                          <td className="p-4">
+                            <div>
+                              <span className="font-semibold text-gray-900">{formatCurrency(actualPrice)}</span>
+                              {store.customMonthlyPrice && (
+                                <span className="mr-2 text-xs text-amber-600">(מותאם)</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            {store.cardLastFour ? (
+                              <div className="flex items-center gap-2">
+                                <CreditCard className="w-4 h-4 text-gray-400" />
+                                <span className="text-gray-700">{store.cardBrand} •••• {store.cardLastFour}</span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-gray-700">{formatDate(store.currentPeriodEnd)}</td>
+                          <td className="p-4">
+                            <Link
+                              href={`/admin/stores/${store.storeId}`}
+                              className="p-2 text-gray-600 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors inline-flex"
+                            >
+                              <Settings className="w-4 h-4" />
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Cards */}
+              <div className="lg:hidden divide-y divide-gray-100">
+                {payers.map((store) => {
+                  const defaultPrice = store.plan === 'branding' ? 299 : 399;
+                  const actualPrice = store.customMonthlyPrice ? Number(store.customMonthlyPrice) : defaultPrice;
+                  
+                  return (
+                    <div key={store.storeId} className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-medium text-gray-900 truncate">{store.storeName}</p>
+                            <p className="text-xs text-gray-500">/{store.storeSlug}</p>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full flex-shrink-0 ${
+                          store.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' : 'bg-purple-100 text-purple-700'
+                        }`}>
+                          {getPlanLabel(store.plan)}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                          <p className="text-xs text-gray-500">מחיר חודשי</p>
+                          <p className="font-semibold text-gray-900">
+                            {formatCurrency(actualPrice)}
+                            {store.customMonthlyPrice && <span className="text-xs text-amber-600 mr-1">(מותאם)</span>}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500">חידוש הבא</p>
+                          <p className="text-gray-700">{formatDate(store.currentPeriodEnd)}</p>
+                        </div>
+                      </div>
+                      {store.cardLastFour && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                          <CreditCard className="w-4 h-4 text-gray-400" />
+                          <span>{store.cardBrand} •••• {store.cardLastFour}</span>
+                        </div>
+                      )}
+                      <Link
+                        href={`/admin/stores/${store.storeId}`}
+                        className="text-sm text-emerald-600 hover:underline"
+                      >
+                        פרטים →
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
           )}
         </div>
       </div>
     </div>
   );
 }
-
