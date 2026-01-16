@@ -13,25 +13,22 @@
  */
 
 import { db } from '@/lib/db';
-import { products, productImages, categories, productCategories } from '@/lib/db/schema';
+import { products, productImages, categories, productCategories, media } from '@/lib/db/schema';
 import { eq, and, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getCurrentUser } from '@/lib/auth';
-import { v2 as cloudinary } from 'cloudinary';
 import { isValidImageUrl } from '@/lib/security/url-validator';
-
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { put } from '@vercel/blob';
+import sharp from 'sharp';
+import { nanoid } from 'nanoid';
 
 export interface ImportResult {
   success: boolean;
   imported: number;
+  updated?: number;
+  skipped?: number;
   failed: number;
-  errors: string[];
+  errors?: string[];
   createdCategories: string[];
   totalInFile?: number;
   isTestMode?: boolean;
@@ -50,10 +47,10 @@ export interface ColumnMapping {
 }
 
 // ============================================
-// Cloudinary Upload from URL
+// Vercel Blob Upload from URL
 // ============================================
 
-interface CloudinaryUploadResult {
+interface BlobUploadResult {
   public_id: string;
   secure_url: string;
   format: string;
@@ -62,15 +59,16 @@ interface CloudinaryUploadResult {
 }
 
 /**
- * Upload image from external URL to Cloudinary
- * Converts to WebP automatically
+ * Upload image from external URL to Vercel Blob
+ * Converts to WebP automatically using sharp
  * 
  * SECURITY: Validates URL to prevent SSRF attacks
  */
 async function uploadImageFromUrl(
   imageUrl: string, 
-  folder: string
-): Promise<CloudinaryUploadResult | null> {
+  folder: string,
+  storeId?: string
+): Promise<BlobUploadResult | null> {
   try {
     // SECURITY: Validate URL to prevent SSRF attacks
     // Blocks internal IPs (127.x.x.x, 10.x.x.x, 192.168.x.x, 169.254.x.x, etc.)
@@ -79,27 +77,89 @@ async function uploadImageFromUrl(
       return null;
     }
     
-    const result = await cloudinary.uploader.upload(imageUrl, {
-      folder,
-      resource_type: 'image',
-      format: 'webp',           // Convert to WebP
-      quality: 'auto:good',     // Optimal quality
-      fetch_format: 'auto',     // Auto detect best format
-      transformation: [
-        { width: 1200, crop: 'limit' }, // Max width 1200px
-        { quality: 'auto:good' },
-      ],
+    // Download image from URL
+    const response = await fetch(imageUrl, {
+      headers: {
+        'User-Agent': 'QuickShop-Import/1.0',
+      },
     });
-
-    // Return optimized URL with f_auto,q_auto
-    const optimizedUrl = result.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+    
+    if (!response.ok) {
+      console.error(`Failed to fetch image from ${imageUrl}: ${response.status}`);
+      return null;
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    let buffer = Buffer.from(arrayBuffer);
+    
+    // Convert to WebP using sharp
+    let width = 0;
+    let height = 0;
+    let finalBuffer: Buffer = buffer;
+    try {
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+      
+      // Resize if too large (max 1200px width)
+      if (metadata.width && metadata.width > 1200) {
+        finalBuffer = await image
+          .resize(1200, null, { withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toBuffer();
+      } else {
+        finalBuffer = await image
+          .webp({ quality: 80 })
+          .toBuffer();
+      }
+      
+      // Get final dimensions
+      const finalMetadata = await sharp(finalBuffer).metadata();
+      width = finalMetadata.width || 0;
+      height = finalMetadata.height || 0;
+    } catch (sharpError) {
+      console.warn('Sharp conversion failed, using original:', sharpError);
+      finalBuffer = buffer;
+    }
+    
+    // Generate unique filename
+    const uniqueId = nanoid(10);
+    const pathname = `${folder}/${uniqueId}.webp`;
+    
+    // Upload to Vercel Blob
+    const blob = await put(pathname, finalBuffer, {
+      access: 'public',
+      addRandomSuffix: false,
+      contentType: 'image/webp',
+    });
+    
+    // Save to media library if storeId provided
+    if (storeId) {
+      try {
+        await db.insert(media).values({
+          storeId,
+          filename: uniqueId,
+          originalFilename: imageUrl.split('/').pop() || uniqueId,
+          mimeType: 'image/webp',
+          size: finalBuffer.length,
+          width,
+          height,
+          url: blob.url,
+          thumbnailUrl: blob.url,
+          publicId: pathname,
+          alt: null,
+          folder: folder.split('/').pop() || null,
+        });
+      } catch (dbError) {
+        console.warn('Failed to save media record:', dbError);
+      }
+    }
     
     return {
-      public_id: result.public_id,
-      secure_url: optimizedUrl,
-      format: result.format,
-      width: result.width,
-      height: result.height,
+      public_id: pathname,
+      secure_url: blob.url,
+      format: 'webp',
+      width,
+      height,
     };
   } catch (error) {
     console.error(`Failed to upload image from ${imageUrl}:`, error);
@@ -958,7 +1018,7 @@ export async function importProductsWithMapping(
 
     // ============================================
     // STEP 6-8: Insert products ONE BY ONE with images
-    // מעבד מוצר אחד בכל פעם כדי להוריד תמונות ל-Cloudinary
+    // מעבד מוצר אחד בכל פעם כדי להוריד תמונות ל-Vercel Blob
     // ============================================
     
     const storeFolder = `quickshop/stores/${storeSlug}/products`;
@@ -1014,7 +1074,7 @@ export async function importProductsWithMapping(
           );
         }
         
-        // Upload images to Cloudinary
+        // Upload images to Vercel Blob
         if (p.row.images.length > 0) {
           const imageInserts: { productId: string; url: string; alt: string; sortOrder: number; isPrimary: boolean }[] = [];
           
@@ -1024,9 +1084,9 @@ export async function importProductsWithMapping(
             
             const imageUrl = imagePrefix + imgFilename;
             
-            // Upload to Cloudinary (converts to WebP)
+            // Upload to Vercel Blob (converts to WebP)
             console.log(`[Import] Uploading image ${imgIndex + 1}/${p.row.images.length} for "${p.row.name}": ${imgFilename}`);
-            const uploaded = await uploadImageFromUrl(imageUrl, storeFolder);
+            const uploaded = await uploadImageFromUrl(imageUrl, storeFolder, storeId);
             
             if (uploaded) {
               imageInserts.push({

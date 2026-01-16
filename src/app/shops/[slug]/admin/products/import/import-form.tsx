@@ -10,9 +10,10 @@
  * 4. ייבוא
  */
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import { Upload, FileText, Loader2, CheckCircle, XCircle, AlertTriangle, ArrowLeft, ArrowRight, Settings2 } from 'lucide-react';
-import { importProductsWithMapping, ImportResult } from './actions';
+import { ImportResult } from './actions';
+import { ImportProgressModal } from './import-progress-modal';
 
 interface Props {
   storeId: string;
@@ -59,6 +60,11 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
   // Step 3: Settings
   const [imagePrefix, setImagePrefix] = useState('');
   const [testMode, setTestMode] = useState(true);
+  const [updateMode, setUpdateMode] = useState(false);
+  const [updateKey, setUpdateKey] = useState<'sku' | 'name'>('sku');
+  
+  // Modal
+  const [showProgressModal, setShowProgressModal] = useState(false);
   
   // Result
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -246,18 +252,21 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
 
   const handleSubmit = async () => {
     if (!csvText || !isMappingValid()) return;
+    setShowProgressModal(true);
+  };
+
+  const handleImportComplete = useCallback((importResult: ImportResult) => {
+    setResult(importResult);
+  }, []);
+
+  // Legacy submit handler (kept for reference)
+  const handleLegacySubmit = async () => {
+    if (!csvText || !isMappingValid()) return;
 
     startTransition(async () => {
       try {
-        const importResult = await importProductsWithMapping(
-          storeId,
-          storeSlug,
-          csvText,
-          mapping,
-          imagePrefix,
-          testMode ? 3 : undefined
-        );
-        setResult(importResult);
+        // This is now handled by the modal via SSE API
+        console.log('Legacy submit - not used');
       } catch (error) {
         console.error('Import error:', error);
         setResult({
@@ -445,7 +454,7 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
                 className="mt-1.5 w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
               />
               <p className="mt-1.5 text-xs text-gray-500">
-                🖼️ התמונות יורדו מה-URL שמורכב מהקידומת + שם הקובץ, יומרו ל-WebP ויועלו ל-Cloudinary שלנו
+                התמונות יורדו, יומרו ל-WebP ויועלו לשרת
               </p>
             </div>
 
@@ -462,6 +471,51 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
                 <p className="text-xs text-gray-500">מייבא רק 3 מוצרים ראשונים לבדיקה (מומלץ לפני ייבוא גדול)</p>
               </div>
             </label>
+
+            {/* Update Mode */}
+            <div className="border-t border-gray-100 pt-4 mt-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={updateMode}
+                  onChange={(e) => setUpdateMode(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+                />
+                <div>
+                  <span className="font-medium text-gray-900">מצב עדכון מוצרים קיימים</span>
+                  <p className="text-xs text-gray-500">אם מוצר קיים - עדכן אותו במקום ליצור חדש</p>
+                </div>
+              </label>
+
+              {updateMode && (
+                <div className="mt-3 mr-7 p-3 bg-amber-50 rounded-lg border border-amber-100">
+                  <p className="text-sm font-medium text-amber-800 mb-2">זיהוי מוצרים לפי:</p>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={updateKey === 'sku'}
+                        onChange={() => setUpdateKey('sku')}
+                        className="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="text-sm text-gray-700">מק"ט / ברקוד</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={updateKey === 'name'}
+                        onChange={() => setUpdateKey('name')}
+                        className="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="text-sm text-gray-700">שם מוצר</span>
+                    </label>
+                  </div>
+                  <p className="text-xs text-amber-700 mt-2">
+                    במצב עדכון - רק מוצרים קיימים יעודכנו, שורות שלא נמצאו ידולגו
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Actions */}
@@ -485,7 +539,7 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
               {isPending ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  מייבא... (מוריד תמונות ל-Cloudinary)
+                  מייבא... (מוריד ומעבד תמונות)
                 </>
               ) : (
                 <>
@@ -497,8 +551,8 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
             
             {/* Note about image upload */}
             {isPending && (
-              <div className="text-xs text-center text-gray-500 mt-2">
-                ⏳ התמונות מועלות ל-Cloudinary וממירות ל-WebP - זה יכול לקחת זמן...
+              <div className="text-xs text-center text-gray-500 mt-2 animate-pulse">
+                ⏳ התמונות מורדות מהשרת, ממירות ל-WebP ומועלות - זה יכול לקחת זמן...
               </div>
             )}
           </div>
@@ -557,7 +611,7 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
                 )}
               </div>
 
-              {result.errors.length > 0 && (
+              {result.errors && result.errors.length > 0 && (
                 <div className="mt-3 pt-3 border-t border-red-200">
                   <h5 className="text-xs font-medium text-red-800 mb-2 flex items-center gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5" />
@@ -597,6 +651,20 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
           </div>
         </div>
       )}
+
+      {/* Progress Modal */}
+      <ImportProgressModal
+        isOpen={showProgressModal}
+        onClose={() => setShowProgressModal(false)}
+        storeSlug={storeSlug}
+        csvText={csvText}
+        mapping={mapping}
+        imagePrefix={imagePrefix}
+        testMode={testMode}
+        updateMode={updateMode}
+        updateKey={updateKey}
+        onComplete={handleImportComplete}
+      />
     </div>
   );
 }
