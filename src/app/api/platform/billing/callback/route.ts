@@ -17,7 +17,8 @@ interface PayPlusCallbackBody {
   transaction_number?: string;
   status_code?: string;
   page_request_uid?: string;
-  more_info?: string;
+  more_info?: string; // תיאור בעברית
+  more_info_1?: string; // JSON עם נתונים טכניים
   customer_uid?: string;
   token_uid?: string;
   four_digits?: string;
@@ -52,10 +53,12 @@ export async function POST(request: NextRequest) {
     console.log('[Billing Callback] Received:', {
       status_code: body.status_code,
       transaction_uid: body.transaction_uid,
-      more_info: body.more_info,
+      more_info: body.more_info, // תיאור בעברית
+      more_info_1: body.more_info_1, // JSON עם נתונים טכניים
     });
 
-    // Parse more_info to get store and plan details
+    // Parse more_info_1 (JSON) to get store and plan details
+    // more_info contains Hebrew description, more_info_1 contains JSON data
     let paymentData: {
       type: string;
       storeId: string;
@@ -66,9 +69,14 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      paymentData = JSON.parse(body.more_info || '{}');
+      // Try more_info_1 first (new format), fallback to more_info (old format for backward compatibility)
+      const jsonData = body.more_info_1 || body.more_info || '{}';
+      paymentData = JSON.parse(jsonData);
     } catch {
-      console.error('[Billing Callback] Invalid more_info format');
+      console.error('[Billing Callback] Invalid more_info format:', {
+        more_info: body.more_info,
+        more_info_1: body.more_info_1,
+      });
       return NextResponse.json({ error: 'Invalid payment data' }, { status: 400 });
     }
 

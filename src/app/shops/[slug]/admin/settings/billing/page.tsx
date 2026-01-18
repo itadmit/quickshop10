@@ -27,14 +27,20 @@ export default async function BillingPage({ params, searchParams }: BillingPageP
   const { slug } = await params;
   const search = await searchParams;
 
-  // The slug might be a UUID (storeId) from PayPlus redirect
-  // Try to find store by ID first, then by slug
-  let store = await db.query.stores.findFirst({
-    where: eq(stores.id, slug),
-  });
+  // Check if slug looks like a UUID (format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
 
+  let store;
+
+  if (isUUID) {
+    // If it's a UUID, try to find by ID first (for backward compatibility with old PayPlus redirects)
+    store = await db.query.stores.findFirst({
+      where: eq(stores.id, slug),
+    });
+  }
+
+  // If not found by ID (or not a UUID), try by slug
   if (!store) {
-    // If not found by ID, try by slug
     store = await db.query.stores.findFirst({
       where: eq(stores.slug, slug),
     });

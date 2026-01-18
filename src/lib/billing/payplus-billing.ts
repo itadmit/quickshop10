@@ -265,8 +265,10 @@ export async function initiateSubscriptionPayment(
         send_failure_callback: true,
         
         // Store reference for callback
-        // This will be returned in the redirect URL and callback
-        more_info: JSON.stringify(moreInfoData),
+        // more_info - תיאור בעברית שיוצג בדף התשלום ובחשבונית
+        // more_info_1 - JSON עם נתונים טכניים ל-callback
+        more_info: `מנוי חודשי QuickShop - ${planNameHe}`,
+        more_info_1: JSON.stringify(moreInfoData),
         
         // Language
         language_code: 'he',
