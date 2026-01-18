@@ -25,6 +25,7 @@ type Order = {
   customerName: string | null;
   customerEmail: string | null;
   shipmentError: string | null;
+  utmSource: string | null;
   customer?: {
     firstName: string | null;
     lastName: string | null;
@@ -217,15 +218,27 @@ export function OrdersDataTable({
     {
       key: 'orderNumber',
       header: 'מס׳ הזמנה',
-      width: '120px',
+      width: '140px',
       render: (order) => (
-        <Link 
-          href={`/shops/${storeSlug}/admin/orders/${order.id}`}
-          className="font-medium text-gray-900 hover:text-blue-600"
-          onClick={(e) => e.stopPropagation()}
-        >
-          #{order.orderNumber}
-        </Link>
+        <div className="flex items-center gap-1.5">
+          <Link 
+            href={`/shops/${storeSlug}/admin/orders/${order.id}`}
+            className="font-medium text-gray-900 hover:text-blue-600"
+            onClick={(e) => e.stopPropagation()}
+          >
+            #{order.orderNumber}
+          </Link>
+          {order.utmSource === 'manual' && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium" title="הזמנה ידנית">
+              ידני
+            </span>
+          )}
+          {order.utmSource === 'pos' && (
+            <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium" title="קופה">
+              POS
+            </span>
+          )}
+        </div>
       ),
     },
     {
@@ -264,27 +277,60 @@ export function OrdersDataTable({
     {
       key: 'fulfillmentStatus',
       header: 'משלוח',
-      width: '120px',
+      width: '140px',
       align: 'center',
-      render: (order) => (
-        <div className="flex items-center justify-center gap-1">
-          {order.shipmentError && (
-            <span 
-              className="text-red-500 cursor-help" 
-              title={`שגיאת שליחה: ${order.shipmentError}`}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-              </svg>
-            </span>
-          )}
-          <Badge variant={order.shipmentError ? 'error' : getFulfillmentVariant(order.fulfillmentStatus)}>
-            {order.shipmentError ? 'שגיאה' : fulfillmentLabels[order.fulfillmentStatus || 'unfulfilled']}
-          </Badge>
-        </div>
-      ),
+      render: (order) => {
+        // Check if it's an auto-retryable error
+        const isRetryable = order.shipmentError && 
+          ['fetch failed', 'timeout', 'network'].some(e => 
+            order.shipmentError?.toLowerCase().includes(e)
+          );
+        
+        // Get helpful tooltip text
+        const getErrorTooltip = () => {
+          if (!order.shipmentError) return '';
+          if (order.shipmentError.includes('ישוב שגוי')) {
+            return '⚠️ ישוב שגוי - צריך לתקן את הכתובת';
+          }
+          if (order.shipmentError.includes('אזור הובלה')) {
+            return '⚠️ בעיית אזור משלוח - צריך בדיקה';
+          }
+          if (isRetryable) {
+            return '🔄 בעיית רשת - ינוסה שוב אוטומטית';
+          }
+          return `שגיאה: ${order.shipmentError}`;
+        };
+        
+        return (
+          <div className="flex items-center justify-center gap-1">
+            {order.shipmentError && (
+              <span 
+                className={`cursor-help ${isRetryable ? 'text-amber-500' : 'text-red-500'}`}
+                title={getErrorTooltip()}
+              >
+                {isRetryable ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                    <polyline points="21 3 21 9 15 9"/>
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                )}
+              </span>
+            )}
+            <Badge variant={order.shipmentError ? (isRetryable ? 'warning' : 'error') : getFulfillmentVariant(order.fulfillmentStatus)}>
+              {order.shipmentError 
+                ? (isRetryable ? 'ממתין לניסיון' : 'שגיאה') 
+                : fulfillmentLabels[order.fulfillmentStatus || 'unfulfilled']
+              }
+            </Badge>
+          </div>
+        );
+      },
     },
     {
       key: 'total',

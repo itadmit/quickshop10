@@ -31,6 +31,11 @@ const SCHEDULES = [
     cron: '*/15 * * * *', // Every 15 minutes
     name: 'abandoned-carts',
   },
+  {
+    destination: `${APP_DOMAIN}/api/cron/retry-failed-shipments`,
+    cron: '*/15 * * * *', // Every 15 minutes - retry failed shipment sends
+    name: 'retry-failed-shipments',
+  },
 ];
 
 // Old schedules to remove (by path patterns)

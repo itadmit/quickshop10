@@ -146,9 +146,25 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       </div>
 
       {/* Subtitle */}
-      <p className="text-sm text-gray-500">
-        {formatDate(new Date(order.createdAt!))} מ-Online Store
-      </p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm text-gray-500">
+          {formatDate(new Date(order.createdAt!))} מ-{
+            order.utmSource === 'manual' ? 'הזמנה ידנית' :
+            order.utmSource === 'pos' ? 'קופה (POS)' :
+            'Online Store'
+          }
+        </p>
+        {order.utmSource === 'manual' && (
+          <span className="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-medium">
+            ידני
+          </span>
+        )}
+        {order.utmSource === 'pos' && (
+          <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+            POS
+          </span>
+        )}
+      </div>
 
       {/* Main Grid */}
       <div className="grid grid-cols-12 gap-4">
@@ -455,18 +471,78 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
         <div className="col-span-4 space-y-4">
           {/* Shipment Error Alert */}
           {order.shipmentError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg overflow-hidden">
+            <div className={`rounded-lg border overflow-hidden ${
+              // Check if it's an auto-retryable error
+              ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
+                ? 'bg-amber-50 border-amber-200'
+                : 'bg-red-50 border-red-200'
+            }`}>
               <div className="px-4 py-3 flex items-start gap-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-red-500 shrink-0 mt-0.5">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 mt-0.5 ${
+                  ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
+                    ? 'text-amber-500'
+                    : 'text-red-500'
+                }`}>
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="8" x2="12" y2="12"/>
                   <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-red-800">שגיאת שליחה אוטומטית</h3>
-                  <p className="text-sm text-red-700 mt-1">{order.shipmentError}</p>
+                  <h3 className={`text-sm font-semibold ${
+                    ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
+                      ? 'text-amber-800'
+                      : 'text-red-800'
+                  }`}>
+                    שגיאת שליחה אוטומטית
+                  </h3>
+                  <p className={`text-sm mt-1 ${
+                    ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
+                      ? 'text-amber-700'
+                      : 'text-red-700'
+                  }`}>
+                    {order.shipmentError}
+                  </p>
+                  
+                  {/* Helpful explanation based on error type */}
+                  <div className={`mt-2 text-xs p-2 rounded ${
+                    ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-red-100 text-red-700'
+                  }`}>
+                    {order.shipmentError?.includes('ישוב שגוי') && (
+                      <div className="flex items-start gap-2">
+                        <span>💡</span>
+                        <span><strong>צריך תיקון ידני:</strong> הישוב/העיר שהלקוח הזין לא מוכר למערכת המשלוחים. יש לבדוק ולתקן את כתובת המשלוח.</span>
+                      </div>
+                    )}
+                    {order.shipmentError?.includes('אזור הובלה') && (
+                      <div className="flex items-start gap-2">
+                        <span>💡</span>
+                        <span><strong>צריך תיקון ידני:</strong> אזור המשלוח לא מוגדר או לא נתמך. יש לבדוק את הגדרות אזורי המשלוח.</span>
+                      </div>
+                    )}
+                    {['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e)) && (
+                      <div className="flex items-start gap-2">
+                        <span>🔄</span>
+                        <span><strong>ינוסה שוב אוטומטית:</strong> בעיית תקשורת זמנית עם חברת המשלוחים. המערכת תנסה שוב בקרוב.</span>
+                      </div>
+                    )}
+                    {!order.shipmentError?.includes('ישוב שגוי') && 
+                     !order.shipmentError?.includes('אזור הובלה') &&
+                     !['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e)) && (
+                      <div className="flex items-start gap-2">
+                        <span>⚠️</span>
+                        <span><strong>שגיאה לא מזוהה:</strong> ניתן לנסות לשלוח שוב ידנית מהתפריט למעלה.</span>
+                      </div>
+                    )}
+                  </div>
+                  
                   {order.shipmentErrorAt && (
-                    <p className="text-xs text-red-500 mt-1">
+                    <p className={`text-xs mt-2 ${
+                      ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
+                        ? 'text-amber-500'
+                        : 'text-red-500'
+                    }`}>
                       {new Date(order.shipmentErrorAt).toLocaleDateString('he-IL', { 
                         day: 'numeric', 
                         month: 'short',

@@ -74,44 +74,83 @@ export class FocusProvider extends BaseShippingProvider {
       requestHeaders['Authorization'] = `Bearer ${token}`;
     }
     
-    const response = await fetch(url, {
-      method: 'GET', // Run ERP uses GET for all requests
-      headers: requestHeaders,
-    });
+    // Retry configuration
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY_MS = 2000; // 2 seconds between retries
+    const TIMEOUT_MS = 30000; // 30 second timeout
     
-    if (!response.ok) {
-      // Don't log full HTML error pages - just the status
-      const isHtml = response.headers.get('content-type')?.includes('text/html');
-      if (isHtml) {
-        throw new Error(`Focus API error: ${response.status} - Server returned HTML error page`);
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // Create AbortController for timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+        
+        console.log(`[Focus] API request attempt ${attempt}/${MAX_RETRIES}`);
+        
+        const response = await fetch(url, {
+          method: 'GET', // Run ERP uses GET for all requests
+          headers: requestHeaders,
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          // Don't log full HTML error pages - just the status
+          const isHtml = response.headers.get('content-type')?.includes('text/html');
+          if (isHtml) {
+            throw new Error(`Focus API error: ${response.status} - Server returned HTML error page`);
+          }
+          const errorText = await response.text();
+          throw new Error(`Focus API error: ${response.status} - ${errorText.substring(0, 200)}`);
+        }
+        
+        // Get response as buffer first to handle encoding properly
+        const buffer = await response.arrayBuffer();
+        // Try to decode as UTF-8 first, then as Windows-1255 (Hebrew encoding)
+        let text: string;
+        try {
+          text = new TextDecoder('utf-8').decode(buffer);
+          // Check if it looks like encoding issues (gibberish)
+          if (text.includes('�')) {
+            // Try Windows-1255 (Hebrew Windows encoding)
+            text = new TextDecoder('windows-1255').decode(buffer);
+          }
+        } catch {
+          text = new TextDecoder('windows-1255').decode(buffer);
+        }
+        
+        // Check if response is XML or plain text
+        if (text.startsWith('<?xml') || text.startsWith('<')) {
+          // Parse XML response
+          return this.parseXmlResponse(text) as T;
+        } else {
+          // Parse text response (format: code,message|errorCode)
+          return this.parseTextResponse(text) as T;
+        }
+        
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        
+        // Check if it's an abort error (timeout)
+        if (lastError.name === 'AbortError') {
+          lastError = new Error(`Focus API timeout after ${TIMEOUT_MS / 1000}s`);
+        }
+        
+        console.error(`[Focus] API request attempt ${attempt} failed:`, lastError.message);
+        
+        // If we have more retries, wait and try again
+        if (attempt < MAX_RETRIES) {
+          console.log(`[Focus] Retrying in ${RETRY_DELAY_MS / 1000}s...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
       }
-      const errorText = await response.text();
-      throw new Error(`Focus API error: ${response.status} - ${errorText.substring(0, 200)}`);
     }
     
-    // Get response as buffer first to handle encoding properly
-    const buffer = await response.arrayBuffer();
-    // Try to decode as UTF-8 first, then as Windows-1255 (Hebrew encoding)
-    let text: string;
-    try {
-      text = new TextDecoder('utf-8').decode(buffer);
-      // Check if it looks like encoding issues (gibberish)
-      if (text.includes('�')) {
-        // Try Windows-1255 (Hebrew Windows encoding)
-        text = new TextDecoder('windows-1255').decode(buffer);
-      }
-    } catch {
-      text = new TextDecoder('windows-1255').decode(buffer);
-    }
-    
-    // Check if response is XML or plain text
-    if (text.startsWith('<?xml') || text.startsWith('<')) {
-      // Parse XML response
-      return this.parseXmlResponse(text) as T;
-    } else {
-      // Parse text response (format: code,message|errorCode)
-      return this.parseTextResponse(text) as T;
-    }
+    // All retries failed
+    throw lastError || new Error('Focus API request failed after all retries');
   }
   
   /**

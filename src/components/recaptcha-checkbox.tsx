@@ -38,15 +38,21 @@ export function RecaptchaCheckbox({
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<number | null>(null);
   const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [isRendered, setIsRendered] = useState(false);
   const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
   const renderWidget = useCallback(() => {
-    if (!containerRef.current || !siteKey || !window.grecaptcha || widgetIdRef.current !== null) {
+    if (!containerRef.current || !siteKey || widgetIdRef.current !== null || isRendered) {
       return;
     }
 
     // Check if container already has content
     if (containerRef.current.children.length > 0) {
+      return;
+    }
+
+    // Ensure grecaptcha is available
+    if (typeof window === 'undefined' || !window.grecaptcha || !window.grecaptcha.render) {
       return;
     }
 
@@ -59,10 +65,11 @@ export function RecaptchaCheckbox({
         'expired-callback': onExpire,
         'error-callback': onError,
       });
+      setIsRendered(true);
     } catch (error) {
       console.error('Failed to render reCAPTCHA:', error);
     }
-  }, [siteKey, size, theme, onVerify, onExpire, onError]);
+  }, [siteKey, size, theme, onVerify, onExpire, onError, isRendered]);
 
   const handleScriptLoad = () => {
     setScriptLoaded(true);
@@ -71,12 +78,51 @@ export function RecaptchaCheckbox({
     }
   };
 
+  // Check on mount if grecaptcha is already available (happens on page refresh when script is cached)
+  // Also poll for a short time in case the script is still initializing
   useEffect(() => {
-    // If script is already loaded, render immediately
+    let attempts = 0;
+    const maxAttempts = 20; // Try for up to 2 seconds
+    const intervalMs = 100;
+
+    const tryRender = () => {
+      if (typeof window !== 'undefined' && window.grecaptcha && window.grecaptcha.ready) {
+        setScriptLoaded(true);
+        window.grecaptcha.ready(renderWidget);
+        return true;
+      }
+      return false;
+    };
+
+    // Try immediately
+    if (tryRender()) {
+      return;
+    }
+
+    // Poll in case script is loading
+    const interval = setInterval(() => {
+      attempts++;
+      if (tryRender() || attempts >= maxAttempts) {
+        clearInterval(interval);
+      }
+    }, intervalMs);
+
+    return () => clearInterval(interval);
+  }, [renderWidget]);
+
+  useEffect(() => {
+    // If script is loaded, try to render
     if (scriptLoaded && window.grecaptcha) {
       window.grecaptcha.ready(renderWidget);
     }
   }, [scriptLoaded, renderWidget]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      widgetIdRef.current = null;
+    };
+  }, []);
 
   if (!siteKey) {
     return null;

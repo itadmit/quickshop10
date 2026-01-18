@@ -113,6 +113,8 @@ export async function completeDraft(draftId: string, slug: string) {
         billingAddress: draft.billingAddress as Record<string, unknown>,
         note: draft.notes,
         internalNote: `Created from draft order. Customer: ${draft.customerName || ''} ${draft.customerEmail || ''} ${draft.customerPhone || ''}`.trim(),
+        // Mark as manual order
+        utmSource: 'manual',
       })
       .returning();
 

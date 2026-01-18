@@ -206,23 +206,31 @@ export function OrderDetailActions({
         הדפס
       </button>
 
-      {/* Fulfill Button */}
+      {/* Send to Shipping Company Button */}
       {!isFulfilled && !isCancelled && (
         <button 
-          onClick={handleFulfill}
-          disabled={loading === 'fulfill'}
-          className="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2 disabled:opacity-50"
+          onClick={handleSendShipment}
+          disabled={loading === 'shipment'}
+          className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
         >
-          {loading === 'fulfill' ? (
+          {loading === 'shipment' ? (
             <>
               <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
               </svg>
-              מעדכן...
+              שולח...
             </>
           ) : (
-            'שלח לחברת משלוחים'
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <rect x="1" y="3" width="15" height="13" rx="2"/>
+                <path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/>
+                <circle cx="5.5" cy="18.5" r="2.5"/>
+                <circle cx="18.5" cy="18.5" r="2.5"/>
+              </svg>
+              שלח לחברת משלוחים
+            </>
           )}
         </button>
       )}
@@ -258,9 +266,9 @@ export function FulfillButton({ orderId, storeSlug, fulfillmentStatus, status }:
     <button 
       onClick={handleFulfill}
       disabled={loading}
-      className="text-xs font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50"
+      className="text-xs font-medium text-gray-500 hover:text-gray-700 disabled:opacity-50"
     >
-      {loading ? 'משלח...' : 'שלח פריטים'}
+      {loading ? 'מעדכן...' : 'סמן כנשלח'}
     </button>
   );
 }
