@@ -123,10 +123,16 @@ export async function POST(request: NextRequest) {
         .where(eq(storeSubscriptions.id, subscription.id));
     }
 
-    // Build URLs
+    // Build URLs - use slug for clean URLs
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || '';
-    const successUrl = `${baseUrl}/shops/${store.id}/admin/settings/billing?success=true`;
-    const failureUrl = `${baseUrl}/shops/${store.id}/admin/settings/billing?error=true`;
+    // Get store slug from DB
+    const storeWithSlug = await db.query.stores.findFirst({
+      where: eq(stores.id, storeId),
+      columns: { slug: true },
+    });
+    const storeSlug = storeWithSlug?.slug || store.id; // Fallback to ID if slug not found
+    const successUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/billing?success=true`;
+    const failureUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/billing?error=true`;
 
     // Initiate PayPlus payment
     const { paymentPageUrl, pageRequestUid } = await initiateSubscriptionPayment({

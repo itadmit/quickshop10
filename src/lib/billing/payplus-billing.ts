@@ -204,6 +204,25 @@ export async function initiateSubscriptionPayment(
     // Note: Customers API requires special permissions, so we pass customer info directly
     // If you need customer_uid, contact PayPlus to enable Customers API access
 
+    // Prepare more_info data for logging
+    const moreInfoData = {
+      type: 'subscription',
+      storeId: params.storeId,
+      plan: params.plan,
+      amount: totalAmount,
+      basePrice,
+      vatAmount,
+    };
+    
+    console.log('[PayPlus Billing] Initiating payment with data:', {
+      storeId: params.storeId,
+      plan: params.plan,
+      amount: totalAmount,
+      basePrice,
+      vatAmount,
+      more_info: moreInfoData,
+    });
+
     const response = await makePayPlusRequest<GenerateLinkResponse>(
       'PaymentPages/generateLink',
       'POST',
@@ -229,10 +248,12 @@ export async function initiateSubscriptionPayment(
         // Products for invoice
         items: [
           {
-            name: `מנוי QuickShop - ${planNameHe}`,
+            name: `מנוי חודשי QuickShop - ${planNameHe}`,
             quantity: 1,
             price: totalAmount,
-            vat_type: 0, // VAT included
+            vat_type: 0, // VAT included (0 = VAT included in price)
+            // Add more details for better invoice description
+            product_invoice_extra_details: `מנוי חודשי לפלטפורמת QuickShop - ${planNameHe}. כולל כל הפיצ'רים של המסלול.`,
           },
         ],
         
@@ -244,14 +265,8 @@ export async function initiateSubscriptionPayment(
         send_failure_callback: true,
         
         // Store reference for callback
-        more_info: JSON.stringify({
-          type: 'subscription',
-          storeId: params.storeId,
-          plan: params.plan,
-          amount: totalAmount,
-          basePrice,
-          vatAmount,
-        }),
+        // This will be returned in the redirect URL and callback
+        more_info: JSON.stringify(moreInfoData),
         
         // Language
         language_code: 'he',
@@ -317,17 +332,24 @@ export async function chargeWithToken(
         initial_invoice: true,
         
         // Products for invoice
-        products: params.invoiceItems?.map(item => ({
-          name: item.name,
-          quantity: item.quantity,
-          price: Math.round(item.price * (1 + VAT_RATE) * 100) / 100, // Price with VAT
-          vat_type: 0, // VAT included
-        })) || [
+        // According to PayPlus docs: quantity and price should be strings, vat_type should be string ('0', '1', '2')
+        products: params.invoiceItems?.map(item => {
+          // Calculate price with VAT
+          const priceWithVat = Math.round(item.price * (1 + VAT_RATE) * 100) / 100;
+          return {
+            name: item.name,
+            quantity: String(item.quantity), // Must be string according to PayPlus API
+            price: String(priceWithVat), // Must be string according to PayPlus API
+            currency_code: 'ILS',
+            vat_type: '0', // '0' = VAT included (must be string: '0', '1', or '2')
+          };
+        }) || [
           {
             name: params.description,
-            quantity: 1,
-            price: params.amount,
-            vat_type: 0,
+            quantity: '1', // Must be string
+            price: String(params.amount), // Must be string
+            currency_code: 'ILS',
+            vat_type: '0', // '0' = VAT included (must be string)
           },
         ],
         
