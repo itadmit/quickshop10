@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { CreditCard, Calendar, AlertTriangle, CheckCircle, Clock, FileText, ExternalLink, Zap, Crown, Star, Shield, Sparkles, TrendingUp, Package, ShoppingCart, BarChart3, Gift } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { CreditCard, Calendar, AlertTriangle, CheckCircle, Clock, FileText, ExternalLink, Zap, Crown, Star, Shield, Sparkles, TrendingUp, Package, ShoppingCart, BarChart3, Gift, X } from 'lucide-react';
 
 interface SubscriptionManagerProps {
   store: {
@@ -36,6 +36,11 @@ interface SubscriptionManagerProps {
   prices?: {
     branding: number;
     quickshop: number;
+  };
+  paymentResult?: {
+    success?: boolean;
+    error?: boolean;
+    transactionUid?: string;
   };
 }
 
@@ -77,9 +82,23 @@ const invoiceTypeLabels = {
   plugin: 'תוספים',
 };
 
-export function SubscriptionManager({ store, subscription, billing, invoices, prices }: SubscriptionManagerProps) {
+export function SubscriptionManager({ store, subscription, billing, invoices, prices, paymentResult }: SubscriptionManagerProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'branding' | 'quickshop'>('quickshop');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(paymentResult?.success || false);
+  const [showErrorMessage, setShowErrorMessage] = useState(paymentResult?.error || false);
+
+  // Clear URL params after showing message
+  useEffect(() => {
+    if (paymentResult?.success || paymentResult?.error) {
+      // Remove query params from URL after showing message
+      const url = new URL(window.location.href);
+      url.searchParams.delete('success');
+      url.searchParams.delete('error');
+      url.searchParams.delete('transaction_uid');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, [paymentResult]);
   
   // 💰 Check if store has custom pricing from super admin
   const hasCustomPrice = subscription?.customMonthlyPrice !== null && subscription?.customMonthlyPrice !== undefined;
@@ -145,10 +164,67 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
     return planInfo[plan].price;
   };
 
+  // Success/Error Messages Component
+  const renderPaymentMessages = () => {
+    if (showSuccessMessage) {
+      return (
+        <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <CheckCircle className="w-6 h-6 text-green-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-green-900 mb-1">התשלום בוצע בהצלחה!</h3>
+            <p className="text-sm text-green-700">
+              המנוי שלך הופעל. תוכל להתחיל להשתמש בכל הפיצ'רים של המסלול שבחרת.
+            </p>
+            {paymentResult?.transactionUid && (
+              <p className="text-xs text-green-600 mt-2">
+                מספר עסקה: {paymentResult.transactionUid.substring(0, 8)}...
+              </p>
+            )}
+          </div>
+          <button
+            onClick={() => setShowSuccessMessage(false)}
+            className="text-green-600 hover:text-green-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      );
+    }
+
+    if (showErrorMessage) {
+      return (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <AlertTriangle className="w-6 h-6 text-red-600" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-red-900 mb-1">התשלום נכשל</h3>
+            <p className="text-sm text-red-700">
+              לא הצלחנו לעבד את התשלום. אנא נסה שוב או פנה לתמיכה.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowErrorMessage(false)}
+            className="text-red-600 hover:text-red-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
   // If no subscription or in trial/expired, show plan selection
   if (!subscription || subscription.status === 'trial' || subscription.status === 'expired') {
     return (
       <div className="space-y-8">
+        {/* Payment Messages */}
+        {renderPaymentMessages()}
+
         {/* Header */}
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">בחר את המסלול שלך</h1>
@@ -423,6 +499,9 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
 
   return (
     <div className="space-y-6">
+      {/* Payment Messages */}
+      {renderPaymentMessages()}
+
       {/* Current Plan Card */}
       <div className={`
         rounded-2xl overflow-hidden

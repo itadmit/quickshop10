@@ -12,10 +12,12 @@ import { SettingsWrapper } from '@/components/admin/settings-wrapper';
 
 interface SubscriptionPageProps {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ success?: string; error?: string; transaction_uid?: string }>;
 }
 
-export default async function SubscriptionPage({ params }: SubscriptionPageProps) {
+export default async function SubscriptionPage({ params, searchParams }: SubscriptionPageProps) {
   const { slug } = await params;
+  const search = await searchParams;
   
   // Fetch store
   const store = await db.query.stores.findFirst({
@@ -96,6 +98,11 @@ export default async function SubscriptionPage({ params }: SubscriptionPageProps
           createdAt: inv.createdAt?.toISOString() || '',
           payplusInvoiceUrl: inv.payplusInvoiceUrl,
         }))}
+        paymentResult={{
+          success: search.success === 'true',
+          error: search.error === 'true',
+          transactionUid: search.transaction_uid,
+        }}
       />
     </SettingsWrapper>
   );
