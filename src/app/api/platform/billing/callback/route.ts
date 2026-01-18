@@ -31,13 +31,25 @@ interface PayPlusCallbackBody {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('[Billing Callback] ========== CALLBACK RECEIVED ==========');
+  console.log('[Billing Callback] Timestamp:', new Date().toISOString());
+  
   try {
     const rawBody = await request.text();
     const signature = request.headers.get('hash') || '';
     const userAgent = request.headers.get('user-agent') || '';
 
+    console.log('[Billing Callback] Request headers:', {
+      'user-agent': userAgent,
+      'hash': signature ? signature.substring(0, 20) + '...' : 'none',
+      'content-type': request.headers.get('content-type'),
+    });
+
     // Verify callback is from PayPlus (skip in dev)
-    if (process.env.NODE_ENV !== 'development') {
+    // In development, allow manual testing
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    if (!isDevelopment) {
       if (userAgent !== 'PayPlus') {
         console.error('[Billing Callback] Invalid user-agent:', userAgent);
         return NextResponse.json({ error: 'Invalid request' }, { status: 401 });
@@ -47,6 +59,8 @@ export async function POST(request: NextRequest) {
         console.error('[Billing Callback] Invalid signature');
         return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
       }
+    } else {
+      console.log('[Billing Callback] Development mode - skipping signature verification');
     }
 
     const body: PayPlusCallbackBody = JSON.parse(rawBody);
@@ -75,12 +89,20 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      // PayPlus callback returns more_info with JSON data
-      // Try more_info first (primary), then more_info_1 (backup)
-      let jsonData = body.more_info || body.more_info_1;
+      // PayPlus callback: more_info_1 contains JSON, more_info contains Hebrew description
+      // Try more_info_1 first (new format), then try to parse more_info as JSON (old format)
+      let jsonData = body.more_info_1;
+      
+      // If more_info_1 doesn't exist, check if more_info is JSON (starts with {)
+      if (!jsonData && body.more_info) {
+        const trimmed = body.more_info.trim();
+        if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+          jsonData = body.more_info; // Old format - more_info contains JSON
+        }
+      }
       
       if (!jsonData) {
-        throw new Error('No more_info or more_info_1 found in callback');
+        throw new Error('No JSON data found in more_info_1 or more_info');
       }
       
       // Parse JSON
@@ -98,6 +120,7 @@ export async function POST(request: NextRequest) {
         more_info_1: body.more_info_1,
         more_info_type: typeof body.more_info,
         more_info_length: body.more_info?.length,
+        more_info_preview: body.more_info?.substring(0, 100),
         rawBody_preview: rawBody.substring(0, 1000), // First 1000 chars for debugging
       });
       return NextResponse.json({ 
@@ -229,16 +252,35 @@ export async function POST(request: NextRequest) {
       message: 'Subscription activated' 
     });
   } catch (error) {
-    console.error('[Billing Callback] Error:', error);
+    console.error('[Billing Callback] ========== ERROR ==========');
+    console.error('[Billing Callback] Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error,
+    });
     return NextResponse.json(
-      { error: 'Failed to process callback' },
+      { 
+        error: 'Failed to process callback',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
 }
 
-// Also handle GET for testing
-export async function GET() {
+// Also handle GET for testing and manual callback simulation
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  
+  // Allow manual testing with query params
+  if (searchParams.has('test')) {
+    return NextResponse.json({ 
+      message: 'Billing callback endpoint active',
+      note: 'For testing, use POST with PayPlus callback data',
+      testMode: process.env.NODE_ENV === 'development',
+    });
+  }
+  
   return NextResponse.json({ message: 'Billing callback endpoint active' });
 }
 

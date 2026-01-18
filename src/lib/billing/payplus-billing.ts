@@ -80,6 +80,7 @@ export interface InitiateSubscriptionPaymentParams {
   successUrl: string;
   failureUrl: string;
   cancelUrl?: string;
+  callbackUrl?: string; // Optional - if not provided, uses NEXT_PUBLIC_APP_URL
 }
 
 export interface ChargeWithTokenParams {
@@ -261,13 +262,16 @@ export async function initiateSubscriptionPayment(
         refURL_success: params.successUrl,
         refURL_failure: params.failureUrl,
         refURL_cancel: params.cancelUrl || params.failureUrl,
-        refURL_callback: `${process.env.NEXT_PUBLIC_APP_URL}/api/platform/billing/callback`,
+        // Use provided callbackUrl or fallback to NEXT_PUBLIC_APP_URL
+        // This allows localhost testing by passing the origin from the request
+        refURL_callback: params.callbackUrl || `${process.env.NEXT_PUBLIC_APP_URL}/api/platform/billing/callback`,
         send_failure_callback: true,
         
         // Store reference for callback
-        // PayPlus callback returns more_info, so we must send JSON here
-        // For display in payment page, we use items[0].name which is already in Hebrew
-        more_info: JSON.stringify(moreInfoData),
+        // more_info - תיאור בעברית שיוצג בדף התשלום ובחשבונית
+        // more_info_1 - JSON עם נתונים טכניים ל-callback
+        more_info: `מנוי חודשי QuickShop - ${planNameHe}`,
+        more_info_1: JSON.stringify(moreInfoData),
         
         // Language
         language_code: 'he',

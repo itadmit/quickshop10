@@ -124,7 +124,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Build URLs - use slug for clean URLs
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || request.headers.get('origin') || '';
+    // Use origin from request for localhost support, fallback to env var
+    const origin = request.headers.get('origin') || request.headers.get('host') 
+      ? `${request.headers.get('x-forwarded-proto') || 'http'}://${request.headers.get('host')}`
+      : null;
+    const baseUrl = origin || process.env.NEXT_PUBLIC_APP_URL || '';
+    
     // Get store slug from DB
     const storeWithSlug = await db.query.stores.findFirst({
       where: eq(stores.id, storeId),
@@ -133,6 +138,16 @@ export async function POST(request: NextRequest) {
     const storeSlug = storeWithSlug?.slug || store.id; // Fallback to ID if slug not found
     const successUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/billing?success=true`;
     const failureUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/billing?error=true`;
+    const callbackUrl = `${baseUrl}/api/platform/billing/callback`;
+
+    console.log('[Billing Initiate] Building URLs:', {
+      origin,
+      baseUrl,
+      successUrl,
+      failureUrl,
+      callbackUrl,
+      envUrl: process.env.NEXT_PUBLIC_APP_URL,
+    });
 
     // Initiate PayPlus payment
     const { paymentPageUrl, pageRequestUid } = await initiateSubscriptionPayment({
@@ -149,6 +164,7 @@ export async function POST(request: NextRequest) {
       },
       successUrl,
       failureUrl,
+      callbackUrl, // Pass callback URL for localhost support
     });
 
     // Return payment page URL

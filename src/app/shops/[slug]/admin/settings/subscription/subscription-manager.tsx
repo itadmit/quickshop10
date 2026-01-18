@@ -98,11 +98,13 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
       url.searchParams.delete('transaction_uid');
       window.history.replaceState({}, '', url.toString());
       
-      // If payment was successful, refresh the page after 3 seconds to update subscription status
+      // If payment was successful, refresh the page after 2 seconds to update subscription status
+      // This gives the callback time to process
       if (paymentResult?.success) {
         const timer = setTimeout(() => {
+          console.log('[Subscription] Refreshing page after successful payment');
           window.location.reload();
-        }, 3000);
+        }, 2000); // Reduced to 2 seconds for faster update
         
         return () => clearTimeout(timer);
       }
