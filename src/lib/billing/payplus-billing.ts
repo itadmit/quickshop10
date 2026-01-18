@@ -442,6 +442,116 @@ export async function removeToken(tokenUid: string): Promise<boolean> {
 }
 
 /**
+ * Get transaction details including invoice info from PayPlus
+ */
+export async function getTransactionDetails(transactionUid: string): Promise<{
+  success: boolean;
+  invoiceNumber?: string;
+  invoiceUrl?: string;
+  error?: string;
+}> {
+  try {
+    const response = await makePayPlusRequest<{
+      transaction_uid: string;
+      invoice_number?: string;
+      invoice_link?: string;
+      status_code: string;
+    }>(
+      `Transactions/Check`,
+      'POST',
+      {
+        terminal_uid: PAYPLUS_CONFIG.terminalUid,
+        transaction_uid: transactionUid,
+      }
+    );
+
+    if (response.results.status !== 'success') {
+      return { 
+        success: false, 
+        error: response.results.description || 'Unknown error' 
+      };
+    }
+
+    return {
+      success: true,
+      invoiceNumber: response.data?.invoice_number,
+      invoiceUrl: response.data?.invoice_link,
+    };
+  } catch (error) {
+    console.error('[PayPlus Billing] Error getting transaction details:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+/**
+ * Generate invoice for an existing transaction
+ * Use this when initial_invoice didn't work in payment page
+ */
+export async function generateInvoiceForTransaction(
+  transactionUid: string,
+  customerName: string,
+  customerEmail: string,
+  amount: number,
+  description: string,
+  vatNumber?: string
+): Promise<{
+  success: boolean;
+  invoiceNumber?: string;
+  invoiceUrl?: string;
+  error?: string;
+}> {
+  try {
+    const response = await makePayPlusRequest<{
+      invoice_number?: string;
+      invoice_link?: string;
+    }>(
+      'Invoice/Add',
+      'POST',
+      {
+        terminal_uid: PAYPLUS_CONFIG.terminalUid,
+        transaction_uid: transactionUid,
+        customer: {
+          customer_name: customerName,
+          email: customerEmail,
+          vat_number: vatNumber || '',
+        },
+        products: [
+          {
+            name: description,
+            quantity: '1',
+            price: String(amount),
+            currency_code: 'ILS',
+            vat_type: '0', // VAT included
+          },
+        ],
+      }
+    );
+
+    if (response.results.status !== 'success') {
+      return { 
+        success: false, 
+        error: response.results.description || 'Unknown error' 
+      };
+    }
+
+    return {
+      success: true,
+      invoiceNumber: response.data?.invoice_number,
+      invoiceUrl: response.data?.invoice_link,
+    };
+  } catch (error) {
+    console.error('[PayPlus Billing] Error generating invoice:', error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+/**
  * Calculate subscription price with VAT (sync version - uses defaults)
  * @deprecated Use calculateSubscriptionPriceAsync for DB values
  */

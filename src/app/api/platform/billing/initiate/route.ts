@@ -104,18 +104,18 @@ export async function POST(request: NextRequest) {
           status: 'trial',
           trialEndsAt,
           billingEmail: billingDetails.email,
-          billingName: billingDetails.name,
+          billingName: store.name, // Use store name for invoicing (business name)
           billingPhone: billingDetails.phone,
           vatNumber: billingDetails.vatNumber,
         })
         .returning();
     } else {
-      // Update billing details
+      // Update billing details - use store name for invoicing
       await db
         .update(storeSubscriptions)
         .set({
           billingEmail: billingDetails.email,
-          billingName: billingDetails.name,
+          billingName: store.name, // Use store name for invoicing (business name)
           billingPhone: billingDetails.phone,
           vatNumber: billingDetails.vatNumber,
           updatedAt: new Date(),
@@ -150,12 +150,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Initiate PayPlus payment
+    // Use store name for invoicing (business name), email/phone from billing details
     const { paymentPageUrl, pageRequestUid } = await initiateSubscriptionPayment({
       storeId,
       storeName: store.name,
       plan,
       customer: {
-        name: billingDetails.name,
+        name: store.name, // Use store name for invoice (business name)
         email: billingDetails.email,
         phone: billingDetails.phone,
         vatNumber: billingDetails.vatNumber,
