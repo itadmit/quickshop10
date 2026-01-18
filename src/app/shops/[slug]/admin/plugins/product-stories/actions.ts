@@ -119,6 +119,8 @@ export async function addProductToStories(
     productHandle: string;
     productPrice: number;
     productImage: string | null;
+    customMediaUrl: string | null;
+    customMediaType: 'image' | 'video' | null;
   };
 }> {
   try {
@@ -200,6 +202,8 @@ export async function addProductToStories(
         productHandle: product.handle,
         productPrice: Number(product.price),
         productImage: image?.url || null,
+        customMediaUrl: newStory.customMediaUrl || null,
+        customMediaType: (newStory.customMediaType as 'image' | 'video' | null) || null,
       },
     };
   } catch (error) {

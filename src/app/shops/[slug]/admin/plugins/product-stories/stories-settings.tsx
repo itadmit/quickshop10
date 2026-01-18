@@ -9,7 +9,7 @@
 import { useState, useTransition, useEffect } from 'react';
 import {
   Settings, Eye, Heart, MessageCircle, Plus, Trash2,
-  Search, X, Loader2, GripVertical, Image as ImageIcon
+  Search, X, Loader2, GripVertical, Image as ImageIcon, Video, Pencil
 } from 'lucide-react';
 import {
   DndContext,
@@ -112,7 +112,11 @@ function SortableStoryItem({
 
       {/* Story Circle Preview - Click to edit media */}
       <button
-        onClick={() => onEditMedia(story)}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onEditMedia(story);
+        }}
         className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-pink-500 p-0.5 group hover:border-pink-600 transition-colors"
         title="לחץ לשינוי תמונה/סרטון"
       >
@@ -164,8 +168,12 @@ function SortableStoryItem({
             {story.commentsCount}
           </span>
           {hasCustomMedia && (
-            <span className="text-purple-500 text-xs">
-              {story.customMediaType === 'video' ? '🎬 סרטון' : '🖼️ תמונה מותאמת'}
+            <span className="text-purple-500 text-xs flex items-center gap-1">
+              {story.customMediaType === 'video' ? (
+                <><Video className="w-3 h-3" /> סרטון</>
+              ) : (
+                <><ImageIcon className="w-3 h-3" /> תמונה מותאמת</>
+              )}
             </span>
           )}
         </div>
@@ -176,9 +184,26 @@ function SortableStoryItem({
         ₪{story.productPrice.toFixed(2)}
       </span>
 
+      {/* Edit Media Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onEditMedia(story);
+        }}
+        className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+        title="ערוך תמונה/סרטון"
+      >
+        <ImageIcon className="w-5 h-5" />
+      </button>
+
       {/* Remove Button */}
       <button
-        onClick={() => onRemove(story.id)}
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          onRemove(story.id);
+        }}
         disabled={isRemoving}
         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
       >
@@ -714,23 +739,25 @@ export function StoriesSettings({
                 <div className="flex gap-2">
                   <button
                     onClick={() => setMediaType('image')}
-                    className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                       mediaType === 'image'
                         ? 'border-pink-500 bg-pink-50 text-pink-600'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    🖼️ תמונה
+                    <ImageIcon className="w-4 h-4" />
+                    תמונה
                   </button>
                   <button
                     onClick={() => setMediaType('video')}
-                    className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors ${
+                    className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors flex items-center justify-center gap-2 ${
                       mediaType === 'video'
                         ? 'border-pink-500 bg-pink-50 text-pink-600'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    🎬 סרטון
+                    <Video className="w-4 h-4" />
+                    סרטון
                   </button>
                 </div>
               </div>
@@ -752,10 +779,7 @@ export function StoriesSettings({
                   dir="ltr"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  {mediaType === 'video' 
-                    ? 'העלה סרטון לשירות אחסון (כמו Cloudinary) והדבק את הקישור'
-                    : 'העלה תמונה לשירות אחסון (כמו Cloudinary) והדבק את הקישור'
-                  }
+                  העלה דרך &quot;מדיה&quot; בתפריט הראשי והעתק לינק
                 </p>
               </div>
 
