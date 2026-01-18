@@ -88,7 +88,7 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
   const [showSuccessMessage, setShowSuccessMessage] = useState(paymentResult?.success || false);
   const [showErrorMessage, setShowErrorMessage] = useState(paymentResult?.error || false);
 
-  // Clear URL params after showing message
+  // Clear URL params and refresh page after successful payment
   useEffect(() => {
     if (paymentResult?.success || paymentResult?.error) {
       // Remove query params from URL after showing message
@@ -97,6 +97,15 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
       url.searchParams.delete('error');
       url.searchParams.delete('transaction_uid');
       window.history.replaceState({}, '', url.toString());
+      
+      // If payment was successful, refresh the page after 3 seconds to update subscription status
+      if (paymentResult?.success) {
+        const timer = setTimeout(() => {
+          window.location.reload();
+        }, 3000);
+        
+        return () => clearTimeout(timer);
+      }
     }
   }, [paymentResult]);
   

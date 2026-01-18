@@ -50,15 +50,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body: PayPlusCallbackBody = JSON.parse(rawBody);
+    
+    // Log full callback data for debugging
+    console.log('[Billing Callback] Full callback data:', JSON.stringify(body, null, 2));
     console.log('[Billing Callback] Received:', {
       status_code: body.status_code,
       transaction_uid: body.transaction_uid,
-      more_info: body.more_info, // תיאור בעברית
-      more_info_1: body.more_info_1, // JSON עם נתונים טכניים
+      customer_uid: body.customer_uid,
+      token_uid: body.token_uid,
+      more_info: body.more_info,
+      more_info_1: body.more_info_1,
     });
 
     // Parse more_info_1 (JSON) to get store and plan details
     // more_info contains Hebrew description, more_info_1 contains JSON data
+    // PayPlus might return more_info_1 in callback, or might return more_info with JSON (old format)
     let paymentData: {
       type: string;
       storeId: string;
@@ -69,15 +75,35 @@ export async function POST(request: NextRequest) {
     };
 
     try {
-      // Try more_info_1 first (new format), fallback to more_info (old format for backward compatibility)
-      const jsonData = body.more_info_1 || body.more_info || '{}';
+      // PayPlus callback returns more_info with JSON data
+      // Try more_info first (primary), then more_info_1 (backup)
+      let jsonData = body.more_info || body.more_info_1;
+      
+      if (!jsonData) {
+        throw new Error('No more_info or more_info_1 found in callback');
+      }
+      
+      // Parse JSON
       paymentData = JSON.parse(jsonData);
-    } catch {
+      console.log('[Billing Callback] Parsed payment data:', paymentData);
+      
+      // Validate required fields
+      if (!paymentData.storeId || !paymentData.plan) {
+        throw new Error('Missing storeId or plan in payment data');
+      }
+    } catch (error) {
       console.error('[Billing Callback] Invalid more_info format:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
         more_info: body.more_info,
         more_info_1: body.more_info_1,
+        more_info_type: typeof body.more_info,
+        more_info_length: body.more_info?.length,
+        rawBody_preview: rawBody.substring(0, 1000), // First 1000 chars for debugging
       });
-      return NextResponse.json({ error: 'Invalid payment data' }, { status: 400 });
+      return NextResponse.json({ 
+        error: 'Invalid payment data',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }, { status: 400 });
     }
 
     // Verify this is a subscription payment
@@ -99,42 +125,103 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields for successful payment
     if (!body.customer_uid || !body.token_uid) {
-      console.error('[Billing Callback] Missing customer_uid or token_uid');
+      console.error('[Billing Callback] Missing customer_uid or token_uid:', {
+        customer_uid: body.customer_uid,
+        token_uid: body.token_uid,
+      });
       return NextResponse.json({ error: 'Missing payment token' }, { status: 400 });
     }
 
-    // Activate subscription
-    await activateSubscription(
-      paymentData.storeId,
-      paymentData.plan,
-      body.customer_uid,
-      body.token_uid,
-      body.four_digits || '',
-      body.brand_name || '',
-      `${body.expiry_month}/${body.expiry_year}`
-    );
+    // Check if subscription exists before activating
+    const existingSubscription = await db.query.storeSubscriptions.findFirst({
+      where: eq(storeSubscriptions.storeId, paymentData.storeId),
+    });
 
-    // Create invoice record for subscription
-    await createSubscriptionInvoice(
-      paymentData.storeId,
-      paymentData.plan,
-      body.transaction_uid || '',
-      body.invoice_number || null,
-      body.invoice_link || null
-    );
+    if (!existingSubscription) {
+      console.error('[Billing Callback] Subscription not found for store:', paymentData.storeId);
+      return NextResponse.json({ error: 'Subscription not found' }, { status: 404 });
+    }
 
-    // Charge trial period transaction fees (if any sales during trial)
-    const trialFeesResult = await chargeTrialPeriodFees(
-      paymentData.storeId,
-      body.token_uid,
-      body.customer_uid
-    );
-
-    console.log('[Billing Callback] Subscription activated:', {
+    console.log('[Billing Callback] Activating subscription:', {
       storeId: paymentData.storeId,
       plan: paymentData.plan,
+      currentStatus: existingSubscription.status,
+      currentPlan: existingSubscription.plan,
+    });
+
+    // Activate subscription
+    try {
+      await activateSubscription(
+        paymentData.storeId,
+        paymentData.plan,
+        body.customer_uid,
+        body.token_uid,
+        body.four_digits || '',
+        body.brand_name || '',
+        `${body.expiry_month}/${body.expiry_year}`
+      );
+      console.log('[Billing Callback] activateSubscription completed');
+      
+      // Verify subscription was updated
+      const updatedSubscription = await db.query.storeSubscriptions.findFirst({
+        where: eq(storeSubscriptions.storeId, paymentData.storeId),
+      });
+      
+      if (!updatedSubscription) {
+        throw new Error('Subscription not found after activation');
+      }
+      
+      console.log('[Billing Callback] Subscription verification:', {
+        status: updatedSubscription.status,
+        plan: updatedSubscription.plan,
+        hasToken: !!updatedSubscription.payplusTokenUid,
+        periodEnd: updatedSubscription.currentPeriodEnd,
+      });
+      
+      if (updatedSubscription.status !== 'active') {
+        throw new Error(`Subscription status is ${updatedSubscription.status}, expected 'active'`);
+      }
+    } catch (error) {
+      console.error('[Billing Callback] Error activating subscription:', error);
+      throw error; // Re-throw to be caught by outer catch
+    }
+
+    // Create invoice record for subscription
+    try {
+      await createSubscriptionInvoice(
+        paymentData.storeId,
+        paymentData.plan,
+        body.transaction_uid || '',
+        body.invoice_number || null,
+        body.invoice_link || null
+      );
+      console.log('[Billing Callback] Invoice created successfully');
+    } catch (error) {
+      console.error('[Billing Callback] Error creating invoice:', error);
+      // Don't fail the whole callback if invoice creation fails
+    }
+
+    // Charge trial period transaction fees (if any sales during trial)
+    let trialFeesAmount = 0;
+    try {
+      const trialFeesResult = await chargeTrialPeriodFees(
+        paymentData.storeId,
+        body.token_uid,
+        body.customer_uid
+      );
+      trialFeesAmount = trialFeesResult.amount || 0;
+      console.log('[Billing Callback] Trial fees charged:', trialFeesResult);
+    } catch (error) {
+      console.error('[Billing Callback] Error charging trial fees:', error);
+      // Don't fail the whole callback if trial fees fail
+    }
+
+    console.log('[Billing Callback] Subscription activated successfully:', {
+      storeId: paymentData.storeId,
+      plan: paymentData.plan,
+      transactionUid: body.transaction_uid,
       tokenUid: body.token_uid?.substring(0, 8) + '...',
-      trialFeesCharged: trialFeesResult.amount || 0,
+      trialFeesCharged: trialFeesAmount,
     });
 
     return NextResponse.json({ 

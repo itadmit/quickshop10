@@ -265,10 +265,9 @@ export async function initiateSubscriptionPayment(
         send_failure_callback: true,
         
         // Store reference for callback
-        // more_info - תיאור בעברית שיוצג בדף התשלום ובחשבונית
-        // more_info_1 - JSON עם נתונים טכניים ל-callback
-        more_info: `מנוי חודשי QuickShop - ${planNameHe}`,
-        more_info_1: JSON.stringify(moreInfoData),
+        // PayPlus callback returns more_info, so we must send JSON here
+        // For display in payment page, we use items[0].name which is already in Hebrew
+        more_info: JSON.stringify(moreInfoData),
         
         // Language
         language_code: 'he',
