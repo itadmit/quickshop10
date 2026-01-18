@@ -216,9 +216,23 @@ function buildFlatContext(
   }
   
   // Custom fields (metafields)
+  // Support both: product.metadata.customFields (legacy) AND direct product.metadata.{key} (new format)
   const customFields = product.metadata?.customFields || {};
   for (const [key, value] of Object.entries(customFields)) {
     context[`product.custom.${key}`] = value;
+  }
+  
+  // Also check direct metadata fields (new format - metafields stored directly in metadata)
+  if (product.metadata) {
+    for (const [key, value] of Object.entries(product.metadata)) {
+      // Skip 'customFields' itself and non-string/number values
+      if (key !== 'customFields' && (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean')) {
+        // Only add if not already in customFields (to avoid duplicates)
+        if (!context[`product.custom.${key}`]) {
+          context[`product.custom.${key}`] = String(value);
+        }
+      }
+    }
   }
   
   // Variant fields (if selected)

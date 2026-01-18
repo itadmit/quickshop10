@@ -303,52 +303,194 @@ export function SectionTree({
             )}
           </div>
           
-          {/* Dynamic Product Page Sections */}
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
-              סקשנים
-            </div>
+          {/* Product Page Layout Zones */}
+          {(() => {
+            // Define section zones
+            const topTypes = ['breadcrumb']; // ראש תוכן - פירורי לחם
+            const galleryTypes = ['product_gallery'];
+            // אזור מידע מוצר - משמאל לגלריה (כולל תיאור וחוזקות!)
+            const infoTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
+            // אזור תוכן - מתחת לגלריה+מידע
+            const contentTypes = ['accordion', 'tabs', 'text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
             
-            {/* Empty state */}
-            {sections.length === 0 && (
-              <div className="px-4 py-6 text-center">
-                <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M12 8v8M8 12h8" />
-                  </svg>
+            const topSections = sortedSections.filter(s => topTypes.includes(s.type));
+            const gallerySections = sortedSections.filter(s => galleryTypes.includes(s.type));
+            const infoSections = sortedSections.filter(s => infoTypes.includes(s.type));
+            const contentSections = sortedSections.filter(s => contentTypes.includes(s.type));
+            
+            return (
+              <>
+                {/* Top Zone - Breadcrumb */}
+                <div className="border-b border-gray-100">
+                  <div className="p-3 flex items-center gap-2">
+                    <div className="w-6 h-6 bg-amber-100 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600">
+                        <path d="M3 12h18M3 12l4-4M3 12l4 4M21 12l-4-4M21 12l-4 4"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-700">ראש תוכן</span>
+                      <span className="text-[10px] text-gray-400 block">פירורי לחם, ניווט</span>
+                    </div>
+                  </div>
+                  {topSections.map((section) => {
+                    const globalIndex = sortedSections.findIndex(s => s.id === section.id);
+                    return (
+                      <div
+                        key={section.id}
+                        draggable
+                        onDragStart={() => handleDragStart(globalIndex)}
+                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragEnd={handleDragEnd}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-amber-500' : ''}`}
+                      >
+                        <SectionItem
+                          icon={getProductSectionIcon(section.type)}
+                          label={section.title || getProductSectionLabel(section.type)}
+                          isSelected={selectedSectionId === section.id}
+                          onClick={() => onSelectSection(section.id)}
+                          isDisabled={!section.isActive}
+                        />
+                      </div>
+                    );
+                  })}
+                  {topSections.length === 0 && (
+                    <div className="px-4 py-2 text-xs text-gray-400 italic">אין פירורי לחם</div>
+                  )}
                 </div>
-                <p className="text-sm text-gray-600 mb-1">אין עדיין סקשנים</p>
-                <p className="text-xs text-gray-400">לחץ על &quot;הוסף סקשן&quot; כדי להתחיל</p>
-              </div>
-            )}
-            
-            {/* Draggable sections */}
-            {sortedSections.map((section, index) => (
-              <div
-                key={section.id}
-                draggable
-                onDragStart={() => handleDragStart(index)}
-                onDragOver={(e) => handleDragOver(e, index)}
-                onDragEnd={handleDragEnd}
-                onDragLeave={handleDragLeave}
-                className={`${draggedIndex === index ? 'opacity-50' : ''} ${dropTargetIndex === index ? 'border-t-2 border-blue-500' : ''}`}
-              >
-                <SectionItem
-                  icon={getProductSectionIcon(section.type)}
-                  label={section.title || getProductSectionLabel(section.type)}
-                  isSelected={selectedSectionId === section.id}
-                  onClick={() => onSelectSection(section.id)}
-                  isDisabled={!section.isActive}
-                />
-              </div>
-            ))}
-            
-            {/* Add Section Button */}
-            <AddSectionButton 
-              onClick={() => setShowAddMenu(true)} 
-            />
-          </div>
+
+                {/* Gallery Zone - Right Side */}
+                <div className="border-b border-gray-100">
+                  <div className="p-3 flex items-center gap-2">
+                    <div className="w-6 h-6 bg-purple-100 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-700">אזור גלריה</span>
+                      <span className="text-[10px] text-gray-400 block">צד ימין</span>
+                    </div>
+                  </div>
+                  {gallerySections.map((section) => {
+                    const globalIndex = sortedSections.findIndex(s => s.id === section.id);
+                    return (
+                      <div
+                        key={section.id}
+                        draggable
+                        onDragStart={() => handleDragStart(globalIndex)}
+                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragEnd={handleDragEnd}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-purple-500' : ''}`}
+                      >
+                        <SectionItem
+                          icon={getProductSectionIcon(section.type)}
+                          label={section.title || getProductSectionLabel(section.type)}
+                          isSelected={selectedSectionId === section.id}
+                          onClick={() => onSelectSection(section.id)}
+                          isDisabled={!section.isActive}
+                        />
+                      </div>
+                    );
+                  })}
+                  {gallerySections.length === 0 && (
+                    <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדרה גלריה</div>
+                  )}
+                </div>
+
+                {/* Info Zone - Left Side of Gallery */}
+                <div className="border-b border-gray-100">
+                  <div className="p-3 flex items-center gap-2">
+                    <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
+                        <path d="M4 4h16v16H4z"/>
+                        <path d="M4 4v16"/>
+                        <path d="M12 4v16"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-700">אזור מידע מוצר</span>
+                      <span className="text-[10px] text-gray-400 block">משמאל לגלריה • שם, מחיר, תיאור, חוזקות</span>
+                    </div>
+                  </div>
+                  {infoSections.map((section) => {
+                    const globalIndex = sortedSections.findIndex(s => s.id === section.id);
+                    return (
+                      <div
+                        key={section.id}
+                        draggable
+                        onDragStart={() => handleDragStart(globalIndex)}
+                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragEnd={handleDragEnd}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-blue-500' : ''}`}
+                      >
+                        <SectionItem
+                          icon={getProductSectionIcon(section.type)}
+                          label={section.title || getProductSectionLabel(section.type)}
+                          isSelected={selectedSectionId === section.id}
+                          onClick={() => onSelectSection(section.id)}
+                          isDisabled={!section.isActive}
+                        />
+                      </div>
+                    );
+                  })}
+                  {infoSections.length === 0 && (
+                    <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדרו שדות מידע</div>
+                  )}
+                  <AddSectionButton 
+                    onClick={() => setShowAddMenu(true)}
+                    label="הוסף לאזור מידע"
+                  />
+                </div>
+
+                {/* Content Zone - Below Gallery+Info */}
+                <div className="border-b border-gray-100">
+                  <div className="p-3 flex items-center gap-2">
+                    <div className="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+                        <rect x="3" y="3" width="18" height="7" rx="1"/>
+                        <rect x="3" y="14" width="18" height="7" rx="1"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-xs font-medium text-gray-700">אזור תוכן</span>
+                      <span className="text-[10px] text-gray-400 block">מתחת לגלריה • אקורדיון, ביקורות, מוצרים קשורים</span>
+                    </div>
+                  </div>
+                  {contentSections.map((section) => {
+                    const globalIndex = sortedSections.findIndex(s => s.id === section.id);
+                    return (
+                      <div
+                        key={section.id}
+                        draggable
+                        onDragStart={() => handleDragStart(globalIndex)}
+                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragEnd={handleDragEnd}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-green-500' : ''}`}
+                      >
+                        <SectionItem
+                          icon={getProductSectionIcon(section.type)}
+                          label={section.title || getProductSectionLabel(section.type)}
+                          isSelected={selectedSectionId === section.id}
+                          onClick={() => onSelectSection(section.id)}
+                          isDisabled={!section.isActive}
+                        />
+                      </div>
+                    );
+                  })}
+                  {contentSections.length === 0 && (
+                    <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדר תוכן נוסף</div>
+                  )}
+                  <AddSectionButton 
+                    onClick={() => setShowAddMenu(true)}
+                    label="הוסף לאזור תוכן"
+                  />
+                </div>
+              </>
+            );
+          })()}
 
           {/* Footer Section (Global - not part of sections) */}
           <div>
@@ -730,7 +872,7 @@ function SubItem({ label, isAdd }: { label: string; isAdd?: boolean }) {
 }
 
 // Add Section Button
-function AddSectionButton({ onClick, small }: { onClick: () => void; small?: boolean }) {
+function AddSectionButton({ onClick, small, label }: { onClick: () => void; small?: boolean; label?: string }) {
   return (
     <button
       onClick={onClick}
@@ -743,7 +885,7 @@ function AddSectionButton({ onClick, small }: { onClick: () => void; small?: boo
         <circle cx="12" cy="12" r="10" />
         <path d="M12 8v8M8 12h8" />
       </svg>
-      <span className="text-sm">הוסף סקשן</span>
+      <span className="text-sm">{label || 'הוסף סקשן'}</span>
     </button>
   );
 }

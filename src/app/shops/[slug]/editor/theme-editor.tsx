@@ -714,8 +714,29 @@ export function ThemeEditor({
         sectionId,
         updates,
       }, '*');
+      
+      // For product_gallery sections, also send PRODUCT_PAGE_SETTINGS_UPDATE for live preview
+      // This syncs the gallery settings with the live preview system
+      const section = sections.find(s => s.id === sectionId);
+      if (section?.type === 'product_gallery' && updates.settings) {
+        const mergedSettings = { ...section.settings, ...updates.settings };
+        iframeRef.current.contentWindow.postMessage({
+          type: 'PRODUCT_PAGE_SETTINGS_UPDATE',
+          settings: {
+            gallery: {
+              layout: mergedSettings.layout || 'carousel',
+              thumbnailsPosition: mergedSettings.thumbnailsPosition || 'bottom',
+              thumbnailsPositionMobile: mergedSettings.thumbnailsPositionMobile || 'bottom',
+              aspectRatio: mergedSettings.aspectRatio || '3:4',
+              enableZoom: mergedSettings.enableZoom ?? true,
+              showArrows: mergedSettings.showArrows ?? true,
+              showDotsOnMobile: mergedSettings.showDotsOnMobile ?? false,
+            },
+          },
+        }, '*');
+      }
     }
-  }, []);
+  }, [sections]);
 
 
   // Save all changes to DB (sections + theme settings)
