@@ -92,12 +92,27 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   const v2Sections = (store.productPageSections || []) as ProductPageSection[];
   const hasV2Sections = v2Sections.length > 0;
   
-  // Filter V2 sections by type for rendering in appropriate locations
+  // Define flexible types that can be in either info or content zone
+  const flexibleTypes = ['accordion', 'tabs'];
+  const contentOnlyTypes = ['text_block', 'features', 'divider', 'spacer'];
+  
+  // Filter V2 sections by zone for rendering in appropriate locations
+  // Info zone sections (accordion/tabs with zone='info') - render inside product info column
+  const v2InfoSections = hasV2Sections 
+    ? v2Sections.filter(s => 
+        s.isActive && 
+        flexibleTypes.includes(s.type) && 
+        s.settings?.zone === 'info'
+      ).sort((a, b) => a.sortOrder - b.sortOrder)
+    : [];
+  
+  // Content zone sections - render below product area
   const v2ContentSections = hasV2Sections 
     ? v2Sections.filter(s => 
         s.isActive && 
-        ['accordion', 'tabs', 'text_block', 'features', 'divider', 'spacer'].includes(s.type)
-      )
+        (contentOnlyTypes.includes(s.type) || 
+         (flexibleTypes.includes(s.type) && s.settings?.zone !== 'info'))
+      ).sort((a, b) => a.sortOrder - b.sortOrder)
     : [];
 
   // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
@@ -866,6 +881,16 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
                   {/* Features - inside info column */}
                   {isSectionVisible('features') && renderSection('features')}
+                  
+                  {/* 🆕 V2 Info Zone Sections - Accordion/Tabs with zone='info' */}
+                  {v2InfoSections.length > 0 && v2InfoSections.map((section) => (
+                    <div key={section.id} className="mt-6">
+                      <ProductSection 
+                        section={section} 
+                        context={dynamicContext}
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -873,7 +898,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
         </section>
       )}
 
-      {/* 🆕 V2 Content Sections - Accordion, Tabs, Text Block, Features */}
+      {/* 🆕 V2 Content Sections - Accordion, Tabs, Text Block, Features (content zone) */}
       {v2ContentSections.length > 0 && (
         <section className="py-8 px-6">
           <div className="max-w-7xl mx-auto">
