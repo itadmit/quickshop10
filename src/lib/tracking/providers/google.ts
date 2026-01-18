@@ -38,9 +38,10 @@ export function initGoogleAnalytics(measurementId: string): void {
   // Don't reinitialize
   if (window.gtag) return;
 
-  // Initialize dataLayer
+  // Initialize dataLayer FIRST
   window.dataLayer = window.dataLayer || [];
   
+  // Define gtag function BEFORE loading script
   // IMPORTANT: gtag must push arguments, not an array
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   window.gtag = function() {
@@ -48,17 +49,26 @@ export function initGoogleAnalytics(measurementId: string): void {
     window.dataLayer!.push(arguments);
   };
   
+  // Queue the initial config (will be processed when script loads)
   window.gtag('js', new Date());
   window.gtag('config', measurementId, {
-    send_page_view: true, // Let GA4 handle page views automatically
+    send_page_view: false, // We handle page views manually for SPA navigation
     cookie_flags: 'SameSite=None;Secure',
   });
 
-  // Load script FIRST (before calling gtag)
+  // Load script - config commands above will be processed when it loads
   const script = document.createElement('script');
   script.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
   script.async = true;
   document.head.appendChild(script);
+
+  // Send initial page view after script is ready
+  script.onload = () => {
+    window.gtag?.('event', 'page_view', {
+      page_location: window.location.href,
+      page_title: document.title,
+    });
+  };
 }
 
 export function trackGoogleEvent<T extends TrackingEventType>(

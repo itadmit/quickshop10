@@ -18,14 +18,18 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-// Lazy load Redis stats
+// Lazy load Redis stats - only if configured
 async function getRedisStats() {
+  // Check env vars before importing to avoid initialization errors
   if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+    console.log('[Realtime] Redis not configured - skipping stats');
     return null;
   }
   try {
-    return await import('@/lib/upstash/page-stats');
-  } catch {
+    const module = await import('@/lib/upstash/page-stats');
+    return module;
+  } catch (error) {
+    console.error('[Realtime] Failed to load Redis stats:', error);
     return null;
   }
 }

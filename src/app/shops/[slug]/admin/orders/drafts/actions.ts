@@ -5,6 +5,7 @@ import { draftOrders, orders, orderItems, stores, products, productImages, produ
 import { eq, and, ilike, or } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
+import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
 
 interface DraftItem {
   productId: string;
@@ -150,6 +151,17 @@ export async function completeDraft(draftId: string, slug: string) {
         updatedAt: new Date(),
       })
       .where(eq(draftOrders.id, draftId));
+
+    // Auto-send shipment if store has auto-send enabled (non-blocking)
+    autoSendShipmentOnPayment(store.id, order.id)
+      .then(result => {
+        if (result.success) {
+          console.log(`[DraftOrder] Auto-sent shipment for order ${order.orderNumber}, tracking: ${result.trackingNumber}`);
+        } else if (result.error) {
+          console.log(`[DraftOrder] Auto-send skipped or failed for order ${order.orderNumber}: ${result.error}`);
+        }
+      })
+      .catch(err => console.error('[DraftOrder] Auto-send shipment error:', err));
 
     revalidatePath(`/shops/${slug}/admin/orders/drafts`);
     revalidatePath(`/shops/${slug}/admin/orders`);
