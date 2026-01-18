@@ -2433,6 +2433,9 @@ export const productStories = pgTable('product_stories', {
   viewsCount: integer('views_count').default(0).notNull(),
   likesCount: integer('likes_count').default(0).notNull(),
   commentsCount: integer('comments_count').default(0).notNull(),
+  // Custom media - allows uploading custom image/video instead of product image
+  customMediaUrl: varchar('custom_media_url', { length: 500 }),
+  customMediaType: varchar('custom_media_type', { length: 20 }), // 'image' | 'video' | null
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => ({

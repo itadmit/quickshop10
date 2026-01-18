@@ -53,6 +53,8 @@ export default async function ProductStoriesPage({
       viewsCount: productStories.viewsCount,
       likesCount: productStories.likesCount,
       commentsCount: productStories.commentsCount,
+      customMediaUrl: productStories.customMediaUrl,
+      customMediaType: productStories.customMediaType,
       productTitle: products.name,
       productHandle: products.slug,
       productPrice: products.price,
@@ -80,6 +82,7 @@ export default async function ProductStoriesPage({
     ...story,
     productImage: imageMap.get(story.productId) || null,
     productPrice: Number(story.productPrice),
+    customMediaType: story.customMediaType as 'image' | 'video' | null,
   }));
 
   // Get config with defaults

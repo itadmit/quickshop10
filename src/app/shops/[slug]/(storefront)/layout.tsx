@@ -104,6 +104,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       viewsCount: s.viewsCount,
       likesCount: s.likesCount,
       commentsCount: s.commentsCount,
+      customMediaUrl: s.customMediaUrl,
+      customMediaType: s.customMediaType,
       product: {
         id: s.product.id,
         title: s.product.title,

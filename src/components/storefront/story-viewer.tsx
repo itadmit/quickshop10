@@ -482,15 +482,38 @@ export function StoryViewer({
         </button>
       )}
 
-      {/* Main Image - Tap to pause, Double-tap to like */}
+      {/* Main Image/Video - Tap to pause, Double-tap to like */}
       <div 
         className="w-full h-full max-w-lg mx-auto relative flex items-center justify-center p-4 z-30"
         onClick={handleImageTap}
       >
-        {currentStory.product.image ? (
+        {/* Custom video */}
+        {currentStory.customMediaUrl && currentStory.customMediaType === 'video' ? (
+          <div className="bg-black rounded-2xl overflow-hidden shadow-2xl max-h-[70vh] relative">
+            <video
+              src={currentStory.customMediaUrl}
+              autoPlay
+              loop
+              muted={false}
+              playsInline
+              className="max-w-full max-h-[70vh] object-contain select-none"
+              draggable={false}
+            />
+            
+            {/* Like Animation Heart (shows on double-tap) */}
+            {showLikeAnimation && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <Heart 
+                  className="w-24 h-24 text-red-500 fill-red-500 animate-ping"
+                  style={{ animationDuration: '0.8s' }}
+                />
+              </div>
+            )}
+          </div>
+        ) : (currentStory.customMediaUrl || currentStory.product.image) ? (
           <div className="bg-white rounded-2xl p-6 shadow-2xl max-h-[70vh] relative">
             <Image
-              src={currentStory.product.image}
+              src={currentStory.customMediaUrl || currentStory.product.image!}
               alt={currentStory.product.title}
               width={400}
               height={500}

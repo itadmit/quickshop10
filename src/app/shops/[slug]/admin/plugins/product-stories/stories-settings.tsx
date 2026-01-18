@@ -28,7 +28,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { updateStoriesConfig, addProductToStories, removeStory, reorderStories, searchProducts } from './actions';
+import { updateStoriesConfig, addProductToStories, removeStory, reorderStories, searchProducts, updateStoryMedia } from './actions';
 
 interface Story {
   id: string;
@@ -42,6 +42,8 @@ interface Story {
   productHandle: string;
   productPrice: number;
   productImage: string | null;
+  customMediaUrl: string | null;
+  customMediaType: 'image' | 'video' | null;
 }
 
 interface Product {
@@ -63,10 +65,12 @@ interface StoriesSettingsProps {
 function SortableStoryItem({
   story,
   onRemove,
+  onEditMedia,
   isRemoving,
 }: {
   story: Story;
   onRemove: (id: string) => void;
+  onEditMedia: (story: Story) => void;
   isRemoving: boolean;
 }) {
   const {
@@ -83,6 +87,10 @@ function SortableStoryItem({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
+
+  // Determine which image to display (custom media or product image)
+  const displayImage = story.customMediaUrl || story.productImage;
+  const hasCustomMedia = !!story.customMediaUrl;
 
   return (
     <div
@@ -102,12 +110,22 @@ function SortableStoryItem({
         <GripVertical className="w-5 h-5" />
       </button>
 
-      {/* Story Circle Preview */}
-      <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-pink-500 p-0.5">
-        <div className="w-full h-full rounded-full overflow-hidden bg-gray-100">
-          {story.productImage ? (
+      {/* Story Circle Preview - Click to edit media */}
+      <button
+        onClick={() => onEditMedia(story)}
+        className="relative w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-pink-500 p-0.5 group hover:border-pink-600 transition-colors"
+        title="לחץ לשינוי תמונה/סרטון"
+      >
+        <div className="w-full h-full rounded-full overflow-hidden bg-gray-100 relative">
+          {story.customMediaType === 'video' && story.customMediaUrl ? (
+            <video
+              src={story.customMediaUrl}
+              muted
+              className="w-full h-full object-cover"
+            />
+          ) : displayImage ? (
             <img
-              src={story.productImage}
+              src={displayImage}
               alt={story.productTitle}
               className="w-full h-full object-cover"
             />
@@ -116,8 +134,18 @@ function SortableStoryItem({
               <ImageIcon className="w-6 h-6" />
             </div>
           )}
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <ImageIcon className="w-5 h-5 text-white" />
+          </div>
         </div>
-      </div>
+        {/* Custom media badge */}
+        {hasCustomMedia && (
+          <div className="absolute -top-1 -right-1 w-4 h-4 bg-purple-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-[8px]">✓</span>
+          </div>
+        )}
+      </button>
 
       {/* Product Info */}
       <div className="flex-1 min-w-0">
@@ -135,6 +163,11 @@ function SortableStoryItem({
             <MessageCircle className="w-4 h-4" />
             {story.commentsCount}
           </span>
+          {hasCustomMedia && (
+            <span className="text-purple-500 text-xs">
+              {story.customMediaType === 'video' ? '🎬 סרטון' : '🖼️ תמונה מותאמת'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -177,6 +210,12 @@ export function StoriesSettings({
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isAdding, setIsAdding] = useState<string | null>(null);
+  
+  // Media Editor
+  const [editingStory, setEditingStory] = useState<Story | null>(null);
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [isSavingMedia, setIsSavingMedia] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -246,6 +285,61 @@ export function StoriesSettings({
       
       // Save new order
       await reorderStories(newStories.map(s => s.id));
+    }
+  };
+
+  // Open media editor
+  const handleEditMedia = (story: Story) => {
+    setEditingStory(story);
+    setMediaUrl(story.customMediaUrl || '');
+    setMediaType(story.customMediaType || 'image');
+  };
+
+  // Save custom media
+  const handleSaveMedia = async () => {
+    if (!editingStory) return;
+    
+    setIsSavingMedia(true);
+    try {
+      const result = await updateStoryMedia(
+        editingStory.id,
+        mediaUrl || null,
+        mediaUrl ? mediaType : null
+      );
+      
+      if (result.success) {
+        // Update local state
+        setStories(prev => prev.map(s =>
+          s.id === editingStory.id
+            ? { ...s, customMediaUrl: mediaUrl || null, customMediaType: mediaUrl ? mediaType : null }
+            : s
+        ));
+        setEditingStory(null);
+      }
+    } finally {
+      setIsSavingMedia(false);
+    }
+  };
+
+  // Remove custom media
+  const handleRemoveMedia = async () => {
+    if (!editingStory) return;
+    
+    setIsSavingMedia(true);
+    try {
+      const result = await updateStoryMedia(editingStory.id, null, null);
+      
+      if (result.success) {
+        setStories(prev => prev.map(s =>
+          s.id === editingStory.id
+            ? { ...s, customMediaUrl: null, customMediaType: null }
+            : s
+        ));
+        setMediaUrl('');
+        setEditingStory(null);
+      }
+    } finally {
+      setIsSavingMedia(false);
     }
   };
 
@@ -479,6 +573,7 @@ export function StoriesSettings({
                       key={story.id}
                       story={story}
                       onRemove={handleRemoveStory}
+                      onEditMedia={handleEditMedia}
                       isRemoving={removingId === story.id}
                     />
                   ))}
@@ -568,6 +663,165 @@ export function StoriesSettings({
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Media Editor Modal */}
+      {editingStory && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-lg">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-bold text-lg">הגדר תמונה/סרטון לסטורי</h3>
+              <button
+                onClick={() => setEditingStory(null)}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-4 space-y-4">
+              {/* Product Info */}
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-200">
+                  {editingStory.productImage ? (
+                    <img
+                      src={editingStory.productImage}
+                      alt={editingStory.productTitle}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400">
+                      <ImageIcon className="w-6 h-6" />
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <h4 className="font-medium text-gray-900">{editingStory.productTitle}</h4>
+                  <p className="text-sm text-gray-500">תמונת מוצר מקורית</p>
+                </div>
+              </div>
+
+              {/* Media Type Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  סוג מדיה
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setMediaType('image')}
+                    className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors ${
+                      mediaType === 'image'
+                        ? 'border-pink-500 bg-pink-50 text-pink-600'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    🖼️ תמונה
+                  </button>
+                  <button
+                    onClick={() => setMediaType('video')}
+                    className={`flex-1 py-2 px-4 rounded-lg border text-sm font-medium transition-colors ${
+                      mediaType === 'video'
+                        ? 'border-pink-500 bg-pink-50 text-pink-600'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    🎬 סרטון
+                  </button>
+                </div>
+              </div>
+
+              {/* Media URL Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {mediaType === 'video' ? 'קישור לסרטון (MP4)' : 'קישור לתמונה'}
+                </label>
+                <input
+                  type="url"
+                  value={mediaUrl}
+                  onChange={(e) => setMediaUrl(e.target.value)}
+                  placeholder={mediaType === 'video' 
+                    ? 'https://example.com/video.mp4'
+                    : 'https://example.com/image.jpg'
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                  dir="ltr"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {mediaType === 'video' 
+                    ? 'העלה סרטון לשירות אחסון (כמו Cloudinary) והדבק את הקישור'
+                    : 'העלה תמונה לשירות אחסון (כמו Cloudinary) והדבק את הקישור'
+                  }
+                </p>
+              </div>
+
+              {/* Preview */}
+              {mediaUrl && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    תצוגה מקדימה
+                  </label>
+                  <div className="w-full aspect-square max-w-[200px] mx-auto rounded-xl overflow-hidden bg-gray-100">
+                    {mediaType === 'video' ? (
+                      <video
+                        src={mediaUrl}
+                        muted
+                        autoPlay
+                        loop
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={mediaUrl}
+                        alt="תצוגה מקדימה"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '';
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Actions */}
+            <div className="p-4 border-t flex gap-2">
+              {editingStory.customMediaUrl && (
+                <button
+                  onClick={handleRemoveMedia}
+                  disabled={isSavingMedia}
+                  className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  הסר מדיה מותאמת
+                </button>
+              )}
+              <div className="flex-1" />
+              <button
+                onClick={() => setEditingStory(null)}
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleSaveMedia}
+                disabled={isSavingMedia || !mediaUrl}
+                className="px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSavingMedia ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    שומר...
+                  </>
+                ) : (
+                  'שמור'
+                )}
+              </button>
             </div>
           </div>
         </div>

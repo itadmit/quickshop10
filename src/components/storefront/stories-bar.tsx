@@ -21,6 +21,9 @@ export interface Story {
   viewsCount: number;
   likesCount: number;
   commentsCount: number;
+  // Custom media - overrides product image if set
+  customMediaUrl?: string | null;
+  customMediaType?: 'image' | 'video' | null;
   product: {
     id: string;
     title: string;
@@ -192,9 +195,17 @@ export function StoriesBar({
                 }}
               >
                 <div className="w-full h-full rounded-full overflow-hidden bg-white p-[2px]">
-                  {story.product.image ? (
+                  {/* Use custom media if available, otherwise product image */}
+                  {story.customMediaUrl && story.customMediaType === 'video' ? (
+                    <video
+                      src={story.customMediaUrl}
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover rounded-full group-hover:grayscale transition-all duration-300"
+                    />
+                  ) : (story.customMediaUrl || story.product.image) ? (
                     <Image
-                      src={story.product.image}
+                      src={story.customMediaUrl || story.product.image!}
                       alt={story.product.title}
                       width={80}
                       height={80}

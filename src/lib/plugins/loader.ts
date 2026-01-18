@@ -310,6 +310,9 @@ export interface StoryWithProduct {
   viewsCount: number;
   likesCount: number;
   commentsCount: number;
+  // Custom media - overrides product image if set
+  customMediaUrl: string | null;
+  customMediaType: 'image' | 'video' | null;
   product: {
     id: string;
     title: string;
@@ -339,6 +342,8 @@ export async function getStoriesWithProducts(
       viewsCount: productStories.viewsCount,
       likesCount: productStories.likesCount,
       commentsCount: productStories.commentsCount,
+      customMediaUrl: productStories.customMediaUrl,
+      customMediaType: productStories.customMediaType,
       productTitle: products.name,
       productHandle: products.slug,
       productPrice: products.price,
@@ -376,6 +381,8 @@ export async function getStoriesWithProducts(
     viewsCount: story.viewsCount,
     likesCount: story.likesCount,
     commentsCount: story.commentsCount,
+    customMediaUrl: story.customMediaUrl,
+    customMediaType: story.customMediaType as 'image' | 'video' | null,
     product: {
       id: story.productId,
       title: story.productTitle,

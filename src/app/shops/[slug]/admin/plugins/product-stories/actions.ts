@@ -250,3 +250,30 @@ export async function reorderStories(
   }
 }
 
+/**
+ * Update story custom media
+ * Allows setting a custom image or video for the story (overrides product image)
+ */
+export async function updateStoryMedia(
+  storyId: string,
+  customMediaUrl: string | null,
+  customMediaType: 'image' | 'video' | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await db
+      .update(productStories)
+      .set({
+        customMediaUrl,
+        customMediaType,
+        updatedAt: new Date(),
+      })
+      .where(eq(productStories.id, storyId));
+
+    revalidatePath('/shops/[slug]/admin/plugins/product-stories', 'page');
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating story media:', error);
+    return { success: false, error: 'שגיאה בעדכון המדיה' };
+  }
+}
+
