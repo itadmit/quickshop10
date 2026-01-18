@@ -41,7 +41,7 @@ interface SectionTreeProps {
   sections: Section[];
   selectedSectionId: string | null;
   onSelectSection: (id: string) => void;
-  onAddSection: (type: string, afterSectionId?: string) => void;
+  onAddSection: (type: string, zone?: string) => void;
   onRemoveSection: (id: string) => void;
   onReorderSections: (fromIndex: number, toIndex: number) => void;
   onApplyTemplate?: (templateId: string) => void;
@@ -171,6 +171,7 @@ export function SectionTree({
   const isCategoryPage = currentPage === 'category';
   const [showAddMenu, setShowAddMenu] = useState(false);
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [addToZone, setAddToZone] = useState<'info' | 'content' | null>(null);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   
@@ -191,14 +192,20 @@ export function SectionTree({
   };
 
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
+  const [draggedZone, setDraggedZone] = useState<string | null>(null);
   
-  const handleDragStart = (index: number) => {
+  const handleDragStart = (index: number, zone?: string) => {
     setDraggedIndex(index);
+    setDraggedZone(zone || null);
     setDropTargetIndex(null);
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = (e: React.DragEvent, index: number, zone?: string) => {
     e.preventDefault();
+    // Only allow drop in same zone (for product page)
+    if (draggedZone && zone && draggedZone !== zone) {
+      return; // Don't allow cross-zone drops
+    }
     // Only update visual indicator, don't reorder yet
     if (draggedIndex !== null && draggedIndex !== index) {
       setDropTargetIndex(index);
@@ -208,21 +215,19 @@ export function SectionTree({
   const handleDragEnd = () => {
     // Perform reorder only on drop
     if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
-      // Get the section IDs in the new order
-      const newSortedSections = [...sortedSections];
-      const [removed] = newSortedSections.splice(draggedIndex, 1);
-      newSortedSections.splice(dropTargetIndex, 0, removed);
-      
-      // Find the original indices for reordering
-      // We need to pass the sortOrder values, not array indices
+      // Simply swap the sortOrder values of the two sections
+      // This is simpler and works correctly for zone-based ordering
       const fromSection = sortedSections[draggedIndex];
       const toSection = sortedSections[dropTargetIndex];
       
-      // Pass sortOrder values as indices (since sections are sorted by sortOrder)
-      onReorderSections(fromSection.sortOrder, toSection.sortOrder);
+      if (fromSection && toSection) {
+        // Swap sortOrder values
+        onReorderSections(fromSection.sortOrder, toSection.sortOrder);
+      }
     }
     setDraggedIndex(null);
     setDropTargetIndex(null);
+    setDraggedZone(null);
   };
   
   const handleDragLeave = () => {
@@ -339,10 +344,10 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex)}
-                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragStart={() => handleDragStart(globalIndex, 'top')}
+                        onDragOver={(e) => handleDragOver(e, globalIndex, 'top')}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-amber-500' : ''}`}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'top' ? 'border-t-2 border-amber-500' : ''}`}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -380,10 +385,10 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex)}
-                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragStart={() => handleDragStart(globalIndex, 'gallery')}
+                        onDragOver={(e) => handleDragOver(e, globalIndex, 'gallery')}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-purple-500' : ''}`}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'gallery' ? 'border-t-2 border-purple-500' : ''}`}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -421,10 +426,10 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex)}
-                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragStart={() => handleDragStart(globalIndex, 'info')}
+                        onDragOver={(e) => handleDragOver(e, globalIndex, 'info')}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-blue-500' : ''}`}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'info' ? 'border-t-2 border-blue-500' : ''}`}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -440,7 +445,10 @@ export function SectionTree({
                     <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדרו שדות מידע</div>
                   )}
                   <AddSectionButton 
-                    onClick={() => setShowAddMenu(true)}
+                    onClick={() => {
+                      setAddToZone('info');
+                      setShowAddMenu(true);
+                    }}
                     label="הוסף לאזור מידע"
                   />
                 </div>
@@ -465,10 +473,10 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex)}
-                        onDragOver={(e) => handleDragOver(e, globalIndex)}
+                        onDragStart={() => handleDragStart(globalIndex, 'content')}
+                        onDragOver={(e) => handleDragOver(e, globalIndex, 'content')}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex ? 'border-t-2 border-green-500' : ''}`}
+                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'content' ? 'border-t-2 border-green-500' : ''}`}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -484,7 +492,10 @@ export function SectionTree({
                     <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדר תוכן נוסף</div>
                   )}
                   <AddSectionButton 
-                    onClick={() => setShowAddMenu(true)}
+                    onClick={() => {
+                      setAddToZone('content');
+                      setShowAddMenu(true);
+                    }}
                     label="הוסף לאזור תוכן"
                   />
                 </div>
@@ -519,12 +530,18 @@ export function SectionTree({
         {/* Add Section Modal - Product Page specific types */}
         {showAddMenu && (
           <AddSectionModal
-            onClose={() => setShowAddMenu(false)}
-            onAdd={(type) => {
-              onAddSection(type);
+            onClose={() => {
               setShowAddMenu(false);
+              setAddToZone(null);
+            }}
+            onAdd={(type) => {
+              // Pass zone info to determine correct sortOrder
+              onAddSection(type, addToZone || undefined);
+              setShowAddMenu(false);
+              setAddToZone(null);
             }}
             sectionTypes={productSectionTypes}
+            currentZone={addToZone}
           />
         )}
 
@@ -896,16 +913,29 @@ function AddSectionModal({
   onClose,
   onAdd,
   sectionTypes: customSectionTypes,
+  currentZone,
 }: {
   onClose: () => void;
   onAdd: (type: string) => void;
   sectionTypes?: typeof sectionTypes; // Optional - use default if not provided
+  currentZone?: 'info' | 'content' | null;
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+  // Define zone-specific section types for product page
+  const infoZoneTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
+  const contentZoneTypes = ['accordion', 'tabs', 'text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
+
   // Use custom section types if provided, otherwise use default
-  const availableSectionTypes = customSectionTypes || sectionTypes;
+  let availableSectionTypes = customSectionTypes || sectionTypes;
+  
+  // Filter by zone if specified
+  if (currentZone === 'info') {
+    availableSectionTypes = availableSectionTypes.filter(s => infoZoneTypes.includes(s.type));
+  } else if (currentZone === 'content') {
+    availableSectionTypes = availableSectionTypes.filter(s => contentZoneTypes.includes(s.type));
+  }
 
   // Get unique categories
   const categories = ['all', ...Array.from(new Set(availableSectionTypes.map(s => s.category).filter(Boolean)))];

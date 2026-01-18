@@ -624,6 +624,23 @@ export function ThemeEditor({
         ...(themeSettings.productPageSettings as Record<string, unknown> || {}),
       };
       sendProductPagePreviewUpdate(productSettings);
+      
+      // V2: Also send gallery settings from the product_gallery section if it exists
+      const gallerySection = sections.find(s => s.type === 'product_gallery');
+      if (gallerySection?.settings) {
+        const gallerySectionSettings = gallerySection.settings as Record<string, unknown>;
+        sendProductPagePreviewUpdate({
+          gallery: {
+            layout: gallerySectionSettings.layout || 'carousel',
+            thumbnailsPosition: gallerySectionSettings.thumbnailsPosition || 'bottom',
+            thumbnailsPositionMobile: gallerySectionSettings.thumbnailsPositionMobile || 'bottom',
+            aspectRatio: gallerySectionSettings.aspectRatio || '3:4',
+            enableZoom: gallerySectionSettings.enableZoom ?? true,
+            showArrows: gallerySectionSettings.showArrows ?? true,
+            showDotsOnMobile: gallerySectionSettings.showDotsOnMobile ?? false,
+          },
+        });
+      }
     }
 
     // Also send category page settings if on category page
@@ -634,7 +651,7 @@ export function ThemeEditor({
       };
       sendCategoryPagePreviewUpdate(categorySettings);
     }
-  }, [themeSettings, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate, currentPage]);
+  }, [themeSettings, sections, sendPreviewUpdate, sendProductPagePreviewUpdate, sendCategoryPagePreviewUpdate, currentPage]);
   
   // Listen for messages from iframe (PREVIEW_READY, SECTION_CLICKED, etc.)
   useEffect(() => {
@@ -657,6 +674,23 @@ export function ThemeEditor({
             ...(themeSettings.productPageSettings as Record<string, unknown> || {}),
           };
           sendProductPagePreviewUpdate(productSettings);
+          
+          // V2: Also send gallery settings from the product_gallery section
+          const gallerySection = sections.find(s => s.type === 'product_gallery');
+          if (gallerySection?.settings) {
+            const gallerySectionSettings = gallerySection.settings as Record<string, unknown>;
+            sendProductPagePreviewUpdate({
+              gallery: {
+                layout: gallerySectionSettings.layout || 'carousel',
+                thumbnailsPosition: gallerySectionSettings.thumbnailsPosition || 'bottom',
+                thumbnailsPositionMobile: gallerySectionSettings.thumbnailsPositionMobile || 'bottom',
+                aspectRatio: gallerySectionSettings.aspectRatio || '3:4',
+                enableZoom: gallerySectionSettings.enableZoom ?? true,
+                showArrows: gallerySectionSettings.showArrows ?? true,
+                showDotsOnMobile: gallerySectionSettings.showDotsOnMobile ?? false,
+              },
+            });
+          }
         }
         // Send category page settings if on category page
         if (currentPage === 'category') {
@@ -830,7 +864,37 @@ export function ThemeEditor({
   };
 
   // Add new section - add to local state and inject placeholder in iframe
-  const addSection = (type: string, afterSectionId?: string) => {
+  const addSection = (type: string, zone?: string) => {
+    // Define zone types for product page
+    const infoTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
+    const contentTypes = ['accordion', 'tabs', 'text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
+    
+    // Calculate the correct sortOrder based on zone
+    let targetSortOrder = sections.length;
+    
+    if (zone === 'info') {
+      // Find the last info section and place after it
+      const infoSections = sections.filter(s => infoTypes.includes(s.type));
+      if (infoSections.length > 0) {
+        const maxInfoSortOrder = Math.max(...infoSections.map(s => s.sortOrder));
+        targetSortOrder = maxInfoSortOrder + 1;
+      } else {
+        // No info sections yet, place after gallery (which is usually sortOrder 1)
+        const gallerySections = sections.filter(s => s.type === 'product_gallery');
+        targetSortOrder = gallerySections.length > 0 ? Math.max(...gallerySections.map(s => s.sortOrder)) + 1 : 1;
+      }
+    } else if (zone === 'content') {
+      // Find the last content section and place after it
+      const contentSections = sections.filter(s => contentTypes.includes(s.type));
+      if (contentSections.length > 0) {
+        const maxContentSortOrder = Math.max(...contentSections.map(s => s.sortOrder));
+        targetSortOrder = maxContentSortOrder + 1;
+      } else {
+        // No content sections yet, place at the end
+        targetSortOrder = sections.length;
+      }
+    }
+    
     // Use real UUID from the start - no temp IDs, no mapping needed!
     const newSection: Section = {
       id: crypto.randomUUID(),
@@ -839,19 +903,18 @@ export function ThemeEditor({
       subtitle: null,
       content: getSectionDefaultContent(type),
       settings: getSectionDefaultSettings(type),
-      sortOrder: sections.length,
+      sortOrder: targetSortOrder,
       isActive: true,
     };
 
-    let newSections: Section[];
-    if (afterSectionId) {
-      const index = sections.findIndex(s => s.id === afterSectionId);
-      newSections = [...sections];
-      newSections.splice(index + 1, 0, newSection);
-      newSections = newSections.map((s, i) => ({ ...s, sortOrder: i }));
-    } else {
-      newSections = [...sections, newSection];
-    }
+    // Shift sortOrder of sections that come after
+    let newSections = sections.map(s => {
+      if (s.sortOrder >= targetSortOrder) {
+        return { ...s, sortOrder: s.sortOrder + 1 };
+      }
+      return s;
+    });
+    newSections = [...newSections, newSection];
     
     setSections(newSections);
     setSelectedSectionId(newSection.id);
@@ -868,7 +931,7 @@ export function ThemeEditor({
         content: newSection.content,
         settings: newSection.settings,
         sortOrder: newSection.sortOrder,
-        afterSectionId,
+        zone,
       }, '*');
 
       // Scroll to the new section after a short delay
@@ -929,33 +992,36 @@ export function ThemeEditor({
     });
   };
 
-  // Reorder sections - update local state only, no auto-save
+  // Reorder sections - swap sortOrder values between two sections
   // Save happens when user clicks "שמור"
-  // fromSortOrder and toSortOrder are the sortOrder values of the sections being moved
+  // fromSortOrder and toSortOrder are the sortOrder values of the sections being swapped
   const reorderSections = (fromSortOrder: number, toSortOrder: number) => {
-    // First, sort sections by sortOrder to work with the correct order
-    const sortedSections = [...sections].sort((a, b) => a.sortOrder - b.sortOrder);
+    // Find the two sections to swap
+    const fromSection = sections.find(s => s.sortOrder === fromSortOrder);
+    const toSection = sections.find(s => s.sortOrder === toSortOrder);
     
-    // Find the indices in the sorted array
-    const fromIndex = sortedSections.findIndex(s => s.sortOrder === fromSortOrder);
-    const toIndex = sortedSections.findIndex(s => s.sortOrder === toSortOrder);
+    if (!fromSection || !toSection) return;
     
-    if (fromIndex === -1 || toIndex === -1) return;
+    // Swap their sortOrder values
+    const updatedSections = sections.map(s => {
+      if (s.id === fromSection.id) {
+        return { ...s, sortOrder: toSortOrder };
+      }
+      if (s.id === toSection.id) {
+        return { ...s, sortOrder: fromSortOrder };
+      }
+      return s;
+    });
     
-    // Perform the splice on the sorted array
-    const [removed] = sortedSections.splice(fromIndex, 1);
-    sortedSections.splice(toIndex, 0, removed);
-    
-    // Update sortOrder for all sections
-    const orderedSections = sortedSections.map((s, i) => ({ ...s, sortOrder: i }));
-    setSections(orderedSections);
+    setSections(updatedSections);
     setHasChanges(true);
     
-    // Send message to iframe to reorder sections visually (both home and product pages)
+    // Send swap message to iframe for live preview
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
-        type: 'SECTION_REORDER',
-        orderedIds: orderedSections.map(s => s.id),
+        type: 'SECTION_SWAP',
+        fromId: fromSection.id,
+        toId: toSection.id,
       }, '*');
     }
   };

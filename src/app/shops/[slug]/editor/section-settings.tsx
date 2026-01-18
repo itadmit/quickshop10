@@ -544,6 +544,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
       <ProductPageSectionSettingsV2 
         section={section}
         onUpdate={onUpdate}
+        onRemove={onRemove}
         metafields={metafields}
       />
     );
@@ -6279,10 +6280,28 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
 interface ProductPageSectionSettingsV2Props {
   section: Section;
   onUpdate: (updates: Partial<Section>) => void;
+  onRemove: () => void;
   metafields?: MetafieldForPicker[];
 }
 
-function ProductPageSectionSettingsV2({ section, onUpdate, metafields = [] }: ProductPageSectionSettingsV2Props) {
+// Default section types that cannot be deleted (only hidden)
+const DEFAULT_PRODUCT_SECTIONS = [
+  'product_gallery',
+  'product_badges', 
+  'product_title',
+  'product_price',
+  'product_short_desc',
+  'product_inventory',
+  'product_add_to_cart',
+  'product_description',
+  'product_reviews',
+  'product_related',
+  'breadcrumb',
+];
+
+function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields = [] }: ProductPageSectionSettingsV2Props) {
+  // Check if this is a default section (can't be deleted, only hidden)
+  const isDefaultSection = DEFAULT_PRODUCT_SECTIONS.includes(section.type);
   const updateContent = (updates: Record<string, unknown>) => {
     onUpdate({ content: { ...section.content, ...updates } });
   };
@@ -7090,6 +7109,21 @@ function ProductPageSectionSettingsV2({ section, onUpdate, metafields = [] }: Pr
             onChange={(v) => updateSettings({ paddingBottom: v })}
           />
         </SettingsGroup>
+
+        {/* Delete Section - only for non-default sections */}
+        {!isDefaultSection && (
+          <div className="pt-4 border-t border-gray-200">
+            <button
+              onClick={onRemove}
+              className="w-full flex items-center justify-center gap-2 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              מחק סקשן
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -7362,49 +7396,32 @@ function AccordionItemsEditor({
             onChange={(v) => updateItem(item.id, { title: v })}
           />
           
-          <SelectField
-            label="מקור תוכן"
-            value={item.contentSource}
-            options={[
-              { value: 'static', label: 'טקסט קבוע' },
-              { value: 'dynamic', label: 'תוכן דינמי (מהמוצר)' },
-            ]}
-            onChange={(v) => updateItem(item.id, { contentSource: v })}
-          />
-          
-          {item.contentSource === 'static' ? (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-gray-600">תוכן</label>
-                <DynamicSourceButton 
-                  onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
-                  categories={['product', 'store', 'custom']}
-                  metafields={metafields}
-                />
-              </div>
-              <textarea
-                value={item.content}
-                onChange={(e) => updateItem(item.id, { content: e.target.value })}
-                className={`w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                  item.content?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : ''
-                }`}
-                placeholder="הזן תוכן... אפשר להשתמש ב-{{product.title}}"
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-gray-600">תוכן</label>
+              <DynamicSourceButton 
+                onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
+                categories={['product', 'store', 'custom']}
+                metafields={metafields}
               />
-              {item.content?.includes('{{') && (
-                <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  <span>מכיל תוכן דינמי</span>
-                </div>
-              )}
             </div>
-          ) : (
-            <DynamicFieldPicker
-              value={item.dynamicField || ''}
-              onChange={(v) => updateItem(item.id, { dynamicField: v, content: `{{${v}}}` })}
+            <textarea
+              value={item.content}
+              onChange={(e) => updateItem(item.id, { content: e.target.value })}
+              className={`w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                item.content?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : ''
+              }`}
+              placeholder="הזן תוכן... אפשר להשתמש ב-{{product.title}}"
             />
-          )}
+            {item.content?.includes('{{') && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>מכיל תוכן דינמי</span>
+              </div>
+            )}
+          </div>
           
           <SwitchField
             label="פתוח כברירת מחדל"
@@ -7476,49 +7493,32 @@ function TabItemsEditor({
             onChange={(v) => updateItem(item.id, { title: v })}
           />
           
-          <SelectField
-            label="מקור תוכן"
-            value={item.contentSource}
-            options={[
-              { value: 'static', label: 'טקסט קבוע' },
-              { value: 'dynamic', label: 'תוכן דינמי (מהמוצר)' },
-            ]}
-            onChange={(v) => updateItem(item.id, { contentSource: v })}
-          />
-          
-          {item.contentSource === 'static' ? (
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs text-gray-600">תוכן</label>
-                <DynamicSourceButton 
-                  onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
-                  categories={['product', 'store', 'custom']}
-                  metafields={metafields}
-                />
-              </div>
-              <textarea
-                value={item.content}
-                onChange={(e) => updateItem(item.id, { content: e.target.value })}
-                className={`w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
-                  item.content?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : ''
-                }`}
-                placeholder="הזן תוכן... אפשר להשתמש ב-{{product.title}}"
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-gray-600">תוכן</label>
+              <DynamicSourceButton 
+                onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
+                categories={['product', 'store', 'custom']}
+                metafields={metafields}
               />
-              {item.content?.includes('{{') && (
-                <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  <span>מכיל תוכן דינמי</span>
-                </div>
-              )}
             </div>
-          ) : (
-            <DynamicFieldPicker
-              value={item.dynamicField || ''}
-              onChange={(v) => updateItem(item.id, { dynamicField: v, content: `{{${v}}}` })}
+            <textarea
+              value={item.content}
+              onChange={(e) => updateItem(item.id, { content: e.target.value })}
+              className={`w-full h-20 text-sm border rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500 ${
+                item.content?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : ''
+              }`}
+              placeholder="הזן תוכן... אפשר להשתמש ב-{{product.title}}"
             />
-          )}
+            {item.content?.includes('{{') && (
+              <div className="flex items-center gap-1 text-xs text-blue-600 mt-1">
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                <span>מכיל תוכן דינמי</span>
+              </div>
+            )}
+          </div>
         </div>
       ))}
       

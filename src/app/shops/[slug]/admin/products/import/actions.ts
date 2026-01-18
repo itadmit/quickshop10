@@ -761,9 +761,13 @@ export async function importProductsFromCSV(
     
     preparedProducts.forEach((p, productIndex) => {
       p.row.images.forEach((img, imgIndex) => {
+        // If already a full URL, use as-is; otherwise add prefix
+        const imageUrl = img.startsWith('http://') || img.startsWith('https://') 
+          ? img 
+          : (imagePrefix || '') + img;
         imageValues.push({
           productId: insertedProducts[productIndex].id,
-          url: imagePrefix + img,
+          url: imageUrl,
           alt: p.row.name,
           sortOrder: imgIndex,
           isPrimary: imgIndex === 0,
@@ -1082,7 +1086,10 @@ export async function importProductsWithMapping(
             const imgFilename = p.row.images[imgIndex].trim();
             if (!imgFilename) continue;
             
-            const imageUrl = imagePrefix + imgFilename;
+            // If already a full URL, use as-is; otherwise add prefix
+            const imageUrl = imgFilename.startsWith('http://') || imgFilename.startsWith('https://') 
+              ? imgFilename 
+              : (imagePrefix || '') + imgFilename;
             
             // Upload to Vercel Blob (converts to WebP)
             console.log(`[Import] Uploading image ${imgIndex + 1}/${p.row.images.length} for "${p.row.name}": ${imgFilename}`);

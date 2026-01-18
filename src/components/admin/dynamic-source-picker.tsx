@@ -193,21 +193,23 @@ export function DynamicSourceButton({
                         setIsOpen(false);
                         setSearch('');
                       }}
-                      className="w-full px-3 py-2.5 text-right hover:bg-blue-50 transition-colors flex items-center justify-between group"
+                      className="w-full px-3 py-2 text-right hover:bg-blue-50 transition-colors group"
                     >
-                      <div>
-                        <div className="text-sm text-gray-900 group-hover:text-blue-700">
-                          {variable.label}
-                        </div>
-                        {variable.description && (
-                          <div className="text-xs text-gray-400">
-                            {variable.description}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-gray-900 group-hover:text-blue-700 truncate">
+                            {variable.label}
                           </div>
-                        )}
+                        </div>
+                        <code className="flex-shrink-0 text-[10px] px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600 max-w-[120px] truncate" dir="ltr">
+                          {variable.path}
+                        </code>
                       </div>
-                      <code className="text-[10px] px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 group-hover:bg-blue-100 group-hover:text-blue-600">
-                        {`{{${variable.path}}}`}
-                      </code>
+                      {variable.description && (
+                        <div className="text-[11px] text-gray-400 truncate mt-0.5">
+                          {variable.description}
+                        </div>
+                      )}
                     </button>
                   ))}
                 </div>

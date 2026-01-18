@@ -421,6 +421,7 @@ export async function getProductBySlug(storeId: string, slug: string) {
       hasVariants: products.hasVariants,
       categoryId: products.categoryId,
       upsellProductIds: products.upsellProductIds,
+      metadata: products.metadata, // For custom fields (metafields)
     })
     .from(products)
     .where(and(eq(products.storeId, storeId), eq(products.slug, slug)))

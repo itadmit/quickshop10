@@ -338,14 +338,17 @@ export async function POST(
               }
               
               // Update images - clear and recreate if provided
-              if (imagesStr && imagePrefix) {
+              if (imagesStr) {
                 await db.delete(productImages).where(eq(productImages.productId, productId));
                 
                 const imageNames = imagesStr.split(/[,;|]/).map(img => img.trim()).filter(Boolean);
                 
                 for (let imgIdx = 0; imgIdx < imageNames.length; imgIdx++) {
                   const imgName = imageNames[imgIdx];
-                  const fullUrl = imagePrefix + imgName;
+                  // If already a full URL, use as-is; otherwise add prefix
+                  const fullUrl = imgName.startsWith('http://') || imgName.startsWith('https://') 
+                    ? imgName 
+                    : (imagePrefix || '') + imgName;
                   
                   const uploaded = await uploadImageFromUrl(fullUrl, storeFolder, store.id, (msg) => {
                     log(`   ${msg}`);
@@ -442,12 +445,15 @@ export async function POST(
               }
               
               // Handle images
-              if (imagesStr && imagePrefix) {
+              if (imagesStr) {
                 const imageNames = imagesStr.split(/[,;|]/).map(img => img.trim()).filter(Boolean);
                 
                 for (let imgIdx = 0; imgIdx < imageNames.length; imgIdx++) {
                   const imgName = imageNames[imgIdx];
-                  const fullUrl = imagePrefix + imgName;
+                  // If already a full URL, use as-is; otherwise add prefix
+                  const fullUrl = imgName.startsWith('http://') || imgName.startsWith('https://') 
+                    ? imgName 
+                    : (imagePrefix || '') + imgName;
                   
                   const uploaded = await uploadImageFromUrl(fullUrl, storeFolder, store.id, (msg) => {
                     log(`   ${msg}`);

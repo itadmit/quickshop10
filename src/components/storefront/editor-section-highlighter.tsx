@@ -1718,22 +1718,45 @@ export function EditorSectionHighlighter() {
       }
       
       // =====================================================
-      // SECTION_REORDER - Visually reorder sections
+      // SECTION_SWAP - Swap two sections in the DOM
+      // Simpler than full reorder - just swap positions of two elements
+      // =====================================================
+      if (event.data?.type === 'SECTION_SWAP') {
+        const { fromId, toId } = event.data as { fromId: string; toId: string };
+        
+        const fromElement = document.querySelector(`[data-section-id="${fromId}"]`) as HTMLElement;
+        const toElement = document.querySelector(`[data-section-id="${toId}"]`) as HTMLElement;
+        
+        if (fromElement && toElement) {
+          // Get parents and positions
+          const fromParent = fromElement.parentElement;
+          const toParent = toElement.parentElement;
+          
+          // Only swap if both are in the same parent (same zone)
+          if (fromParent && toParent && fromParent === toParent) {
+            // Create placeholder for swap
+            const placeholder = document.createElement('div');
+            fromParent.insertBefore(placeholder, fromElement);
+            
+            // Swap positions
+            toParent.insertBefore(fromElement, toElement);
+            fromParent.insertBefore(toElement, placeholder);
+            
+            // Remove placeholder
+            placeholder.remove();
+          }
+        }
+      }
+      
+      // =====================================================
+      // SECTION_REORDER - Visual feedback only (no DOM manipulation)
+      // Actual reorder happens after save + page refresh
+      // DOM manipulation was causing layout issues
       // =====================================================
       if (event.data?.type === 'SECTION_REORDER') {
-        const { orderedIds } = event.data as { orderedIds: string[] };
-        const main = document.querySelector('main') || document.body;
-        
-        // Get all sections and their parent
-        const sections = orderedIds.map(id => 
-          document.querySelector(`[data-section-id="${id}"]`)
-        ).filter(Boolean) as HTMLElement[];
-        
-        // Reorder by re-appending in new order
-        const container = sections[0]?.parentElement || main;
-        sections.forEach(section => {
-          container.appendChild(section);
-        });
+        // Don't manipulate DOM - it causes layout issues with complex pages
+        // The new order is saved and will be visible after refresh/save
+        console.log('[Preview] Section reorder saved - refresh to see changes');
       }
     };
 
