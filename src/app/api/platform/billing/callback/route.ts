@@ -12,7 +12,33 @@ import { db } from '@/lib/db';
 import { storeSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
+// PayPlus callback supports both flat and nested formats
 interface PayPlusCallbackBody {
+  // New nested format
+  transaction_type?: string;
+  transaction?: {
+    uid?: string;
+    status_code?: string;
+    payment_page_request_uid?: string;
+    more_info?: string;
+    more_info_1?: string;
+    approval_number?: string;
+    voucher_number?: string;
+    amount?: number;
+  };
+  data?: {
+    customer_uid?: string;
+    card_information?: {
+      token?: string;
+      four_digits?: string;
+      expiry_month?: string;
+      expiry_year?: string;
+      brand_id?: number;
+      clearing_id?: number;
+    };
+  };
+  
+  // Old flat format (for backward compatibility)
   transaction_uid?: string;
   transaction_number?: string;
   status_code?: string;
@@ -67,13 +93,48 @@ export async function POST(request: NextRequest) {
     
     // Log full callback data for debugging
     console.log('[Billing Callback] Full callback data:', JSON.stringify(body, null, 2));
-    console.log('[Billing Callback] Received:', {
-      status_code: body.status_code,
-      transaction_uid: body.transaction_uid,
-      customer_uid: body.customer_uid,
-      token_uid: body.token_uid,
-      more_info: body.more_info,
-      more_info_1: body.more_info_1,
+    
+    // Extract data from nested or flat format
+    const isNestedFormat = !!body.transaction;
+    const statusCode = isNestedFormat 
+      ? body.transaction?.status_code 
+      : body.status_code;
+    const transactionUid = isNestedFormat
+      ? body.transaction?.uid
+      : body.transaction_uid;
+    const moreInfo = isNestedFormat
+      ? body.transaction?.more_info
+      : body.more_info;
+    const moreInfo1 = isNestedFormat
+      ? body.transaction?.more_info_1
+      : body.more_info_1;
+    const customerUid = isNestedFormat
+      ? body.data?.customer_uid
+      : body.customer_uid;
+    const tokenUid = isNestedFormat
+      ? body.data?.card_information?.token
+      : body.token_uid;
+    const fourDigits = isNestedFormat
+      ? body.data?.card_information?.four_digits
+      : body.four_digits;
+    const expiryMonth = isNestedFormat
+      ? body.data?.card_information?.expiry_month
+      : body.expiry_month;
+    const expiryYear = isNestedFormat
+      ? body.data?.card_information?.expiry_year
+      : body.expiry_year;
+    const brandName = isNestedFormat
+      ? (body.data?.card_information?.brand_id ? `brand_${body.data.card_information.brand_id}` : undefined)
+      : body.brand_name;
+    
+    console.log('[Billing Callback] Extracted data:', {
+      format: isNestedFormat ? 'nested' : 'flat',
+      status_code: statusCode,
+      transaction_uid: transactionUid,
+      customer_uid: customerUid,
+      token_uid: tokenUid,
+      more_info: moreInfo,
+      more_info_1: moreInfo1,
     });
 
     // Parse more_info_1 (JSON) to get store and plan details
@@ -91,13 +152,13 @@ export async function POST(request: NextRequest) {
     try {
       // PayPlus callback: more_info_1 contains JSON, more_info contains Hebrew description
       // Try more_info_1 first (new format), then try to parse more_info as JSON (old format)
-      let jsonData = body.more_info_1;
+      let jsonData = moreInfo1;
       
       // If more_info_1 doesn't exist, check if more_info is JSON (starts with {)
-      if (!jsonData && body.more_info) {
-        const trimmed = body.more_info.trim();
+      if (!jsonData && moreInfo) {
+        const trimmed = moreInfo.trim();
         if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-          jsonData = body.more_info; // Old format - more_info contains JSON
+          jsonData = moreInfo; // Old format - more_info contains JSON
         }
       }
       
@@ -116,11 +177,11 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       console.error('[Billing Callback] Invalid more_info format:', {
         error: error instanceof Error ? error.message : 'Unknown error',
-        more_info: body.more_info,
-        more_info_1: body.more_info_1,
-        more_info_type: typeof body.more_info,
-        more_info_length: body.more_info?.length,
-        more_info_preview: body.more_info?.substring(0, 100),
+        more_info: moreInfo,
+        more_info_1: moreInfo1,
+        more_info_type: typeof moreInfo,
+        more_info_length: moreInfo?.length,
+        more_info_preview: moreInfo?.substring(0, 100),
         rawBody_preview: rawBody.substring(0, 1000), // First 1000 chars for debugging
       });
       return NextResponse.json({ 
@@ -136,10 +197,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if payment was successful
-    const isSuccess = body.status_code === '000' || body.status_code === '0';
+    const isSuccess = statusCode === '000' || statusCode === '0';
 
     if (!isSuccess) {
-      console.log('[Billing Callback] Payment failed:', body.status_code);
+      console.log('[Billing Callback] Payment failed:', statusCode);
       return NextResponse.json({ 
         success: false, 
         message: 'Payment was not successful' 
@@ -147,10 +208,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate required fields for successful payment
-    if (!body.customer_uid || !body.token_uid) {
+    if (!customerUid || !tokenUid) {
       console.error('[Billing Callback] Missing customer_uid or token_uid:', {
-        customer_uid: body.customer_uid,
-        token_uid: body.token_uid,
+        customer_uid: customerUid,
+        token_uid: tokenUid,
+        format: isNestedFormat ? 'nested' : 'flat',
       });
       return NextResponse.json({ error: 'Missing payment token' }, { status: 400 });
     }
@@ -177,11 +239,11 @@ export async function POST(request: NextRequest) {
       await activateSubscription(
         paymentData.storeId,
         paymentData.plan,
-        body.customer_uid,
-        body.token_uid,
-        body.four_digits || '',
-        body.brand_name || '',
-        `${body.expiry_month}/${body.expiry_year}`
+        customerUid,
+        tokenUid,
+        fourDigits || '',
+        brandName || '',
+        `${expiryMonth || ''}/${expiryYear || ''}`
       );
       console.log('[Billing Callback] activateSubscription completed');
       
@@ -214,7 +276,7 @@ export async function POST(request: NextRequest) {
       await createSubscriptionInvoice(
         paymentData.storeId,
         paymentData.plan,
-        body.transaction_uid || '',
+        transactionUid || '',
         body.invoice_number || null,
         body.invoice_link || null
       );
@@ -229,8 +291,8 @@ export async function POST(request: NextRequest) {
     try {
       const trialFeesResult = await chargeTrialPeriodFees(
         paymentData.storeId,
-        body.token_uid,
-        body.customer_uid
+        tokenUid,
+        customerUid
       );
       trialFeesAmount = trialFeesResult.amount || 0;
       console.log('[Billing Callback] Trial fees charged:', trialFeesResult);
@@ -242,9 +304,10 @@ export async function POST(request: NextRequest) {
     console.log('[Billing Callback] Subscription activated successfully:', {
       storeId: paymentData.storeId,
       plan: paymentData.plan,
-      transactionUid: body.transaction_uid,
-      tokenUid: body.token_uid?.substring(0, 8) + '...',
+      transactionUid: transactionUid,
+      tokenUid: tokenUid?.substring(0, 8) + '...',
       trialFeesCharged: trialFeesAmount,
+      format: isNestedFormat ? 'nested' : 'flat',
     });
 
     return NextResponse.json({ 
