@@ -7,6 +7,7 @@ import { pages, stores } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { defaultProductPageSections } from '@/lib/product-page-sections';
+import { getStoreMetafields } from '../admin/metafields/actions';
 
 // ============================================
 // Theme Editor Page - Full Screen (No Admin Layout)
@@ -170,8 +171,12 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     settings: (s.settings || {}) as Record<string, unknown>,
   }));
 
-  // Fetch categories for the editor (simple list for checkbox selection)
-  const storeCategories = await getCategoriesByStore(store.id);
+  // Fetch categories and metafields for the editor
+  const [storeCategories, metafields] = await Promise.all([
+    getCategoriesByStore(store.id),
+    getStoreMetafields(store.id),
+  ]);
+  
   const categoriesForEditor = storeCategories.map(c => ({
     id: c.id,
     name: c.name,
@@ -179,6 +184,18 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     imageUrl: c.imageUrl,
     parentId: c.parentId,
   }));
+  
+  // Filter metafields for dynamic source picker (only active ones that show on product)
+  const metafieldsForPicker = metafields
+    .filter(m => m.isActive && m.showOnProduct)
+    .map(m => ({
+      id: m.id,
+      name: m.name,
+      key: m.key,
+      type: m.type,
+      isActive: m.isActive,
+      showOnProduct: m.showOnProduct,
+    }));
 
   // Get theme settings
   const themeSettings = (store.themeSettings || {}) as Record<string, unknown>;
@@ -195,6 +212,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
       currentPage={currentPage}
       isPublished={store.isPublished}
       internalPages={internalPages}
+      metafields={metafieldsForPicker}
     />
   );
 }

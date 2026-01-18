@@ -109,6 +109,16 @@ interface InternalPage {
   seoDescription?: string | null;
 }
 
+// Metafield definition for dynamic source picker
+interface MetafieldForPicker {
+  id: string;
+  name: string;
+  key: string;
+  type: 'text' | 'textarea' | 'number' | 'date' | 'url' | 'boolean';
+  isActive: boolean;
+  showOnProduct: boolean;
+}
+
 interface ThemeEditorProps {
   store: Store;
   slug: string;
@@ -118,6 +128,7 @@ interface ThemeEditorProps {
   currentPage?: string;
   isPublished?: boolean;
   internalPages?: InternalPage[];
+  metafields?: MetafieldForPicker[];
 }
 
 export function ThemeEditor({
@@ -129,6 +140,7 @@ export function ThemeEditor({
   currentPage = 'home',
   isPublished = false,
   internalPages: initialInternalPages = [],
+  metafields = [],
 }: ThemeEditorProps) {
   const router = useRouter();
   const [sections, setSections] = useState<Section[]>(initialSections);
@@ -1203,6 +1215,7 @@ export function ThemeEditor({
               onThemeSettingsChange={handleThemeSettingsChange}
               categories={categories}
               storeInfo={storeInfo}
+              metafields={metafields}
             />
           ) : (
             <div className="p-6 text-center text-gray-400" dir="rtl">

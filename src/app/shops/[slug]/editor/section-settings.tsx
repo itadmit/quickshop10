@@ -97,6 +97,16 @@ interface Category {
   parentId: string | null;
 }
 
+// Metafield definition for dynamic source picker
+interface MetafieldForPicker {
+  id: string;
+  name: string;
+  key: string;
+  type: 'text' | 'textarea' | 'number' | 'date' | 'url' | 'boolean';
+  isActive: boolean;
+  showOnProduct: boolean;
+}
+
 interface SectionSettingsProps {
   section: Section;
   onUpdate: (updates: Partial<Section>) => void;
@@ -108,6 +118,8 @@ interface SectionSettingsProps {
   categories?: Category[];
   // Store info for logo/favicon uploads
   storeInfo?: StoreInfo;
+  // Metafields for dynamic source picker
+  metafields?: MetafieldForPicker[];
 }
 
 // Helper functions for typography settings conversion
@@ -134,7 +146,7 @@ function mapWeight(weight: unknown, defaultWeight: 'light' | 'normal' | 'medium'
   return defaultWeight;
 }
 
-export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [], storeInfo }: SectionSettingsProps) {
+export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [], storeInfo, metafields = [] }: SectionSettingsProps) {
   const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
   const settings = themeSettings || {};
   const updateSettings = onThemeSettingsChange || (() => {});
@@ -532,6 +544,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
       <ProductPageSectionSettingsV2 
         section={section}
         onUpdate={onUpdate}
+        metafields={metafields}
       />
     );
   }
@@ -608,11 +621,13 @@ function ContentSettings({
   onUpdate,
   categories = [],
   storeInfo,
+  metafields = [],
 }: { 
   section: Section; 
   onUpdate: (updates: Partial<Section>) => void;
   categories?: Category[];
   storeInfo?: StoreInfo;
+  metafields?: MetafieldForPicker[];
 }) {
   const handleTitleChange = (value: string) => {
     onUpdate({ title: value || null });
@@ -3732,7 +3747,7 @@ function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Sec
 }
 
 // Text Block Content Settings
-function TextBlockContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
+function TextBlockContentSettings({ section, onUpdate, metafields = [] }: { section: Section; onUpdate: (updates: Partial<Section>) => void; metafields?: MetafieldForPicker[] }) {
   const updateContent = (key: string, value: unknown) => {
     onUpdate({ content: { ...section.content, [key]: value } });
   };
@@ -3752,6 +3767,7 @@ function TextBlockContentSettings({ section, onUpdate }: { section: Section; onU
             <DynamicSourceButton 
               onSelect={(v) => handleInsertDynamic(`{{${v.path}}}`)}
               categories={['product', 'store', 'custom']}
+              metafields={metafields}
             />
           </div>
           <RichTextEditor
@@ -6263,9 +6279,10 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
 interface ProductPageSectionSettingsV2Props {
   section: Section;
   onUpdate: (updates: Partial<Section>) => void;
+  metafields?: MetafieldForPicker[];
 }
 
-function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionSettingsV2Props) {
+function ProductPageSectionSettingsV2({ section, onUpdate, metafields = [] }: ProductPageSectionSettingsV2Props) {
   const updateContent = (updates: Record<string, unknown>) => {
     onUpdate({ content: { ...section.content, ...updates } });
   };
@@ -6850,6 +6867,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
               <AccordionItemsEditor
                 items={(section.content.items as Array<{ id: string; title: string; content: string; isOpen: boolean; contentSource: string; dynamicField?: string }>) || []}
                 onChange={(items) => updateContent({ items })}
+                metafields={metafields}
               />
             </SettingsGroup>
           </>
@@ -6889,6 +6907,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
               <TabItemsEditor
                 items={(section.content.items as Array<{ id: string; title: string; content: string; contentSource: string; dynamicField?: string }>) || []}
                 onChange={(items) => updateContent({ items })}
+                metafields={metafields}
               />
             </SettingsGroup>
           </>
@@ -6911,6 +6930,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
             <FeaturesItemsEditor
               items={(section.content.items as Array<{ id: string; icon: string; text: string; isVisible: boolean }>) || []}
               onChange={(items) => updateContent({ items })}
+              metafields={metafields}
             />
           </SettingsGroup>
         )}
@@ -7003,6 +7023,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate }: ProductPageSectionS
               <DynamicSourceButton 
                 onSelect={(v) => updateContent({ text: ((section.content.text as string) || '') + `{{${v.path}}}` })}
                 categories={['product', 'store', 'custom']}
+                metafields={metafields}
               />
             </div>
             <div className={`border rounded-lg p-2 ${
@@ -7300,9 +7321,11 @@ function CustomInfoRowsEditor({
 function AccordionItemsEditor({
   items,
   onChange,
+  metafields = [],
 }: {
   items: Array<{ id: string; title: string; content: string; isOpen: boolean; contentSource: string; dynamicField?: string }>;
   onChange: (items: Array<{ id: string; title: string; content: string; isOpen: boolean; contentSource: string; dynamicField?: string }>) => void;
+  metafields?: MetafieldForPicker[];
 }) {
   const addItem = () => {
     onChange([
@@ -7356,6 +7379,7 @@ function AccordionItemsEditor({
                 <DynamicSourceButton 
                   onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
                   categories={['product', 'store', 'custom']}
+                  metafields={metafields}
                 />
               </div>
               <textarea
@@ -7407,9 +7431,11 @@ function AccordionItemsEditor({
 function TabItemsEditor({
   items,
   onChange,
+  metafields = [],
 }: {
   items: Array<{ id: string; title: string; content: string; contentSource: string; dynamicField?: string }>;
   onChange: (items: Array<{ id: string; title: string; content: string; contentSource: string; dynamicField?: string }>) => void;
+  metafields?: MetafieldForPicker[];
 }) {
   const addItem = () => {
     onChange([
@@ -7467,6 +7493,7 @@ function TabItemsEditor({
                 <DynamicSourceButton 
                   onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
                   categories={['product', 'store', 'custom']}
+                  metafields={metafields}
                 />
               </div>
               <textarea
@@ -7512,9 +7539,11 @@ function TabItemsEditor({
 function FeaturesItemsEditor({
   items,
   onChange,
+  metafields = [],
 }: {
   items: Array<{ id: string; icon: string; text: string; isVisible: boolean }>;
   onChange: (items: Array<{ id: string; icon: string; text: string; isVisible: boolean }>) => void;
+  metafields?: MetafieldForPicker[];
 }) {
   const addItem = () => {
     onChange([
@@ -7579,6 +7608,7 @@ function FeaturesItemsEditor({
               <DynamicSourceButton 
                 onSelect={(v) => updateItem(item.id, { text: item.text + `{{${v.path}}}` })}
                 categories={['product', 'store', 'custom']}
+                metafields={metafields}
               />
             </div>
             <input

@@ -113,7 +113,7 @@ export function DynamicSourceButton({
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="p-1.5 rounded hover:bg-gray-100 transition-colors group relative"
-        title="חבר מקור דינמי"
+        title="בחר מקור דינמי"
       >
         {/* Database icon - Shopify style */}
         <svg 
@@ -143,7 +143,7 @@ export function DynamicSourceButton({
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
               </svg>
-              <span>חבר מקור דינמי</span>
+              <span>בחר מקור דינמי</span>
             </div>
           </div>
 
@@ -164,9 +164,11 @@ export function DynamicSourceButton({
             </div>
           </div>
 
-          {/* Variables List */}
+          {/* Variables List - Show custom fields (metafields) first, then built-in fields */}
           <div className="overflow-y-auto" style={{ maxHeight: '300px' }}>
-            {Object.entries(groupedVariables).map(([category, variables]) => {
+            {/* Order: custom first, then product, variant, store */}
+            {(['custom', 'product', 'variant', 'store'] as const).map((category) => {
+              const variables = groupedVariables[category];
               if (variables.length === 0) return null;
               
               return (
