@@ -8,7 +8,11 @@ import { notFound } from 'next/navigation';
  * Billing Redirect Page
  * 
  * This page handles redirects from PayPlus after subscription payment.
- * It processes the payment result and redirects to the subscription page.
+ * It ONLY redirects to the subscription page with success/error status.
+ * 
+ * IMPORTANT: Subscription activation is handled ONLY by the PayPlus callback
+ * which is verified with a cryptographic signature. This page does NOT
+ * activate subscriptions to prevent URL manipulation attacks.
  */
 
 interface BillingPageProps {
@@ -71,6 +75,6 @@ export default async function BillingPage({ params, searchParams }: BillingPageP
   }
 
   // Redirect to subscription page using store slug
+  // NOTE: Subscription activation happens via PayPlus callback with signature verification
   redirect(`/shops/${store.slug}/admin/settings/subscription?${redirectParams.toString()}`);
 }
-

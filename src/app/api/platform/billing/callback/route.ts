@@ -236,9 +236,9 @@ export async function POST(request: NextRequest) {
 
     // Activate subscription
     try {
-      await activateSubscription(
-        paymentData.storeId,
-        paymentData.plan,
+    await activateSubscription(
+      paymentData.storeId,
+      paymentData.plan,
         customerUid,
         tokenUid,
         fourDigits || '',
@@ -273,13 +273,13 @@ export async function POST(request: NextRequest) {
 
     // Create invoice record for subscription
     try {
-      await createSubscriptionInvoice(
-        paymentData.storeId,
-        paymentData.plan,
+    await createSubscriptionInvoice(
+      paymentData.storeId,
+      paymentData.plan,
         transactionUid || '',
-        body.invoice_number || null,
-        body.invoice_link || null
-      );
+      body.invoice_number || null,
+      body.invoice_link || null
+    );
       console.log('[Billing Callback] Invoice created successfully');
     } catch (error) {
       console.error('[Billing Callback] Error creating invoice:', error);
@@ -289,11 +289,11 @@ export async function POST(request: NextRequest) {
     // Charge trial period transaction fees (if any sales during trial)
     let trialFeesAmount = 0;
     try {
-      const trialFeesResult = await chargeTrialPeriodFees(
-        paymentData.storeId,
+    const trialFeesResult = await chargeTrialPeriodFees(
+      paymentData.storeId,
         tokenUid,
         customerUid
-      );
+    );
       trialFeesAmount = trialFeesResult.amount || 0;
       console.log('[Billing Callback] Trial fees charged:', trialFeesResult);
     } catch (error) {

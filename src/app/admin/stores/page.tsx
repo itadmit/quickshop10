@@ -190,94 +190,94 @@ export default async function PlatformStoresPage({
       <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         {/* Desktop Table */}
         <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">חנות</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">בעלים</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">מסלול</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">סטטוס</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">הזמנות</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">הכנסות</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">תאריך</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredStores.map((store) => {
-                const sub = subMap.get(store.id);
-                return (
-                  <tr key={store.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                          <Store className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{store.name}</p>
-                          <p className="text-sm text-gray-500">/{store.slug}</p>
-                        </div>
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">חנות</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">בעלים</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">מסלול</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">סטטוס</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">הזמנות</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">הכנסות</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">תאריך</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">פעולות</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredStores.map((store) => {
+              const sub = subMap.get(store.id);
+              return (
+                <tr key={store.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                        <Store className="w-5 h-5 text-emerald-600" />
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <p className="text-gray-900">{store.ownerName || 'ללא שם'}</p>
-                      <p className="text-sm text-gray-500">{store.ownerEmail}</p>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1.5 text-xs rounded-full font-semibold ${
-                        sub?.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' :
-                        sub?.plan === 'branding' ? 'bg-purple-100 text-purple-700' :
-                        'bg-blue-100 text-blue-700'
-                      }`}>
-                        {sub?.plan === 'quickshop' ? 'קוויק שופ' : 
-                         sub?.plan === 'branding' ? 'תדמית' : 'נסיון'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1.5 text-xs rounded-full font-semibold inline-flex items-center gap-1 ${
-                        store.isActive 
-                          ? 'bg-green-100 text-green-700' 
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        {store.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                        {store.isActive ? 'פעיל' : 'לא פעיל'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <ShoppingCart className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">{store.orderCount}</span>
+                      <div>
+                        <p className="font-semibold text-gray-900">{store.name}</p>
+                        <p className="text-sm text-gray-500">/{store.slug}</p>
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <span className="font-semibold text-emerald-600">{formatCurrency(store.totalRevenue)}</span>
-                    </td>
-                    <td className="p-4 text-gray-500">
-                      {new Date(store.createdAt).toLocaleDateString('he-IL')}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/admin/stores/${store.id}`}
-                          className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                          title="הגדרות חנות"
-                        >
-                          <Settings className="w-4 h-4" />
-                        </Link>
-                        <Link
-                          href={`/shops/${store.slug}/admin`}
-                          className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                          title="כניסה לחנות"
-                        >
-                          <Store className="w-4 h-4" />
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <p className="text-gray-900">{store.ownerName || 'ללא שם'}</p>
+                    <p className="text-sm text-gray-500">{store.ownerEmail}</p>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1.5 text-xs rounded-full font-semibold ${
+                      sub?.plan === 'quickshop' ? 'bg-emerald-100 text-emerald-700' :
+                      sub?.plan === 'branding' ? 'bg-purple-100 text-purple-700' :
+                      'bg-blue-100 text-blue-700'
+                    }`}>
+                      {sub?.plan === 'quickshop' ? 'קוויק שופ' : 
+                       sub?.plan === 'branding' ? 'תדמית' : 'נסיון'}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1.5 text-xs rounded-full font-semibold inline-flex items-center gap-1 ${
+                      store.isActive 
+                        ? 'bg-green-100 text-green-700' 
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {store.isActive ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                      {store.isActive ? 'פעיל' : 'לא פעיל'}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium text-gray-900">{store.orderCount}</span>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <span className="font-semibold text-emerald-600">{formatCurrency(store.totalRevenue)}</span>
+                  </td>
+                  <td className="p-4 text-gray-500">
+                    {new Date(store.createdAt).toLocaleDateString('he-IL')}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/admin/stores/${store.id}`}
+                        className="p-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                        title="הגדרות חנות"
+                      >
+                        <Settings className="w-4 h-4" />
+                      </Link>
+                      <Link
+                        href={`/shops/${store.slug}/admin`}
+                        className="p-2 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        title="כניסה לחנות"
+                      >
+                        <Store className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
         </div>
 
         {/* Mobile Cards */}

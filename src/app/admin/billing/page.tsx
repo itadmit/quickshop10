@@ -195,19 +195,19 @@ export default async function PlatformBillingPage() {
           <p className="text-xl sm:text-3xl font-bold text-gray-900">{billingStats.paidInvoices}</p>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">חשבוניות שולמו</p>
           <p className="text-[10px] sm:text-xs text-yellow-600 mt-1 sm:mt-2">{billingStats.pendingInvoices} ממתינות</p>
-        </div>
+          </div>
         <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 p-4 sm:p-6">
           <p className="text-xl sm:text-3xl font-bold text-red-600">{billingStats.failedInvoices}</p>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">חיובים נכשלו</p>
-        </div>
-      </div>
+          </div>
+          </div>
 
       {/* Subscription Stats - Responsive */}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-4 mb-6 sm:mb-8">
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
           <p className="text-lg sm:text-2xl font-bold text-gray-900">{subscriptionStats.totalSubscriptions}</p>
           <p className="text-[10px] sm:text-xs text-gray-500">סה״כ</p>
-        </div>
+          </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
           <p className="text-lg sm:text-2xl font-bold text-green-600">{subscriptionStats.activeSubscriptions}</p>
           <p className="text-[10px] sm:text-xs text-gray-500">פעילים</p>
@@ -215,20 +215,20 @@ export default async function PlatformBillingPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
           <p className="text-lg sm:text-2xl font-bold text-blue-600">{subscriptionStats.trialSubscriptions}</p>
           <p className="text-[10px] sm:text-xs text-gray-500">בנסיון</p>
-        </div>
+          </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
           <p className="text-lg sm:text-2xl font-bold text-red-600">{subscriptionStats.pastDueSubscriptions}</p>
           <p className="text-[10px] sm:text-xs text-gray-500">בחוב</p>
-        </div>
+          </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
           <p className="text-lg sm:text-2xl font-bold text-purple-600">{subscriptionStats.brandingPlans}</p>
           <p className="text-[10px] sm:text-xs text-gray-500">תדמית</p>
-        </div>
+          </div>
         <div className="bg-white rounded-xl border border-gray-200 p-3 sm:p-4 text-center">
           <p className="text-lg sm:text-2xl font-bold text-indigo-600">{subscriptionStats.quickshopPlans}</p>
           <p className="text-[10px] sm:text-xs text-gray-500">קוויק שופ</p>
-        </div>
-      </div>
+          </div>
+          </div>
 
       {/* Tables Grid - Stack on mobile */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
@@ -237,49 +237,49 @@ export default async function PlatformBillingPage() {
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <Store className="w-4 h-4 text-gray-500" />
             <h2 className="font-semibold text-gray-900">חנויות וחיובים</h2>
-          </div>
-          
+        </div>
+
           {/* Desktop Table */}
           <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">חנות</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">מסלול</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">סטטוס</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">שולם</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">פתוח</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {storesWithBilling.slice(0, 10).map((store) => (
-                  <tr key={store.id} className="hover:bg-gray-50">
-                    <td className="p-3">
-                      <Link 
-                        href={`/admin/billing/stores/${store.id}`}
-                        className="font-medium text-gray-900 hover:text-blue-600"
-                      >
-                        {store.name}
-                      </Link>
-                      <p className="text-xs text-gray-500">/{store.slug}</p>
-                    </td>
-                    <td className="p-3 text-gray-600">{getPlanLabel(store.plan)}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(store.status)}`}>
-                        {getStatusLabel(store.status)}
-                      </span>
-                    </td>
-                    <td className="p-3 text-green-600 font-medium">{formatCurrency(store.totalPaid)}</td>
-                    <td className="p-3">
-                      {Number(store.pendingFees) > 0 && (
-                        <span className="text-red-600">{formatCurrency(store.pendingFees)}</span>
-                      )}
-                    </td>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">חנות</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">מסלול</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">סטטוס</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">שולם</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">פתוח</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                {storesWithBilling.slice(0, 10).map((store) => (
+                    <tr key={store.id} className="hover:bg-gray-50">
+                      <td className="p-3">
+                        <Link 
+                          href={`/admin/billing/stores/${store.id}`}
+                          className="font-medium text-gray-900 hover:text-blue-600"
+                        >
+                          {store.name}
+                        </Link>
+                        <p className="text-xs text-gray-500">/{store.slug}</p>
+                      </td>
+                    <td className="p-3 text-gray-600">{getPlanLabel(store.plan)}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(store.status)}`}>
+                          {getStatusLabel(store.status)}
+                        </span>
+                      </td>
+                    <td className="p-3 text-green-600 font-medium">{formatCurrency(store.totalPaid)}</td>
+                      <td className="p-3">
+                        {Number(store.pendingFees) > 0 && (
+                          <span className="text-red-600">{formatCurrency(store.pendingFees)}</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
           {/* Mobile Cards */}
           <div className="sm:hidden divide-y divide-gray-100">
@@ -302,44 +302,44 @@ export default async function PlatformBillingPage() {
               </Link>
             ))}
           </div>
-        </div>
+          </div>
 
-        {/* Recent Invoices */}
+          {/* Recent Invoices */}
         <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200">
           <div className="p-4 border-b border-gray-100 flex items-center gap-2">
             <FileText className="w-4 h-4 text-gray-500" />
             <h2 className="font-semibold text-gray-900">חשבוניות אחרונות</h2>
-          </div>
+            </div>
           
           {/* Desktop Table */}
           <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">מספר</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">חנות</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">סוג</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">סכום</th>
-                  <th className="text-right p-3 text-xs font-medium text-gray-500">סטטוס</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {recentInvoices.slice(0, 10).map((invoice) => (
-                  <tr key={invoice.id} className="hover:bg-gray-50">
-                    <td className="p-3 font-mono text-xs">{invoice.invoiceNumber}</td>
-                    <td className="p-3 text-gray-600">{invoice.storeName}</td>
-                    <td className="p-3 text-xs text-gray-500">{getInvoiceTypeLabel(invoice.type)}</td>
-                    <td className="p-3 font-medium">{formatCurrency(invoice.totalAmount)}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 text-xs rounded-full ${getInvoiceStatusColor(invoice.status)}`}>
-                        {getInvoiceStatusLabel(invoice.status)}
-                      </span>
-                    </td>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100">
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">מספר</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">חנות</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">סוג</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">סכום</th>
+                    <th className="text-right p-3 text-xs font-medium text-gray-500">סטטוס</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                {recentInvoices.slice(0, 10).map((invoice) => (
+                    <tr key={invoice.id} className="hover:bg-gray-50">
+                      <td className="p-3 font-mono text-xs">{invoice.invoiceNumber}</td>
+                      <td className="p-3 text-gray-600">{invoice.storeName}</td>
+                    <td className="p-3 text-xs text-gray-500">{getInvoiceTypeLabel(invoice.type)}</td>
+                      <td className="p-3 font-medium">{formatCurrency(invoice.totalAmount)}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 text-xs rounded-full ${getInvoiceStatusColor(invoice.status)}`}>
+                          {getInvoiceStatusLabel(invoice.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
           {/* Mobile Cards */}
           <div className="sm:hidden divide-y divide-gray-100">
@@ -358,42 +358,42 @@ export default async function PlatformBillingPage() {
               </div>
             ))}
           </div>
+          </div>
         </div>
-      </div>
 
-      {/* MRR Calculation */}
+        {/* MRR Calculation */}
       <div className="mt-6 sm:mt-8 bg-linear-to-r from-green-50 to-blue-50 rounded-xl sm:rounded-2xl border border-green-200 p-4 sm:p-6">
         <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-green-600" />
           הכנסה חודשית צפויה (MRR)
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          <div>
+            <div>
             <p className="text-xs sm:text-sm text-gray-600">מנויי תדמית ({subscriptionStats.brandingPlans}) × ₪{subscriptionPricing.branding}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900">
-              {formatCurrency(subscriptionStats.brandingPlans * subscriptionPricing.branding * vatMultiplier)}
-            </p>
-          </div>
-          <div>
+                {formatCurrency(subscriptionStats.brandingPlans * subscriptionPricing.branding * vatMultiplier)}
+              </p>
+            </div>
+            <div>
             <p className="text-xs sm:text-sm text-gray-600">מנויי קוויק שופ ({subscriptionStats.quickshopPlans}) × ₪{subscriptionPricing.quickshop}</p>
             <p className="text-xl sm:text-2xl font-bold text-gray-900">
-              {formatCurrency(subscriptionStats.quickshopPlans * subscriptionPricing.quickshop * vatMultiplier)}
-            </p>
-          </div>
-          <div>
+                {formatCurrency(subscriptionStats.quickshopPlans * subscriptionPricing.quickshop * vatMultiplier)}
+              </p>
+            </div>
+            <div>
             <p className="text-xs sm:text-sm text-gray-600">סה״כ MRR</p>
             <p className="text-2xl sm:text-3xl font-bold text-green-600">
-              {formatCurrency(
-                (subscriptionStats.brandingPlans * subscriptionPricing.branding * vatMultiplier) +
-                (subscriptionStats.quickshopPlans * subscriptionPricing.quickshop * vatMultiplier)
-              )}
-            </p>
+                {formatCurrency(
+                  (subscriptionStats.brandingPlans * subscriptionPricing.branding * vatMultiplier) +
+                  (subscriptionStats.quickshopPlans * subscriptionPricing.quickshop * vatMultiplier)
+                )}
+              </p>
+            </div>
           </div>
-        </div>
         <p className="text-[10px] sm:text-xs text-gray-500 mt-4">
-          * לא כולל עמלות עסקאות ({(feeRates.transactionFee * 100).toFixed(1)}%) ותוספים
-        </p>
-      </div>
+            * לא כולל עמלות עסקאות ({(feeRates.transactionFee * 100).toFixed(1)}%) ותוספים
+          </p>
+        </div>
     </div>
   );
 }

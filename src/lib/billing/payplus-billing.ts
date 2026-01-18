@@ -342,7 +342,7 @@ export async function chargeWithToken(
           // Calculate price with VAT
           const priceWithVat = Math.round(item.price * (1 + VAT_RATE) * 100) / 100;
           return {
-            name: item.name,
+          name: item.name,
             quantity: String(item.quantity), // Must be string according to PayPlus API
             price: String(priceWithVat), // Must be string according to PayPlus API
             currency_code: 'ILS',

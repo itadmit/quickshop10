@@ -37,7 +37,7 @@ export default async function AdminLayout({
             {children}
           </div>
         </main>
-      </div>
+        </div>
     </div>
   );
 }

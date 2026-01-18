@@ -167,86 +167,86 @@ export default async function PlatformUsersPage({
       <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
         {/* Desktop Table */}
         <div className="hidden lg:block overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">משתמש</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">תפקיד</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">חנויות</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">התחברות אחרונה</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">הצטרף</th>
-                <th className="text-right p-4 text-sm font-semibold text-gray-600">פעולות</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredUsers.map((user) => {
-                const isOnline = user.lastLoginAt && 
-                  (Date.now() - new Date(user.lastLoginAt).getTime()) < 15 * 60 * 1000; // 15 minutes
-                
-                return (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="relative">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-gray-50 border-b border-gray-200">
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">משתמש</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">תפקיד</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">חנויות</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">התחברות אחרונה</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">הצטרף</th>
+              <th className="text-right p-4 text-sm font-semibold text-gray-600">פעולות</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {filteredUsers.map((user) => {
+              const isOnline = user.lastLoginAt && 
+                (Date.now() - new Date(user.lastLoginAt).getTime()) < 15 * 60 * 1000; // 15 minutes
+              
+              return (
+                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="relative">
                           <div className="w-11 h-11 rounded-full bg-linear-to-br from-blue-500 to-cyan-500 flex items-center justify-center overflow-hidden shadow-md">
-                            {user.avatarUrl ? (
-                              <img src={user.avatarUrl} alt={user.name || ''} className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-white font-semibold">
-                                {(user.name || user.email)?.[0]?.toUpperCase()}
-                              </span>
-                            )}
-                          </div>
-                          {isOnline && (
-                            <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                          {user.avatarUrl ? (
+                            <img src={user.avatarUrl} alt={user.name || ''} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-white font-semibold">
+                              {(user.name || user.email)?.[0]?.toUpperCase()}
+                            </span>
                           )}
                         </div>
-                        <div>
-                          <p className="font-semibold text-gray-900">{user.name || 'ללא שם'}</p>
-                          <p className="text-sm text-gray-500">{user.email}</p>
-                        </div>
+                        {isOnline && (
+                          <span className="absolute bottom-0 left-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                        )}
                       </div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1.5 text-xs rounded-full font-semibold ${
-                        user.role === 'admin' 
-                          ? 'bg-purple-100 text-purple-700' 
-                          : 'bg-blue-100 text-blue-700'
-                      }`}>
-                        {user.role === 'admin' ? 'מנהל' : 'סוחר'}
+                      <div>
+                        <p className="font-semibold text-gray-900">{user.name || 'ללא שם'}</p>
+                        <p className="text-sm text-gray-500">{user.email}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-3 py-1.5 text-xs rounded-full font-semibold ${
+                      user.role === 'admin' 
+                        ? 'bg-purple-100 text-purple-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {user.role === 'admin' ? 'מנהל' : 'סוחר'}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Store className="w-4 h-4 text-gray-400" />
+                      <span className="font-medium text-gray-900">{user.storeCount}</span>
+                    </div>
+                  </td>
+                  <td className="p-4">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className={`font-medium ${user.lastLoginAt ? 'text-gray-700' : 'text-gray-400'}`}>
+                        {formatRelativeTime(user.lastLoginAt)}
                       </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Store className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">{user.storeCount}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-gray-400" />
-                        <span className={`font-medium ${user.lastLoginAt ? 'text-gray-700' : 'text-gray-400'}`}>
-                          {formatRelativeTime(user.lastLoginAt)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="p-4 text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString('he-IL')}
-                    </td>
-                    <td className="p-4">
-                      <Link
-                        href={`/admin/users/${user.id}`}
-                        className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-4 h-4" />
-                        צפה
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </div>
+                  </td>
+                  <td className="p-4 text-gray-500">
+                    {new Date(user.createdAt).toLocaleDateString('he-IL')}
+                  </td>
+                  <td className="p-4">
+                    <Link
+                      href={`/admin/users/${user.id}`}
+                      className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors"
+                    >
+                      <Eye className="w-4 h-4" />
+                      צפה
+                    </Link>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
         </div>
 
         {/* Mobile Cards */}
