@@ -866,15 +866,19 @@ export function ThemeEditor({
   // Add new section - add to local state and inject placeholder in iframe
   const addSection = (type: string, zone?: string) => {
     // Define zone types for product page
-    const infoTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
-    const contentTypes = ['accordion', 'tabs', 'text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
+    const defaultInfoTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
+    const defaultContentTypes = ['text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
+    const flexibleTypes = ['accordion', 'tabs'];
     
     // Calculate the correct sortOrder based on zone
     let targetSortOrder = sections.length;
     
     if (zone === 'info') {
-      // Find the last info section and place after it
-      const infoSections = sections.filter(s => infoTypes.includes(s.type));
+      // Find the last info section and place after it (including flexible types with zone='info')
+      const infoSections = sections.filter(s => 
+        defaultInfoTypes.includes(s.type) || 
+        (flexibleTypes.includes(s.type) && s.settings?.zone === 'info')
+      );
       if (infoSections.length > 0) {
         const maxInfoSortOrder = Math.max(...infoSections.map(s => s.sortOrder));
         targetSortOrder = maxInfoSortOrder + 1;
@@ -885,7 +889,10 @@ export function ThemeEditor({
       }
     } else if (zone === 'content') {
       // Find the last content section and place after it
-      const contentSections = sections.filter(s => contentTypes.includes(s.type));
+      const contentSections = sections.filter(s => 
+        defaultContentTypes.includes(s.type) || 
+        (flexibleTypes.includes(s.type) && (s.settings?.zone === 'content' || !s.settings?.zone))
+      );
       if (contentSections.length > 0) {
         const maxContentSortOrder = Math.max(...contentSections.map(s => s.sortOrder));
         targetSortOrder = maxContentSortOrder + 1;
@@ -896,13 +903,14 @@ export function ThemeEditor({
     }
     
     // Use real UUID from the start - no temp IDs, no mapping needed!
+    const defaultSettings = getSectionDefaultSettings(type);
     const newSection: Section = {
       id: crypto.randomUUID(),
       type,
       title: getSectionDefaultTitle(type),
       subtitle: null,
       content: getSectionDefaultContent(type),
-      settings: getSectionDefaultSettings(type),
+      settings: zone ? { ...defaultSettings, zone } : defaultSettings,
       sortOrder: targetSortOrder,
       isActive: true,
     };

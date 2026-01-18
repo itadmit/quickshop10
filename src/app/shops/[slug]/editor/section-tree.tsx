@@ -314,9 +314,9 @@ export function SectionTree({
             const topTypes = ['breadcrumb']; // ראש תוכן - פירורי לחם
             const galleryTypes = ['product_gallery'];
             // אזור מידע מוצר - משמאל לגלריה (כולל תיאור וחוזקות!)
-            const infoTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
+            const infoTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features', 'accordion', 'tabs'];
             // אזור תוכן - מתחת לגלריה+מידע
-            const contentTypes = ['accordion', 'tabs', 'text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
+            const contentTypes = ['text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
             
             const topSections = sortedSections.filter(s => topTypes.includes(s.type));
             const gallerySections = sortedSections.filter(s => galleryTypes.includes(s.type));
@@ -464,7 +464,7 @@ export function SectionTree({
                     </div>
                     <div>
                       <span className="text-xs font-medium text-gray-700">אזור תוכן</span>
-                      <span className="text-[10px] text-gray-400 block">מתחת לגלריה • אקורדיון, ביקורות, מוצרים קשורים</span>
+                      <span className="text-[10px] text-gray-400 block">מתחת לגלריה • ביקורות, מוצרים קשורים</span>
                     </div>
                   </div>
                   {contentSections.map((section) => {
@@ -924,7 +924,8 @@ function AddSectionModal({
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   // Define zone-specific section types for product page
-  const infoZoneTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features'];
+  // accordion and tabs can be added to both zones
+  const infoZoneTypes = ['product_badges', 'product_title', 'product_price', 'product_short_desc', 'product_inventory', 'product_add_to_cart', 'product_description', 'features', 'accordion', 'tabs'];
   const contentZoneTypes = ['accordion', 'tabs', 'text_block', 'image_text', 'video', 'divider', 'spacer', 'product_reviews', 'product_related', 'product_upsells'];
 
   // Use custom section types if provided, otherwise use default
