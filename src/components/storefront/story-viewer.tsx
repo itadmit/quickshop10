@@ -517,21 +517,21 @@ export function StoryViewer({
         </button>
       )}
 
-      {/* Main Image/Video - Tap to pause, Double-tap to like */}
+      {/* Main Image/Video - Full screen like Instagram stories */}
       <div 
-        className="w-full h-full max-w-lg mx-auto relative flex items-center justify-center p-4 z-30"
+        className="absolute inset-0 z-30"
         onClick={handleImageTap}
       >
-        {/* Custom video */}
+        {/* Custom video - full screen */}
         {currentStory.customMediaUrl && currentStory.customMediaType === 'video' ? (
-          <div className="bg-black rounded-2xl overflow-hidden shadow-2xl max-h-[70vh] relative">
+          <>
             <video
               src={currentStory.customMediaUrl}
               autoPlay
               loop
               muted={false}
               playsInline
-              className="max-w-full max-h-[70vh] object-contain select-none"
+              className="w-full h-full object-cover select-none"
               draggable={false}
             />
             
@@ -544,15 +544,15 @@ export function StoryViewer({
                 />
               </div>
             )}
-          </div>
+          </>
         ) : (currentStory.customMediaUrl || currentStory.product.image) ? (
-          <div className="bg-white rounded-2xl p-6 shadow-2xl max-h-[70vh] relative">
+          <>
             <Image
               src={currentStory.customMediaUrl || currentStory.product.image!}
               alt={currentStory.product.title}
-              width={400}
-              height={500}
-              className="max-w-full max-h-[60vh] object-contain select-none"
+              fill
+              sizes="100vw"
+              className="object-cover select-none"
               draggable={false}
               priority
             />
@@ -566,7 +566,7 @@ export function StoryViewer({
                 />
               </div>
             )}
-          </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-800 text-gray-400">
             <span className="text-6xl">📷</span>

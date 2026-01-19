@@ -335,6 +335,7 @@ const settingsMenuItems: MenuItem[] = [
     ),
     children: [
       { label: 'כללי', href: '/settings' },
+      { label: 'מדבקות', href: '/settings/badges' },
       { label: 'דומיין מותאם', href: '/settings/domain' },
       { label: 'משלוחים', href: '/settings/shipping' },
       { label: 'תשלומים', href: '/settings/payments' },

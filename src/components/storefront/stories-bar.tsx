@@ -201,17 +201,10 @@ export function StoriesBar({
                 }}
               >
                 <div className="w-full h-full rounded-full overflow-hidden bg-white p-[2px]">
-                  {/* Use custom media if available, otherwise product image */}
-                  {story.customMediaUrl && story.customMediaType === 'video' ? (
-                    <video
-                      src={story.customMediaUrl}
-                      muted
-                      playsInline
-                      className="w-full h-full object-cover rounded-full group-hover:grayscale transition-all duration-300"
-                    />
-                  ) : (story.customMediaUrl || story.product.image) ? (
+                  {/* Always show product image in preview circle (even for video stories) */}
+                  {story.product.image ? (
                     <Image
-                      src={story.customMediaUrl || story.product.image!}
+                      src={story.product.image}
                       alt={story.product.title}
                       width={80}
                       height={80}

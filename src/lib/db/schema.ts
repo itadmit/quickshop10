@@ -720,6 +720,47 @@ export const bundleComponents = pgTable('bundle_components', {
   index('idx_bundle_components_product').on(table.productId),
 ]);
 
+// ============ PRODUCT BADGES (מדבקות) ============
+
+export const productBadges = pgTable('product_badges', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Content
+  name: varchar('name', { length: 50 }).notNull(),      // Internal name
+  text: varchar('text', { length: 30 }).notNull(),      // Display text
+  
+  // Styling
+  backgroundColor: varchar('background_color', { length: 20 }).default('#000000').notNull(),
+  textColor: varchar('text_color', { length: 20 }).default('#FFFFFF').notNull(),
+  position: varchar('position', { length: 20 }).default('top-right').notNull(), // top-right|top-left|bottom-right|bottom-left
+  
+  // Auto-apply rules
+  appliesTo: varchar('applies_to', { length: 20 }).default('manual').notNull(), // manual|category|new|featured|sale
+  categoryIds: uuid('category_ids').array().default([]),  // For applies_to='category'
+  newProductDays: integer('new_product_days').default(14), // For applies_to='new'
+  
+  // Meta
+  sortOrder: integer('sort_order').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_product_badges_store').on(table.storeId),
+]);
+
+// Manual badge assignments (for applies_to='manual')
+export const productBadgeAssignments = pgTable('product_badge_assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  badgeId: uuid('badge_id').references(() => productBadges.id, { onDelete: 'cascade' }).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_badge_assignments_product').on(table.productId),
+  index('idx_badge_assignments_badge').on(table.badgeId),
+  uniqueIndex('idx_badge_assignments_unique').on(table.productId, table.badgeId),
+]);
+
 // ============ CUSTOMERS ============
 
 export const customers = pgTable('customers', {
@@ -1882,6 +1923,25 @@ export const bundleComponentsRelations = relations(bundleComponents, ({ one }) =
   variant: one(productVariants, {
     fields: [bundleComponents.variantId],
     references: [productVariants.id],
+  }),
+}));
+
+export const productBadgesRelations = relations(productBadges, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [productBadges.storeId],
+    references: [stores.id],
+  }),
+  assignments: many(productBadgeAssignments),
+}));
+
+export const productBadgeAssignmentsRelations = relations(productBadgeAssignments, ({ one }) => ({
+  product: one(products, {
+    fields: [productBadgeAssignments.productId],
+    references: [products.id],
+  }),
+  badge: one(productBadges, {
+    fields: [productBadgeAssignments.badgeId],
+    references: [productBadges.id],
   }),
 }));
 
@@ -3830,6 +3890,12 @@ export type ProductBundle = typeof productBundles.$inferSelect;
 export type NewProductBundle = typeof productBundles.$inferInsert;
 export type BundleComponent = typeof bundleComponents.$inferSelect;
 export type NewBundleComponent = typeof bundleComponents.$inferInsert;
+
+// Product Badge types
+export type ProductBadge = typeof productBadges.$inferSelect;
+export type NewProductBadge = typeof productBadges.$inferInsert;
+export type ProductBadgeAssignment = typeof productBadgeAssignments.$inferSelect;
+export type NewProductBadgeAssignment = typeof productBadgeAssignments.$inferInsert;
 
 // Platform Settings types
 export type PlatformSetting = typeof platformSettings.$inferSelect;
