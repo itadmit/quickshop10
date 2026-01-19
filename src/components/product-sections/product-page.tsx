@@ -8,7 +8,7 @@
  */
 
 import React from 'react';
-import { ProductPageSection, GallerySectionSettings, InfoSectionSettings, DescriptionSectionSettings, RelatedSectionSettings, ReviewsSectionSettings } from '@/lib/product-page-sections';
+import { ProductPageSection, GallerySectionSettings, InfoSectionSettings, DescriptionSectionSettings, RelatedSectionSettings, ReviewsSectionSettings, StoryStatsSectionSettings } from '@/lib/product-page-sections';
 import { type DynamicContentContext, resolveDynamicContent } from '@/lib/dynamic-content';
 import { ProductSection } from './index';
 import { ProductImage } from '@/components/product-image';
@@ -30,6 +30,7 @@ import {
   LiveRelatedProducts,
 } from '@/components/storefront/product-page-preview';
 import { BundleComponentsDisplay } from '@/components/storefront/bundle-components-display';
+import { StoryStatsSection } from './story-stats-section';
 
 // ============================================
 // Types
@@ -124,6 +125,12 @@ interface ProductPageProps {
   firstCategory: { id: string; name: string; slug: string } | null;
   storeSlug: string;
   categoryIds: string[];
+  // Story stats (only available if plugin is active AND product has a story)
+  storyStats?: {
+    viewsCount: number;
+    likesCount: number;
+    commentsCount: number;
+  } | null;
 }
 
 // ============================================
@@ -147,6 +154,7 @@ export function ProductPage({
   firstCategory,
   storeSlug,
   categoryIds,
+  storyStats,
 }: ProductPageProps) {
   // Sort sections by sortOrder and filter active
   const activeSections = sections
@@ -792,6 +800,20 @@ export function ProductPage({
               <ProductSection section={section} context={context} />
             </div>
           </div>
+        );
+      
+      // Story Stats Section - only renders if plugin is active AND product has a story
+      case 'product_story_stats':
+        // Only render if we have story stats data
+        if (!storyStats) return null;
+        
+        return (
+          <StoryStatsSection
+            key={section.id}
+            settings={section.settings as Partial<StoryStatsSectionSettings>}
+            storyStats={storyStats}
+            sectionId={section.id}
+          />
         );
         
       default:

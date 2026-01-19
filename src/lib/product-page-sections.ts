@@ -31,6 +31,7 @@ export type ProductSectionType =
   | 'product_reviews'       // ביקורות
   | 'product_related'       // מוצרים דומים
   | 'product_upsells'       // מוצרי אפסייל
+  | 'product_story_stats'   // סטטיסטיקות סטורי (לייקים, צפיות, תגובות) - רק אם תוסף פעיל
   // Legacy - תאימות לאחור
   | 'product_info'          // [DEPRECATED] משמש למיגרציה בלבד
   // Generic content sections (with dynamic content support)
@@ -197,6 +198,19 @@ export interface ReviewsSectionSettings {
   showCount: boolean;
   showPhotos: boolean;
   style: 'list' | 'grid';
+}
+
+// Story Stats Section (Plugin: product-stories)
+export interface StoryStatsSectionContent {
+  // Content is dynamic - fetched from productStories table
+}
+
+export interface StoryStatsSectionSettings {
+  showViews: boolean;
+  showLikes: boolean;
+  showComments: boolean;
+  style: 'inline' | 'badges' | 'minimal';
+  iconColor?: string;
 }
 
 // Image with Text Section
@@ -578,6 +592,7 @@ export const sectionTypeLabels: Record<ProductSectionType, string> = {
   product_reviews: 'ביקורות',
   product_related: 'אולי יעניין אותך',
   product_upsells: 'מוצרי אפסייל',
+  product_story_stats: 'סטטיסטיקות סטורי',
   // Legacy
   product_info: 'מידע מוצר (Legacy)',
   // תוכן
@@ -594,7 +609,7 @@ export const sectionTypeLabels: Record<ProductSectionType, string> = {
 };
 
 // Section types available to add (not all are addable)
-export const addableSectionTypes: { type: ProductSectionType; label: string; icon: string; category: string }[] = [
+export const addableSectionTypes: { type: ProductSectionType; label: string; icon: string; category: string; pluginRequired?: string }[] = [
   // Content
   { type: 'text_block', label: 'בלוק טקסט', icon: 'text', category: 'תוכן' },
   { type: 'accordion', label: 'אקורדיון', icon: 'accordion', category: 'תוכן' },
@@ -607,6 +622,7 @@ export const addableSectionTypes: { type: ProductSectionType; label: string; ico
   { type: 'product_reviews', label: 'ביקורות', icon: 'reviews', category: 'מוצר' },
   { type: 'product_related', label: 'מוצרים דומים', icon: 'related', category: 'מוצר' },
   { type: 'product_upsells', label: 'מוצרי אפסייל', icon: 'upsell', category: 'מוצר' },
+  { type: 'product_story_stats', label: 'סטטיסטיקות סטורי', icon: 'heart', category: 'מוצר', pluginRequired: 'product-stories' },
   // Layout
   { type: 'breadcrumb', label: 'ניווט', icon: 'breadcrumb', category: 'פריסה' },
   { type: 'divider', label: 'קו מפריד', icon: 'divider', category: 'פריסה' },

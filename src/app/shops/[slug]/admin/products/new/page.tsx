@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
 import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
 import { getStoreMetafields } from '@/app/shops/[slug]/admin/metafields/actions';
+import { getManualBadgesForStore } from '@/app/shops/[slug]/admin/settings/badges/actions';
 
 interface NewProductPageProps {
   params: Promise<{ slug: string }>;
@@ -18,11 +19,12 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
     notFound();
   }
 
-  // Fetch categories, addons and metafields in parallel for speed ⚡
-  const [categories, storeAddons, storeMetafields] = await Promise.all([
+  // Fetch categories, addons, metafields and badges in parallel for speed ⚡
+  const [categories, storeAddons, storeMetafields, storeBadges] = await Promise.all([
     getCategoriesByStore(store.id),
     getStoreAddons(store.id),
     getStoreMetafields(store.id),
+    getManualBadgesForStore(store.id),
   ]);
 
   // Format addons for the form
@@ -45,6 +47,7 @@ export default async function NewProductPage({ params }: NewProductPageProps) {
       categories={categories}
       storeAddons={formattedAddons}
       storeMetafields={storeMetafields}
+      storeBadges={storeBadges}
       mode="create"
     />
   );

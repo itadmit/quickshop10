@@ -1,6 +1,6 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons, contacts } from './schema';
-import { eq, and, desc, asc, inArray, sql } from 'drizzle-orm';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons, contacts, productBadges, productBadgeAssignments } from './schema';
+import { eq, and, desc, asc, inArray, sql, or, isNotNull } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
 
@@ -1414,3 +1414,141 @@ export const getPageBySlug = cache(async (storeId: string, slug: string) => {
     where: and(eq(pages.storeId, storeId), eq(pages.slug, slug)),
   });
 });
+
+// ============ PRODUCT BADGES ============
+
+// Get all badges for a product (manual + automatic)
+export async function getProductBadgesForDisplay(
+  storeId: string,
+  productId: string,
+  product: {
+    createdAt: Date;
+    isFeatured?: boolean;
+    comparePrice?: string | null;
+    categoryId?: string | null;
+  }
+) {
+  // First get manual badge assignments
+  const manualBadges = await db
+    .select({
+      id: productBadges.id,
+      text: productBadges.text,
+      backgroundColor: productBadges.backgroundColor,
+      textColor: productBadges.textColor,
+      position: productBadges.position,
+    })
+    .from(productBadges)
+    .innerJoin(productBadgeAssignments, eq(productBadgeAssignments.badgeId, productBadges.id))
+    .where(and(
+      eq(productBadgeAssignments.productId, productId),
+      eq(productBadges.isActive, true)
+    ))
+    .orderBy(asc(productBadges.sortOrder));
+
+  // Get automatic badges
+  const autoBadges = await db
+    .select({
+      id: productBadges.id,
+      text: productBadges.text,
+      backgroundColor: productBadges.backgroundColor,
+      textColor: productBadges.textColor,
+      position: productBadges.position,
+      appliesTo: productBadges.appliesTo,
+      categoryIds: productBadges.categoryIds,
+      newProductDays: productBadges.newProductDays,
+    })
+    .from(productBadges)
+    .where(and(
+      eq(productBadges.storeId, storeId),
+      eq(productBadges.isActive, true),
+      // Not manual - automatic only
+      sql`${productBadges.appliesTo} != 'manual'`
+    ))
+    .orderBy(asc(productBadges.sortOrder));
+
+  // Filter automatic badges based on criteria
+  const applicableAutoBadges = autoBadges.filter(badge => {
+    switch (badge.appliesTo) {
+      case 'new': {
+        const daysAgo = new Date();
+        daysAgo.setDate(daysAgo.getDate() - (badge.newProductDays || 14));
+        return product.createdAt > daysAgo;
+      }
+      case 'featured':
+        return product.isFeatured === true;
+      case 'sale':
+        return product.comparePrice !== null && product.comparePrice !== undefined;
+      case 'category':
+        if (!product.categoryId || !badge.categoryIds?.length) return false;
+        return (badge.categoryIds as string[]).includes(product.categoryId);
+      default:
+        return false;
+    }
+  });
+
+  // Combine and dedupe by badge id
+  const allBadges = [...manualBadges, ...applicableAutoBadges];
+  const uniqueBadges = allBadges.filter((badge, index, self) => 
+    self.findIndex(b => b.id === badge.id) === index
+  );
+
+  return uniqueBadges.map(b => ({
+    id: b.id,
+    text: b.text,
+    backgroundColor: b.backgroundColor,
+    textColor: b.textColor,
+    position: b.position,
+  }));
+}
+
+// Simplified version for product cards - returns all badges for multiple products
+export async function getProductsBadgesForCards(storeId: string, productIds: string[]) {
+  if (!productIds.length) return new Map<string, Array<{
+    id: string;
+    text: string;
+    backgroundColor: string;
+    textColor: string;
+    position: string;
+  }>>();
+
+  // Get manual assignments
+  const assignments = await db
+    .select({
+      productId: productBadgeAssignments.productId,
+      badgeId: productBadges.id,
+      text: productBadges.text,
+      backgroundColor: productBadges.backgroundColor,
+      textColor: productBadges.textColor,
+      position: productBadges.position,
+    })
+    .from(productBadgeAssignments)
+    .innerJoin(productBadges, eq(productBadges.id, productBadgeAssignments.badgeId))
+    .where(and(
+      inArray(productBadgeAssignments.productId, productIds),
+      eq(productBadges.isActive, true)
+    ))
+    .orderBy(asc(productBadges.sortOrder));
+
+  // Group by product
+  const badgeMap = new Map<string, Array<{
+    id: string;
+    text: string;
+    backgroundColor: string;
+    textColor: string;
+    position: string;
+  }>>();
+
+  for (const assignment of assignments) {
+    const existing = badgeMap.get(assignment.productId) || [];
+    existing.push({
+      id: assignment.badgeId,
+      text: assignment.text,
+      backgroundColor: assignment.backgroundColor,
+      textColor: assignment.textColor,
+      position: assignment.position,
+    });
+    badgeMap.set(assignment.productId, existing);
+  }
+
+  return badgeMap;
+}

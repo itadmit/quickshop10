@@ -12,6 +12,10 @@ import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
 import { getProductAutomaticDiscounts } from '@/app/actions/automatic-discount';
+import { isPluginActive } from '@/lib/plugins/loader';
+import { db } from '@/lib/db';
+import { productStories } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 import { 
   ProductPagePreviewProvider, 
   LiveFeaturesSection, 
@@ -207,6 +211,38 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     compareAtPrice: effectiveComparePrice,
     image: mainImage,
   };
+
+  // 🆕 Load story stats for this product (only if plugin is active)
+  // Server-side only - no client JS, per REQUIREMENTS.md
+  let storyStats: { viewsCount: number; likesCount: number; commentsCount: number } | null = null;
+  
+  // Check if stories plugin is active AND if this product has a story
+  const storiesPluginActive = await isPluginActive(store.id, 'product-stories');
+  if (storiesPluginActive) {
+    const [storyData] = await db
+      .select({
+        viewsCount: productStories.viewsCount,
+        likesCount: productStories.likesCount,
+        commentsCount: productStories.commentsCount,
+      })
+      .from(productStories)
+      .where(
+        and(
+          eq(productStories.storeId, store.id),
+          eq(productStories.productId, product.id),
+          eq(productStories.isActive, true)
+        )
+      )
+      .limit(1);
+    
+    if (storyData) {
+      storyStats = {
+        viewsCount: storyData.viewsCount,
+        likesCount: storyData.likesCount,
+        commentsCount: storyData.commentsCount,
+      };
+    }
+  }
 
   // Helper to check if section is visible
   const isSectionVisible = (type: string) => visibleSections.some(s => s.type === type);
@@ -637,6 +673,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             firstCategory={firstCategory ?? null}
             storeSlug={slug}
             categoryIds={productCategoryIds}
+            storyStats={storyStats}
           />
           
           {/* Footer */}

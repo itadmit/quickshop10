@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
 import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
 import { getStoreMetafields } from '@/app/shops/[slug]/admin/metafields/actions';
+import { getManualBadgesForStore, getProductBadges } from '@/app/shops/[slug]/admin/settings/badges/actions';
 
 interface EditProductPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -18,13 +19,15 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     notFound();
   }
 
-  // Fetch product, categories, all products for upsell, addons and metafields in parallel for speed ⚡
-  const [product, categories, allProducts, storeAddons, storeMetafields] = await Promise.all([
+  // Fetch product, categories, all products for upsell, addons, metafields and badges in parallel for speed ⚡
+  const [product, categories, allProducts, storeAddons, storeMetafields, storeBadges, productBadgeIds] = await Promise.all([
     getProductForEdit(store.id, id),
     getCategoriesByStore(store.id),
     getProductsForUpsell(store.id),
     getStoreAddons(store.id),
     getStoreMetafields(store.id),
+    getManualBadgesForStore(store.id),
+    getProductBadges(id),
   ]);
 
   if (!product) {
@@ -47,6 +50,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const productForForm = {
     ...product,
     metadata: product.metadata as Record<string, unknown> | undefined,
+    badgeIds: productBadgeIds,
     options: product.options?.map(opt => ({
       ...opt,
       values: opt.values.map(val => ({
@@ -65,6 +69,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       allProducts={allProducts}
       storeAddons={formattedAddons}
       storeMetafields={storeMetafields}
+      storeBadges={storeBadges}
       product={productForForm}
       mode="edit"
     />

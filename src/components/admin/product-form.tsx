@@ -74,6 +74,16 @@ interface MetafieldDefinition {
   showInCheckout: boolean;  // הצג בצ'קאאוט ושמור בהזמנה
 }
 
+// Badge type for product form
+interface StoreBadge {
+  id: string;
+  name: string;
+  text: string;
+  backgroundColor: string;
+  textColor: string;
+  position: string;
+}
+
 interface ProductFormProps {
   storeId: string;
   storeSlug: string;
@@ -82,6 +92,7 @@ interface ProductFormProps {
   allProducts?: UpsellProduct[]; // For upsell product selection
   storeAddons?: StoreAddon[]; // For addon assignment
   storeMetafields?: MetafieldDefinition[]; // For custom fields
+  storeBadges?: StoreBadge[]; // For badge assignment
   product?: Product & { 
     images?: { 
       id: string; 
@@ -98,6 +109,7 @@ interface ProductFormProps {
     categoryIds?: string[];
     upsellProductIds?: string[];
     addonIds?: string[];
+    badgeIds?: string[];
     metadata?: Record<string, unknown>;
     isBundle?: boolean;
   };
@@ -125,7 +137,7 @@ function sanitizeSlug(text: string): string {
     .replace(/-+/g, '-'); // Clean multiple dashes
 }
 
-export function ProductForm({ storeId, storeSlug, customDomain, categories, allProducts = [], storeAddons = [], storeMetafields = [], product, mode }: ProductFormProps) {
+export function ProductForm({ storeId, storeSlug, customDomain, categories, allProducts = [], storeAddons = [], storeMetafields = [], storeBadges = [], product, mode }: ProductFormProps) {
   // Build the store URL for SEO preview
   const storeUrl = customDomain || `my-quickshop.com/shops/${storeSlug}`;
   const router = useRouter();
@@ -168,6 +180,11 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
   // Product Addons
   const [addonIds, setAddonIds] = useState<string[]>(
     product?.addonIds || []
+  );
+  
+  // Product Badges
+  const [badgeIds, setBadgeIds] = useState<string[]>(
+    product?.badgeIds || []
   );
   
   // Metafield Values (custom fields)
@@ -538,6 +555,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
       isFeatured,
       upsellProductIds: upsellProductIds.length > 0 ? upsellProductIds : undefined,
       addonIds: addonIds.length > 0 ? addonIds : undefined,
+      badgeIds: badgeIds.length > 0 ? badgeIds : undefined,
       seoTitle: seoTitle.trim() || undefined,
       seoDescription: seoDescription.trim() || undefined,
       metadata: Object.keys(metadataValues).length > 0 ? metadataValues : undefined,
@@ -1854,6 +1872,68 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                 {upsellProductIds.length >= 5 && (
                   <p className="text-xs text-amber-600">ניתן לבחור עד 5 מוצרים</p>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* Product Badges */}
+          {storeBadges.length > 0 && (
+            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-gray-900">🏷️ מדבקות</h2>
+                <a
+                  href={`/shops/${storeSlug}/admin/settings/badges`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  ניהול מדבקות →
+                </a>
+              </div>
+              <div className="p-4 space-y-2">
+                <p className="text-xs text-gray-500 mb-3">
+                  בחר מדבקות שיופיעו על תמונת המוצר (למשל: חדש, מומלץ)
+                </p>
+                
+                {storeBadges.map(badge => {
+                  const isSelected = badgeIds.includes(badge.id);
+                  
+                  return (
+                    <label
+                      key={badge.id}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        isSelected 
+                          ? 'border-black bg-gray-50' 
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setBadgeIds([...badgeIds, badge.id]);
+                          } else {
+                            setBadgeIds(badgeIds.filter(id => id !== badge.id));
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-300 text-black focus:ring-black"
+                      />
+                      <div className="flex-1 min-w-0 flex items-center gap-3">
+                        <span 
+                          className="px-2 py-0.5 text-xs font-medium shrink-0"
+                          style={{ 
+                            backgroundColor: badge.backgroundColor,
+                            color: badge.textColor,
+                          }}
+                        >
+                          {badge.text}
+                        </span>
+                        <span className="text-sm text-gray-600">{badge.name}</span>
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
             </div>
           )}

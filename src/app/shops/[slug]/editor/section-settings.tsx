@@ -6323,6 +6323,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
     product_reviews: 'ביקורות',
     product_related: 'אולי יעניין אותך',
     product_upsells: 'מוצרי אפסייל',
+    product_story_stats: 'סטטיסטיקות סטורי',
     // Legacy
     product_info: 'מידע מוצר (Legacy)',
     // תוכן
@@ -6854,6 +6855,54 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
                 onChange={(v) => updateSettings({ showIfEmpty: v })}
               />
             </SettingsGroup>
+          </>
+        )}
+
+        {/* Story Stats Section Settings (Plugin: product-stories) */}
+        {section.type === 'product_story_stats' && (
+          <>
+            <SettingsGroup title="תצוגה">
+              <SwitchField
+                label="הצג צפיות"
+                value={(section.settings.showViews as boolean) ?? true}
+                onChange={(v) => updateSettings({ showViews: v })}
+              />
+              
+              <SwitchField
+                label="הצג לייקים"
+                value={(section.settings.showLikes as boolean) ?? true}
+                onChange={(v) => updateSettings({ showLikes: v })}
+              />
+              
+              <SwitchField
+                label="הצג תגובות"
+                value={(section.settings.showComments as boolean) ?? true}
+                onChange={(v) => updateSettings({ showComments: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="סגנון">
+              <SelectField
+                label="סגנון תצוגה"
+                value={(section.settings.style as string) || 'inline'}
+                options={[
+                  { value: 'inline', label: 'בשורה (ברירת מחדל)' },
+                  { value: 'badges', label: 'תגיות' },
+                  { value: 'minimal', label: 'מינימלי' },
+                ]}
+                onChange={(v) => updateSettings({ style: v })}
+              />
+              
+              <ColorField
+                label="צבע אייקונים"
+                value={(section.settings.iconColor as string) || '#e91e63'}
+                onChange={(v) => updateSettings({ iconColor: v })}
+              />
+            </SettingsGroup>
+            
+            <div className="px-4 py-2 bg-purple-50 text-purple-700 text-xs rounded-lg">
+              💡 הסקשן יוצג רק אם תוסף הסטוריז פעיל ויש סטורי למוצר
+            </div>
           </>
         )}
 

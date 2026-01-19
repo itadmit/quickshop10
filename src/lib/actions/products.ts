@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, productImages, productOptions, productOptionValues, productVariants, productCategories, productAddonAssignments } from '@/lib/db/schema';
+import { products, productImages, productOptions, productOptionValues, productVariants, productCategories, productAddonAssignments, productBadgeAssignments } from '@/lib/db/schema';
 import { eq, and, like, sql, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/lib/auth';
@@ -120,6 +120,9 @@ export interface ProductFormData {
   
   // Product Addons
   addonIds?: string[];
+  
+  // Product Badges
+  badgeIds?: string[];
   
   // SEO
   seoTitle?: string;
@@ -260,6 +263,16 @@ export async function createProduct(storeId: string, storeSlug: string, data: Pr
           productId: product.id,
           addonId,
           sortOrder: index,
+        }))
+      );
+    }
+
+    // Add badge assignments if provided
+    if (data.badgeIds && data.badgeIds.length > 0) {
+      await db.insert(productBadgeAssignments).values(
+        data.badgeIds.map(badgeId => ({
+          productId: product.id,
+          badgeId,
         }))
       );
     }
@@ -415,6 +428,18 @@ export async function updateProduct(
           productId,
           addonId,
           sortOrder: index,
+        }))
+      );
+    }
+
+    // Update badge assignments
+    await db.delete(productBadgeAssignments).where(eq(productBadgeAssignments.productId, productId));
+    
+    if (data.badgeIds && data.badgeIds.length > 0) {
+      await db.insert(productBadgeAssignments).values(
+        data.badgeIds.map(badgeId => ({
+          productId,
+          badgeId,
         }))
       );
     }

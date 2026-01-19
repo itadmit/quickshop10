@@ -2,9 +2,19 @@ import Link from 'next/link';
 import { AddToCartButton } from './add-to-cart-button';
 import { ProductCardAddToCart } from './product-card-add-to-cart';
 import { ProductImage } from './product-image';
+import { ProductBadges } from './storefront/product-badges';
 import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { getVideoThumbnailUrl, isVideoUrl } from '@/lib/cloudinary';
+
+// Badge type for display
+interface Badge {
+  id: string;
+  text: string;
+  backgroundColor: string;
+  textColor: string;
+  position: string;
+}
 
 interface ProductCardProps {
   id: string;
@@ -38,6 +48,8 @@ interface ProductCardProps {
   showAddToCart?: boolean; // כפתור קבוע (לא רק hover)
   addToCartStyle?: 'outline' | 'filled'; // סגנון הכפתור
   storeSlug?: string; // Required for variants modal
+  // 🏷️ Product badges
+  badges?: Badge[];
 }
 
 export function ProductCard({ 
@@ -60,6 +72,7 @@ export function ProductCard({
   showAddToCart = false,
   addToCartStyle = 'outline',
   storeSlug,
+  badges = [],
 }: ProductCardProps) {
   // Use video thumbnail (cardImage) if available, otherwise use regular image
   // If cardImage is a video URL, generate a thumbnail from it
@@ -116,8 +129,8 @@ export function ProductCard({
             </div>
           )}
           
-          {/* Badges */}
-          <div className="absolute top-4 right-4 flex flex-col gap-2">
+          {/* System Badges (out of stock, discount) */}
+          <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
             {outOfStock && (
               <span className="text-[10px] tracking-[0.15em] uppercase bg-gray-800 px-3 py-1.5 text-white">
                 אזל
@@ -134,6 +147,9 @@ export function ProductCard({
               </span>
             )}
           </div>
+          
+          {/* Custom Product Badges */}
+          <ProductBadges badges={badges} />
           
           {/* Quick Add Button - Hover only (when showAddToCart is OFF) */}
           {/* ⚠️ IMPORTANT: Always pass ORIGINAL price! Discount is calculated at checkout */}
