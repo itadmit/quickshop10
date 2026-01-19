@@ -277,6 +277,121 @@ export const getTopProducts = cache(async (
   }));
 });
 
+// Detailed products report with discount allocation
+export const getDetailedProductsReport = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  // Get all order items with their orders' discount info (only paid orders)
+  const result = await db
+    .select({
+      productId: orderItems.productId,
+      productName: orderItems.name,
+      productImage: orderItems.imageUrl,
+      itemTotal: orderItems.total,
+      itemQuantity: orderItems.quantity,
+      orderId: orders.id,
+      orderSubtotal: orders.subtotal,
+      orderDiscountAmount: orders.discountAmount,
+    })
+    .from(orderItems)
+    .innerJoin(orders, eq(orderItems.orderId, orders.id))
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ));
+
+  // Aggregate by product, calculating proportional discount
+  const productMap = new Map<string, {
+    id: string;
+    name: string;
+    image: string | null;
+    quantity: number;
+    revenue: number;
+    discountAmount: number;
+    orderIds: Set<string>;
+  }>();
+
+  // Also get primary images for products
+  const productIds = [...new Set(result.filter(r => r.productId).map(r => r.productId!))];
+  
+  let imageMap = new Map<string, string>();
+  if (productIds.length > 0) {
+    const images = await db
+      .select({
+        productId: productImages.productId,
+        url: productImages.url,
+      })
+      .from(productImages)
+      .where(and(
+        inArray(productImages.productId, productIds),
+        eq(productImages.isPrimary, true)
+      ));
+    imageMap = new Map(images.map(img => [img.productId, img.url]));
+  }
+
+  result.forEach(item => {
+    // Use product ID or create a unique key for items without productId
+    const key = item.productId || `manual-${item.productName}`;
+    const existing = productMap.get(key);
+    
+    const itemTotal = Number(item.itemTotal || 0);
+    const orderSubtotal = Number(item.orderSubtotal || 0);
+    const orderDiscount = Number(item.orderDiscountAmount || 0);
+    
+    // Calculate proportional discount for this item
+    // Formula: itemDiscount = (itemTotal / orderSubtotal) * orderDiscount
+    const proportionalDiscount = orderSubtotal > 0 
+      ? (itemTotal / orderSubtotal) * orderDiscount 
+      : 0;
+    
+    if (existing) {
+      existing.quantity += Number(item.itemQuantity || 0);
+      existing.revenue += itemTotal;
+      existing.discountAmount += proportionalDiscount;
+      existing.orderIds.add(item.orderId);
+    } else {
+      productMap.set(key, {
+        id: item.productId || key,
+        name: item.productName,
+        image: item.productImage || (item.productId ? imageMap.get(item.productId) || null : null),
+        quantity: Number(item.itemQuantity || 0),
+        revenue: itemTotal,
+        discountAmount: proportionalDiscount,
+        orderIds: new Set([item.orderId]),
+      });
+    }
+  });
+
+  // Convert to array and sort by revenue
+  const products = Array.from(productMap.values())
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      image: p.image,
+      quantity: p.quantity,
+      revenue: p.revenue,
+      discountAmount: Math.round(p.discountAmount * 100) / 100, // Round to 2 decimals
+      ordersCount: p.orderIds.size,
+    }))
+    .sort((a, b) => b.revenue - a.revenue);
+
+  // Calculate totals
+  const totals = {
+    totalProducts: products.length,
+    totalQuantity: products.reduce((sum, p) => sum + p.quantity, 0),
+    totalRevenue: products.reduce((sum, p) => sum + p.revenue, 0),
+    totalDiscounts: products.reduce((sum, p) => sum + p.discountAmount, 0),
+  };
+
+  return { products, totals };
+});
+
 // Sales by category
 export const getSalesByCategory = cache(async (
   storeId: string,

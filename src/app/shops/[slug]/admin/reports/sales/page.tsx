@@ -7,7 +7,8 @@ import {
   getSalesByDay, 
   getTopProducts,
   getSalesByCategory,
-  getRecentOrders 
+  getRecentOrders,
+  getDetailedProductsReport
 } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
 
@@ -334,6 +335,102 @@ function CategoriesTable({
   );
 }
 
+// Detailed Products Table with discounts
+function DetailedProductsTable({ 
+  products,
+  totals
+}: { 
+  products: Array<{ 
+    id: string; 
+    name: string; 
+    image: string | null; 
+    quantity: number; 
+    revenue: number; 
+    discountAmount: number; 
+    ordersCount: number;
+  }>;
+  totals: {
+    totalProducts: number;
+    totalQuantity: number;
+    totalRevenue: number;
+    totalDiscounts: number;
+  };
+}) {
+  if (!products.length) {
+    return <p className="text-gray-500 text-center py-12">אין נתוני מוצרים לתקופה זו</p>;
+  }
+
+  return (
+    <div>
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-lg">
+        <div>
+          <p className="text-xs text-gray-500">מוצרים</p>
+          <p className="text-lg font-medium">{formatNumber(totals.totalProducts)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">פריטים נמכרו</p>
+          <p className="text-lg font-medium">{formatNumber(totals.totalQuantity)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">סה״כ הכנסות</p>
+          <p className="text-lg font-medium">{formatCurrency(totals.totalRevenue)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">סה״כ הנחות</p>
+          <p className="text-lg font-medium text-green-600">-{formatCurrency(totals.totalDiscounts)}</p>
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-gray-200 text-right">
+              <th className="py-3 px-4 font-medium text-gray-500 text-sm">מוצר</th>
+              <th className="py-3 px-4 font-medium text-gray-500 text-sm text-center">כמות</th>
+              <th className="py-3 px-4 font-medium text-gray-500 text-sm text-center">הזמנות</th>
+              <th className="py-3 px-4 font-medium text-gray-500 text-sm text-left">מכירות</th>
+              <th className="py-3 px-4 font-medium text-gray-500 text-sm text-left">הנחות</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {products.map((product, index) => (
+              <tr key={product.id} className="hover:bg-gray-50">
+                <td className="py-3 px-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-400 text-sm w-5">{index + 1}</span>
+                    {product.image ? (
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-10 h-10 object-cover bg-gray-100 rounded"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gray-100 rounded" />
+                    )}
+                    <span className="font-medium truncate max-w-[200px]">{product.name}</span>
+                  </div>
+                </td>
+                <td className="py-3 px-4 text-center">{formatNumber(product.quantity)}</td>
+                <td className="py-3 px-4 text-center">{formatNumber(product.ordersCount)}</td>
+                <td className="py-3 px-4 text-left font-medium">{formatCurrency(product.revenue)}</td>
+                <td className="py-3 px-4 text-left">
+                  {product.discountAmount > 0 ? (
+                    <span className="text-green-600">-{formatCurrency(product.discountAmount)}</span>
+                  ) : (
+                    <span className="text-gray-400">-</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // Content Component
 async function SalesContent({ 
   storeId, 
@@ -347,12 +444,13 @@ async function SalesContent({
   customRange?: { from: Date; to: Date };
 }) {
   // Parallel data fetching
-  const [overview, salesByDay, topProducts, salesByCategory, recentOrders] = await Promise.all([
+  const [overview, salesByDay, topProducts, salesByCategory, recentOrders, detailedProducts] = await Promise.all([
     getSalesOverview(storeId, period, customRange),
     getSalesByDay(storeId, period, customRange),
     getTopProducts(storeId, period, 20, customRange),
     getSalesByCategory(storeId, period, customRange),
     getRecentOrders(storeId, period, customRange, 5),
+    getDetailedProductsReport(storeId, period, customRange),
   ]);
 
   return (
@@ -395,6 +493,15 @@ async function SalesContent({
           </Link>
         </div>
         <OrdersTable orders={recentOrders} storeSlug={storeSlug} />
+      </div>
+
+      {/* Detailed Products Report */}
+      <div className="bg-white border border-gray-200 p-4 sm:p-6 mb-6">
+        <h2 className="font-medium mb-4">דוח מוצרים מפורט</h2>
+        <DetailedProductsTable 
+          products={detailedProducts.products} 
+          totals={detailedProducts.totals} 
+        />
       </div>
 
       {/* Two columns: Products & Categories */}
