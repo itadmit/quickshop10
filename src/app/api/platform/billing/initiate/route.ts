@@ -104,24 +104,14 @@ export async function POST(request: NextRequest) {
           status: 'trial',
           trialEndsAt,
           billingEmail: billingDetails.email,
-          billingName: store.name, // Use store name for invoicing (business name)
+          billingName: store.name, // Default to store name
           billingPhone: billingDetails.phone,
           vatNumber: billingDetails.vatNumber,
         })
         .returning();
-    } else {
-      // Update billing details - use store name for invoicing
-      await db
-        .update(storeSubscriptions)
-        .set({
-          billingEmail: billingDetails.email,
-          billingName: store.name, // Use store name for invoicing (business name)
-          billingPhone: billingDetails.phone,
-          vatNumber: billingDetails.vatNumber,
-          updatedAt: new Date(),
-        })
-        .where(eq(storeSubscriptions.id, subscription.id));
     }
+    // NOTE: We don't override billing details here - they are managed via the billing-details API
+    // This allows users to set custom billing names that persist across payments
 
     // Build URLs - use slug for clean URLs
     // Use origin from request for localhost support, fallback to env var
@@ -150,16 +140,18 @@ export async function POST(request: NextRequest) {
     });
 
     // Initiate PayPlus payment
-    // Use store name for invoicing (business name), email/phone from billing details
+    // Use billingName from subscription (user can customize this)
+    const invoiceName = subscription.billingName || store.name;
+    
     const { paymentPageUrl, pageRequestUid } = await initiateSubscriptionPayment({
       storeId,
       storeName: store.name,
       plan,
       customer: {
-        name: store.name, // Use store name for invoice (business name)
-        email: billingDetails.email,
-        phone: billingDetails.phone,
-        vatNumber: billingDetails.vatNumber,
+        name: invoiceName, // Use billing name for invoice (customizable)
+        email: subscription.billingEmail || billingDetails.email,
+        phone: subscription.billingPhone || billingDetails.phone,
+        vatNumber: subscription.vatNumber || billingDetails.vatNumber,
         address: billingDetails.address,
         city: billingDetails.city,
       },

@@ -108,6 +108,10 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
           currentPeriodEnd: subscription.currentPeriodEnd?.toISOString() || null,
           hasPaymentMethod: !!subscription.payplusTokenUid,
           customMonthlyPrice: subscription.customMonthlyPrice,
+          // Billing details for invoices
+          billingName: subscription.billingName || null,
+          billingEmail: subscription.billingEmail || null,
+          vatNumber: subscription.vatNumber || null,
         } : null}
         billing={{
           periodTransactionTotal: periodTotal,

@@ -18,6 +18,10 @@ interface SubscriptionManagerProps {
     currentPeriodEnd: string | null;
     hasPaymentMethod: boolean;
     customMonthlyPrice?: string | null;
+    // Billing details for invoices
+    billingName?: string | null;
+    billingEmail?: string | null;
+    vatNumber?: string | null;
   } | null;
   billing: {
     periodTransactionTotal: number;
@@ -90,6 +94,16 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
   const [selectedPlan, setSelectedPlan] = useState<'branding' | 'quickshop'>('quickshop');
   const [showSuccessMessage, setShowSuccessMessage] = useState(paymentResult?.success || false);
   const [showErrorMessage, setShowErrorMessage] = useState(paymentResult?.error || false);
+  
+  // Billing details state
+  const [showBillingForm, setShowBillingForm] = useState(false);
+  const [billingDetails, setBillingDetails] = useState({
+    useCustomName: !!(subscription?.billingName && subscription.billingName !== store.name),
+    billingName: subscription?.billingName || store.name,
+    billingEmail: subscription?.billingEmail || '',
+    vatNumber: subscription?.vatNumber || '',
+  });
+  const [isSavingBilling, setIsSavingBilling] = useState(false);
 
   // Clear URL params and refresh page after successful payment
   useEffect(() => {
@@ -151,6 +165,36 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
       alert('שגיאה ביצירת דף תשלום');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveBillingDetails = async () => {
+    setIsSavingBilling(true);
+    try {
+      const response = await fetch(`/api/shops/${store.slug}/billing-details`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billingName: billingDetails.useCustomName ? billingDetails.billingName : store.name,
+          billingEmail: billingDetails.billingEmail,
+          vatNumber: billingDetails.vatNumber,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setShowBillingForm(false);
+        // Refresh page to show updated data
+        window.location.reload();
+      } else {
+        alert(data.error || 'שגיאה בשמירת פרטי החיוב');
+      }
+    } catch (error) {
+      console.error('Error saving billing details:', error);
+      alert('שגיאה בשמירת פרטי החיוב');
+    } finally {
+      setIsSavingBilling(false);
     }
   };
 
@@ -666,6 +710,122 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
           </div>
         </div>
       )}
+
+      {/* Billing Details */}
+      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-gray-900">פרטים לחשבונית מס</h3>
+          <button
+            onClick={() => setShowBillingForm(!showBillingForm)}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            {showBillingForm ? 'סגור' : 'עריכה'}
+          </button>
+        </div>
+        
+        {showBillingForm ? (
+          <div className="p-6 space-y-4">
+            {/* Use different name checkbox */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={billingDetails.useCustomName}
+                onChange={(e) => setBillingDetails(prev => ({ 
+                  ...prev, 
+                  useCustomName: e.target.checked,
+                  billingName: e.target.checked ? prev.billingName : store.name
+                }))}
+                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm text-gray-700">הוצא חשבונית על שם אחר (לא שם החנות)</span>
+            </label>
+            
+            {/* Billing Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                שם לחשבונית {billingDetails.useCustomName && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="text"
+                value={billingDetails.billingName}
+                onChange={(e) => setBillingDetails(prev => ({ ...prev, billingName: e.target.value }))}
+                disabled={!billingDetails.useCustomName}
+                placeholder={store.name}
+                className={`w-full px-4 py-2.5 border rounded-lg text-sm ${
+                  billingDetails.useCustomName 
+                    ? 'border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500' 
+                    : 'border-gray-200 bg-gray-50 text-gray-500'
+                }`}
+              />
+              {!billingDetails.useCustomName && (
+                <p className="text-xs text-gray-500 mt-1">החשבונית תוצא על שם החנות: {store.name}</p>
+              )}
+            </div>
+            
+            {/* VAT Number */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                ח.פ / ע.מ (אופציונלי)
+              </label>
+              <input
+                type="text"
+                value={billingDetails.vatNumber}
+                onChange={(e) => setBillingDetails(prev => ({ ...prev, vatNumber: e.target.value }))}
+                placeholder="לדוגמה: 123456789"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Billing Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                אימייל לקבלת חשבוניות
+              </label>
+              <input
+                type="email"
+                value={billingDetails.billingEmail}
+                onChange={(e) => setBillingDetails(prev => ({ ...prev, billingEmail: e.target.value }))}
+                placeholder="finance@example.com"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            
+            {/* Save Button */}
+            <div className="flex justify-end pt-2">
+              <button
+                onClick={handleSaveBillingDetails}
+                disabled={isSavingBilling || (billingDetails.useCustomName && !billingDetails.billingName.trim())}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isSavingBilling ? 'שומר...' : 'שמור פרטים'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="text-gray-500">שם לחשבונית:</span>
+                <p className="font-medium text-gray-900 mt-0.5">
+                  {subscription?.billingName || store.name}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-500">ח.פ / ע.מ:</span>
+                <p className="font-medium text-gray-900 mt-0.5">
+                  {subscription?.vatNumber || '—'}
+                </p>
+              </div>
+              <div className="col-span-2">
+                <span className="text-gray-500">אימייל לחשבוניות:</span>
+                <p className="font-medium text-gray-900 mt-0.5">
+                  {subscription?.billingEmail || '—'}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Invoices */}
       <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
