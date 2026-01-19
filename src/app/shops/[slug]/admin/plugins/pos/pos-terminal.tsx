@@ -198,9 +198,26 @@ export function POSTerminal({
         total,
       });
 
-      if (result.success && result.paymentUrl) {
-        // Redirect to payment page
-        window.location.href = result.paymentUrl;
+      if (result.success) {
+        if (result.paymentUrl) {
+          // Redirect to payment page
+          window.location.href = result.paymentUrl;
+        } else {
+          // 🆕 Zero payment or no provider - order created successfully
+          // Clear cart and show success
+          setCart([]);
+          setCustomer({
+            name: '',
+            email: '',
+            phone: '',
+            type: 'guest',
+          });
+          setDiscountCode('');
+          setDiscountAmount(0);
+          setNotes('');
+          // Refresh page to show success message
+          window.location.href = `?payment=success&orderId=${result.orderId}`;
+        }
       } else {
         setError(result.error || 'שגיאה ביצירת ההזמנה');
       }

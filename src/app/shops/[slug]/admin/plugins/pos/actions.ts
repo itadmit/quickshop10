@@ -313,6 +313,23 @@ export async function createPOSOrder(
       });
     }
 
+    // 🆕 If total is 0 or less (fully covered by discount), mark as paid directly
+    if (order.total <= 0) {
+      console.log('[POS] Zero payment order - marking as paid');
+      await db.update(orders)
+        .set({ 
+          financialStatus: 'paid',
+          status: 'processing',
+        })
+        .where(eq(orders.id, newOrder.id));
+      
+      return {
+        success: true,
+        orderId: newOrder.id,
+        // No payment URL needed - order is complete
+      };
+    }
+
     // Get payment provider
     const provider = await getConfiguredProvider(storeId);
     if (!provider) {
