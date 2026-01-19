@@ -80,6 +80,9 @@ export function StoriesBar({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  
+  // Keep a stable sorted list for the viewer (only sort when viewer is closed)
+  const [viewerStories, setViewerStories] = useState<Story[]>([]);
 
   // Animate in on mount
   useEffect(() => {
@@ -139,11 +142,24 @@ export function StoriesBar({
 
   if (!shouldDisplay || stories.length === 0) return null;
 
-  // Sort: unviewed first, then viewed
+  // Sort: unviewed first, then viewed (for display in bar)
   const sortedStories = [...stories].sort((a, b) => {
     if (a.isViewed === b.isViewed) return a.position - b.position;
     return a.isViewed ? 1 : -1;
   });
+
+  // Open viewer with a snapshot of the current sorted stories
+  const handleOpenViewer = (index: number) => {
+    // Create snapshot of stories at the moment of opening - this prevents reordering while viewing
+    setViewerStories([...sortedStories]);
+    setSelectedStoryIndex(index);
+  };
+
+  // Close viewer and clear the snapshot
+  const handleCloseViewer = () => {
+    setSelectedStoryIndex(null);
+    setViewerStories([]);
+  };
 
   return (
     <>
@@ -188,8 +204,8 @@ export function StoriesBar({
           {sortedStories.map((story, index) => (
             <button
               key={story.id}
-            onClick={() => setSelectedStoryIndex(index)}
-            className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
+              onClick={() => handleOpenViewer(index)}
+              className="flex flex-col items-center gap-2 flex-shrink-0 group cursor-pointer"
             >
               {/* Story Circle */}
               <div
@@ -227,15 +243,15 @@ export function StoriesBar({
         </div>
       </div>
 
-      {/* Story Viewer Modal */}
-      {selectedStoryIndex !== null && (
+      {/* Story Viewer Modal - uses snapshot of stories to prevent reordering */}
+      {selectedStoryIndex !== null && viewerStories.length > 0 && (
         <StoryViewer
-          stories={sortedStories}
+          stories={viewerStories}
           initialIndex={selectedStoryIndex}
           settings={settings}
           storeSlug={storeSlug}
           basePath={basePath}
-          onClose={() => setSelectedStoryIndex(null)}
+          onClose={handleCloseViewer}
           onStoryViewed={handleStoryViewed}
           onLikeToggled={handleLikeToggled}
         />
