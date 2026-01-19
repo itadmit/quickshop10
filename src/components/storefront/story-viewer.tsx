@@ -304,11 +304,43 @@ export function StoryViewer({
     return localCommentsCount[storyId] ?? defaultCount;
   };
 
+  // Check if product is out of stock
+  const isOutOfStock = useCallback(() => {
+    if (!currentStory) return true;
+    
+    const { product, variants } = currentStory;
+    
+    // If product has variants, check first variant inventory
+    if (product.hasVariants && variants && variants.length > 0) {
+      const firstVariant = variants[0];
+      // Variant is out of stock if inventory is tracked and <= 0
+      return firstVariant.inventory !== null && 
+             firstVariant.inventory !== undefined && 
+             firstVariant.inventory <= 0;
+    }
+    
+    // For simple products, check product inventory
+    if (product.trackInventory && !product.allowBackorder) {
+      return product.inventory !== null && 
+             product.inventory !== undefined && 
+             product.inventory <= 0;
+    }
+    
+    return false;
+  }, [currentStory]);
+
   // Handle add to cart with toast
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     if (!currentStory || addingToCart) return;
+    
+    // 🔒 Check stock before adding to cart
+    if (isOutOfStock()) {
+      // Show out of stock message instead of adding
+      alert('המוצר אזל מהמלאי');
+      return;
+    }
 
     setAddingToCart(true);
     try {
@@ -326,6 +358,9 @@ export function StoryViewer({
         variantTitle: variant?.title || '',
         price: variant?.price || currentStory.product.price,
         image: currentStory.product.image || '',
+        // Include inventory info for cart validation
+        trackInventory: currentStory.product.trackInventory,
+        maxQuantity: variant?.inventory ?? currentStory.product.inventory,
       };
 
       // Check if already in cart
@@ -731,11 +766,15 @@ export function StoryViewer({
                 
                 <button
                   onClick={handleAddToCart}
-                  disabled={addingToCart}
-                  className="w-full py-3 bg-white text-black rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors disabled:opacity-50 cursor-pointer"
+                  disabled={addingToCart || isOutOfStock()}
+                  className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors cursor-pointer ${
+                    isOutOfStock()
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-white text-black hover:bg-gray-100 disabled:opacity-50'
+                  }`}
                 >
                   <ShoppingCart className="w-5 h-5" />
-                  {addingToCart ? 'מוסיף...' : 'הוסף מהר'}
+                  {isOutOfStock() ? 'אזל מהמלאי' : addingToCart ? 'מוסיף...' : 'הוסף מהר'}
                 </button>
               </div>
             )}

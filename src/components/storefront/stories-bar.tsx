@@ -32,6 +32,11 @@ export interface Story {
     compareAtPrice: number | null;
     description: string | null;
     image: string | null;
+    // Inventory fields for stock validation
+    trackInventory?: boolean;
+    inventory?: number | null;
+    allowBackorder?: boolean;
+    hasVariants?: boolean;
   };
   isViewed: boolean;
   isLiked: boolean;
@@ -39,6 +44,7 @@ export interface Story {
     id: string;
     title: string;
     price: number;
+    inventory?: number | null;
   }>;
 }
 

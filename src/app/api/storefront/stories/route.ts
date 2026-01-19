@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get stories with products
+    // Get stories with products (including inventory data for stock validation)
     const storiesData = await db
       .select({
         id: productStories.id,
@@ -87,6 +87,11 @@ export async function GET(request: NextRequest) {
         productPrice: products.price,
         productCompareAtPrice: products.comparePrice,
         productDescription: products.description,
+        // Inventory fields for stock validation
+        trackInventory: products.trackInventory,
+        inventory: products.inventory,
+        allowBackorder: products.allowBackorder,
+        hasVariants: products.hasVariants,
       })
       .from(productStories)
       .innerJoin(products, eq(productStories.productId, products.id))
@@ -133,6 +138,11 @@ export async function GET(request: NextRequest) {
         compareAtPrice: story.productCompareAtPrice ? Number(story.productCompareAtPrice) : null,
         description: story.productDescription,
         image: imageMap.get(story.productId) || null,
+        // Inventory fields for stock validation
+        trackInventory: story.trackInventory,
+        inventory: story.inventory,
+        allowBackorder: story.allowBackorder,
+        hasVariants: story.hasVariants,
       },
       isViewed: false, // TODO: Check against visitorId
       isLiked: false,  // TODO: Check against visitorId
