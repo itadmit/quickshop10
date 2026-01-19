@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyPayPlusCallback, getTransactionDetails, generateInvoiceForTransaction } from '@/lib/billing/payplus-billing';
+import { verifyPayPlusCallback } from '@/lib/billing/payplus-billing';
 import { activateSubscription, createSubscriptionInvoice, chargeTrialPeriodFees } from '@/lib/billing/billing-service';
 import { db } from '@/lib/db';
 import { storeSubscriptions, stores, platformInvoices } from '@/lib/db/schema';
@@ -272,52 +272,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Create invoice record for subscription
-    let invoiceNumber = body.invoice_number || null;
-    let invoiceUrl = body.invoice_link || null;
+    // PayPlus returns invoice in nested format: body.invoice.docu_number, body.invoice.original_url
+    // Or flat format: body.invoice_number, body.invoice_link
+    const invoiceData = (body as { invoice?: { docu_number?: string; original_url?: string; copy_url?: string } }).invoice;
+    let invoiceNumber = invoiceData?.docu_number || body.invoice_number || null;
+    let invoiceUrl = invoiceData?.original_url || invoiceData?.copy_url || body.invoice_link || null;
     
-    // If PayPlus didn't return invoice info in callback, try to get it
-    if (!invoiceNumber && transactionUid) {
-      console.log('[Billing Callback] No invoice in callback, trying to get from transaction...');
-      const txDetails = await getTransactionDetails(transactionUid);
-      if (txDetails.success && txDetails.invoiceNumber) {
-        invoiceNumber = txDetails.invoiceNumber;
-        invoiceUrl = txDetails.invoiceUrl || null;
-        console.log('[Billing Callback] Got invoice from transaction:', invoiceNumber);
-      } else {
-        // Still no invoice - try to generate one manually
-        console.log('[Billing Callback] No invoice found, trying to generate...');
-        
-        // Get store name for invoice
-        const [store] = await db
-          .select({ name: stores.name })
-          .from(stores)
-          .where(eq(stores.id, paymentData.storeId));
-        
-        // Get subscription for billing details
-        const subscription = await db.query.storeSubscriptions.findFirst({
-          where: eq(storeSubscriptions.storeId, paymentData.storeId),
-        });
-        
-        const planNameHe = paymentData.plan === 'branding' ? 'מסלול תדמית' : 'מסלול קוויק שופ';
-        
-        const invoiceResult = await generateInvoiceForTransaction(
-          transactionUid,
-          store?.name || subscription?.billingName || 'לקוח',
-          subscription?.billingEmail || '',
-          paymentData.amount,
-          `מנוי חודשי QuickShop - ${planNameHe}`,
-          subscription?.vatNumber || undefined
-        );
-        
-        if (invoiceResult.success) {
-          invoiceNumber = invoiceResult.invoiceNumber || null;
-          invoiceUrl = invoiceResult.invoiceUrl || null;
-          console.log('[Billing Callback] Generated invoice:', invoiceNumber);
-        } else {
-          console.error('[Billing Callback] Failed to generate invoice:', invoiceResult.error);
-        }
-      }
-    }
+    console.log('[Billing Callback] Invoice from callback:', { invoiceNumber, invoiceUrl });
     
     try {
       await createSubscriptionInvoice(

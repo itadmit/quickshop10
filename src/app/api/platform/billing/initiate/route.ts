@@ -136,8 +136,8 @@ export async function POST(request: NextRequest) {
       columns: { slug: true },
     });
     const storeSlug = storeWithSlug?.slug || store.id; // Fallback to ID if slug not found
-    const successUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/billing?success=true`;
-    const failureUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/billing?error=true`;
+    const successUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/subscription?success=true`;
+    const failureUrl = `${baseUrl}/shops/${storeSlug}/admin/settings/subscription?error=true`;
     const callbackUrl = `${baseUrl}/api/platform/billing/callback`;
 
     console.log('[Billing Initiate] Building URLs:', {
