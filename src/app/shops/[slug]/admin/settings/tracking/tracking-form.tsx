@@ -13,7 +13,7 @@ interface TrackingSettingsFormProps {
 export function TrackingSettingsForm({ storeId, storeSlug, settings }: TrackingSettingsFormProps) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(true);
   const [copiedFeed, setCopiedFeed] = useState<string | null>(null);
   const router = useRouter();
   
