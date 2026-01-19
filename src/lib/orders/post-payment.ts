@@ -71,6 +71,13 @@ export interface CartItem {
     senderName?: string;
     message?: string;
   };
+  // 📦 Bundle support
+  isBundle?: boolean;
+  bundleComponents?: Array<{
+    name: string;
+    variantTitle?: string;
+    quantity: number;
+  }>;
 }
 
 export interface OrderData {
@@ -646,6 +653,9 @@ async function sendConfirmationEmail(params: PostPaymentParams): Promise<void> {
         discountedPrice: discountInfo?.discountedPrice ?? undefined,
         discountedTotal: discountInfo?.discountedTotal ?? undefined,
         discountPercent: discountInfo?.discountPercent ?? undefined,
+        // Bundle info
+        isBundle: item.isBundle,
+        bundleComponents: item.bundleComponents,
       };
     }),
     subtotal,

@@ -35,6 +35,11 @@ interface AddToCartButtonProps {
   fullWidth?: boolean;
   // Bundle support
   isBundle?: boolean;
+  bundleComponents?: Array<{
+    name: string;
+    variantTitle?: string;
+    quantity: number;
+  }>;
 }
 
 export function AddToCartButton({ 
@@ -57,6 +62,7 @@ export function AddToCartButton({
   buttonStyle = 'filled',
   fullWidth = true,
   isBundle = false,
+  bundleComponents,
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
@@ -92,6 +98,7 @@ export function AddToCartButton({
       discountedPrice,
       categoryIds,
       isBundle,
+      bundleComponents,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);

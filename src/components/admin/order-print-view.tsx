@@ -1,5 +1,15 @@
 import './order-print.css';
 
+interface BundleComponent {
+  name: string;
+  variantTitle?: string;
+  quantity: number;
+}
+
+interface OrderItemProperties {
+  bundleComponents?: BundleComponent[];
+}
+
 interface OrderItem {
   id: string;
   name: string;
@@ -9,6 +19,7 @@ interface OrderItem {
   sku: string | null;
   variantTitle: string | null;
   imageUrl: string | null;
+  properties?: unknown;
 }
 
 interface Customer {
@@ -188,6 +199,22 @@ export function OrderPrintView({ order, store }: OrderPrintViewProps) {
                     {item.variantTitle && (
                       <span className="item-variant">{item.variantTitle}</span>
                     )}
+                    {(() => {
+                      const props = item.properties as OrderItemProperties | null;
+                      if (props?.bundleComponents && props.bundleComponents.length > 0) {
+                        return (
+                          <div className="bundle-components" style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+                            <span style={{ fontWeight: 500 }}>כולל:</span>
+                            {props.bundleComponents.map((comp, i) => (
+                              <span key={i} style={{ display: 'block', paddingRight: '8px' }}>
+                                • {comp.name}{comp.variantTitle ? ` (${comp.variantTitle})` : ''}{comp.quantity > 1 ? ` ×${comp.quantity}` : ''}
+                              </span>
+                            ))}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
               </td>

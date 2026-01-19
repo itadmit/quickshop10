@@ -201,8 +201,17 @@ export async function saveBundleSettings(
       );
     }
 
+    // Get product slug for revalidation
+    const productData = await db.query.products.findFirst({
+      where: eq(products.id, productId),
+      columns: { slug: true },
+    });
+    
     revalidatePath(`/shops/${storeSlug}/admin/products`);
-    revalidatePath(`/shops/${storeSlug}/product`);
+    revalidatePath(`/shops/${storeSlug}/admin/products/${productId}`);
+    if (productData?.slug) {
+      revalidatePath(`/shops/${storeSlug}/product/${productData.slug}`);
+    }
     
     return { success: true, bundleId: bundle.id };
   } catch (error) {

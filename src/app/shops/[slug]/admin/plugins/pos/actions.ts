@@ -1,8 +1,9 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, productImages, orders, orderItems, customers, stores } from '@/lib/db/schema';
-import { eq, and, or, ilike, desc } from 'drizzle-orm';
+import { products, productImages, productVariants, orders, orderItems, customers, stores } from '@/lib/db/schema';
+import { eq, and, or, ilike, desc, inArray } from 'drizzle-orm';
+import { isOutOfStock } from '@/lib/inventory';
 import { getConfiguredProvider } from '@/lib/payments/factory';
 import type { CartItem, POSCustomer } from './pos-terminal';
 
@@ -134,6 +135,91 @@ export async function createPOSOrder(
     if (!order.customer.name || !order.customer.email || !order.customer.phone) {
       return { success: false, error: 'חסרים פרטי לקוח' };
     }
+
+    // ========== 🔒 SERVER-SIDE INVENTORY VALIDATION ==========
+    // Skip validation for manual items (no productId)
+    const productItems = order.items.filter(item => item.productId && item.type !== 'manual');
+    
+    if (productItems.length > 0) {
+      const productIds = productItems.map(item => item.productId!);
+      const variantIds = productItems
+        .filter(item => item.variantId)
+        .map(item => item.variantId!);
+      
+      // Fetch products with inventory data
+      const productsData = await db
+        .select({
+          id: products.id,
+          name: products.name,
+          trackInventory: products.trackInventory,
+          inventory: products.inventory,
+          allowBackorder: products.allowBackorder,
+          hasVariants: products.hasVariants,
+          isActive: products.isActive,
+        })
+        .from(products)
+        .where(inArray(products.id, productIds));
+      
+      // Fetch variants with inventory data
+      const variantsData = variantIds.length > 0
+        ? await db
+            .select({
+              id: productVariants.id,
+              productId: productVariants.productId,
+              title: productVariants.title,
+              inventory: productVariants.inventory,
+              allowBackorder: productVariants.allowBackorder,
+            })
+            .from(productVariants)
+            .where(inArray(productVariants.id, variantIds))
+        : [];
+      
+      const productMap = new Map(productsData.map(p => [p.id, p]));
+      const variantMap = new Map(variantsData.map(v => [v.id, v]));
+      
+      // Validate each item
+      const outOfStockItems: string[] = [];
+      
+      for (const item of productItems) {
+        if (!item.productId) continue;
+        
+        const product = productMap.get(item.productId);
+        if (!product || !product.isActive) {
+          outOfStockItems.push(item.name);
+          continue;
+        }
+        
+        // For products with variants
+        if (item.variantId) {
+          const variant = variantMap.get(item.variantId);
+          if (!variant) {
+            outOfStockItems.push(item.name);
+            continue;
+          }
+          
+          if (!variant.allowBackorder && variant.inventory !== null && variant.inventory < item.quantity) {
+            outOfStockItems.push(`${item.name} (נותרו ${variant.inventory} יחידות)`);
+          }
+        } 
+        // For products without variants
+        else if (!product.hasVariants) {
+          if (isOutOfStock(product.trackInventory, product.inventory, product.allowBackorder)) {
+            outOfStockItems.push(item.name);
+          } else if (product.trackInventory && !product.allowBackorder && 
+                     product.inventory !== null && product.inventory < item.quantity) {
+            outOfStockItems.push(`${item.name} (נותרו ${product.inventory} יחידות)`);
+          }
+        }
+      }
+      
+      if (outOfStockItems.length > 0) {
+        return { 
+          success: false, 
+          error: `אין מספיק מלאי עבור: ${outOfStockItems.join(', ')}` 
+        };
+      }
+    }
+    // ========== END INVENTORY VALIDATION ==========
 
     // Get store info
     const [store] = await db

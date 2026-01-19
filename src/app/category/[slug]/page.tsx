@@ -103,6 +103,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                     image={product.image || '/placeholder.svg'}
                     shortDescription={product.shortDescription}
                     isFeatured={product.isFeatured}
+                    inventory={product.inventory}
+                    trackInventory={product.trackInventory}
+                    allowBackorder={product.allowBackorder}
                   />
                 </div>
               ))}

@@ -8,8 +8,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, contacts } from '@/lib/db/schema';
+import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, productVariants, contacts } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
+import { isOutOfStock } from '@/lib/inventory';
 import { getConfiguredProvider, getDefaultProvider } from '@/lib/payments';
 import type { InitiatePaymentRequest, PaymentProviderType } from '@/lib/payments/types';
 import { nanoid } from 'nanoid';
@@ -287,6 +288,136 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // ========== 🔒 SERVER-SIDE INVENTORY VALIDATION ==========
+    // Critical: Validate stock before creating order to prevent overselling
+    // This catches race conditions where multiple customers checkout simultaneously
+    
+    const productIds = cartItemsForOrder
+      .map(item => item.productId)
+      .filter((id): id is string => !!id);
+    
+    const variantIds = cartItemsForOrder
+      .map(item => item.variantId)
+      .filter((id): id is string => !!id);
+    
+    // Fetch products with inventory data
+    const productsWithInventory = productIds.length > 0 
+      ? await db
+          .select({
+            id: products.id,
+            name: products.name,
+            trackInventory: products.trackInventory,
+            inventory: products.inventory,
+            allowBackorder: products.allowBackorder,
+            hasVariants: products.hasVariants,
+            isActive: products.isActive,
+          })
+          .from(products)
+          .where(inArray(products.id, productIds))
+      : [];
+    
+    // Fetch variants with inventory data
+    const variantsWithInventory = variantIds.length > 0
+      ? await db
+          .select({
+            id: productVariants.id,
+            productId: productVariants.productId,
+            title: productVariants.title,
+            inventory: productVariants.inventory,
+            allowBackorder: productVariants.allowBackorder,
+          })
+          .from(productVariants)
+          .where(inArray(productVariants.id, variantIds))
+      : [];
+    
+    // Create lookup maps
+    const productMap = new Map(productsWithInventory.map(p => [p.id, p]));
+    const variantMap = new Map(variantsWithInventory.map(v => [v.id, v]));
+    
+    // Validate each cart item
+    const outOfStockItems: string[] = [];
+    const insufficientStockItems: string[] = [];
+    const inactiveItems: string[] = [];
+    
+    for (const item of cartItemsForOrder) {
+      if (!item.productId) continue; // Skip items without productId (e.g., shipping)
+      
+      const product = productMap.get(item.productId);
+      
+      // Check if product exists and is active
+      if (!product) {
+        outOfStockItems.push(item.name || 'מוצר לא ידוע');
+        continue;
+      }
+      
+      if (!product.isActive) {
+        inactiveItems.push(product.name);
+        continue;
+      }
+      
+      // For products WITH variants - check variant inventory
+      if (item.variantId) {
+        const variant = variantMap.get(item.variantId);
+        
+        if (!variant) {
+          outOfStockItems.push(`${product.name}${item.variantTitle ? ` - ${item.variantTitle}` : ''}`);
+          continue;
+        }
+        
+        // Check variant stock (variants always track inventory when they exist)
+        if (!variant.allowBackorder && variant.inventory !== null && variant.inventory < item.quantity) {
+          if (variant.inventory <= 0) {
+            outOfStockItems.push(`${product.name} - ${variant.title}`);
+          } else {
+            insufficientStockItems.push(`${product.name} - ${variant.title} (נותרו ${variant.inventory} יחידות)`);
+          }
+        }
+      } 
+      // For products WITHOUT variants - check product inventory
+      else if (!product.hasVariants) {
+        if (isOutOfStock(product.trackInventory, product.inventory, product.allowBackorder)) {
+          outOfStockItems.push(product.name);
+        } else if (product.trackInventory && !product.allowBackorder && 
+                   product.inventory !== null && product.inventory < item.quantity) {
+          insufficientStockItems.push(`${product.name} (נותרו ${product.inventory} יחידות)`);
+        }
+      }
+    }
+    
+    // Return error if any items have stock issues
+    if (outOfStockItems.length > 0 || insufficientStockItems.length > 0 || inactiveItems.length > 0) {
+      const errorParts: string[] = [];
+      
+      if (outOfStockItems.length > 0) {
+        errorParts.push(`המוצרים הבאים אזלו מהמלאי: ${outOfStockItems.join(', ')}`);
+      }
+      if (insufficientStockItems.length > 0) {
+        errorParts.push(`אין מספיק מלאי עבור: ${insufficientStockItems.join(', ')}`);
+      }
+      if (inactiveItems.length > 0) {
+        errorParts.push(`המוצרים הבאים אינם זמינים יותר: ${inactiveItems.join(', ')}`);
+      }
+      
+      console.log('[Payment Initiate] Inventory validation failed:', {
+        outOfStockItems,
+        insufficientStockItems,
+        inactiveItems,
+      });
+      
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: errorParts.join('. ') + '. אנא עדכן את העגלה ונסה שנית.',
+          outOfStockItems,
+          insufficientStockItems,
+          inactiveItems,
+        },
+        { status: 400 }
+      );
+    }
+    
+    console.log('[Payment Initiate] Inventory validation passed for all items');
 
     // ========== CREATE ORDER WITH PENDING STATUS ==========
     // This allows us to track all checkout attempts, not just completed ones

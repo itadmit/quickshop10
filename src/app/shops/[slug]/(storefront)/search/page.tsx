@@ -38,6 +38,10 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
     comparePrice: string | null;
     hasVariants?: boolean;
     images: Array<{ url: string; isPrimary: boolean }>;
+    // Stock fields for out-of-stock display
+    inventory: number | null;
+    trackInventory: boolean;
+    allowBackorder: boolean;
   }> = [];
   
   if (query && query.length >= 2) {
@@ -71,6 +75,10 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
       comparePrice: p.comparePrice,
       hasVariants: p.hasVariants,
       images: p.images,
+      // Include stock fields for out-of-stock display
+      inventory: p.inventory,
+      trackInventory: p.trackInventory ?? true,
+      allowBackorder: p.allowBackorder ?? false,
     }));
   }
   
@@ -174,6 +182,9 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                       image={primaryImage}
                       basePath={basePath}
                       automaticDiscount={discountsMap.get(product.id) || null}
+                      inventory={product.inventory}
+                      trackInventory={product.trackInventory}
+                      allowBackorder={product.allowBackorder}
                     />
                   );
                 })}

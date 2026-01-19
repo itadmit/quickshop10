@@ -622,6 +622,12 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 const addonTotal = (item as { addonTotal?: number }).addonTotal || 0;
                 const itemTotal = (item.price + addonTotal) * item.quantity;
                 
+                const typedItem = item as { 
+                  addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>;
+                  isBundle?: boolean;
+                  bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}>;
+                };
+                
                 return {
                   orderId: newOrder.id,
                   productId: item.productId,
@@ -632,10 +638,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                   quantity: item.quantity,
                   total: String(itemTotal),
                   imageUrl: item.image || item.imageUrl || null,
-                  // Store addons in properties field
+                  // Store addons and bundle components in properties field
                   properties: {
-                    addons: (item as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}> }).addons || [],
+                    addons: typedItem.addons || [],
                     addonTotal: addonTotal,
+                    bundleComponents: typedItem.bundleComponents || [],
                   },
                 };
               })
@@ -1095,22 +1102,33 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                     
                     {/* Display addons if present */}
                     {(() => {
-                      const props = item.properties as { addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number } | null;
-                      if (props?.addons && props.addons.length > 0) {
-                        return (
-                          <div className="mt-1 space-y-0.5 text-xs text-gray-500 bg-gray-50 p-1.5 rounded">
-                            {props.addons.map((addon, i) => (
-                              <div key={i} className="flex items-center justify-between">
-                                <span>{addon.name}: <span className="text-gray-700">{addon.displayValue}</span></span>
-                                {addon.priceAdjustment > 0 && (
-                                  <span className="text-green-600">+{format(addon.priceAdjustment)}</span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        );
-                      }
-                      return null;
+                      const props = item.properties as { addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number; bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}> } | null;
+                      return (
+                        <>
+                          {props?.addons && props.addons.length > 0 && (
+                            <div className="mt-1 space-y-0.5 text-xs text-gray-500 bg-gray-50 p-1.5 rounded">
+                              {props.addons.map((addon, i) => (
+                                <div key={i} className="flex items-center justify-between">
+                                  <span>{addon.name}: <span className="text-gray-700">{addon.displayValue}</span></span>
+                                  {addon.priceAdjustment > 0 && (
+                                    <span className="text-green-600">+{format(addon.priceAdjustment)}</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {props?.bundleComponents && props.bundleComponents.length > 0 && (
+                            <div className="mt-1 text-xs bg-gray-50 border border-gray-200 p-1.5">
+                              <span className="text-gray-700 font-medium">כולל:</span>
+                              {props.bundleComponents.map((comp, i) => (
+                                <p key={i} className="text-gray-600">
+                                  • {comp.name}{comp.variantTitle ? ` (${comp.variantTitle})` : ''}{comp.quantity > 1 ? ` ×${comp.quantity}` : ''}
+                                </p>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      );
                     })()}
                     
                     {/* Price with discount indication */}

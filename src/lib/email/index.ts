@@ -156,6 +156,12 @@ interface OrderItemAddon {
   priceAdjustment: number;
 }
 
+interface BundleComponentEmail {
+  name: string;
+  variantTitle?: string;
+  quantity: number;
+}
+
 interface OrderItem {
   name: string;
   quantity: number;
@@ -169,6 +175,9 @@ interface OrderItem {
   discountedPrice?: number;
   discountedTotal?: number;
   discountPercent?: number;
+  // Bundle info
+  isBundle?: boolean;
+  bundleComponents?: BundleComponentEmail[];
 }
 
 // Type for discount details in email
@@ -257,6 +266,18 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
         </div>`
       : '';
     
+    // Build bundle components HTML if present
+    const bundleHtml = item.isBundle && item.bundleComponents && item.bundleComponents.length > 0
+      ? `<div style="margin-top: 8px; padding: 8px; background: #f3f4f6; border: 1px solid #e5e7eb;">
+          <p style="margin: 0 0 6px 0; font-size: 12px; color: #374151; font-weight: 500;">כולל:</p>
+          ${item.bundleComponents.map(comp => `
+            <p style="margin: 0 0 4px 0; font-size: 12px; color: #6b7280;">
+              • ${comp.name}${comp.variantTitle ? ` (${comp.variantTitle})` : ''}${comp.quantity > 1 ? ` ×${comp.quantity}` : ''}
+            </p>
+          `).join('')}
+        </div>`
+      : '';
+    
     // Build price HTML with discount indication
     const priceHtml = item.hasDiscount 
       ? `<p style="margin: 4px 0 0 0; font-size: 14px;">
@@ -294,6 +315,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
               ${item.variantTitle ? `<p style="margin: 0 0 4px 0; font-size: 14px; color: #666;">${item.variantTitle}</p>` : ''}
               <p style="margin: 0; font-size: 14px; color: #666;">כמות: ${item.quantity}</p>
               ${priceHtml}
+              ${bundleHtml}
               ${addonsHtml}
             </td>
             <!-- Price on LEFT -->

@@ -519,15 +519,29 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
       return { success: false, error: 'בקשה זו לא מיועדת להחלפה' };
     }
 
-    // Get the new product with image
+    // Get the new product with image and inventory data
     const [newProduct] = await db
-      .select()
+      .select({
+        id: products.id,
+        name: products.name,
+        price: products.price,
+        sku: products.sku,
+        trackInventory: products.trackInventory,
+        inventory: products.inventory,
+        allowBackorder: products.allowBackorder,
+        hasVariants: products.hasVariants,
+        isActive: products.isActive,
+      })
       .from(products)
       .where(eq(products.id, input.newProductId))
       .limit(1);
 
     if (!newProduct) {
       return { success: false, error: 'מוצר לא נמצא' };
+    }
+
+    if (!newProduct.isActive) {
+      return { success: false, error: 'המוצר אינו זמין יותר' };
     }
 
     // Get product image
@@ -540,17 +554,31 @@ export async function createExchangeOrder(input: CreateExchangeOrderInput) {
     let newProductPrice = Number(newProduct.price);
     let variantTitle = null;
 
-    // If variant selected, get variant price
+    // 🔒 Inventory validation for exchange product + get variant details
     if (input.newVariantId) {
+      // Get variant with full details
       const [variant] = await db
         .select()
         .from(productVariants)
         .where(eq(productVariants.id, input.newVariantId))
         .limit(1);
 
-      if (variant) {
-        newProductPrice = Number(variant.price) || newProductPrice;
-        variantTitle = variant.title;
+      if (!variant) {
+        return { success: false, error: 'וריאנט לא נמצא' };
+      }
+      
+      // Check variant inventory
+      if (!variant.allowBackorder && variant.inventory !== null && variant.inventory < 1) {
+        return { success: false, error: `המוצר "${newProduct.name}" - ${variant.title} אזל מהמלאי` };
+      }
+      
+      newProductPrice = Number(variant.price) || newProductPrice;
+      variantTitle = variant.title;
+    } else if (!newProduct.hasVariants) {
+      // Check product inventory (only for products without variants)
+      if (newProduct.trackInventory && !newProduct.allowBackorder && 
+          newProduct.inventory !== null && newProduct.inventory < 1) {
+        return { success: false, error: `המוצר "${newProduct.name}" אזל מהמלאי` };
       }
     }
 

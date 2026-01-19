@@ -32,6 +32,11 @@ export interface CartItem {
   sku?: string; // מק"ט מוצר/וריאנט
   // Bundle support
   isBundle?: boolean;
+  bundleComponents?: Array<{
+    name: string;
+    variantTitle?: string;
+    quantity: number;
+  }>;
   // מלאי - לבדיקה מקומית מהירה (ללא קריאה לשרת!)
   maxQuantity?: number | null; // null = אין מעקב מלאי
   trackInventory?: boolean;

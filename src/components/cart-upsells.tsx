@@ -97,9 +97,27 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
     };
   }, [cartKey, storeSlug, cartProductIds.length]);
 
+  // Check if product/variant is out of stock
+  const isProductOutOfStock = (product: UpsellProduct): boolean => {
+    if (product.hasVariants && product.variants?.length) {
+      const selectedVariantId = selectedVariants[product.id];
+      const variant = selectedVariantId 
+        ? product.variants.find(v => v.id === selectedVariantId)
+        : product.variants[0];
+      
+      if (!variant) return true;
+      return variant.inventory !== null && variant.inventory <= 0;
+    }
+    // Simple products don't have inventory tracking in this response
+    return false;
+  };
+
   // Handle add to cart
   const handleAddToCart = (product: UpsellProduct) => {
     if (!store) return;
+    
+    // Don't add if out of stock
+    if (isProductOutOfStock(product)) return;
 
     const selectedVariantId = selectedVariants[product.id];
     
@@ -215,10 +233,14 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
               {/* Add to Cart Button */}
               <button
                 onClick={() => handleAddToCart(product)}
-                disabled={isPending}
-                className="w-full mt-2 py-1.5 bg-black text-white text-xs font-medium rounded hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                disabled={isPending || isProductOutOfStock(product)}
+                className={`w-full mt-2 py-1.5 text-xs font-medium rounded transition-colors cursor-pointer disabled:cursor-not-allowed ${
+                  isProductOutOfStock(product)
+                    ? 'bg-gray-200 text-gray-400'
+                    : 'bg-black text-white hover:bg-gray-800 disabled:opacity-50'
+                }`}
               >
-                הוסף לסל
+                {isProductOutOfStock(product) ? 'אזל מהמלאי' : 'הוסף לסל'}
               </button>
             </div>
           </div>

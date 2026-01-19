@@ -29,6 +29,7 @@ import {
   LiveDescriptionSection,
   LiveRelatedProducts,
 } from '@/components/storefront/product-page-preview';
+import { BundleComponentsDisplay } from '@/components/storefront/bundle-components-display';
 
 // ============================================
 // Types
@@ -53,6 +54,12 @@ interface ProductPageProps {
     isFeatured: boolean;
     allowBackorder?: boolean;
     storeId: string;
+    isBundle?: boolean;
+    bundleComponents?: Array<{
+      name: string;
+      variantTitle?: string;
+      quantity: number;
+    }>;
   };
   variants: {
     id: string;
@@ -491,6 +498,10 @@ export function ProductPage({
             data-section-type={section.type}
             data-section-name="כפתור הוספה לסל"
           >
+            {/* Bundle Components - show before add to cart */}
+            {product.isBundle && (
+              <BundleComponentsDisplay productId={product.id} storeSlug={storeSlug} />
+            )}
             {product.hasVariants && variants.length > 0 ? (
               <VariantSelector
                 productId={product.id}
@@ -521,6 +532,8 @@ export function ProductPage({
                 outOfStockText={cartSettings.outOfStockText}
                 buttonStyle={cartSettings.style as 'filled' | 'outline'}
                 fullWidth={cartSettings.fullWidth}
+                isBundle={product.isBundle}
+                bundleComponents={product.bundleComponents}
               />
             )}
           </div>

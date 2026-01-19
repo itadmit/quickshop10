@@ -145,6 +145,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                     name={product.name}
                     price={Number(product.price)}
                     image={mainImage || '/placeholder.svg'}
+                    inventory={product.inventory}
+                    trackInventory={product.trackInventory}
+                    allowBackorder={product.allowBackorder}
                     className="w-full mb-4"
                   />
 
@@ -219,6 +222,9 @@ export default async function ProductPage({ params }: ProductPageProps) {
                   price={Number(product.price)}
                   comparePrice={product.comparePrice ? Number(product.comparePrice) : null}
                   image={product.image || '/placeholder.svg'}
+                  inventory={product.inventory}
+                  trackInventory={product.trackInventory}
+                  allowBackorder={product.allowBackorder}
                 />
               ))}
             </div>

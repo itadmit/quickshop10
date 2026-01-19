@@ -30,6 +30,7 @@ import { ProductPage as SectionBasedProductPage } from '@/components/product-sec
 import { type ProductPageSection } from '@/lib/product-page-sections';
 import { type DynamicContentContext } from '@/lib/dynamic-content';
 import { BundleComponentsDisplay } from '@/components/storefront/bundle-components-display';
+import { getBundleComponentsForCart } from '@/app/shops/[slug]/admin/products/bundle-actions';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -522,6 +523,16 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   
   // 🆕 V2 Product Page Data for new section-based rendering
   const imageUrls = product.images.map(img => img.url);
+  
+  // Get bundle components if this is a bundle product
+  let bundleComponentsData: Array<{ name: string; variantTitle?: string; quantity: number }> | undefined;
+  if (product.isBundle) {
+    const bundleData = await getBundleComponentsForCart(product.id);
+    if (bundleData?.components) {
+      bundleComponentsData = bundleData.components;
+    }
+  }
+  
   const v2ProductData = {
     id: product.id,
     name: product.name,
@@ -539,6 +550,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     isFeatured: product.isFeatured,
     allowBackorder: product.allowBackorder,
     storeId: store.id,
+    isBundle: product.isBundle,
+    bundleComponents: bundleComponentsData,
   };
   
   const pageContent = (

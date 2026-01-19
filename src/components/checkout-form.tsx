@@ -2420,6 +2420,18 @@ export function CheckoutForm({
                             )}
                           </div>
                         )}
+                        
+                        {/* Bundle Components Display */}
+                        {item.isBundle && item.bundleComponents && item.bundleComponents.length > 0 && (
+                          <div className="mt-1.5 bg-gray-50 border border-gray-200 p-2 text-xs">
+                            <p className="text-gray-700 font-medium mb-1">כולל:</p>
+                            {item.bundleComponents.map((comp, i) => (
+                              <p key={i} className="text-gray-600">
+                                • {comp.name}{comp.variantTitle ? ` (${comp.variantTitle})` : ''}{comp.quantity > 1 ? ` ×${comp.quantity}` : ''}
+                              </p>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </li>
