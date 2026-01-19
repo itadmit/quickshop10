@@ -140,6 +140,22 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
   const handleSubscribe = async (plan: 'branding' | 'quickshop') => {
     setIsLoading(true);
     try {
+      // First, save billing details to ensure they're used in payment
+      const billingResponse = await fetch(`/api/shops/${store.slug}/billing-details`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          billingName: billingDetails.useCustomName ? billingDetails.billingName : store.name,
+          billingEmail: billingDetails.billingEmail,
+          vatNumber: billingDetails.vatNumber,
+        }),
+      });
+
+      if (!billingResponse.ok) {
+        console.error('Failed to save billing details, continuing with payment...');
+      }
+
+      // Then initiate payment
       const response = await fetch('/api/platform/billing/initiate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -509,68 +525,7 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
           </div>
         </div>
 
-        {/* Trial Transaction Fees Notice */}
-        {subscription?.status === 'trial' && billing.trialTransactionsCount && billing.trialTransactionsCount > 0 && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <FileText className="w-6 h-6 text-amber-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-amber-900 mb-2">עמלות עסקאות מתקופת הנסיון</h3>
-                <p className="text-amber-800 text-sm mb-3">
-                  בתקופת הנסיון בוצעו <strong>{billing.trialTransactionsCount} עסקאות</strong> בסך כולל של <strong>{formatCurrency(billing.trialTransactionsTotal || 0)}</strong>.
-                </p>
-                <div className="bg-white/60 rounded-lg p-3 border border-amber-200/50">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-amber-700">עמלת עסקאות (0.5% + מע״מ)</span>
-                    <span className="font-bold text-amber-900">{formatCurrency(billing.trialFees || 0)}</span>
-                  </div>
-                </div>
-                <p className="text-xs text-amber-600 mt-3">
-                  💳 סכום זה יחויב מהכרטיס שלך באופן אוטומטי לאחר השלמת תשלום המנוי
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Subscribe Button */}
-        <div className="bg-white rounded-2xl border border-gray-200 p-6">
-          <button
-            onClick={() => handleSubscribe(selectedPlan)}
-            disabled={isLoading}
-            className={`
-              w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all
-              ${selectedPlan === 'quickshop' 
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700' 
-                : 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700'
-              }
-              disabled:opacity-50 disabled:cursor-not-allowed
-            `}
-          >
-            {isLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                מעבד...
-              </span>
-            ) : (
-              <>
-                המשך לתשלום - {formatCurrency(selectedPlan === 'quickshop' ? quickshopPrice : brandingPrice)} + מע״מ
-              </>
-            )}
-          </button>
-          
-          <p className="text-center text-sm text-gray-500 mt-4 flex items-center justify-center gap-2">
-            <Shield className="w-4 h-4" />
-            תשלום מאובטח • ביטול בכל עת
-          </p>
-        </div>
-
-        {/* Billing Details - Also show in trial view */}
+        {/* Billing Details - Show BEFORE payment button */}
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-lg font-bold text-gray-900">פרטים לחשבונית מס</h3>
@@ -648,17 +603,6 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-              
-              {/* Save Button */}
-              <div className="flex justify-end pt-2">
-                <button
-                  onClick={handleSaveBillingDetails}
-                  disabled={isSavingBilling || (billingDetails.useCustomName && !billingDetails.billingName.trim())}
-                  className="px-6 py-2.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isSavingBilling ? 'שומר...' : 'שמור פרטים'}
-                </button>
-              </div>
             </div>
           ) : (
             <div className="p-6">
@@ -684,6 +628,67 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
               </div>
             </div>
           )}
+        </div>
+
+        {/* Trial Transaction Fees Notice */}
+        {subscription?.status === 'trial' && typeof billing.trialTransactionsCount === 'number' && billing.trialTransactionsCount > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
+                <FileText className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-900 mb-2">עמלות עסקאות מתקופת הנסיון</h3>
+                <p className="text-amber-800 text-sm mb-3">
+                  בתקופת הנסיון בוצעו <strong>{billing.trialTransactionsCount} עסקאות</strong> בסך כולל של <strong>{formatCurrency(billing.trialTransactionsTotal || 0)}</strong>.
+                </p>
+                <div className="bg-white/60 rounded-lg p-3 border border-amber-200/50">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-amber-700">עמלת עסקאות (0.5% + מע״מ)</span>
+                    <span className="font-bold text-amber-900">{formatCurrency(billing.trialFees || 0)}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-600 mt-3">
+                  💳 סכום זה יחויב מהכרטיס שלך באופן אוטומטי לאחר השלמת תשלום המנוי
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Subscribe Button */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6">
+          <button
+            onClick={() => handleSubscribe(selectedPlan)}
+            disabled={isLoading}
+            className={`
+              w-full py-4 px-6 rounded-xl font-bold text-white text-lg transition-all
+              ${selectedPlan === 'quickshop' 
+                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700' 
+                : 'bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700'
+              }
+              disabled:opacity-50 disabled:cursor-not-allowed
+            `}
+          >
+            {isLoading ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                מעבד...
+              </span>
+            ) : (
+              <>
+                המשך לתשלום - {formatCurrency(selectedPlan === 'quickshop' ? quickshopPrice : brandingPrice)} + מע״מ
+              </>
+            )}
+          </button>
+          
+          <p className="text-center text-sm text-gray-500 mt-4 flex items-center justify-center gap-2">
+            <Shield className="w-4 h-4" />
+            תשלום מאובטח • ביטול בכל עת
+          </p>
         </div>
       </div>
     );
