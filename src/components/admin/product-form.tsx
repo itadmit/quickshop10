@@ -8,6 +8,7 @@ import { createProduct, updateProduct, ProductFormData } from '@/lib/actions/pro
 import { MediaUploader, UploadedMedia } from '@/components/admin/media-uploader';
 import { CategoryPicker, type CategoryNode } from '@/components/admin/category-picker';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
+import { BundleEditor } from '@/components/admin/bundle-editor';
 
 // ProductImage type - compatible with UploadedMedia
 interface ProductImage {
@@ -98,6 +99,7 @@ interface ProductFormProps {
     upsellProductIds?: string[];
     addonIds?: string[];
     metadata?: Record<string, unknown>;
+    isBundle?: boolean;
   };
   mode: 'create' | 'edit';
 }
@@ -1719,6 +1721,16 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
               )}
             </div>
           </div>
+
+          {/* Bundle Editor - only in edit mode */}
+          {mode === 'edit' && product?.id && (
+            <BundleEditor
+              productId={product.id}
+              storeId={storeId}
+              storeSlug={storeSlug}
+              isBundle={product.isBundle || false}
+            />
+          )}
 
           {/* Upsell Products */}
           {allProducts.length > 0 && (

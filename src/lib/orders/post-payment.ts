@@ -33,6 +33,8 @@ import {
   giftCardTransactions,
   customerCreditTransactions,
   inventoryLogs,
+  productBundles,
+  bundleComponents,
 } from '@/lib/db/schema';
 import { eq, and, sql, inArray } from 'drizzle-orm';
 import { sendOrderConfirmationEmail, sendGiftCardEmail } from '@/lib/email';
@@ -236,6 +238,7 @@ export async function executePostPaymentActions(params: PostPaymentParams): Prom
 
 /**
  * Decrement inventory for order items
+ * Handles both regular products and bundles (deducts from bundle components)
  */
 async function decrementInventory(
   cartItems: CartItem[],
@@ -245,8 +248,18 @@ async function decrementInventory(
   for (const item of cartItems) {
     if (!item.productId) continue;
     
-    if (item.variantId) {
-      // Get current inventory
+    // Check if this product is a bundle
+    const [product] = await db
+      .select({ id: products.id, isBundle: products.isBundle })
+      .from(products)
+      .where(eq(products.id, item.productId))
+      .limit(1);
+    
+    if (product?.isBundle) {
+      // Handle bundle - deduct from components
+      await decrementBundleInventory(item.productId, item.quantity, storeId, orderId);
+    } else if (item.variantId) {
+      // Regular variant
       const [current] = await db
         .select({ inventory: productVariants.inventory })
         .from(productVariants)
@@ -255,14 +268,12 @@ async function decrementInventory(
       
       const previousQuantity = current?.inventory ?? 0;
       
-      // Decrement variant inventory
       const [updated] = await db
         .update(productVariants)
         .set({ inventory: sql`GREATEST(0, ${productVariants.inventory} - ${item.quantity})` })
         .where(eq(productVariants.id, item.variantId))
         .returning({ id: productVariants.id, inventory: productVariants.inventory });
       
-      // Log the change
       if (updated) {
         await db.insert(inventoryLogs).values({
           storeId,
@@ -277,7 +288,7 @@ async function decrementInventory(
         });
       }
     } else {
-      // Get current inventory
+      // Regular product
       const [current] = await db
         .select({ inventory: products.inventory })
         .from(products)
@@ -286,14 +297,12 @@ async function decrementInventory(
       
       const previousQuantity = current?.inventory ?? 0;
       
-      // Decrement product inventory
       const [updated] = await db
         .update(products)
         .set({ inventory: sql`GREATEST(0, ${products.inventory} - ${item.quantity})` })
         .where(eq(products.id, item.productId))
         .returning({ id: products.id, inventory: products.inventory });
       
-      // Log the change
       if (updated) {
         await db.insert(inventoryLogs).values({
           storeId,
@@ -305,6 +314,93 @@ async function decrementInventory(
           reason: 'order',
           orderId,
           changedByName: 'הזמנה',
+        });
+      }
+    }
+  }
+}
+
+/**
+ * Decrement inventory for bundle components
+ */
+async function decrementBundleInventory(
+  bundleProductId: string,
+  purchasedQty: number,
+  storeId: string,
+  orderId: string
+): Promise<void> {
+  // Get bundle and its components
+  const bundle = await db.query.productBundles.findFirst({
+    where: eq(productBundles.productId, bundleProductId),
+  });
+  
+  if (!bundle) return;
+  
+  const components = await db
+    .select()
+    .from(bundleComponents)
+    .where(eq(bundleComponents.bundleId, bundle.id));
+  
+  // Deduct from each component
+  for (const component of components) {
+    const deductQty = component.quantity * purchasedQty;
+    
+    if (component.variantId) {
+      // Variant component
+      const [current] = await db
+        .select({ inventory: productVariants.inventory })
+        .from(productVariants)
+        .where(eq(productVariants.id, component.variantId))
+        .limit(1);
+      
+      const previousQuantity = current?.inventory ?? 0;
+      
+      const [updated] = await db
+        .update(productVariants)
+        .set({ inventory: sql`GREATEST(0, ${productVariants.inventory} - ${deductQty})` })
+        .where(eq(productVariants.id, component.variantId))
+        .returning({ id: productVariants.id, inventory: productVariants.inventory });
+      
+      if (updated) {
+        await db.insert(inventoryLogs).values({
+          storeId,
+          productId: component.productId,
+          variantId: component.variantId,
+          previousQuantity,
+          newQuantity: updated.inventory ?? 0,
+          changeAmount: (updated.inventory ?? 0) - previousQuantity,
+          reason: 'order',
+          orderId,
+          changedByName: `Bundle (${purchasedQty}×)`,
+        });
+      }
+    } else {
+      // Product component
+      const [current] = await db
+        .select({ inventory: products.inventory })
+        .from(products)
+        .where(eq(products.id, component.productId))
+        .limit(1);
+      
+      const previousQuantity = current?.inventory ?? 0;
+      
+      const [updated] = await db
+        .update(products)
+        .set({ inventory: sql`GREATEST(0, ${products.inventory} - ${deductQty})` })
+        .where(eq(products.id, component.productId))
+        .returning({ id: products.id, inventory: products.inventory });
+      
+      if (updated) {
+        await db.insert(inventoryLogs).values({
+          storeId,
+          productId: component.productId,
+          variantId: null,
+          previousQuantity,
+          newQuantity: updated.inventory ?? 0,
+          changeAmount: (updated.inventory ?? 0) - previousQuantity,
+          reason: 'order',
+          orderId,
+          changedByName: `Bundle (${purchasedQty}×)`,
         });
       }
     }

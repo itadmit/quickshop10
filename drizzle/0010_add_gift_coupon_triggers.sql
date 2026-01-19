@@ -9,3 +9,4 @@ ALTER TABLE "discounts" ADD COLUMN IF NOT EXISTS "minimum_quantity" integer;
 ALTER TABLE "discounts" ADD COLUMN IF NOT EXISTS "trigger_coupon_codes" jsonb DEFAULT '[]';
 
 
+

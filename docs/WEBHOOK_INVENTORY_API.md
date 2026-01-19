@@ -321,3 +321,4 @@ const onBarcodeScanned = async (barcode, action) => {
 - 💬 צ'אט בחנות: quickshop.co.il/support
 
 
+

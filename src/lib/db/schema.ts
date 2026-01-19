@@ -162,6 +162,15 @@ export const resolutionTypeEnum = pgEnum('resolution_type', [
   'partial_refund'     // זיכוי חלקי
 ]);
 
+// Bundle system enums
+export const bundleTypeEnum = pgEnum('bundle_type', ['fixed', 'mix_match']);
+export const bundlePricingTypeEnum = pgEnum('bundle_pricing_type', [
+  'fixed',              // מחיר קבוע ל-Bundle
+  'calculated',         // סכום מחירי הרכיבים
+  'discount_percentage', // הנחה באחוזים מסכום הרכיבים
+  'discount_fixed'      // הנחה בסכום קבוע מסכום הרכיבים
+]);
+
 // ============ USERS & AUTH ============
 
 export const users = pgTable('users', {
@@ -463,6 +472,7 @@ export const products = pgTable('products', {
   seoDescription: text('seo_description'),
   metadata: jsonb('metadata').default({}),
   upsellProductIds: jsonb('upsell_product_ids').default([]), // Array of product IDs to show as upsells
+  isBundle: boolean('is_bundle').default(false).notNull(), // Whether this product is a bundle
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
   updatedBy: uuid('updated_by').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -654,6 +664,60 @@ export const productWaitlist = pgTable('product_waitlist', {
   // Prevent duplicate entries
   uniqueIndex('idx_waitlist_unique_product').on(table.storeId, table.productId, table.email).where(sql`variant_id IS NULL`),
   uniqueIndex('idx_waitlist_unique_variant').on(table.storeId, table.variantId, table.email).where(sql`variant_id IS NOT NULL`),
+]);
+
+// ============ PRODUCT BUNDLES ============
+
+// Bundle settings - one per product
+export const productBundles = pgTable('product_bundles', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Bundle type
+  bundleType: bundleTypeEnum('bundle_type').default('fixed').notNull(),
+  
+  // Mix & Match settings
+  minSelections: integer('min_selections').default(1),
+  maxSelections: integer('max_selections'),
+  
+  // Pricing
+  pricingType: bundlePricingTypeEnum('pricing_type').default('fixed').notNull(),
+  discountValue: decimal('discount_value', { precision: 10, scale: 2 }),
+  
+  // Display settings
+  showComponentsInCart: boolean('show_components_in_cart').default(true).notNull(),
+  showComponentsOnPage: boolean('show_components_on_page').default(true).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('idx_bundle_product_unique').on(table.productId),
+]);
+
+// Bundle components - products that make up the bundle
+export const bundleComponents = pgTable('bundle_components', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  bundleId: uuid('bundle_id').references(() => productBundles.id, { onDelete: 'cascade' }).notNull(),
+  
+  // The component product
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  
+  // Quantity of this component in the bundle
+  quantity: integer('quantity').default(1).notNull(),
+  
+  // Mix & Match options
+  isDefault: boolean('is_default').default(true).notNull(),
+  isRequired: boolean('is_required').default(false).notNull(),
+  
+  // Optional price override for this component
+  priceOverride: decimal('price_override', { precision: 10, scale: 2 }),
+  
+  sortOrder: integer('sort_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_bundle_components_bundle').on(table.bundleId),
+  index('idx_bundle_components_product').on(table.productId),
 ]);
 
 // ============ CUSTOMERS ============
@@ -1794,6 +1858,30 @@ export const productAddonAssignmentsRelations = relations(productAddonAssignment
   addon: one(productAddons, {
     fields: [productAddonAssignments.addonId],
     references: [productAddons.id],
+  }),
+}));
+
+// Bundle relations
+export const productBundlesRelations = relations(productBundles, ({ one, many }) => ({
+  product: one(products, {
+    fields: [productBundles.productId],
+    references: [products.id],
+  }),
+  components: many(bundleComponents),
+}));
+
+export const bundleComponentsRelations = relations(bundleComponents, ({ one }) => ({
+  bundle: one(productBundles, {
+    fields: [bundleComponents.bundleId],
+    references: [productBundles.id],
+  }),
+  product: one(products, {
+    fields: [bundleComponents.productId],
+    references: [products.id],
+  }),
+  variant: one(productVariants, {
+    fields: [bundleComponents.variantId],
+    references: [productVariants.id],
   }),
 }));
 
@@ -3736,6 +3824,12 @@ export type NewProductAddonAssignment = typeof productAddonAssignments.$inferIns
 // Product Waitlist types
 export type ProductWaitlistEntry = typeof productWaitlist.$inferSelect;
 export type NewProductWaitlistEntry = typeof productWaitlist.$inferInsert;
+
+// Product Bundle types
+export type ProductBundle = typeof productBundles.$inferSelect;
+export type NewProductBundle = typeof productBundles.$inferInsert;
+export type BundleComponent = typeof bundleComponents.$inferSelect;
+export type NewBundleComponent = typeof bundleComponents.$inferInsert;
 
 // Platform Settings types
 export type PlatformSetting = typeof platformSettings.$inferSelect;

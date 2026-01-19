@@ -84,3 +84,4 @@ CREATE INDEX IF NOT EXISTS "idx_review_votes_review" ON "review_votes" ("review_
 CREATE UNIQUE INDEX IF NOT EXISTS "idx_review_votes_unique" ON "review_votes" ("review_id", "customer_id") WHERE "customer_id" IS NOT NULL;
 
 
+

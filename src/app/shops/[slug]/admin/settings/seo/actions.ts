@@ -52,3 +52,4 @@ export async function updateSeoSettings(storeId: string, data: SeoSettingsData) 
   }
 }
 
+

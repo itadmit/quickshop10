@@ -4,6 +4,7 @@ import { useStoreOptional } from '@/lib/store-context';
 import Link from 'next/link';
 import { tracker } from '@/lib/tracking';
 import { CartUpsells } from './cart-upsells';
+import { CartBundleComponents } from './cart-bundle-components';
 
 interface CartSidebarProps {
   basePath?: string;
@@ -170,6 +171,11 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                               </div>
                             )}
                           </div>
+                        )}
+                        
+                        {/* 📦 Bundle Components */}
+                        {item.isBundle && (
+                          <CartBundleComponents productId={item.productId} />
                         )}
                         
                         {/* 🎁 Gift Card Details */}

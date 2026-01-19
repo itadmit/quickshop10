@@ -25,3 +25,4 @@ export const defaultGiftCardSettings: GiftCardSettings = {
   pageDescription: 'הפתעה מושלמת לאנשים שאתם אוהבים',
 };
 
+

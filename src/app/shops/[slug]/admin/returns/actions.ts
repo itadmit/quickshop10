@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores, productImages, shipments, shippingProviders } from '@/lib/db/schema';
+import { returnRequests, customerCreditTransactions, customers, products, productVariants, orders, orderItems, stores, productImages, shipments, shippingProviders, productBundles, bundleComponents } from '@/lib/db/schema';
 import { eq, and, sql, desc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
@@ -408,12 +408,23 @@ export async function addInternalNote(input: AddNoteInput) {
 }
 
 // Helper function to return items to inventory
+// Handles both regular products and bundles (returns inventory to bundle components)
 async function returnItemsToInventory(items: Array<{ productId?: string; variantId?: string; quantity: number }>) {
   for (const item of items) {
     if (!item.productId) continue;
 
     try {
-      if (item.variantId) {
+      // Check if this product is a bundle
+      const [product] = await db
+        .select({ id: products.id, isBundle: products.isBundle })
+        .from(products)
+        .where(eq(products.id, item.productId))
+        .limit(1);
+      
+      if (product?.isBundle) {
+        // Handle bundle - return inventory to components
+        await returnBundleComponentsInventory(item.productId, item.quantity);
+      } else if (item.variantId) {
         // Update variant inventory
         await db.update(productVariants)
           .set({ 
@@ -430,6 +441,45 @@ async function returnItemsToInventory(items: Array<{ productId?: string; variant
       }
     } catch (err) {
       console.error(`Failed to return item ${item.productId} to inventory:`, err);
+    }
+  }
+}
+
+// Helper function to return bundle components inventory
+async function returnBundleComponentsInventory(bundleProductId: string, returnedQty: number) {
+  // Get bundle
+  const bundle = await db.query.productBundles.findFirst({
+    where: eq(productBundles.productId, bundleProductId),
+  });
+  
+  if (!bundle) return;
+  
+  // Get components
+  const components = await db
+    .select()
+    .from(bundleComponents)
+    .where(eq(bundleComponents.bundleId, bundle.id));
+  
+  // Return inventory to each component
+  for (const component of components) {
+    const restoreQty = component.quantity * returnedQty;
+    
+    try {
+      if (component.variantId) {
+        await db.update(productVariants)
+          .set({ 
+            inventory: sql`COALESCE(${productVariants.inventory}, 0) + ${restoreQty}`,
+          })
+          .where(eq(productVariants.id, component.variantId));
+      } else {
+        await db.update(products)
+          .set({ 
+            inventory: sql`COALESCE(${products.inventory}, 0) + ${restoreQty}`,
+          })
+          .where(eq(products.id, component.productId));
+      }
+    } catch (err) {
+      console.error(`Failed to return bundle component ${component.productId} to inventory:`, err);
     }
   }
 }

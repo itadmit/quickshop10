@@ -24,6 +24,7 @@ interface ProductWithAddonsProps {
   className?: string;
   showDecimalPrices?: boolean;
   storeSlug: string; // Add store slug for waitlist
+  isBundle?: boolean; // Bundle support
 }
 
 export function ProductWithAddons({
@@ -44,6 +45,7 @@ export function ProductWithAddons({
   className = '',
   showDecimalPrices = false,
   storeSlug,
+  isBundle = false,
 }: ProductWithAddonsProps) {
   const store = useStoreOptional();
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
@@ -82,6 +84,7 @@ export function ProductWithAddons({
         automaticDiscountNames: automaticDiscountName ? [automaticDiscountName] : undefined,
         discountedPrice: discountedPrice,
         categoryIds,
+        isBundle, // Bundle support
         // Store addons info
         addons: selectedAddons.length > 0 ? selectedAddons : undefined,
         addonTotal: addonTotal > 0 ? addonTotal : undefined,

@@ -15,3 +15,4 @@ WHERE "discount_ids" = '[]' OR "discount_ids" IS NULL;
 -- Note: We keep the old column for backwards compatibility, can be removed later
 
 
+

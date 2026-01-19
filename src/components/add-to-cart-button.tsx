@@ -33,6 +33,8 @@ interface AddToCartButtonProps {
   // סגנון
   buttonStyle?: 'filled' | 'outline';
   fullWidth?: boolean;
+  // Bundle support
+  isBundle?: boolean;
 }
 
 export function AddToCartButton({ 
@@ -54,6 +56,7 @@ export function AddToCartButton({
   outOfStockText = 'אזל מהמלאי',
   buttonStyle = 'filled',
   fullWidth = true,
+  isBundle = false,
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
@@ -88,6 +91,7 @@ export function AddToCartButton({
       automaticDiscountName,
       discountedPrice,
       categoryIds,
+      isBundle,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);

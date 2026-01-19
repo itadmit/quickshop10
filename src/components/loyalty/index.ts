@@ -8,3 +8,4 @@ export { LoyaltyTransactionsList } from './loyalty-transactions-list';
 export { LoyaltyCheckoutWidget } from './loyalty-checkout-widget';
 
 
+

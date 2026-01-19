@@ -29,6 +29,7 @@ import { ProductSection } from '@/components/product-sections';
 import { ProductPage as SectionBasedProductPage } from '@/components/product-sections/product-page';
 import { type ProductPageSection } from '@/lib/product-page-sections';
 import { type DynamicContentContext } from '@/lib/dynamic-content';
+import { BundleComponentsDisplay } from '@/components/storefront/bundle-components-display';
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
@@ -783,6 +784,11 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                         </div>
                       )}
 
+                      {/* Bundle Components Display - show if product is a bundle */}
+                      {product.isBundle && (
+                        <BundleComponentsDisplay productId={product.id} storeSlug={slug} />
+                      )}
+
                       {/* Add to Cart - with optional addons */}
                       {/* If product has addons, use ProductWithAddons component */}
                       {productAddons.length > 0 ? (
@@ -804,6 +810,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                           className="mb-4"
                           showDecimalPrices={showDecimalPrices}
                           storeSlug={slug}
+                          isBundle={product.isBundle}
                         />
                       ) : (
                         <AddToCartButton 
@@ -817,6 +824,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
                           allowBackorder={product.allowBackorder}
                           className="w-full mb-4"
                           automaticDiscountName={discountLabels.join(' + ') || undefined}
+                          isBundle={product.isBundle}
                           discountedPrice={hasAutomaticDiscount ? finalPrice : undefined}
                           categoryIds={productCategoryIds}
                         />

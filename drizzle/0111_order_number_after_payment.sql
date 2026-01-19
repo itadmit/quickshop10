@@ -19,3 +19,4 @@ ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL;
 -- Note: No data migration needed - existing orders keep their order_number
 -- New orders will start with order_number = NULL until payment succeeds
 
+

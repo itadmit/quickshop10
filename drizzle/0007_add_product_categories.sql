@@ -17,3 +17,4 @@ SELECT "id", "category_id" FROM "products" WHERE "category_id" IS NOT NULL
 ON CONFLICT DO NOTHING;
 
 
+
