@@ -1300,58 +1300,102 @@ export async function sendWelcomeEmail(email: string, name?: string, storeName?:
     <html dir="rtl" lang="he">
     <head>
       <meta charset="UTF-8">
-      <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 40px; }
-        .logo { font-size: 28px; font-weight: bold; color: #1a1a1a; margin-bottom: 30px; }
-        h1 { font-size: 24px; color: #1a1a1a; margin: 0 0 16px; }
-        p { color: #666; line-height: 1.6; margin: 0 0 20px; }
-        .button { display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500; }
-        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; color: #999; font-size: 14px; }
-        .feature { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
-        .feature:last-child { border-bottom: none; }
-        .feature-icon { width: 40px; height: 40px; background: #f7f7f7; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-      </style>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
     </head>
-    <body>
-      <div class="container">
-        <div class="logo">Quick Shop</div>
-        <h1>ברוך הבא ל-QuickShop! 🎉</h1>
-        <p>היי ${name || 'שם'}! החשבון שלך נוצר בהצלחה${storeName ? ` והחנות "${storeName}" מוכנה` : ''}.</p>
-        
-        <div style="margin: 30px 0;">
-          <div class="feature">
-            <div class="feature-icon">📦</div>
-            <div>
-              <strong>הוסף מוצרים</strong>
-              <p style="margin: 0; font-size: 14px;">התחל להוסיף מוצרים לחנות שלך</p>
-            </div>
-          </div>
-          <div class="feature">
-            <div class="feature-icon">🎨</div>
-            <div>
-              <strong>עצב את החנות</strong>
-              <p style="margin: 0; font-size: 14px;">התאם אישית צבעים ולוגו</p>
-            </div>
-          </div>
-          <div class="feature">
-            <div class="feature-icon">🚀</div>
-            <div>
-              <strong>התחל למכור</strong>
-              <p style="margin: 0; font-size: 14px;">שתף את החנות עם הלקוחות שלך</p>
-            </div>
-          </div>
-        </div>
-        
-        <p style="text-align: center;">
-          <a href="${dashboardUrl}" class="button">כנס לדשבורד</a>
-        </p>
-        
-        <div class="footer">
-          <p>יש שאלות? אנחנו כאן לעזור! support@quickshop.co.il</p>
-          <p>© QuickShop - פלטפורמת החנויות המובילה</p>
-        </div>
-      </div>
+    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f7f7f7; margin: 0; padding: 20px; direction: rtl; text-align: right;">
+      
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 500px; margin: 0 auto;">
+        <tr>
+          <td style="background: white; border-radius: 12px; padding: 40px;">
+            
+            <!-- Logo -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="font-size: 28px; font-weight: bold; color: #1a1a1a; padding-bottom: 30px; text-align: right;">
+                  Quick Shop
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Header -->
+            <h1 style="font-size: 24px; color: #1a1a1a; margin: 0 0 16px; text-align: right;">ברוך הבא ל-QuickShop! 🎉</h1>
+            <p style="color: #666; line-height: 1.6; margin: 0 0 20px; text-align: right;">היי ${name || 'שם'}! החשבון שלך נוצר בהצלחה${storeName ? ` והחנות "${storeName}" מוכנה` : ''}.</p>
+            
+            <!-- Features -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
+              <!-- Feature 1 -->
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="width: 48px; vertical-align: top; text-align: right;">
+                        <div style="width: 40px; height: 40px; background: #f7f7f7; border-radius: 8px; text-align: center; line-height: 40px; font-size: 18px;">📦</div>
+                      </td>
+                      <td style="vertical-align: middle; padding-right: 12px; text-align: right;">
+                        <strong style="color: #1a1a1a;">הוסף מוצרים</strong>
+                        <p style="margin: 4px 0 0; font-size: 14px; color: #666;">התחל להוסיף מוצרים לחנות שלך</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <!-- Feature 2 -->
+              <tr>
+                <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="width: 48px; vertical-align: top; text-align: right;">
+                        <div style="width: 40px; height: 40px; background: #f7f7f7; border-radius: 8px; text-align: center; line-height: 40px; font-size: 18px;">🎨</div>
+                      </td>
+                      <td style="vertical-align: middle; padding-right: 12px; text-align: right;">
+                        <strong style="color: #1a1a1a;">עצב את החנות</strong>
+                        <p style="margin: 4px 0 0; font-size: 14px; color: #666;">התאם אישית צבעים ולוגו</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <!-- Feature 3 -->
+              <tr>
+                <td style="padding: 12px 0;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="width: 48px; vertical-align: top; text-align: right;">
+                        <div style="width: 40px; height: 40px; background: #f7f7f7; border-radius: 8px; text-align: center; line-height: 40px; font-size: 18px;">🚀</div>
+                      </td>
+                      <td style="vertical-align: middle; padding-right: 12px; text-align: right;">
+                        <strong style="color: #1a1a1a;">התחל למכור</strong>
+                        <p style="margin: 4px 0 0; font-size: 14px; color: #666;">שתף את החנות עם הלקוחות שלך</p>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- CTA Button -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="text-align: center; padding: 20px 0;">
+                  <a href="${dashboardUrl}" style="display: inline-block; background: #1a1a1a; color: white !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 500;">כנס לדשבורד</a>
+                </td>
+              </tr>
+            </table>
+            
+            <!-- Footer -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee;">
+              <tr>
+                <td style="color: #999; font-size: 14px; text-align: right;">
+                  <p style="margin: 0 0 8px;">יש שאלות? אנחנו כאן לעזור! support@quickshop.co.il</p>
+                  <p style="margin: 0;">© QuickShop - פלטפורמת החנויות המובילה</p>
+                </td>
+              </tr>
+            </table>
+            
+          </td>
+        </tr>
+      </table>
+      
     </body>
     </html>
   `;
