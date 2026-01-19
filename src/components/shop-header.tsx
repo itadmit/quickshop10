@@ -5,6 +5,8 @@ import { CartButton } from './cart-button';
 import { UserButton } from './user-button';
 import { SearchButton } from './search-button';
 import { MegaMenuDropdown } from './mega-menu-dropdown';
+import { LanguageSwitcher } from './storefront/language-switcher';
+import type { SupportedLocale } from '@/lib/translations/types';
 
 interface Category {
   id: string;
@@ -52,12 +54,16 @@ interface ShopHeaderProps {
   showSearch?: boolean;
   showCart?: boolean;
   showAccount?: boolean;
+  showLanguageSwitcher?: boolean;
   isSticky?: boolean;
   // Mobile menu settings
   mobileMenuShowImages?: boolean;
   mobileMenuImageStyle?: 'fullRow' | 'square';
   mobileMenuBgColor?: string;
   megaMenuBgColor?: string;
+  // Locale settings
+  currentLocale?: SupportedLocale;
+  supportedLocales?: SupportedLocale[];
 }
 
 // Server Component - no 'use client' needed
@@ -76,11 +82,14 @@ export function ShopHeader({
   showSearch = true,
   showCart = true,
   showAccount = true,
+  showLanguageSwitcher = false,
   isSticky = true,
   mobileMenuShowImages = false,
   mobileMenuImageStyle = 'square',
   mobileMenuBgColor = '#f9fafb',
   megaMenuBgColor = '#f9fafb',
+  currentLocale = 'he',
+  supportedLocales = ['he'],
 }: ShopHeaderProps) {
   // Organize categories into parent/child structure (for categories mode)
   const parentCategories = categories.filter(c => !c.parentId);
@@ -241,8 +250,17 @@ export function ShopHeader({
   // cartAtEnd (default): cart is LAST in JSX = leftmost (for logo-right where icons are on left)
   // cartAtStart: cart is FIRST in JSX = rightmost (for logo-left where icons are on right)
   const Icons = ({ cartAtStart = false }: { cartAtStart?: boolean }) => (
-    <div className="flex items-center gap-1 sm:gap-2">
+    <div className="flex items-center gap-0.5 sm:gap-1.5 px-2 sm:px-0">
       {cartAtStart && showCart && <CartButton />}
+      {/* Language Switcher - desktop only (shown in mobile menu instead) */}
+      {showLanguageSwitcher && supportedLocales.length > 1 && (
+        <LanguageSwitcher
+          currentLocale={currentLocale}
+          supportedLocales={supportedLocales}
+          variant="minimal"
+          className="hidden lg:flex"
+        />
+      )}
       {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
       {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
       {!cartAtStart && showCart && <CartButton />}
@@ -270,6 +288,9 @@ export function ShopHeader({
                 showMobileImages={mobileMenuShowImages}
                 mobileImageStyle={mobileMenuImageStyle}
                 bgColor={mobileMenuBgColor}
+                showLanguageSwitcher={showLanguageSwitcher}
+                currentLocale={currentLocale}
+                supportedLocales={supportedLocales}
               />
               <Logo />
             </div>
@@ -311,6 +332,9 @@ export function ShopHeader({
                 showMobileImages={mobileMenuShowImages}
                 mobileImageStyle={mobileMenuImageStyle}
                 bgColor={mobileMenuBgColor}
+                showLanguageSwitcher={showLanguageSwitcher}
+                currentLocale={currentLocale}
+                supportedLocales={supportedLocales}
               />
             </div>
           </div>
@@ -338,6 +362,9 @@ export function ShopHeader({
               showMobileImages={mobileMenuShowImages}
               mobileImageStyle={mobileMenuImageStyle}
               bgColor={mobileMenuBgColor}
+              showLanguageSwitcher={showLanguageSwitcher}
+              currentLocale={currentLocale}
+              supportedLocales={supportedLocales}
             />
             {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
           </div>
@@ -345,8 +372,16 @@ export function ShopHeader({
           {/* Center: Logo */}
           <Logo className="absolute left-1/2 -translate-x-1/2" />
 
-          {/* Left: User, Search (mobile), Cart at extreme left */}
-          <div className="flex items-center gap-1 sm:gap-2">
+          {/* Left: Language (desktop only), User, Search (mobile), Cart at extreme left */}
+          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-0">
+            {showLanguageSwitcher && supportedLocales.length > 1 && (
+              <LanguageSwitcher
+                currentLocale={currentLocale}
+                supportedLocales={supportedLocales}
+                variant="minimal"
+                className="hidden lg:flex"
+              />
+            )}
             {showSearch && <span className="lg:hidden"><SearchButton basePath={basePath} storeId={storeId} /></span>}
             {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
             {showCart && <CartButton />}

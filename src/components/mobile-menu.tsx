@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import Image from 'next/image';
+import type { SupportedLocale } from '@/lib/translations/types';
 
 interface Category {
   id: string;
@@ -22,6 +23,15 @@ interface MenuItem {
   children?: MenuItem[];
 }
 
+// Locale display info
+const LOCALE_INFO: Record<SupportedLocale, { nativeName: string; flag: string }> = {
+  he: { nativeName: 'עברית', flag: '🇮🇱' },
+  en: { nativeName: 'English', flag: '🇺🇸' },
+  ar: { nativeName: 'العربية', flag: '🇸🇦' },
+  ru: { nativeName: 'Русский', flag: '🇷🇺' },
+  fr: { nativeName: 'Français', flag: '🇫🇷' },
+};
+
 interface MobileMenuProps {
   categories: Category[];
   menuItems?: MenuItem[];
@@ -32,6 +42,10 @@ interface MobileMenuProps {
   showMobileImages?: boolean; // Show images in mobile menu
   mobileImageStyle?: 'fullRow' | 'square'; // Image display style
   bgColor?: string; // Sidebar background color
+  // Language switcher props
+  showLanguageSwitcher?: boolean;
+  currentLocale?: SupportedLocale;
+  supportedLocales?: SupportedLocale[];
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
@@ -59,11 +73,22 @@ export function MobileMenu({
   logoUrl,
   showMobileImages = false,
   mobileImageStyle = 'square',
-  bgColor = '#f9fafb'
+  bgColor = '#f9fafb',
+  showLanguageSwitcher = false,
+  currentLocale = 'he',
+  supportedLocales = ['he'],
 }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
+  const [selectedLocale, setSelectedLocale] = useState(currentLocale);
+
+  // Handle locale change
+  const handleLocaleChange = (locale: SupportedLocale) => {
+    setSelectedLocale(locale);
+    document.cookie = `preferred_locale=${locale};path=/;max-age=31536000`;
+    window.location.reload();
+  };
   
   // Determine if we should show categories or custom menu
   // Only show categories when explicitly set to 'categories' mode
@@ -160,8 +185,8 @@ export function MobileMenu({
         </div>
 
         {/* Navigation - fills remaining height */}
-        <nav className="flex-1 overflow-y-auto bg-white">
-          <ul className="py-4">
+        <nav className="flex-1 overflow-y-auto bg-white flex flex-col">
+          <ul className="py-4 flex-1">
             {/* Show categories navigation */}
             {showCategories && (
               <>
@@ -341,6 +366,35 @@ export function MobileMenu({
               );
             })}
           </ul>
+
+          {/* Language Switcher - at bottom of menu */}
+          {showLanguageSwitcher && supportedLocales.length > 1 && (
+            <div className="border-t border-gray-200 px-6 py-4 bg-white shrink-0">
+              <label className="block text-[10px] tracking-[0.1em] uppercase text-gray-400 mb-3">
+                שפה
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {supportedLocales.map((locale) => {
+                  const info = LOCALE_INFO[locale];
+                  const isSelected = locale === selectedLocale;
+                  return (
+                    <button
+                      key={locale}
+                      onClick={() => handleLocaleChange(locale)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm transition-colors ${
+                        isSelected 
+                          ? 'border-black bg-black text-white' 
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <span>{info.flag}</span>
+                      <span>{info.nativeName}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </nav>
       </div>
     </>,

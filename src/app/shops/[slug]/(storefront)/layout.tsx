@@ -207,6 +207,11 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // Get navigation mode from store settings (menu = custom menus, categories = show all categories)
   const headerNavigationMode = (storeSettings.headerNavigationMode as 'menu' | 'categories') || 'menu';
   
+  // 🌍 Locale settings for language switcher
+  const supportedLocales = ((store.supportedLocales as string[]) || ['he']) as import('@/lib/translations/types').SupportedLocale[];
+  const currentLocale = ((store.defaultLocale as string) || 'he') as import('@/lib/translations/types').SupportedLocale;
+  const showLanguageSwitcher = Boolean(storeSettings.headerShowLanguageSwitcher) && supportedLocales.length > 1;
+  
   // Get menu items for header navigation (only if using menu mode)
   const menuItems: MenuItem[] = headerNavigationMode === 'menu' && mainMenu?.items 
     ? mainMenu.items 
@@ -260,6 +265,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         defaultShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
         defaultShowCart={Boolean(storeSettings.headerShowCart ?? true)}
         defaultShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+        defaultShowLanguageSwitcher={showLanguageSwitcher}
+        currentLocale={currentLocale}
+        supportedLocales={supportedLocales}
       />
     </PreviewSettingsProvider>
   ) : (
@@ -291,11 +299,14 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         showSearch={Boolean(storeSettings.headerShowSearch ?? true)}
         showCart={Boolean(storeSettings.headerShowCart ?? true)}
         showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+        showLanguageSwitcher={showLanguageSwitcher}
         isSticky={Boolean(storeSettings.headerSticky ?? true)}
         mobileMenuShowImages={Boolean(storeSettings.mobileMenuShowImages ?? false)}
         mobileMenuImageStyle={(storeSettings.mobileMenuImageStyle as 'fullRow' | 'square') ?? 'square'}
         mobileMenuBgColor={(storeSettings.mobileMenuBgColor as string) ?? '#f9fafb'}
         megaMenuBgColor={(storeSettings.megaMenuBgColor as string) ?? '#f9fafb'}
+        currentLocale={currentLocale}
+        supportedLocales={supportedLocales}
       />
     </>
   );

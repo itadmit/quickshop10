@@ -232,6 +232,12 @@ export const stores = pgTable('stores', {
   orderCounter: integer('order_counter').default(1000).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   isPublished: boolean('is_published').default(false).notNull(), // false = Coming Soon, true = Live
+  
+  // Localization settings
+  defaultLocale: varchar('default_locale', { length: 5 }).default('he').notNull(),
+  supportedLocales: varchar('supported_locales', { length: 5 }).array().default(['he']),
+  hasCustomTranslations: boolean('has_custom_translations').default(false).notNull(),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
@@ -3935,3 +3941,67 @@ export type HelpGuideCategory = typeof helpGuideCategories.$inferSelect;
 export type NewHelpGuideCategory = typeof helpGuideCategories.$inferInsert;
 export type HelpGuide = typeof helpGuides.$inferSelect;
 export type NewHelpGuide = typeof helpGuides.$inferInsert;
+
+// ============================================================================
+// LOCALIZATION / TRANSLATIONS
+// ============================================================================
+
+/**
+ * Store Translations
+ * 
+ * Stores UI string overrides per locale per store.
+ * Only created when:
+ * 1. Store adds additional languages (en, ar, ru)
+ * 2. Store customizes default Hebrew strings
+ * 
+ * Hebrew-only stores with default strings have NO records here = ZERO overhead!
+ */
+export const storeTranslations = pgTable('store_translations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  locale: varchar('locale', { length: 5 }).notNull(), // 'he', 'en', 'ar', 'ru'
+  
+  // UI strings (checkout, cart, product, general, etc.)
+  // Structure matches UITranslations type from lib/translations/types.ts
+  uiStrings: jsonb('ui_strings').default({}).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('idx_store_translations_unique').on(table.storeId, table.locale),
+  index('idx_store_translations_store').on(table.storeId),
+]);
+
+/**
+ * Content Translations
+ * 
+ * Stores translations for products, categories, pages, etc.
+ * Only used when store has multiple locales.
+ */
+export const contentTranslations = pgTable('content_translations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // What entity is being translated
+  entityType: varchar('entity_type', { length: 50 }).notNull(), // 'product', 'category', 'page', 'menu_item'
+  entityId: uuid('entity_id').notNull(),
+  locale: varchar('locale', { length: 5 }).notNull(),
+  
+  // The translated fields (flexible structure)
+  // Product: { "name": "...", "description": "...", "shortDescription": "..." }
+  // Category: { "name": "...", "description": "..." }
+  translations: jsonb('translations').notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('idx_content_translations_unique').on(table.storeId, table.entityType, table.entityId, table.locale),
+  index('idx_content_translations_lookup').on(table.storeId, table.entityType, table.entityId),
+  index('idx_content_translations_type').on(table.storeId, table.entityType, table.locale),
+]);
+
+// Localization types
+export type StoreTranslation = typeof storeTranslations.$inferSelect;
+export type NewStoreTranslation = typeof storeTranslations.$inferInsert;
+export type ContentTranslation = typeof contentTranslations.$inferSelect;
+export type NewContentTranslation = typeof contentTranslations.$inferInsert;

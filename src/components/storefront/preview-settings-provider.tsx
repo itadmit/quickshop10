@@ -20,6 +20,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerShowLanguageSwitcher?: boolean;
   headerNavigationMode?: 'menu' | 'categories';
   // Mobile menu settings
   mobileMenuShowImages?: boolean;

@@ -3,12 +3,14 @@
 import { CartButton } from '@/components/cart-button';
 import { UserButton } from '@/components/user-button';
 import { SearchButton } from '@/components/search-button';
+import { LanguageSwitcher } from './language-switcher';
 import { usePreviewSettings } from './preview-settings-provider';
+import type { SupportedLocale } from '@/lib/translations/types';
 
 /**
  * Header Icons Component
  * 
- * Client component that wraps header icons (search, cart, account)
+ * Client component that wraps header icons (search, cart, account, language)
  * and responds to live preview settings from editor.
  * 
  * PERFORMANCE: 
@@ -34,6 +36,10 @@ interface HeaderIconsProps {
   showSearch?: boolean;
   showCart?: boolean;
   showAccount?: boolean;
+  showLanguageSwitcher?: boolean;
+  // Locale settings
+  currentLocale?: SupportedLocale;
+  supportedLocales?: SupportedLocale[];
 }
 
 export function HeaderIcons({
@@ -44,6 +50,9 @@ export function HeaderIcons({
   showSearch = true,
   showCart = true,
   showAccount = true,
+  showLanguageSwitcher = false,
+  currentLocale = 'he',
+  supportedLocales = ['he'],
 }: HeaderIconsProps) {
   const { settings, isPreviewMode } = usePreviewSettings();
   
@@ -57,11 +66,23 @@ export function HeaderIcons({
   const shouldShowAccount = isPreviewMode 
     ? (settings.headerShowAccount ?? showAccount) 
     : showAccount;
+  const shouldShowLanguageSwitcher = isPreviewMode
+    ? (settings.headerShowLanguageSwitcher ?? showLanguageSwitcher)
+    : showLanguageSwitcher;
 
   return (
     <>
       {searchFirst && shouldShowSearch && (
         <SearchButton basePath={basePath} storeId={storeId} />
+      )}
+      {/* Language Switcher - desktop only (shown in mobile menu instead) */}
+      {shouldShowLanguageSwitcher && supportedLocales.length > 1 && (
+        <LanguageSwitcher
+          currentLocale={currentLocale}
+          supportedLocales={supportedLocales}
+          variant="minimal"
+          className="hidden lg:flex"
+        />
       )}
       {shouldShowAccount && (
         <UserButton basePath={basePath} initialCustomer={customer} />

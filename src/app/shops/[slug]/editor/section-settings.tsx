@@ -46,6 +46,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerShowLanguageSwitcher?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
   
   // Mobile menu settings
@@ -345,6 +346,11 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
               label="הצג חשבון"
               value={settings.headerShowAccount ?? true}
               onChange={(v) => updateSettings({ headerShowAccount: v })}
+            />
+            <SwitchField
+              label="הצג בורר שפה"
+              value={settings.headerShowLanguageSwitcher ?? false}
+              onChange={(v) => updateSettings({ headerShowLanguageSwitcher: v })}
             />
           </SettingsGroup>
         </div>

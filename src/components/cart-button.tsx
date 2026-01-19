@@ -36,15 +36,15 @@ export function CartButton() {
   return (
     <button 
       onClick={openCart}
-      className="relative group flex items-center gap-3 cursor-pointer"
+      className="relative group flex items-center gap-2 cursor-pointer"
     >
       <span className="text-[11px] tracking-[0.2em] uppercase text-gray-600 group-hover:text-black transition-colors duration-300 hidden sm:block">
         עגלה
       </span>
-      <div className="relative">
+      <div className="relative w-9 h-9 flex items-center justify-center">
         <svg 
-          width="20" 
-          height="20" 
+          width="18" 
+          height="18" 
           viewBox="0 0 24 24" 
           fill="none" 
           stroke="currentColor" 
@@ -56,7 +56,7 @@ export function CartButton() {
           <path d="M16 10a4 4 0 0 1-8 0"/>
         </svg>
         {cartCount > 0 && (
-          <span className="absolute -top-2 -right-2 w-5 h-5 bg-black text-white text-[10px] font-medium rounded-full flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 w-4 h-4 bg-black text-white text-[9px] font-medium rounded-full flex items-center justify-center">
             {cartCount > 99 ? '99' : cartCount}
           </span>
         )}

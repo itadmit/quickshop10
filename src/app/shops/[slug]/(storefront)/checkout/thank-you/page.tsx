@@ -37,6 +37,10 @@ import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
 import { parseRedirectParams, isSuccessfulRedirect } from '@/lib/payments/factory';
 import { executePostPaymentActions, type CartItem, type OrderData } from '@/lib/orders/post-payment';
 import { calculateItemDiscounts } from '@/lib/order-item-discount';
+import { getUITranslations, detectLocaleWithGeo } from '@/lib/translations';
+import { hebrewTranslations } from '@/lib/translations/defaults/he';
+import type { SupportedLocale, UITranslations } from '@/lib/translations/types';
+import { cookies } from 'next/headers';
 
 interface ThankYouPageProps {
   params: Promise<{ slug: string }>;
@@ -208,6 +212,32 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   const storeSettings = (store.settings as Record<string, unknown>) || {};
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
   const format = (p: number | string | null | undefined) => formatPrice(p, { showDecimal: showDecimalPrices });
+  
+  // 🌍 Get translations with geo-detection (only loads from DB if needed)
+  const supportedLocales = (store.supportedLocales as SupportedLocale[]) || ['he'];
+  const defaultLocale = (store.defaultLocale as SupportedLocale) || 'he';
+  const hasMultipleLocales = supportedLocales.length > 1;
+  const hasCustomTranslations = Boolean(store.hasCustomTranslations);
+  
+  // ⚡ FAST: Detect locale using Vercel geo headers (zero latency)
+  let locale: SupportedLocale = defaultLocale;
+  if (hasMultipleLocales) {
+    const headersList = await headers();
+    const cookieStore = await cookies();
+    
+    locale = detectLocaleWithGeo({
+      cookieLocale: cookieStore.get('preferred_locale')?.value,
+      countryCode: headersList.get('x-vercel-ip-country'),
+      acceptLanguage: headersList.get('accept-language') ?? undefined,
+      supportedLocales,
+      defaultLocale,
+    });
+  }
+  
+  let t: UITranslations = hebrewTranslations;
+  if (hasMultipleLocales || hasCustomTranslations || locale !== 'he') {
+    t = await getUITranslations(store.id, locale);
+  }
   
   // First try to find existing order by reference (orderNumber)
   let order = null;
@@ -1052,13 +1082,13 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             <CheckCircleIcon className="text-green-600" size={32} />
           </div>
           <h1 className="font-display text-3xl font-light tracking-wide mb-2">
-            תודה על הזמנתך!
+            {t.checkout.success.thankYou}
           </h1>
           <p className="text-gray-600">
-            הזמנה מספר <span className="font-medium">{order.orderNumber}</span> התקבלה בהצלחה
+            {t.checkout.success.orderNumber} <span className="font-medium">{order.orderNumber}</span> {t.checkout.success.orderReceived}
           </p>
           <p className="text-sm text-gray-500 mt-2">
-            אישור נשלח לכתובת {order.customerEmail}
+            {t.checkout.success.emailSent} {order.customerEmail}
           </p>
         </div>
       </div>
@@ -1071,7 +1101,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           <div className="p-6 border-b border-gray-100">
             <h2 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
               <PackageIcon size={20} />
-              פריטים בהזמנה
+              {t.checkout.success.itemsInOrder}
             </h2>
             <div className="space-y-4">
               {items.map((item) => {
@@ -1098,7 +1128,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                     {item.variantTitle && (
                       <p className="text-sm text-gray-500">{item.variantTitle}</p>
                     )}
-                    <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
+                    <p className="text-sm text-gray-500">{t.cart.quantity}: {item.quantity}</p>
                     
                     {/* Display addons if present */}
                     {(() => {
@@ -1119,7 +1149,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                           )}
                           {props?.bundleComponents && props.bundleComponents.length > 0 && (
                             <div className="mt-1 text-xs bg-gray-50 border border-gray-200 p-1.5">
-                              <span className="text-gray-700 font-medium">כולל:</span>
+                              <span className="text-gray-700 font-medium">{t.general.includes}:</span>
                               {props.bundleComponents.map((comp, i) => (
                                 <p key={i} className="text-gray-600">
                                   • {comp.name}{comp.variantTitle ? ` (${comp.variantTitle})` : ''}{comp.quantity > 1 ? ` ×${comp.quantity}` : ''}
@@ -1164,22 +1194,22 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           <div className="p-6 border-b border-gray-100">
             <h2 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
               <CreditCardIcon size={20} />
-              פרטי תשלום
+              {t.checkout.success.paymentDetails}
             </h2>
             <div className="space-y-2 text-sm">
               {paymentInfo.lastFour && (
                 <p className="text-gray-600">
-                  כרטיס: •••• {paymentInfo.lastFour}
+                  {t.checkout.success.card}: •••• {paymentInfo.lastFour}
                   {paymentInfo.brand && ` (${paymentInfo.brand})`}
                 </p>
               )}
               {paymentInfo.approvalNum && (
                 <p className="text-gray-600">
-                  אישור: {paymentInfo.approvalNum}
+                  {t.checkout.success.approval}: {paymentInfo.approvalNum}
                 </p>
               )}
               <p className="text-gray-900 font-medium">
-                סה״כ שולם: {format(order.total)}
+                {t.checkout.success.totalPaid}: {format(order.total)}
               </p>
             </div>
           </div>
@@ -1189,14 +1219,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             <div className="p-6 border-b border-gray-100">
               <h2 className="font-medium text-gray-900 mb-4 flex items-center gap-2">
                 <MapPinIcon size={20} />
-                כתובת למשלוח
+                {t.checkout.success.shippingAddress}
               </h2>
               <div className="text-sm text-gray-600">
                 <p>{shippingAddr.firstName} {shippingAddr.lastName}</p>
                 <p>{shippingAddr.address}</p>
                 <p>{shippingAddr.city}</p>
                 {shippingAddr.phone && (
-                  <p className="mt-2">טלפון: {shippingAddr.phone}</p>
+                  <p className="mt-2">{t.checkout.success.phone}: {shippingAddr.phone}</p>
                 )}
               </div>
             </div>
@@ -1206,7 +1236,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           <div className="p-6 bg-gray-50">
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">סכום לפני הנחות</span>
+                <span className="text-gray-600">{t.checkout.summary.subtotal}</span>
                 <span>{format(order.subtotal)}</span>
               </div>
               
@@ -1242,11 +1272,11 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                         <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
                       </svg>
                     )}
-                    {discount.type === 'coupon' ? `קופון ${discount.code}${discount.description ? ` (${discount.description})` : ''}` :
-                     discount.type === 'gift_card' ? `גיפט קארד ${discount.code}` :
-                     discount.type === 'auto' ? `הנחה אוטומטית: ${discount.name}` :
-                     discount.type === 'member' ? 'הנחת חברי מועדון' :
-                     discount.type === 'credit' ? 'קרדיט' : discount.name}
+                    {discount.type === 'coupon' ? `${t.checkout.success.coupon} ${discount.code}${discount.description ? ` (${discount.description})` : ''}` :
+                     discount.type === 'gift_card' ? `${t.checkout.success.giftCard} ${discount.code}` :
+                     discount.type === 'auto' ? `${t.checkout.success.automaticDiscount}: ${discount.name}` :
+                     discount.type === 'member' ? t.checkout.success.memberDiscount :
+                     discount.type === 'credit' ? t.checkout.payment.creditBalance : discount.name}
                   </span>
                   <span>-{format(discount.amount)}</span>
                 </div>
@@ -1255,7 +1285,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
               {/* Fallback for old orders without discountDetails */}
               {!((order.discountDetails as unknown[])?.length) && Number(order.discountAmount) > 0 && (
                 <div className="flex justify-between text-green-600">
-                  <span>הנחה {order.discountCode && `(${order.discountCode})`}</span>
+                  <span>{t.checkout.success.discount} {order.discountCode && `(${order.discountCode})`}</span>
                   <span>-{format(order.discountAmount)}</span>
                 </div>
               )}
@@ -1267,14 +1297,14 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
                     </svg>
-                    קרדיט
+                    {t.checkout.payment.creditBalance}
                   </span>
                   <span>-{format(order.creditUsed)}</span>
                 </div>
               )}
               
               <div className="flex justify-between">
-                <span className="text-gray-600">משלוח</span>
+                <span className="text-gray-600">{t.checkout.summary.shipping}</span>
                 {Number(order.shippingAmount) > 0 ? (
                   <span>{format(order.shippingAmount)}</span>
                 ) : (
@@ -1282,13 +1312,13 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
                     </svg>
-                    חינם
+                    {t.checkout.success.free}
                   </span>
                 )}
               </div>
               
               <div className="flex justify-between font-medium text-lg pt-2 border-t border-gray-200">
-                <span>סה״כ</span>
+                <span>{t.checkout.summary.total}</span>
                 <span>{format(order.total)}</span>
               </div>
             </div>
@@ -1302,7 +1332,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
             <ArrowLeftIcon size={16} />
-            המשך בקניות
+            {t.checkout.success.continueShopping}
           </Link>
         </div>
       </div>

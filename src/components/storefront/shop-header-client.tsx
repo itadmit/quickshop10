@@ -7,8 +7,10 @@ import { MobileMenu } from '@/components/mobile-menu';
 import { CartButton } from '@/components/cart-button';
 import { UserButton } from '@/components/user-button';
 import { SearchButton } from '@/components/search-button';
+import { LanguageSwitcher } from './language-switcher';
 import { usePreviewSettings } from './preview-settings-provider';
 import { MegaMenuDropdown } from '@/components/mega-menu-dropdown';
+import type { SupportedLocale } from '@/lib/translations/types';
 
 /**
  * Shop Header Client Component
@@ -216,10 +218,14 @@ interface ShopHeaderClientProps {
   defaultShowSearch?: boolean;
   defaultShowCart?: boolean;
   defaultShowAccount?: boolean;
+  defaultShowLanguageSwitcher?: boolean;
   defaultMobileMenuShowImages?: boolean;
   defaultMobileMenuImageStyle?: 'fullRow' | 'square';
   defaultMobileMenuBgColor?: string;
   defaultMegaMenuBgColor?: string;
+  // Locale settings
+  currentLocale?: string;
+  supportedLocales?: string[];
 }
 
 export function ShopHeaderClient({ 
@@ -237,10 +243,13 @@ export function ShopHeaderClient({
   defaultShowSearch = true,
   defaultShowCart = true,
   defaultShowAccount = true,
+  defaultShowLanguageSwitcher = false,
   defaultMobileMenuShowImages = false,
   defaultMobileMenuImageStyle = 'square',
   defaultMobileMenuBgColor = '#f9fafb',
   defaultMegaMenuBgColor = '#f9fafb',
+  currentLocale = 'he',
+  supportedLocales = ['he'],
 }: ShopHeaderClientProps) {
   const { settings, isPreviewMode } = usePreviewSettings();
   const [announcementDismissed, setAnnouncementDismissed] = useState(false);
@@ -258,6 +267,7 @@ export function ShopHeaderClient({
   const showSearch = isPreviewMode ? (settings.headerShowSearch ?? defaultShowSearch) : defaultShowSearch;
   const showCart = isPreviewMode ? (settings.headerShowCart ?? defaultShowCart) : defaultShowCart;
   const showAccount = isPreviewMode ? (settings.headerShowAccount ?? defaultShowAccount) : defaultShowAccount;
+  const showLanguageSwitcher = isPreviewMode ? (settings.headerShowLanguageSwitcher ?? defaultShowLanguageSwitcher) : defaultShowLanguageSwitcher;
   
   // Logo URL from preview settings (for real-time updates in editor)
   const effectiveLogoUrl = isPreviewMode && settings.logoUrl !== undefined ? settings.logoUrl : logoUrl;
@@ -443,6 +453,13 @@ export function ShopHeaderClient({
   const Icons = ({ cartAtStart = false }: { cartAtStart?: boolean }) => (
     <div className="flex items-center gap-1 sm:gap-2">
       {cartAtStart && showCart && <CartButton />}
+      {showLanguageSwitcher && supportedLocales.length > 1 && (
+        <LanguageSwitcher 
+          currentLocale={currentLocale as SupportedLocale}
+          supportedLocales={supportedLocales as SupportedLocale[]}
+          variant="minimal"
+        />
+      )}
       {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
       {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
       {!cartAtStart && showCart && <CartButton />}

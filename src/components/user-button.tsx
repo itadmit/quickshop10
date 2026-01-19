@@ -65,19 +65,19 @@ export function UserButton({ basePath, initialCustomer }: UserButtonProps) {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
+        className="flex items-center justify-center transition-colors cursor-pointer"
         aria-label={customer ? 'פתח תפריט משתמש' : 'התחבר'}
       >
         {customer ? (
           // Logged in - show user avatar or initials
-          <div className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-medium">
+          <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center text-xs font-medium">
             {customer.firstName ? customer.firstName[0].toUpperCase() : customer.email[0].toUpperCase()}
           </div>
         ) : (
           // Not logged in - show user icon
           <svg 
-            width="22" 
-            height="22" 
+            width="18" 
+            height="18" 
             viewBox="0 0 24 24" 
             fill="none" 
             stroke="currentColor" 

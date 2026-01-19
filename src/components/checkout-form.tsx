@@ -15,6 +15,8 @@ import { tracker } from '@/lib/tracking';
 import { getProductsByIds } from '@/app/actions/products';
 import { useCitySearch, useStreetSearch } from '@/hooks/useIsraelAddress';
 import { Autocomplete } from '@/components/ui/autocomplete';
+import { useCheckoutTranslations, type CheckoutTranslations } from '@/lib/translations/use-translations';
+import type { DeepPartial } from '@/lib/translations/types';
 
 // Import QuickPaymentForm types
 import type { QuickPaymentFormRef } from './checkout/QuickPaymentForm';
@@ -113,6 +115,8 @@ interface CheckoutFormProps {
   quickPaymentsConfig?: QuickPaymentsConfig | null;
   checkoutSettings?: CheckoutSettings;
   shippingSettings?: ShippingSettings;
+  /** Optional translations - falls back to Hebrew if not provided */
+  translations?: DeepPartial<CheckoutTranslations> | null;
 }
 
 const defaultCheckoutSettings: CheckoutSettings = {
@@ -140,8 +144,12 @@ export function CheckoutForm({
   quickPaymentsConfig = null,
   checkoutSettings = defaultCheckoutSettings,
   shippingSettings = defaultShippingSettings,
+  translations,
 }: CheckoutFormProps) {
   const { cart, cartTotal, cartOriginalTotal, clearCart, isHydrated, addGiftItem, removeGiftItemsByCoupon, appliedCoupons, addCoupon, removeCoupon, clearCoupons, formatPrice, addToCart } = useStore();
+  
+  // 🌍 Translations with Hebrew fallback
+  const t = useCheckoutTranslations(translations);
   const router = useRouter();
   const searchParams = useSearchParams();
   const homeUrl = basePath || '/';
@@ -1576,8 +1584,8 @@ export function CheckoutForm({
               <path d="M16 10a4 4 0 0 1-8 0"/>
             </svg>
           </div>
-          <h2 className="font-display text-2xl tracking-wide uppercase mb-3">העגלה ריקה</h2>
-          <p className="text-gray-400 text-sm mb-10">נראה שעדיין לא הוספת פריטים לעגלה</p>
+          <h2 className="font-display text-2xl tracking-wide uppercase mb-3">{t.emptyCart}</h2>
+          <p className="text-gray-400 text-sm mb-10">{t.emptyCartDescription}</p>
           <Link href={homeUrl} className="btn-primary">
             המשך בקניות
           </Link>
@@ -1620,7 +1628,7 @@ export function CheckoutForm({
             <form onSubmit={handleSubmit} className="bg-white p-8 shadow-sm">
               {(isSinglePage || step === 'details') && (
                 <div className={isSinglePage ? 'mb-8 pb-8 border-b border-gray-100' : ''}>
-                  <h2 className="font-display text-xl mb-6">פרטי התקשרות</h2>
+                  <h2 className="font-display text-xl mb-6">{t.contactDetails.title}</h2>
                   
                   {/* Login/Logged-in Section */}
                   {loggedInCustomer ? (
@@ -1705,7 +1713,7 @@ export function CheckoutForm({
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          שם פרטי *
+                          {t.shipping.firstName} *
                         </label>
                         <input
                           type="text"
@@ -1719,7 +1727,7 @@ export function CheckoutForm({
                       </div>
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          שם משפחה *
+                          {t.shipping.lastName} *
                         </label>
                         <input
                           type="text"
@@ -1735,7 +1743,7 @@ export function CheckoutForm({
                     {/* Phone - based on settings */}
                     <div>
                       <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                        טלפון {checkoutSettings.requirePhone && '*'}
+                        {t.shipping.phone} {checkoutSettings.requirePhone && '*'}
                       </label>
                       <input
                         type="tel"
@@ -1769,10 +1777,10 @@ export function CheckoutForm({
                           />
                           <div>
                             <span className="text-sm text-gray-700 group-hover:text-black transition-colors">
-                              צור חשבון והצטרף למועדון הלקוחות
+                              {t.account.createAccount}
                             </span>
                             <p className="text-xs text-gray-500 mt-1">
-                              קבל הנחות בלעדיות, צבור נקודות ועקוב אחרי ההזמנות שלך
+                              {t.account.createAccountDescription}
                             </p>
                           </div>
                         </label>
@@ -1780,11 +1788,11 @@ export function CheckoutForm({
                         {formData.createAccount && (
                           <div className="mt-4 mr-7">
                             {checkingEmail ? (
-                              <p className="text-sm text-gray-500">בודק מייל...</p>
+                              <p className="text-sm text-gray-500">{t.account.checkingEmail}</p>
                             ) : emailExists?.hasAccount ? (
                               <div className="bg-blue-50 border border-blue-200 p-4 rounded">
                                 <p className="text-sm text-blue-800 mb-2">
-                                  כבר קיים חשבון עם כתובת מייל זו
+                                  {t.account.existingAccount}
                                 </p>
                                 <button
                                   type="button"
@@ -1813,7 +1821,7 @@ export function CheckoutForm({
                                   value={formData.password}
                                   onChange={e => setFormData({...formData, password: e.target.value})}
                                   className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                                  placeholder="לפחות 8 תווים"
+                                  placeholder={t.account.passwordPlaceholder}
                                   minLength={8}
                                 />
                               </>
@@ -1836,7 +1844,7 @@ export function CheckoutForm({
                           אשמח לקבל עדכונים ומבצעים במייל
                         </span>
                         <p className="text-xs text-gray-500 mt-1">
-                          ניתן לבטל בכל עת
+                          {t.marketing.subscribeDescription}
                         </p>
                       </div>
                     </label>
@@ -1846,20 +1854,20 @@ export function CheckoutForm({
 
               {(isSinglePage || step === 'shipping') && !isVirtualCartOnly && (
                 <div ref={shippingSectionRef} className={isSinglePage ? 'mb-8 pb-8 border-b border-gray-100' : ''}>
-                  <h2 className="font-display text-xl mb-6">כתובת למשלוח</h2>
+                  <h2 className="font-display text-xl mb-6">{t.shipping.title}</h2>
                   <div className="space-y-4">
                     {/* Company field - based on settings */}
                     {checkoutSettings.requireCompany && (
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          שם חברה
+                          {t.shipping.company}
                         </label>
                         <input
                           type="text"
                           value={formData.company}
                           onChange={e => setFormData({...formData, company: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                          placeholder="שם החברה (אופציונלי)"
+                          placeholder={t.shipping.companyPlaceholder}
                         />
                       </div>
                     )}
@@ -1867,7 +1875,7 @@ export function CheckoutForm({
                     {/* City - required with autocomplete */}
                     <div>
                       <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                        עיר *
+                        {t.shipping.city} *
                       </label>
                       <Autocomplete
                         value={formData.city}
@@ -1889,10 +1897,10 @@ export function CheckoutForm({
                           label: city.cityName,
                         }))}
                         loading={citySearch.loading}
-                        placeholder="לחץ לבחירת עיר..."
+                        placeholder={t.shipping.cityPlaceholder}
                         inputClassName="border-gray-200 focus:border-black"
                         selectOnly
-                        errorMessage="יש לבחור עיר מהרשימה"
+                        errorMessage={t.errors.selectCity}
                         required
                       />
                     </div>
@@ -1901,7 +1909,7 @@ export function CheckoutForm({
                     <div className="grid grid-cols-3 gap-4">
                       <div className="col-span-2">
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          רחוב *
+                          {t.shipping.street} *
                         </label>
                         <Autocomplete
                           value={formData.street}
@@ -1920,18 +1928,18 @@ export function CheckoutForm({
                             label: street.streetName,
                           }))}
                           loading={streetSearch.loading}
-                          placeholder={selectedCity ? "התחל להקליד רחוב..." : "בחר עיר קודם"}
+                          placeholder={selectedCity ? t.shipping.streetPlaceholder : t.shipping.selectCityFirst}
                           inputClassName="border-gray-200 focus:border-black"
                           disabled={!selectedCity}
-                          disabledMessage="יש לבחור עיר קודם"
+                          disabledMessage={t.shipping.selectCityFirst}
                           selectOnly
-                          errorMessage="יש לבחור רחוב מהרשימה"
+                          errorMessage={t.errors.selectStreet}
                           required
                         />
                       </div>
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          מספר בית *
+                          {t.shipping.houseNumber} *
                         </label>
                         <input
                           type="text"
@@ -1950,7 +1958,7 @@ export function CheckoutForm({
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          דירה
+                          {t.shipping.apartment}
                         </label>
                         <input
                           type="text"
@@ -1959,12 +1967,12 @@ export function CheckoutForm({
                           value={formData.apartment}
                           onChange={e => setFormData({...formData, apartment: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                          placeholder="מספר דירה"
+                          placeholder={t.shipping.apartmentPlaceholder}
                         />
                       </div>
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          קומה
+                          {t.shipping.floor}
                         </label>
                         <input
                           type="text"
@@ -1973,7 +1981,7 @@ export function CheckoutForm({
                           value={formData.floor}
                           onChange={e => setFormData({...formData, floor: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                          placeholder="מספר קומה"
+                          placeholder={t.shipping.floorPlaceholder}
                         />
                       </div>
                     </div>
@@ -1982,7 +1990,7 @@ export function CheckoutForm({
                     {checkoutSettings.showZipCode && (
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          מיקוד
+                          {t.shipping.zipCode}
                         </label>
                         <input
                           type="text"
@@ -2000,30 +2008,30 @@ export function CheckoutForm({
                     {checkoutSettings.allowNotes && (
                       <div>
                         <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                          הערות למשלוח
+                          {t.shipping.notes}
                         </label>
                         <textarea
                           rows={3}
                           value={formData.notes}
                           onChange={e => setFormData({...formData, notes: e.target.value})}
                           className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors resize-none"
-                          placeholder="הוראות מיוחדות לשליח..."
+                          placeholder={t.shipping.notesPlaceholder}
                         />
                       </div>
                     )}
                     
                     {/* 🚚 Shipping Method Selection */}
                     <div className="mt-6 pt-6 border-t border-gray-200">
-                      <h3 className="font-display text-lg mb-4">שיטת משלוח</h3>
+                      <h3 className="font-display text-lg mb-4">{t.shippingMethods.title}</h3>
                       
                       {loadingShippingOptions ? (
                         <div className="flex items-center justify-center py-8">
                           <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-300 border-t-black"></div>
-                          <span className="mr-3 text-gray-500">טוען אפשרויות משלוח...</span>
+                          <span className="mr-3 text-gray-500">{t.shippingMethods.loading}</span>
                         </div>
                       ) : shippingOptions.length === 0 ? (
                         <div className="text-center py-4 text-gray-500">
-                          אין אפשרויות משלוח זמינות
+                          {t.shippingMethods.noOptions}
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -2054,7 +2062,7 @@ export function CheckoutForm({
                                   <div className="font-medium flex items-center gap-2">
                                     {option.name}
                                     {option.isFree && !option.isPickup && (
-                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">חינם</span>
+                                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">{t.shippingMethods.free}</span>
                                     )}
                                   </div>
                                   <div className="text-sm text-gray-500">
@@ -2069,7 +2077,7 @@ export function CheckoutForm({
                               </div>
                               <div className="font-medium">
                                 {option.isFree || option.price === 0 ? (
-                                  <span className="text-green-600">חינם</span>
+                                  <span className="text-green-600">{t.shippingMethods.free}</span>
                                 ) : (
                                   <span>₪{option.price.toFixed(2)}</span>
                                 )}
@@ -2131,7 +2139,7 @@ export function CheckoutForm({
 
               {(isSinglePage || step === 'payment') && (
                 <div ref={paymentSectionRef}>
-                  <h2 className="font-display text-xl mb-6">פרטי תשלום</h2>
+                  <h2 className="font-display text-xl mb-6">{t.payment.title}</h2>
                   <div className="space-y-4">
                     {/* Show payment error from URL - only if we're on payment step and error exists */}
                     {paymentError && (isSinglePage || step === 'payment') && (
@@ -2140,7 +2148,7 @@ export function CheckoutForm({
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                           </svg>
-                          <span>התשלום נכשל. אנא נסה שנית.</span>
+                          <span>{t.payment.tryAgain}</span>
                         </div>
                       </div>
                     )}
@@ -2167,15 +2175,15 @@ export function CheckoutForm({
                               </svg>
                             </div>
                             <div>
-                              <p className="font-medium text-blue-900">תשלום מאובטח</p>
-                              <p className="text-sm text-blue-700">תועבר לעמוד תשלום מאובטח להשלמת הרכישה</p>
+                              <p className="font-medium text-blue-900">{t.payment.securePayment}</p>
+                              <p className="text-sm text-blue-700">{t.payment.securePaymentDescription}</p>
                             </div>
                           </div>
                         </div>
                         
                         {/* Payment methods icons */}
                         <div className="flex items-center justify-center gap-4 py-4">
-                          <div className="text-[10px] tracking-wider text-gray-400 uppercase">אמצעי תשלום</div>
+                          <div className="text-[10px] tracking-wider text-gray-400 uppercase">{t.payment.paymentMethod}</div>
                           <div className="flex items-center gap-2">
                             <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Visa</span>
                             <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Mastercard</span>
@@ -2225,7 +2233,7 @@ export function CheckoutForm({
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                           </svg>
-                          <span>מצב סימולציה - לא נדרשים פרטי כרטיס אמיתיים</span>
+                          <span>{t.payment.simulationMode}</span>
                         </div>
                       </>
                     )}
@@ -2356,7 +2364,7 @@ export function CheckoutForm({
 
             {/* Order Summary */}
             <div className="bg-white p-6 shadow-sm">
-              <h3 className="font-display text-xl mb-6">סיכום הזמנה</h3>
+              <h3 className="font-display text-xl mb-6">{t.summary.title}</h3>
               
               <ul className="space-y-4 mb-6">
                 {cart.map(item => (
@@ -2377,7 +2385,7 @@ export function CheckoutForm({
                       {item.variantTitle && (
                         <p className="text-xs text-gray-500">{item.variantTitle}</p>
                       )}
-                      <p className="text-sm text-gray-500">כמות: {item.quantity}</p>
+                      <p className="text-sm text-gray-500">{t.summary.quantity}: {item.quantity}</p>
                       <div className="flex flex-col gap-1">
                         {/* Show original and discounted price like cart sidebar */}
                         <div className="flex items-center gap-2">
@@ -2414,7 +2422,7 @@ export function CheckoutForm({
                             ))}
                             {item.addonTotal && item.addonTotal > 0 && (
                               <div className="text-gray-500 pt-1 border-t border-gray-200 flex justify-between">
-                                <span>סה"כ תוספות:</span>
+                                <span>{t.summary.addonsTotal}:</span>
                                 <span className="text-green-600">+{formatPrice(item.addonTotal * item.quantity)}</span>
                               </div>
                             )}
@@ -2424,7 +2432,7 @@ export function CheckoutForm({
                         {/* Bundle Components Display */}
                         {item.isBundle && item.bundleComponents && item.bundleComponents.length > 0 && (
                           <div className="mt-1.5 bg-gray-50 border border-gray-200 p-2 text-xs">
-                            <p className="text-gray-700 font-medium mb-1">כולל:</p>
+                            <p className="text-gray-700 font-medium mb-1">{t.summary.bundleIncludes}:</p>
                             {item.bundleComponents.map((comp, i) => (
                               <p key={i} className="text-gray-600">
                                 • {comp.name}{comp.variantTitle ? ` (${comp.variantTitle})` : ''}{comp.quantity > 1 ? ` ×${comp.quantity}` : ''}
@@ -2442,14 +2450,14 @@ export function CheckoutForm({
 
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">סכום לפני הנחות</span>
+                  <span className="text-gray-500">{t.summary.beforeDiscounts}</span>
                   <span>{formatPrice(cartOriginalTotal)}</span>
                 </div>
                 
                 {/* Member Discount */}
                 {memberDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>הנחת חברי מועדון (5%)</span>
+                    <span>{t.summary.memberDiscount} (5%)</span>
                     <span>-{formatPrice(memberDiscount)}</span>
                   </div>
                 )}
@@ -2459,7 +2467,7 @@ export function CheckoutForm({
                   const discountInfo = autoDiscounts.find(ad => ad.id === d.discountId);
                   return (
                     <div key={d.discountId} className="flex justify-between text-green-600">
-                      <span>הנחה אוטומטית{discountInfo?.name ? `: ${discountInfo.name}` : ''}</span>
+                      <span>{t.summary.automaticDiscount}{discountInfo?.name ? `: ${discountInfo.name}` : ''}</span>
                       <span>-{formatPrice(d.amount)}</span>
                     </div>
                   );
@@ -2519,22 +2527,22 @@ export function CheckoutForm({
                 )}
                 
                 <div className="flex justify-between">
-                  <span className="text-gray-500">משלוח</span>
+                  <span className="text-gray-500">{t.summary.shipping}</span>
                   {!isSinglePage && step === 'details' ? (
-                    <span className="text-gray-400 text-xs">יחושב בשלב הבא</span>
+                    <span className="text-gray-400 text-xs">{t.summary.calculatedNext}</span>
                   ) : hasFreeShipping ? (
                     <span className="text-green-600 flex items-center gap-1">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
-                      חינם (קופון משלוח)
+                      {t.summary.shippingFree}
                     </span>
                   ) : shipping === 0 ? (
                     <span className="text-green-600 flex items-center gap-1">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
-                      חינם
+                      {t.shippingMethods.free}
                     </span>
                   ) : (
                     <span>{formatPrice(shipping)}</span>
@@ -2562,7 +2570,7 @@ export function CheckoutForm({
                         <rect x="2" y="4" width="20" height="16" rx="2"/>
                         <path d="M6 12h4"/>
                       </svg>
-                      <span className="text-sm font-medium text-blue-800">יתרת קרדיט</span>
+                      <span className="text-sm font-medium text-blue-800">{t.summary.creditBalance}</span>
                     </div>
                     <span className="text-sm font-medium text-blue-800">{formatPrice(creditBalance)}</span>
                   </div>
@@ -2583,7 +2591,7 @@ export function CheckoutForm({
               {/* Show credit used in summary */}
               {creditUsed > 0 && (
                 <div className="flex justify-between text-sm text-blue-600 mt-4">
-                  <span>קרדיט</span>
+                  <span>{t.summary.credit}</span>
                   <span>-{formatPrice(creditUsed)}</span>
                 </div>
               )}
@@ -2591,7 +2599,7 @@ export function CheckoutForm({
               <hr className="border-gray-100 my-6" />
 
               <div className="flex justify-between text-lg font-display">
-                <span>סה״כ</span>
+                <span>{t.summary.total}</span>
                 <span>{!isSinglePage && step === 'details' ? formatPrice(cartOriginalTotal - totalDiscount) : formatPrice(total)}</span>
               </div>
             </div>

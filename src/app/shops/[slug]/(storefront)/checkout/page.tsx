@@ -1,9 +1,11 @@
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { CheckoutForm, CheckoutSettings, ShippingSettings } from '@/components/checkout-form';
 import { db } from '@/lib/db';
 import { stores, paymentProviders } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { Suspense } from 'react';
+import { getUITranslations, detectLocaleWithGeo } from '@/lib/translations';
+import type { SupportedLocale, CheckoutTranslations } from '@/lib/translations/types';
 
 // Force dynamic rendering - useSearchParams needs it
 export const dynamic = 'force-dynamic';
@@ -24,6 +26,10 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
   quickPaymentsConfig: { publicKey: string; testMode: boolean } | null;
   checkoutSettings: CheckoutSettings;
   shippingSettings: ShippingSettings;
+  // Localization
+  defaultLocale: SupportedLocale;
+  supportedLocales: SupportedLocale[];
+  hasCustomTranslations: boolean;
 } | null> {
   try {
     // Get store with settings
@@ -31,6 +37,9 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
       .select({ 
         id: stores.id,
         settings: stores.settings,
+        defaultLocale: stores.defaultLocale,
+        supportedLocales: stores.supportedLocales,
+        hasCustomTranslations: stores.hasCustomTranslations,
       })
       .from(stores)
       .where(eq(stores.slug, storeSlug))
@@ -105,6 +114,10 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
       quickPaymentsConfig,
       checkoutSettings,
       shippingSettings,
+      // Localization
+      defaultLocale: (store.defaultLocale as SupportedLocale) || 'he',
+      supportedLocales: (store.supportedLocales as SupportedLocale[]) || ['he'],
+      hasCustomTranslations: store.hasCustomTranslations || false,
     };
   } catch {
     return null;
@@ -138,6 +151,39 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     freeShippingThreshold: 200,
     enableFreeShipping: true,
   };
+  
+  // 🌍 Get translations with geo-detection (only loads from DB if needed)
+  const supportedLocales = (storeData?.supportedLocales as SupportedLocale[]) || ['he'];
+  const defaultLocale = (storeData?.defaultLocale as SupportedLocale) || 'he';
+  const hasMultipleLocales = supportedLocales.length > 1;
+  const hasCustomTranslations = storeData?.hasCustomTranslations ?? false;
+  
+  // ⚡ FAST: Detect locale using Vercel geo headers (zero latency)
+  let locale: SupportedLocale = defaultLocale;
+  if (hasMultipleLocales) {
+    const headersList = await headers();
+    const cookieStore = await cookies();
+    
+    locale = detectLocaleWithGeo({
+      cookieLocale: cookieStore.get('preferred_locale')?.value,
+      countryCode: headersList.get('x-vercel-ip-country'),
+      acceptLanguage: headersList.get('accept-language') ?? undefined,
+      supportedLocales,
+      defaultLocale,
+    });
+  }
+  
+  // Get translations for checkout - will return static Hebrew if no customization needed
+  let checkoutTranslations: CheckoutTranslations | undefined;
+  if (hasMultipleLocales || hasCustomTranslations || locale !== 'he') {
+    const uiTranslations = await getUITranslations(
+      storeId, 
+      locale, 
+      hasMultipleLocales, 
+      hasCustomTranslations
+    );
+    checkoutTranslations = uiTranslations.checkout;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -161,6 +207,7 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
           quickPaymentsConfig={quickPaymentsConfig}
           checkoutSettings={checkoutSettings}
           shippingSettings={shippingSettings}
+          translations={checkoutTranslations}
         />
       </Suspense>
     </div>

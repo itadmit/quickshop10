@@ -237,10 +237,10 @@ export function SearchButton({ basePath, storeId }: SearchButtonProps) {
       {/* Search Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="p-2 text-gray-600 hover:text-black transition-colors cursor-pointer"
+        className="flex items-center justify-center text-gray-600 hover:text-black transition-colors cursor-pointer"
         aria-label="חיפוש"
       >
-        <Search className="w-5 h-5" />
+        <Search className="w-[18px] h-[18px]" />
       </button>
 
       {searchModal}

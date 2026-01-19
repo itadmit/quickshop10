@@ -20,6 +20,7 @@ export interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerShowLanguageSwitcher?: boolean;
   announcementEnabled?: boolean;
   announcementText?: string;
   announcementLink?: string;

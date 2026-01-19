@@ -5,15 +5,22 @@ import Link from 'next/link';
 import { tracker } from '@/lib/tracking';
 import { CartUpsells } from './cart-upsells';
 import { CartBundleComponents } from './cart-bundle-components';
+import { useCartTranslations, type CartTranslations } from '@/lib/translations/use-translations';
+import type { DeepPartial } from '@/lib/translations/types';
 
 interface CartSidebarProps {
   basePath?: string;
   storeSlug?: string;
   freeShippingThreshold?: number; // סף למשלוח חינם (אם הוגדר)
+  /** Optional translations - falls back to Hebrew if not provided */
+  translations?: DeepPartial<CartTranslations> | null;
 }
 
-export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }: CartSidebarProps) {
+export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold, translations }: CartSidebarProps) {
   const store = useStoreOptional();
+  
+  // 🌍 Translations with Hebrew fallback
+  const t = useCartTranslations(translations);
   
   // SSR safety - don't render if store context not available
   if (!store) return null;
@@ -70,7 +77,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
       >
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 shrink-0">
-          <h2 className="font-display text-xl tracking-[0.1em] font-light">עגלת קניות</h2>
+          <h2 className="font-display text-xl tracking-[0.1em] font-light">{t.title}</h2>
           <button 
             onClick={closeCart}
             className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-black transition-colors cursor-pointer"
@@ -99,7 +106,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                 <line x1="3" y1="6" x2="21" y2="6"/>
                 <path d="M16 10a4 4 0 0 1-8 0"/>
               </svg>
-              <p className="text-gray-400 text-sm tracking-wide">העגלה שלך ריקה</p>
+              <p className="text-gray-400 text-sm tracking-wide">{t.empty}</p>
             </div>
           ) : (
             <>
@@ -167,7 +174,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                             ))}
                             {item.addonTotal && item.addonTotal > 0 && (
                               <div className="text-xs text-gray-400 pt-0.5 border-t border-gray-100">
-                                תוספות: +{formatPrice(item.addonTotal)}
+                                {t.addons}: +{formatPrice(item.addonTotal)}
                               </div>
                             )}
                           </div>
@@ -185,13 +192,13 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M20 12v10H4V12M2 7h20v5H2zM12 22V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
                               </svg>
-                              <span className="font-medium">גיפט קארד</span>
+                              <span className="font-medium">{t.giftCard}</span>
                             </div>
                             <p className="text-[11px] text-purple-600">
-                              <span className="text-gray-500">עבור:</span> {item.giftCardDetails.recipientName}
+                              <span className="text-gray-500">{t.giftCardFor}:</span> {item.giftCardDetails.recipientName}
                             </p>
                             <p className="text-[11px] text-purple-600 dir-ltr text-right">
-                              <span className="text-gray-500">מייל:</span> {item.giftCardDetails.recipientEmail}
+                              <span className="text-gray-500">{t.giftCardEmail}:</span> {item.giftCardDetails.recipientEmail}
                             </p>
                           </div>
                         )}
@@ -227,7 +234,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                                     ? 'text-gray-300 cursor-not-allowed' 
                                     : 'text-gray-500 hover:text-black'
                                 }`}
-                                title={atMax ? 'הגעת למקסימום הזמין' : undefined}
+                                title={atMax ? t.maxQuantityReached : undefined}
                               >
                                 +
                               </button>
@@ -239,7 +246,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                         onClick={() => handleRemove(item)}
                         className="text-[11px] tracking-wide text-gray-400 hover:text-black underline underline-offset-4 transition-colors cursor-pointer"
                       >
-                        הסר
+                        {t.remove}
                       </button>
                     </div>
                   </div>
@@ -268,7 +275,10 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                           <circle cx="5.5" cy="18.5" r="2.5"/>
                           <circle cx="18.5" cy="18.5" r="2.5"/>
                         </svg>
-                        עוד <span className="font-medium text-black">{formatPrice(remainingForFreeShipping)}</span> למשלוח חינם
+                        {(() => {
+                          const parts = t.freeShippingProgress.split('{{amount}}');
+                          return <>{parts[0]}<span className="font-medium text-black">{formatPrice(remainingForFreeShipping)}</span>{parts[1]}</>;
+                        })()}
                       </span>
                     </div>
                     <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -283,14 +293,14 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <polyline points="20 6 9 17 4 12" />
                     </svg>
-                    <span>מזל טוב! המשלוח חינם 🎉</span>
+                    <span>{t.freeShippingReached} 🎉</span>
                   </div>
                 )}
               </div>
             )}
             
             <div className="flex justify-between items-center mb-6">
-              <span className="text-sm text-gray-500 tracking-wide">סה״כ</span>
+              <span className="text-sm text-gray-500 tracking-wide">{t.total}</span>
               <span className="text-lg font-display">{formatPrice(cartTotal)}</span>
             </div>
             <Link 
@@ -298,13 +308,13 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold }:
               onClick={closeCart}
               className="btn-primary w-full"
             >
-              המשך לתשלום
+              {t.checkout}
             </Link>
             <button 
               onClick={closeCart}
               className="w-full mt-3 text-[11px] tracking-[0.15em] uppercase text-gray-500 hover:text-black underline underline-offset-4 transition-colors py-2 cursor-pointer"
             >
-              המשך בקניות
+              {t.continueShopping}
             </button>
           </div>
         )}

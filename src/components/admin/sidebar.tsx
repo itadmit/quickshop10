@@ -352,6 +352,7 @@ const settingsMenuItems: MenuItem[] = [
       { label: 'מיסים', href: '/settings/tax' },
       { label: 'התראות', href: '/settings/notifications' },
       { label: 'מעקב ואנליטיקס', href: '/settings/tracking' },
+      { label: 'שפות ותרגום', href: '/settings/languages' },
       { label: 'צוות', href: '/settings/team' },
       { label: 'Webhooks', href: '/settings/webhooks' },
     ],

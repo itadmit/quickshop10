@@ -46,6 +46,10 @@ interface SmartHeaderProps {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerShowLanguageSwitcher?: boolean;
+  // Locale settings
+  currentLocale?: string;
+  supportedLocales?: string[];
 }
 
 export function SmartHeader({
@@ -60,6 +64,9 @@ export function SmartHeader({
   headerShowSearch = true,
   headerShowCart = true,
   headerShowAccount = true,
+  headerShowLanguageSwitcher = false,
+  currentLocale = 'he',
+  supportedLocales = ['he'],
 }: SmartHeaderProps) {
   const { isPreviewMode } = usePreviewSettings();
   
@@ -82,6 +89,9 @@ export function SmartHeader({
       defaultShowSearch={headerShowSearch}
       defaultShowCart={headerShowCart}
       defaultShowAccount={headerShowAccount}
+      defaultShowLanguageSwitcher={headerShowLanguageSwitcher}
+      currentLocale={currentLocale}
+      supportedLocales={supportedLocales}
     />
   );
 }
