@@ -600,6 +600,55 @@ async function runPOSPostCheckoutActions(
 }
 
 /**
+ * 🆕 Process refund for exchange with customer credit
+ * When exchange results in customer favor (negative total), we need to refund the difference
+ */
+export async function processExchangeRefund(
+  storeSlug: string,
+  originalOrderId: string,
+  refundAmount: number,
+  reason?: string
+): Promise<{ success: boolean; error?: string; refundId?: string }> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${storeSlug}.quickshop.co.il`;
+    
+    const response = await fetch(`${baseUrl}/api/payments/refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        storeSlug,
+        orderId: originalOrderId,
+        amount: Math.abs(refundAmount),
+        reason: reason || 'החזר בגין החלפה',
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('[POS] Exchange refund successful:', result.refundId);
+      return {
+        success: true,
+        refundId: result.refundId,
+      };
+    }
+    
+    return {
+      success: false,
+      error: result.error || 'שגיאה בביצוע הזיכוי',
+    };
+  } catch (error) {
+    console.error('[POS] Exchange refund error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'שגיאה בביצוע הזיכוי',
+    };
+  }
+}
+
+/**
  * 🆕 Charge order using Quick Payment (PayMe) token
  */
 export async function chargeWithQuickPayment(

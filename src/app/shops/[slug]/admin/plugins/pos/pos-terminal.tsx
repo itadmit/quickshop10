@@ -4,7 +4,7 @@ import { useState, useTransition, useRef } from 'react';
 import { ProductSearch } from './product-search';
 import { CustomerSection } from './customer-section';
 import { CartSection } from './cart-section';
-import { createPOSOrder, chargeWithQuickPayment } from './actions';
+import { createPOSOrder, chargeWithQuickPayment, processExchangeRefund } from './actions';
 import { QuickPaymentForm, type QuickPaymentFormRef } from '@/components/checkout/QuickPaymentForm';
 
 // ============================================
@@ -131,6 +131,12 @@ export function POSTerminal({
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const quickPaymentRef = useRef<QuickPaymentFormRef>(null);
   
+  // 🆕 Exchange refund state
+  const [originalOrderIdForRefund, setOriginalOrderIdForRefund] = useState<string>('');
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [isProcessingRefund, setIsProcessingRefund] = useState(false);
+  const [refundError, setRefundError] = useState<string | null>(null);
+  
   // Loading state
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -225,6 +231,12 @@ export function POSTerminal({
 
     if (!customer.name || !customer.email || !customer.phone) {
       setError('נא למלא את פרטי הלקוח');
+      return;
+    }
+
+    // 🆕 If exchange mode with customer credit (negative total), need to process refund
+    if (mode === 'exchange' && total < 0 && !originalOrderIdForRefund) {
+      setShowRefundModal(true);
       return;
     }
 
@@ -327,8 +339,64 @@ export function POSTerminal({
     setDiscountAmount(0);
     setNotes('');
     setPendingOrderId(null);
+    setOriginalOrderIdForRefund('');
     // Refresh page to show success message
     window.location.href = `?payment=success&orderId=${orderId}`;
+  };
+
+  // 🆕 Handle exchange refund (when customer gets credit back)
+  const handleExchangeRefund = async () => {
+    if (!originalOrderIdForRefund.trim()) {
+      setRefundError('נא להזין מספר הזמנה מקורית');
+      return;
+    }
+
+    setRefundError(null);
+    setIsProcessingRefund(true);
+
+    try {
+      // First process the refund for the difference
+      const refundResult = await processExchangeRefund(
+        storeSlug,
+        originalOrderIdForRefund.trim(),
+        Math.abs(total),
+        `זיכוי בגין החלפה - פער לטובת הלקוח`
+      );
+
+      if (!refundResult.success) {
+        setRefundError(refundResult.error || 'שגיאה בביצוע הזיכוי');
+        setIsProcessingRefund(false);
+        return;
+      }
+
+      // Now create the exchange order (total will be 0 after refund credit)
+      const result = await createPOSOrder(storeId, storeSlug, {
+        items: cart,
+        customer,
+        shippingMethod,
+        shippingAmount,
+        discountCode: discountCode || undefined,
+        discountAmount: discountAmount + Math.abs(total), // Add the refund as discount
+        notes: `${notes || ''}\nזיכוי מהזמנה ${originalOrderIdForRefund}: ₪${Math.abs(total).toFixed(2)}`.trim(),
+        subtotal,
+        total: 0, // After refund, total is 0
+        runPostCheckout,
+        isExchange: true,
+        markAsPaid: true, // It's paid via refund credit
+      });
+
+      if (result.success) {
+        setShowRefundModal(false);
+        handleOrderSuccess(result.orderId!);
+      } else {
+        setRefundError(result.error || 'שגיאה ביצירת ההזמנה');
+      }
+    } catch (err) {
+      console.error('Exchange refund error:', err);
+      setRefundError(err instanceof Error ? err.message : 'שגיאה בביצוע הזיכוי');
+    } finally {
+      setIsProcessingRefund(false);
+    }
   };
 
   // 🆕 Calculate returns and purchases separately
@@ -440,6 +508,124 @@ export function POSTerminal({
           setMarkAsPaid={setMarkAsPaid}
         />
       </div>
+
+      {/* 🆕 Refund Modal for Exchange with Customer Credit */}
+      {showRefundModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div 
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => {
+              if (!isProcessingRefund) {
+                setShowRefundModal(false);
+                setRefundError(null);
+              }
+            }}
+          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold">זיכוי בגין החלפה</h3>
+                {!isProcessingRefund && (
+                  <button
+                    onClick={() => {
+                      setShowRefundModal(false);
+                      setRefundError(null);
+                    }}
+                    className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Refund Amount */}
+              <div className="p-4 bg-green-50 border-b border-green-200">
+                <div className="text-center">
+                  <p className="text-sm text-green-600 mb-1">סכום לזיכוי ללקוח</p>
+                  <p className="text-3xl font-bold text-green-700">₪{Math.abs(total).toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Form */}
+              <div className="p-4 space-y-4">
+                {refundError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                    {refundError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    מספר הזמנה מקורית לזיכוי *
+                  </label>
+                  <input
+                    type="text"
+                    value={originalOrderIdForRefund}
+                    onChange={(e) => setOriginalOrderIdForRefund(e.target.value)}
+                    placeholder="לדוגמה: #1234 או UUID"
+                    disabled={isProcessingRefund}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    הזן את מספר ההזמנה המקורית שממנה יבוצע הזיכוי
+                  </p>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-700">
+                  <div className="flex items-start gap-2">
+                    <svg className="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>
+                      הזיכוי יבוצע דרך ספק התשלום המקורי (Pelecard/PayMe).
+                      אם ההזמנה שולמה במזומן - אי אפשר לזכות.
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="p-4 border-t border-gray-200 flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowRefundModal(false);
+                    setRefundError(null);
+                  }}
+                  disabled={isProcessingRefund}
+                  className="flex-1 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 cursor-pointer"
+                >
+                  ביטול
+                </button>
+                <button
+                  onClick={handleExchangeRefund}
+                  disabled={isProcessingRefund || !originalOrderIdForRefund.trim()}
+                  className="flex-1 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isProcessingRefund ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>מעבד זיכוי...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                      </svg>
+                      <span>בצע זיכוי ₪{Math.abs(total).toFixed(2)}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 🆕 Quick Payment Modal */}
       {showPaymentModal && quickPaymentConfig?.enabled && quickPaymentConfig.publicKey && (
