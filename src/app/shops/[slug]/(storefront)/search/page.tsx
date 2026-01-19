@@ -6,6 +6,7 @@ import { eq, and, ilike, or } from 'drizzle-orm';
 import { ProductCard } from '@/components/product-card';
 import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { trackSearchQuery } from '@/lib/actions/reports';
+import { TrackSearch } from '@/components/tracking-events';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 
@@ -134,6 +135,11 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   
   return (
     <div className="min-h-screen bg-white" dir="rtl">
+      {/* Track Search event for pixels */}
+      {query && query.length >= 2 && (
+        <TrackSearch query={query} resultsCount={searchResults.length} />
+      )}
+      
       {/* Header - Centered */}
       <div className="border-b border-gray-100 py-12 px-6">
         <div className="max-w-2xl mx-auto text-center">
