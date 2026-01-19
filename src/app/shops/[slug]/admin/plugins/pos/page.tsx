@@ -2,7 +2,7 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound, redirect } from 'next/navigation';
 import { getStorePlugin } from '@/lib/plugins/loader';
 import { db } from '@/lib/db';
-import { products, productImages, categories, customers } from '@/lib/db/schema';
+import { products, productImages, categories, customers, paymentProviders } from '@/lib/db/schema';
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { POSTerminal } from './pos-terminal';
 import Link from 'next/link';
@@ -103,6 +103,31 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
     .orderBy(desc(customers.totalOrders))
     .limit(10);
 
+  // 🆕 Check for Quick Payments configuration
+  const [quickPaymentProvider] = await db
+    .select({
+      credentials: paymentProviders.credentials,
+      testMode: paymentProviders.testMode,
+      isActive: paymentProviders.isActive,
+    })
+    .from(paymentProviders)
+    .where(
+      and(
+        eq(paymentProviders.storeId, store.id),
+        eq(paymentProviders.provider, 'quick_payments'),
+        eq(paymentProviders.isActive, true)
+      )
+    )
+    .limit(1);
+
+  const quickPaymentConfig = quickPaymentProvider ? {
+    enabled: true,
+    publicKey: (quickPaymentProvider.credentials as Record<string, string>)?.publicKey,
+    testMode: quickPaymentProvider.testMode ?? false,
+  } : {
+    enabled: false,
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -163,6 +188,7 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
         initialProducts={recentProducts}
         categories={storeCategories}
         recentCustomers={recentCustomers}
+        quickPaymentConfig={quickPaymentConfig}
       />
     </div>
   );

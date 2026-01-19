@@ -27,6 +27,16 @@ interface POSOrder {
   runPostCheckout?: boolean; // 🆕 בצע פעולות פוסט-צ'קאאוט
   isExchange?: boolean; // 🆕 האם זו החלפה/החזרה
   markAsPaid?: boolean; // 🆕 סמן כשולם (ללא תשלום)
+  skipPaymentProvider?: boolean; // 🆕 דלג על ספק תשלום (Quick Payment)
+}
+
+// 🆕 Quick Payment charge request
+interface QuickPaymentChargeRequest {
+  token: string;
+  orderId: string;
+  amount: number;
+  cardMask?: string;
+  cardType?: string;
 }
 
 interface Product {
@@ -423,6 +433,15 @@ export async function createPOSOrder(
       };
     }
 
+    // 🆕 If skipPaymentProvider (Quick Payment will handle it), return order ID for client-side payment
+    if (order.skipPaymentProvider) {
+      console.log('[POS] Skipping payment provider - Quick Payment will be used');
+      return {
+        success: true,
+        orderId: newOrder.id,
+      };
+    }
+
     // Get payment provider
     const provider = await getConfiguredProvider(storeId);
     if (!provider) {
@@ -577,6 +596,65 @@ async function runPOSPostCheckoutActions(
   } catch (error) {
     console.error('[POS] Post-checkout actions error:', error);
     // Don't throw - post-checkout actions are non-blocking
+  }
+}
+
+/**
+ * 🆕 Charge order using Quick Payment (PayMe) token
+ */
+export async function chargeWithQuickPayment(
+  storeSlug: string,
+  request: QuickPaymentChargeRequest
+): Promise<{ success: boolean; error?: string; transactionId?: string }> {
+  try {
+    const { token, orderId, amount, cardMask, cardType } = request;
+    
+    // Call the Quick Payment charge API
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || `https://${storeSlug}.quickshop.co.il`;
+    const response = await fetch(`${baseUrl}/api/shops/${storeSlug}/payments/quick/charge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        token,
+        orderId,
+        amount,
+        currency: 'ILS',
+        cardMask,
+        cardType,
+      }),
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      console.log('[POS] Quick Payment charge successful:', result.transactionId);
+      return {
+        success: true,
+        transactionId: result.transactionId,
+      };
+    }
+    
+    // Handle 3DS redirect if required
+    if (result.requires3DS && result.redirectUrl) {
+      // For POS, we can't do 3DS easily - return error
+      return {
+        success: false,
+        error: 'הכרטיס דורש אימות 3D Secure. אנא השתמש בכרטיס אחר או בצע תשלום דרך הצ\'קאאוט הרגיל.',
+      };
+    }
+    
+    return {
+      success: false,
+      error: result.error || 'שגיאה בביצוע התשלום',
+    };
+  } catch (error) {
+    console.error('[POS] Quick Payment charge error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'שגיאה בביצוע התשלום',
+    };
   }
 }
 

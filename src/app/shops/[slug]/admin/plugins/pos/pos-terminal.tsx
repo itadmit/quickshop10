@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { ProductSearch } from './product-search';
 import { CustomerSection } from './customer-section';
 import { CartSection } from './cart-section';
-import { createPOSOrder } from './actions';
+import { createPOSOrder, chargeWithQuickPayment } from './actions';
+import { QuickPaymentForm, type QuickPaymentFormRef } from '@/components/checkout/QuickPaymentForm';
 
 // ============================================
 // POS Terminal - Client Component
@@ -68,12 +69,20 @@ export interface POSCustomer {
   };
 }
 
+// 🆕 Quick Payments config
+interface QuickPaymentConfig {
+  enabled: boolean;
+  publicKey?: string;
+  testMode?: boolean;
+}
+
 interface POSTerminalProps {
   storeId: string;
   storeSlug: string;
   initialProducts: Product[];
   categories: Category[];
   recentCustomers: Customer[];
+  quickPaymentConfig?: QuickPaymentConfig; // 🆕 Quick Payment configuration
 }
 
 export function POSTerminal({
@@ -82,6 +91,7 @@ export function POSTerminal({
   initialProducts,
   categories,
   recentCustomers,
+  quickPaymentConfig,
 }: POSTerminalProps) {
   // 🆕 Mode: sale (רגיל) or exchange (החלפה/החזרה)
   const [mode, setMode] = useState<'sale' | 'exchange'>('sale');
@@ -113,6 +123,13 @@ export function POSTerminal({
   
   // 🆕 Mark as paid (skip payment gateway)
   const [markAsPaid, setMarkAsPaid] = useState(false);
+  
+  // 🆕 Quick Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const quickPaymentRef = useRef<QuickPaymentFormRef>(null);
   
   // Loading state
   const [isPending, startTransition] = useTransition();
@@ -214,6 +231,10 @@ export function POSTerminal({
     setError(null);
 
     startTransition(async () => {
+      // 🆕 If Quick Payments enabled and not marked as paid, show payment modal first
+      const needsPayment = total > 0 && !markAsPaid;
+      const useQuickPayment = needsPayment && quickPaymentConfig?.enabled && !!quickPaymentConfig.publicKey;
+      
       const result = await createPOSOrder(storeId, storeSlug, {
         items: cart,
         customer,
@@ -227,32 +248,87 @@ export function POSTerminal({
         runPostCheckout, // 🆕 פעולות פוסט-צ'קאאוט
         isExchange: mode === 'exchange', // 🆕 סימון שזו החלפה
         markAsPaid, // 🆕 סמן כשולם (ללא תשלום)
+        skipPaymentProvider: useQuickPayment, // 🆕 דלג על ספק תשלום אם יש Quick Payment
       });
 
       if (result.success) {
+        // 🆕 If Quick Payments - show modal to collect card details
+        if (useQuickPayment && result.orderId) {
+          setPendingOrderId(result.orderId);
+          setShowPaymentModal(true);
+          return;
+        }
+        
         if (result.paymentUrl) {
           // Redirect to payment page
           window.location.href = result.paymentUrl;
         } else {
-          // 🆕 Zero payment or no provider - order created successfully
-          // Clear cart and show success
-          setCart([]);
-          setCustomer({
-            name: '',
-            email: '',
-            phone: '',
-            type: 'guest',
-          });
-          setDiscountCode('');
-          setDiscountAmount(0);
-          setNotes('');
-          // Refresh page to show success message
-          window.location.href = `?payment=success&orderId=${result.orderId}`;
+          // Zero payment or no provider - order created successfully
+          handleOrderSuccess(result.orderId!);
         }
       } else {
         setError(result.error || 'שגיאה ביצירת ההזמנה');
       }
     });
+  };
+
+  // 🆕 Handle Quick Payment submission
+  const handleQuickPayment = async () => {
+    if (!quickPaymentRef.current || !pendingOrderId) return;
+    
+    setPaymentError(null);
+    setIsProcessingPayment(true);
+    
+    try {
+      // Tokenize card
+      const { token, cardMask, cardType } = await quickPaymentRef.current.tokenize({
+        amount: total,
+        currency: 'ILS',
+        orderId: pendingOrderId,
+        productName: `הזמנה בקופה`,
+        customerEmail: customer.email,
+        customerName: customer.name,
+        customerPhone: customer.phone,
+      });
+      
+      // Charge with token
+      const chargeResult = await chargeWithQuickPayment(storeSlug, {
+        token,
+        orderId: pendingOrderId,
+        amount: total,
+        cardMask,
+        cardType,
+      });
+      
+      if (chargeResult.success) {
+        setShowPaymentModal(false);
+        handleOrderSuccess(pendingOrderId);
+      } else {
+        setPaymentError(chargeResult.error || 'שגיאה בביצוע התשלום');
+      }
+    } catch (err) {
+      console.error('Quick payment error:', err);
+      setPaymentError(err instanceof Error ? err.message : 'שגיאה בביצוע התשלום');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // 🆕 Handle successful order
+  const handleOrderSuccess = (orderId: string) => {
+    setCart([]);
+    setCustomer({
+      name: '',
+      email: '',
+      phone: '',
+      type: 'guest',
+    });
+    setDiscountCode('');
+    setDiscountAmount(0);
+    setNotes('');
+    setPendingOrderId(null);
+    // Refresh page to show success message
+    window.location.href = `?payment=success&orderId=${orderId}`;
   };
 
   // 🆕 Calculate returns and purchases separately
@@ -364,6 +440,93 @@ export function POSTerminal({
           setMarkAsPaid={setMarkAsPaid}
         />
       </div>
+
+      {/* 🆕 Quick Payment Modal */}
+      {showPaymentModal && quickPaymentConfig?.enabled && quickPaymentConfig.publicKey && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div 
+            className="fixed inset-0 bg-black/50 transition-opacity"
+            onClick={() => {
+              if (!isProcessingPayment) {
+                setShowPaymentModal(false);
+                setPendingOrderId(null);
+              }
+            }}
+          />
+          <div className="flex min-h-full items-center justify-center p-4">
+            <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold">תשלום בכרטיס אשראי</h3>
+                {!isProcessingPayment && (
+                  <button
+                    onClick={() => {
+                      setShowPaymentModal(false);
+                      setPendingOrderId(null);
+                    }}
+                    className="p-2 hover:bg-gray-100 rounded-full cursor-pointer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* Amount */}
+              <div className="p-4 bg-gray-50 border-b border-gray-200">
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 mb-1">סכום לתשלום</p>
+                  <p className="text-3xl font-bold">₪{total.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Payment Form */}
+              <div className="p-4">
+                {paymentError && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                    {paymentError}
+                  </div>
+                )}
+
+                <QuickPaymentForm
+                  ref={quickPaymentRef}
+                  publicKey={quickPaymentConfig.publicKey}
+                  testMode={quickPaymentConfig.testMode ?? false}
+                  storeSlug={storeSlug}
+                  disabled={isProcessingPayment}
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="p-4 border-t border-gray-200">
+                <button
+                  onClick={handleQuickPayment}
+                  disabled={isProcessingPayment}
+                  className="w-full py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {isProcessingPayment ? (
+                    <>
+                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>מעבד תשלום...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>שלם ₪{total.toFixed(2)}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
