@@ -71,6 +71,9 @@ export function LanguageSwitcher({
     
     // Store preference in cookie for server-side detection
     document.cookie = `preferred_locale=${locale};path=/;max-age=31536000`; // 1 year
+    
+    // Reload page to apply new locale (server-side reads cookie)
+    window.location.reload();
   };
 
   // Don't render if only one locale

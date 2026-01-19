@@ -3,7 +3,8 @@ import { ShopHeader, type HeaderLayout } from '@/components/shop-header';
 import { CartSidebar } from '@/components/cart-sidebar';
 import { getCurrentCustomer } from '@/lib/customer-auth';
 import { cache } from 'react';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
+import { detectLocaleWithGeo } from '@/lib/translations';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
@@ -209,7 +210,25 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   
   // 🌍 Locale settings for language switcher
   const supportedLocales = ((store.supportedLocales as string[]) || ['he']) as import('@/lib/translations/types').SupportedLocale[];
-  const currentLocale = ((store.defaultLocale as string) || 'he') as import('@/lib/translations/types').SupportedLocale;
+  const defaultLocale = ((store.defaultLocale as string) || 'he') as import('@/lib/translations/types').SupportedLocale;
+  
+  // Detect locale from cookie, URL, geo, or Accept-Language
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get('preferred_locale')?.value;
+  const countryCodeHeader = headersList.get('x-vercel-ip-country');
+  const countryCode = countryCodeHeader ? countryCodeHeader : null;
+  const acceptLanguageHeader = headersList.get('accept-language');
+  const acceptLanguage = acceptLanguageHeader || undefined;
+  
+  const currentLocale = detectLocaleWithGeo({
+    cookieLocale,
+    urlLocale: undefined, // Can be added later if needed
+    countryCode,
+    acceptLanguage,
+    supportedLocales,
+    defaultLocale,
+  });
+  
   const showLanguageSwitcher = Boolean(storeSettings.headerShowLanguageSwitcher) && supportedLocales.length > 1;
   
   // Get menu items for header navigation (only if using menu mode)

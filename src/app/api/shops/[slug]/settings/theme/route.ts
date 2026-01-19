@@ -26,17 +26,29 @@ const VALID_SETTINGS_KEYS = [
   'headerShowSearch',
   'headerShowCart',
   'headerShowAccount',
+  'headerShowLanguageSwitcher',
   'headerNavigationMode', // 'menu' = custom menus, 'categories' = show all categories
+  
+  // Mobile menu settings
+  'mobileMenuShowImages',
+  'mobileMenuImageStyle',
+  'mobileMenuBgColor',
+  'megaMenuBgColor',
   
   // Announcement bar
   'announcementEnabled',
   'announcementText',
   'announcementLink',
+  'announcementCountdownEnabled',
+  'announcementCountdownDate',
+  'announcementCountdownTime',
   'announcementBgColor',
   'announcementTextColor',
   
   // Footer
   'footerShowLogo',
+  'footerShowCategories',
+  'footerShowMenu',
   'footerShowNewsletter',
   'footerNewsletterTitle',
   'footerNewsletterSubtitle',
