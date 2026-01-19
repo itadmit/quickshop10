@@ -439,7 +439,7 @@ export class PelecardProvider extends BasePaymentProvider {
     const receiptLines: PayperReceiptLine[] = [{
       payment_type: 'Cc',
       date: dateStr,
-      cc_num: '0000', // Will be filled by Pelecard after payment
+      cc_num: '', // Empty - Pelecard/Payper will fill with last 4 digits automatically
       cc_payment_type: '1',
       num_of_payments: '1',
       amount: String(totalPaidInAgorot), // In agorot, must match invoice total
