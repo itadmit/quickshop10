@@ -41,14 +41,15 @@ interface Customer {
 
 export interface CartItem {
   id: string;
-  type: 'product' | 'manual';
+  type: 'product' | 'manual' | 'return'; // 🆕 return = מוצר מוחזר (מחיר שלילי)
   productId?: string;
   variantId?: string;
   name: string;
-  price: number;
+  price: number; // שלילי אם זה החזרה
   quantity: number;
   imageUrl?: string;
   description?: string;
+  originalOrderId?: string; // 🆕 הזמנה מקורית (להחזרות)
 }
 
 export interface POSCustomer {
@@ -59,8 +60,11 @@ export interface POSCustomer {
   phone: string;
   address?: {
     street: string;
+    houseNumber?: string;
+    apartment?: string;
+    floor?: string;
     city: string;
-    postalCode?: string;
+    zipCode?: string;
   };
 }
 
@@ -79,6 +83,9 @@ export function POSTerminal({
   categories,
   recentCustomers,
 }: POSTerminalProps) {
+  // 🆕 Mode: sale (רגיל) or exchange (החלפה/החזרה)
+  const [mode, setMode] = useState<'sale' | 'exchange'>('sale');
+  
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
   
@@ -100,6 +107,12 @@ export function POSTerminal({
   
   // Notes
   const [notes, setNotes] = useState('');
+  
+  // 🆕 Post-checkout actions
+  const [runPostCheckout, setRunPostCheckout] = useState(true);
+  
+  // 🆕 Mark as paid (skip payment gateway)
+  const [markAsPaid, setMarkAsPaid] = useState(false);
   
   // Loading state
   const [isPending, startTransition] = useTransition();
@@ -143,6 +156,21 @@ export function POSTerminal({
       price,
       quantity: 1,
       description,
+    };
+    setCart([...cart, newItem]);
+  };
+
+  // 🆕 Add return item to cart (negative price - credit to customer)
+  const addReturnItem = (product: Product, originalOrderId?: string) => {
+    const newItem: CartItem = {
+      id: crypto.randomUUID(),
+      type: 'return',
+      productId: product.id,
+      name: `החזרה: ${product.name}`,
+      price: -Math.abs(parseFloat(product.price || '0')), // מחיר שלילי
+      quantity: 1,
+      imageUrl: product.imageUrl || undefined,
+      originalOrderId,
     };
     setCart([...cart, newItem]);
   };
@@ -196,6 +224,9 @@ export function POSTerminal({
         notes: notes || undefined,
         subtotal,
         total,
+        runPostCheckout, // 🆕 פעולות פוסט-צ'קאאוט
+        isExchange: mode === 'exchange', // 🆕 סימון שזו החלפה
+        markAsPaid, // 🆕 סמן כשולם (ללא תשלום)
       });
 
       if (result.success) {
@@ -224,16 +255,72 @@ export function POSTerminal({
     });
   };
 
+  // 🆕 Calculate returns and purchases separately
+  const returnItems = cart.filter(item => item.type === 'return');
+  const purchaseItems = cart.filter(item => item.type !== 'return');
+  const returnTotal = returnItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const purchaseTotal = purchaseItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
   return (
     <div className="flex flex-col lg:flex-row min-h-[calc(100vh-73px)]">
       {/* Left Side - Products */}
       <div className="flex-1 p-4 lg:p-6 overflow-auto">
+        {/* 🆕 Mode Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setMode('sale')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              mode === 'sale'
+                ? 'bg-black text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <svg className="w-4 h-4 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            מכירה
+          </button>
+          <button
+            onClick={() => setMode('exchange')}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              mode === 'exchange'
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            <svg className="w-4 h-4 inline-block ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            החלפה / החזרה
+          </button>
+        </div>
+
+        {/* Exchange Mode Info */}
+        {mode === 'exchange' && (
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start gap-3">
+              <svg className="w-5 h-5 text-orange-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div className="text-sm">
+                <p className="font-medium text-orange-800">מצב החלפה / החזרה</p>
+                <p className="text-orange-700 mt-1">
+                  לחץ <strong>"הוסף להחזרה"</strong> על מוצר כדי להוסיף אותו כזיכוי (יחזור למלאי).
+                  לאחר מכן הוסף את המוצר החדש להחלפה.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ProductSearch
           storeId={storeId}
           initialProducts={initialProducts}
           categories={categories}
           onAddToCart={addToCart}
           onAddManualItem={addManualItem}
+          onAddReturnItem={mode === 'exchange' ? addReturnItem : undefined}
+          isExchangeMode={mode === 'exchange'}
         />
       </div>
 
@@ -268,6 +355,13 @@ export function POSTerminal({
           onCheckout={handleCheckout}
           isPending={isPending}
           error={error}
+          isExchangeMode={mode === 'exchange'}
+          returnTotal={returnTotal}
+          purchaseTotal={purchaseTotal}
+          runPostCheckout={runPostCheckout}
+          setRunPostCheckout={setRunPostCheckout}
+          markAsPaid={markAsPaid}
+          setMarkAsPaid={setMarkAsPaid}
         />
       </div>
     </div>

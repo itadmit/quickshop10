@@ -1,10 +1,12 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { products, productImages, productVariants, orders, orderItems, customers, stores } from '@/lib/db/schema';
-import { eq, and, or, ilike, desc, inArray } from 'drizzle-orm';
+import { products, productImages, productVariants, orders, orderItems, customers, stores, productBundles, bundleComponents } from '@/lib/db/schema';
+import { eq, and, or, ilike, desc, inArray, sql } from 'drizzle-orm';
 import { isOutOfStock } from '@/lib/inventory';
 import { getConfiguredProvider } from '@/lib/payments/factory';
+import { sendOrderConfirmationEmail } from '@/lib/email';
+import { emitOrderCreated } from '@/lib/events';
 import type { CartItem, POSCustomer } from './pos-terminal';
 
 // ============================================
@@ -22,6 +24,9 @@ interface POSOrder {
   notes?: string;
   subtotal: number;
   total: number;
+  runPostCheckout?: boolean; // 🆕 בצע פעולות פוסט-צ'קאאוט
+  isExchange?: boolean; // 🆕 האם זו החלפה/החזרה
+  markAsPaid?: boolean; // 🆕 סמן כשולם (ללא תשלום)
 }
 
 interface Product {
@@ -34,6 +39,7 @@ interface Product {
   barcode: string | null;
   hasVariants: boolean;
   inventory: number | null;
+  isBundle: boolean; // 🆕 האם זה מוצר באנדל
 }
 
 /**
@@ -57,6 +63,7 @@ export async function searchProducts(storeId: string, query: string): Promise<Pr
       barcode: products.barcode,
       hasVariants: products.hasVariants,
       inventory: products.inventory,
+      isBundle: products.isBundle, // 🆕 האם זה מוצר באנדל
     })
     .from(products)
     .where(
@@ -296,32 +303,118 @@ export async function createPOSOrder(
       utmSource: 'pos',
     }).returning();
 
-    // Create order items
+    // Create order items and handle inventory
     for (const item of order.items) {
+      const isReturn = item.type === 'return';
+      
       await db.insert(orderItems).values({
         orderId: newOrder.id,
         productId: item.productId || null,
         name: item.name,
         price: String(item.price),
         total: String(item.price * item.quantity),
-        quantity: item.quantity,
+        quantity: isReturn ? -item.quantity : item.quantity, // Negative quantity for returns
         imageUrl: item.imageUrl || null,
         properties: item.type === 'manual' ? {
           isManual: true,
           description: item.description,
+        } : isReturn ? {
+          isReturn: true,
+          originalOrderId: item.originalOrderId,
         } : {},
       });
+
+      // 🆕 Update inventory based on item type (if runPostCheckout is enabled)
+      if (order.runPostCheckout !== false && item.productId && item.type !== 'manual') {
+        const inventoryChange = isReturn 
+          ? item.quantity  // Return: ADD to inventory
+          : -item.quantity; // Purchase: SUBTRACT from inventory
+        
+        // 🆕 Check if this product is a bundle
+        const [productData] = await db
+          .select({ isBundle: products.isBundle })
+          .from(products)
+          .where(eq(products.id, item.productId))
+          .limit(1);
+        
+        if (productData?.isBundle) {
+          // This is a bundle - update inventory for all components
+          const bundle = await db
+            .select({ id: productBundles.id })
+            .from(productBundles)
+            .where(eq(productBundles.productId, item.productId))
+            .limit(1);
+          
+          if (bundle.length > 0) {
+            const components = await db
+              .select({
+                productId: bundleComponents.productId,
+                variantId: bundleComponents.variantId,
+                quantity: bundleComponents.quantity,
+              })
+              .from(bundleComponents)
+              .where(eq(bundleComponents.bundleId, bundle[0].id));
+            
+            for (const comp of components) {
+              const compInventoryChange = inventoryChange * comp.quantity;
+              
+              if (comp.variantId) {
+                await db.update(productVariants)
+                  .set({ 
+                    inventory: sql`GREATEST(COALESCE(${productVariants.inventory}, 0) + ${compInventoryChange}, 0)` 
+                  })
+                  .where(eq(productVariants.id, comp.variantId));
+              } else if (comp.productId) {
+                await db.update(products)
+                  .set({ 
+                    inventory: sql`GREATEST(COALESCE(${products.inventory}, 0) + ${compInventoryChange}, 0)` 
+                  })
+                  .where(eq(products.id, comp.productId));
+              }
+              
+              console.log(`[POS] Bundle component ${comp.productId} inventory ${isReturn ? 'increased' : 'decreased'} by ${Math.abs(compInventoryChange)}`);
+            }
+          }
+        } else {
+          // Regular product - update inventory as usual
+          if (item.variantId) {
+            // Update variant inventory
+            await db.update(productVariants)
+              .set({ 
+                inventory: sql`GREATEST(COALESCE(${productVariants.inventory}, 0) + ${inventoryChange}, 0)` 
+              })
+              .where(eq(productVariants.id, item.variantId));
+          } else {
+            // Update product inventory
+            await db.update(products)
+              .set({ 
+                inventory: sql`GREATEST(COALESCE(${products.inventory}, 0) + ${inventoryChange}, 0)` 
+              })
+              .where(eq(products.id, item.productId));
+          }
+          
+          console.log(`[POS] Inventory ${isReturn ? 'increased' : 'decreased'} for product ${item.productId}: ${Math.abs(inventoryChange)}`);
+        }
+      }
     }
 
-    // 🆕 If total is 0 or less (fully covered by discount), mark as paid directly
-    if (order.total <= 0) {
-      console.log('[POS] Zero payment order - marking as paid');
+    // 🆕 If total is 0 or less OR markAsPaid is true, mark as paid directly
+    if (order.total <= 0 || order.markAsPaid) {
+      console.log('[POS] Zero/negative payment or marked as paid - marking order as paid');
       await db.update(orders)
         .set({ 
           financialStatus: 'paid',
           status: 'processing',
+          note: order.markAsPaid && order.total > 0 
+            ? `${order.notes || ''}\n[שולם - נרשם ידנית בקופה]`.trim()
+            : order.notes || null,
         })
         .where(eq(orders.id, newOrder.id));
+      
+      // 🆕 Run post-checkout actions if enabled
+      if (order.runPostCheckout !== false) {
+        await runPOSPostCheckoutActions(storeId, storeSlug, newOrder.id, orderNumber, order);
+      }
       
       return {
         success: true,
@@ -394,6 +487,96 @@ export async function createPOSOrder(
       success: false,
       error: 'שגיאה ביצירת ההזמנה',
     };
+  }
+}
+
+/**
+ * Run post-checkout actions for POS orders
+ * - Send order confirmation email
+ * - Emit order.created event (triggers dashboard notification + mobile push)
+ * - Future: Check automations, auto-shipping, etc.
+ */
+async function runPOSPostCheckoutActions(
+  storeId: string,
+  storeSlug: string,
+  orderId: string,
+  orderNumber: string,
+  order: POSOrder
+) {
+  try {
+    console.log('[POS] Running post-checkout actions for order:', orderNumber);
+    
+    // Get store details for email
+    const [store] = await db
+      .select()
+      .from(stores)
+      .where(eq(stores.id, storeId))
+      .limit(1);
+    
+    if (!store) {
+      console.error('[POS] Store not found for post-checkout actions');
+      return;
+    }
+    
+    // Filter out return items for total calculation (purchase items only)
+    const purchaseItems = order.items.filter(i => i.type !== 'return');
+    const returnItems = order.items.filter(i => i.type === 'return');
+    const purchaseTotal = purchaseItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+    
+    // 1. Send order confirmation email
+    try {
+      await sendOrderConfirmationEmail({
+        storeName: store.name,
+        storeSlug,
+        orderNumber,
+        customerEmail: order.customer.email,
+        customerName: order.customer.name,
+        items: order.items.map(item => ({
+          name: item.name,
+          quantity: item.type === 'return' ? -item.quantity : item.quantity,
+          price: Math.abs(item.price),
+          total: Math.abs(item.price) * item.quantity,
+          imageUrl: item.imageUrl,
+        })),
+        subtotal: order.subtotal,
+        discountAmount: order.discountAmount,
+        shippingAmount: order.shippingAmount,
+        total: Math.max(order.total, 0),
+        shippingAddress: order.shippingMethod === 'delivery' && order.customer.address
+          ? {
+              address: `${order.customer.address.street || ''} ${order.customer.address.houseNumber || ''}`.trim(),
+              city: order.customer.address.city,
+              firstName: order.customer.name.split(' ')[0],
+              lastName: order.customer.name.split(' ').slice(1).join(' '),
+              phone: order.customer.phone,
+            }
+          : undefined,
+      });
+      console.log('[POS] Order confirmation email sent');
+    } catch (emailError) {
+      console.error('[POS] Failed to send order confirmation email:', emailError);
+    }
+    
+    // 2. Emit order.created event (dashboard notification + mobile push)
+    emitOrderCreated(
+      storeId,
+      store.name,
+      orderId,
+      orderNumber,
+      order.customer.email,
+      Math.max(order.total, 0),
+      purchaseItems.length,
+      order.customer.name || undefined,
+      order.discountCode || undefined
+    );
+    console.log('[POS] Order created event emitted');
+    
+    // 3. Future: Check for automations (abandoned cart recovery, etc.)
+    // 4. Future: Auto-send to shipping provider if configured
+    
+  } catch (error) {
+    console.error('[POS] Post-checkout actions error:', error);
+    // Don't throw - post-checkout actions are non-blocking
   }
 }
 

@@ -63,7 +63,7 @@ export function CustomerSection({
       address: address ? {
         street: address.street || '',
         city: address.city || '',
-        postalCode: address.postalCode,
+        zipCode: address.postalCode,
       } : undefined,
     });
     setShowCustomerSearch(false);
@@ -197,7 +197,20 @@ export function CustomerSection({
         {/* Delivery Address & Cost */}
         {shippingMethod === 'delivery' && (
           <div className="mt-3 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+            {/* City */}
+            <input
+              type="text"
+              value={customer.address?.city || ''}
+              onChange={(e) => setCustomer({
+                ...customer,
+                address: { ...customer.address, city: e.target.value, street: customer.address?.street || '' },
+              })}
+              placeholder="עיר *"
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+            />
+            
+            {/* Street + House Number */}
+            <div className="grid grid-cols-3 gap-2">
               <input
                 type="text"
                 value={customer.address?.street || ''}
@@ -205,20 +218,57 @@ export function CustomerSection({
                   ...customer,
                   address: { ...customer.address, street: e.target.value, city: customer.address?.city || '' },
                 })}
-                placeholder="רחוב ומספר"
+                placeholder="רחוב *"
+                className="col-span-2 w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+              <input
+                type="text"
+                value={customer.address?.houseNumber || ''}
+                onChange={(e) => setCustomer({
+                  ...customer,
+                  address: { ...customer.address, houseNumber: e.target.value, street: customer.address?.street || '', city: customer.address?.city || '' },
+                })}
+                placeholder="מס׳ בית *"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              />
+            </div>
+
+            {/* Apartment + Floor + Zip */}
+            <div className="grid grid-cols-3 gap-2">
+              <input
+                type="text"
+                value={customer.address?.apartment || ''}
+                onChange={(e) => setCustomer({
+                  ...customer,
+                  address: { ...customer.address, apartment: e.target.value, street: customer.address?.street || '', city: customer.address?.city || '' },
+                })}
+                placeholder="דירה"
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
               <input
                 type="text"
-                value={customer.address?.city || ''}
+                value={customer.address?.floor || ''}
                 onChange={(e) => setCustomer({
                   ...customer,
-                  address: { ...customer.address, city: e.target.value, street: customer.address?.street || '' },
+                  address: { ...customer.address, floor: e.target.value, street: customer.address?.street || '', city: customer.address?.city || '' },
                 })}
-                placeholder="עיר"
+                placeholder="קומה"
                 className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
               />
+              <input
+                type="text"
+                value={customer.address?.zipCode || ''}
+                onChange={(e) => setCustomer({
+                  ...customer,
+                  address: { ...customer.address, zipCode: e.target.value, street: customer.address?.street || '', city: customer.address?.city || '' },
+                })}
+                placeholder="מיקוד"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+                dir="ltr"
+              />
             </div>
+            
+            {/* Shipping Cost */}
             <div>
               <label className="text-xs text-gray-500 mb-1 block">עלות משלוח</label>
               <div className="relative">

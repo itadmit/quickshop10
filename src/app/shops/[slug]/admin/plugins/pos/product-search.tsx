@@ -61,6 +61,8 @@ interface ProductSearchProps {
   categories: Category[];
   onAddToCart: (product: Product) => void;
   onAddManualItem: (name: string, price: number, description?: string) => void;
+  onAddReturnItem?: (product: Product, originalOrderId?: string) => void; // 🆕 החזרה
+  isExchangeMode?: boolean; // 🆕 מצב החלפה
 }
 
 export function ProductSearch({
@@ -69,6 +71,8 @@ export function ProductSearch({
   categories,
   onAddToCart,
   onAddManualItem,
+  onAddReturnItem,
+  isExchangeMode,
 }: ProductSearchProps) {
   const [query, setQuery] = useState('');
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -108,8 +112,8 @@ export function ProductSearch({
   };
 
   const handleAddManualItem = () => {
-    const price = parseFloat(manualPrice);
-    if (!manualName.trim() || isNaN(price) || price <= 0) return;
+    const price = parseFloat(manualPrice || '0');
+    if (!manualName.trim() || isNaN(price) || price < 0) return; // Allow 0 price
 
     onAddManualItem(manualName, price, manualDescription || undefined);
     setManualName('');
@@ -156,14 +160,12 @@ export function ProductSearch({
           const isLowStock = product.inventory !== null && product.inventory > 0 && product.inventory <= 5;
           
           return (
-            <button
+            <div
               key={product.id}
-              onClick={() => !isOutOfStock && onAddToCart(product)}
-              disabled={isOutOfStock}
               className={`group bg-white rounded-xl border p-3 transition-all text-right ${
-                isOutOfStock 
-                  ? 'border-gray-200 opacity-60 cursor-not-allowed' 
-                  : 'border-gray-200 hover:border-gray-400 hover:shadow-md cursor-pointer'
+                isOutOfStock && !isExchangeMode
+                  ? 'border-gray-200 opacity-60' 
+                  : 'border-gray-200 hover:border-gray-400 hover:shadow-md'
               }`}
             >
               {/* Image */}
@@ -174,7 +176,7 @@ export function ProductSearch({
                     alt={product.name}
                     width={150}
                     height={150}
-                    className={`w-full h-full object-cover transition-transform ${!isOutOfStock && 'group-hover:scale-105'}`}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -184,7 +186,7 @@ export function ProductSearch({
                   </div>
                 )}
                 {/* Out of stock overlay */}
-                {isOutOfStock && (
+                {isOutOfStock && !isExchangeMode && (
                   <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
                     <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-1 rounded">
                       אזל מהמלאי
@@ -218,7 +220,36 @@ export function ProductSearch({
               {product.sku && (
                 <p className="text-xs text-gray-400 mt-0.5">{product.sku}</p>
               )}
-            </button>
+
+              {/* 🆕 Action Buttons */}
+              <div className="flex gap-2 mt-3">
+                {isExchangeMode && onAddReturnItem && (
+                  <button
+                    onClick={() => onAddReturnItem(product)}
+                    className="flex-1 py-2 px-3 text-xs font-medium bg-orange-50 text-orange-700 border border-orange-200 rounded-lg hover:bg-orange-100 cursor-pointer transition-colors"
+                  >
+                    <svg className="w-3.5 h-3.5 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                    </svg>
+                    להחזרה
+                  </button>
+                )}
+                <button
+                  onClick={() => !isOutOfStock && onAddToCart(product)}
+                  disabled={isOutOfStock && !isExchangeMode}
+                  className={`flex-1 py-2 px-3 text-xs font-medium rounded-lg transition-colors cursor-pointer ${
+                    isOutOfStock && !isExchangeMode
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                  }`}
+                >
+                  <svg className="w-3.5 h-3.5 inline-block ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  {isExchangeMode ? 'להחלפה' : 'הוסף'}
+                </button>
+              </div>
+            </div>
           );
         })}
       </div>
@@ -312,7 +343,7 @@ export function ProductSearch({
                 </button>
                 <button
                   onClick={handleAddManualItem}
-                  disabled={!manualName.trim() || !manualPrice || parseFloat(manualPrice) <= 0}
+                  disabled={!manualName.trim() || (manualPrice !== '' && manualPrice !== '0' && parseFloat(manualPrice) < 0)}
                   className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                 >
                   הוסף לעגלה
