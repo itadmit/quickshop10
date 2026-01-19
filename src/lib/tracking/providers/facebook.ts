@@ -21,7 +21,7 @@ declare global {
 // Map our events to Facebook standard events
 const FB_EVENT_MAP: Record<TrackingEventType, string> = {
   PageView: 'PageView',
-  ViewHomePage: 'PageView',
+  ViewHomePage: 'ViewHomePage', // Custom event to distinguish from PageView
   Search: 'Search',
   ViewCategory: 'ViewCategory', // Custom
   ViewContent: 'ViewContent',
@@ -38,6 +38,7 @@ const FB_EVENT_MAP: Record<TrackingEventType, string> = {
 
 // Custom events that need trackCustom instead of track
 const CUSTOM_EVENTS: TrackingEventType[] = [
+  'ViewHomePage', // Custom - to distinguish from regular PageView
   'ViewCategory',
   'RemoveFromCart',
   'UpdateCart',
@@ -116,8 +117,10 @@ function buildFacebookParams<T extends TrackingEventType>(
 ): Record<string, unknown> {
   switch (eventType) {
     case 'PageView':
-    case 'ViewHomePage':
       return {};
+      
+    case 'ViewHomePage':
+      return { page_type: 'home' };
 
     case 'Search': {
       const searchData = payload as TrackingEventPayload['Search'];

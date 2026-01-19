@@ -53,11 +53,12 @@ export function TrackSearch({
   query: string; 
   resultsCount?: number;
 }) {
-  const tracked = useRef(false);
+  const lastTrackedQuery = useRef<string | null>(null);
 
   useEffect(() => {
-    if (tracked.current) return;
-    tracked.current = true;
+    // Only track if query is new or changed
+    if (!query || lastTrackedQuery.current === query) return;
+    lastTrackedQuery.current = query;
     
     tracker.search(query, resultsCount);
   }, [query, resultsCount]);

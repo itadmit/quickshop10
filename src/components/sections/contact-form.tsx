@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { CheckCircle2, Send, Loader2 } from 'lucide-react';
+import { tracker } from '@/lib/tracking';
 
 interface ContactFormProps {
   storeSlug: string;
@@ -49,6 +50,9 @@ export function ContactForm({
         setIsSuccess(true);
         // Reset form
         (e.target as HTMLFormElement).reset();
+        
+        // Track Contact event for successful form submission
+        tracker.contact('contact_form');
       } else {
         setError(result.error || 'אירעה שגיאה בשליחת הטופס');
       }

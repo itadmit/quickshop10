@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { tracker } from '@/lib/tracking';
 
 /**
  * Newsletter Form Component
  * 
  * Client component for newsletter subscription.
  * Uses optimistic UI for instant feedback.
+ * Tracks Contact event on successful subscription.
  * 
  * PERFORMANCE: Minimal JS, simple form with fetch
  */
@@ -61,6 +63,9 @@ export function NewsletterForm({
           } else {
             setMessage({ type: 'success', text: data.message || 'נרשמת בהצלחה!' });
             setEmail('');
+            
+            // Track Contact event for successful newsletter signup
+            tracker.contact('newsletter');
           }
         } else {
           setMessage({ type: 'error', text: data.error || 'שגיאה בהרשמה' });

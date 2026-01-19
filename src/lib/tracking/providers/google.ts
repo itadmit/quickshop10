@@ -17,7 +17,7 @@ declare global {
 // Map our events to GA4 standard events
 const GA4_EVENT_MAP: Record<TrackingEventType, string> = {
   PageView: 'page_view',
-  ViewHomePage: 'page_view',
+  ViewHomePage: 'view_home_page', // Custom event to distinguish from page_view
   Search: 'search',
   ViewCategory: 'view_item_list',
   ViewContent: 'view_item',
@@ -107,12 +107,19 @@ function buildGA4Params<T extends TrackingEventType>(
   currency: string
 ): Record<string, unknown> {
   switch (eventType) {
-    case 'PageView':
-    case 'ViewHomePage': {
+    case 'PageView': {
       const pageData = payload as TrackingEventPayload['PageView'];
       return {
         page_location: pageData.url,
         page_title: pageData.title,
+      };
+    }
+    
+    case 'ViewHomePage': {
+      const homeData = payload as TrackingEventPayload['ViewHomePage'];
+      return {
+        page_location: homeData.url,
+        page_type: 'home',
       };
     }
 
