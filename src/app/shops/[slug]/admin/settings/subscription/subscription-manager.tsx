@@ -23,6 +23,9 @@ interface SubscriptionManagerProps {
     periodTransactionTotal: number;
     pendingTransactionFees: number;
     trialDaysRemaining: number;
+    trialTransactionsTotal?: number;
+    trialTransactionsCount?: number;
+    trialFees?: number;
   };
   invoices: {
     id: string;
@@ -461,6 +464,32 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
             </div>
           </div>
         </div>
+
+        {/* Trial Transaction Fees Notice */}
+        {subscription?.status === 'trial' && billing.trialTransactionsCount && billing.trialTransactionsCount > 0 && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <FileText className="w-6 h-6 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-amber-900 mb-2">עמלות עסקאות מתקופת הנסיון</h3>
+                <p className="text-amber-800 text-sm mb-3">
+                  בתקופת הנסיון בוצעו <strong>{billing.trialTransactionsCount} עסקאות</strong> בסך כולל של <strong>{formatCurrency(billing.trialTransactionsTotal || 0)}</strong>.
+                </p>
+                <div className="bg-white/60 rounded-lg p-3 border border-amber-200/50">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-amber-700">עמלת עסקאות (0.5% + מע״מ)</span>
+                    <span className="font-bold text-amber-900">{formatCurrency(billing.trialFees || 0)}</span>
+                  </div>
+                </div>
+                <p className="text-xs text-amber-600 mt-3">
+                  💳 סכום זה יחויב מהכרטיס שלך באופן אוטומטי לאחר השלמת תשלום המנוי
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Subscribe Button */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6">

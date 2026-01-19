@@ -52,6 +52,30 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
   const periodTotal = parseFloat(periodTransactions[0]?.total || '0');
   const pendingFees = periodTotal * 0.005 * 1.18; // 0.5% + VAT
 
+  // Calculate trial period transaction fees (for showing before activation)
+  let trialTransactionsTotal = 0;
+  let trialTransactionsCount = 0;
+  let trialFees = 0;
+  
+  if (subscription?.status === 'trial' && subscription.createdAt) {
+    const trialTransactions = await db.select({
+      total: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
+      count: sql<string>`COUNT(*)`,
+    })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.storeId, store.id),
+          eq(orders.financialStatus, 'paid'),
+          gte(orders.paidAt, subscription.createdAt)
+        )
+      );
+    
+    trialTransactionsTotal = parseFloat(trialTransactions[0]?.total || '0');
+    trialTransactionsCount = parseInt(trialTransactions[0]?.count || '0');
+    trialFees = trialTransactionsTotal * 0.005 * 1.18; // 0.5% + VAT
+  }
+
   // Fetch recent invoices
   const recentInvoices = await db.select()
     .from(platformInvoices)
@@ -89,6 +113,9 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
           periodTransactionTotal: periodTotal,
           pendingTransactionFees: pendingFees,
           trialDaysRemaining,
+          trialTransactionsTotal,
+          trialTransactionsCount,
+          trialFees,
         }}
         invoices={recentInvoices.map(inv => ({
           id: inv.id,
