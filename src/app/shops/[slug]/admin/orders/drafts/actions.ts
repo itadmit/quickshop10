@@ -105,6 +105,7 @@ export async function completeDraft(draftId: string, slug: string) {
         customerPhone: draft.customerPhone || null,
         status: 'confirmed',
         financialStatus: 'paid',
+        paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
         subtotal: draft.subtotal || '0',
         discountAmount: draft.discount || '0',
         shippingAmount: draft.shipping || '0',

@@ -120,6 +120,7 @@ export async function POST(
         .set({
           financialStatus: 'paid',
           status: 'processing',
+          paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
         })
         .where(eq(orders.id, orderId));
 
@@ -177,6 +178,7 @@ export async function GET(
         .set({
           financialStatus: 'paid',
           status: 'processing',
+          paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
         })
         .where(eq(orders.id, transactionId));
 

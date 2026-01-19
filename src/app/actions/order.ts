@@ -393,6 +393,7 @@ export async function createOrder(
       orderNumber,
       status: 'pending',
       financialStatus: 'paid', // Simulated payment
+      paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
       fulfillmentStatus: 'unfulfilled',
       subtotal: finalSubtotal.toFixed(2),
       discountCode: validatedCouponCode,

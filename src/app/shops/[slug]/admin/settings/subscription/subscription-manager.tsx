@@ -440,7 +440,7 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
                     </span>
                   )}
                 </div>
-                <p className="text-sm text-gray-400 mt-1">+ מע״מ 18% + 0.5% עמלות</p>
+                <p className="text-sm text-gray-400 mt-1">+ מע״מ 18% + 0.5% עמלות + 18% מע״מ</p>
               </div>
               
               {/* Features */}

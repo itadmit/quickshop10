@@ -415,6 +415,7 @@ export async function createPOSOrder(
         .set({ 
           financialStatus: 'paid',
           status: 'processing',
+          paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
           note: order.markAsPaid && order.total > 0 
             ? `${order.notes || ''}\n[שולם - נרשם ידנית בקופה]`.trim()
             : order.notes || null,
