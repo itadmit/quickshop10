@@ -1,5 +1,5 @@
 import { headers, cookies } from 'next/headers';
-import { getStoreBySlug } from '@/lib/db/queries';
+import { getStoreBySlug, getProductsBadgesForCards } from '@/lib/db/queries';
 import { db } from '@/lib/db';
 import { products } from '@/lib/db/schema';
 import { eq, and, ilike, or } from 'drizzle-orm';
@@ -105,13 +105,18 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
     }));
   }
 
-  // שליפת הנחות אוטומטיות לתוצאות (batch - מהיר!) ⚡
-  const discountsMap = searchResults.length > 0 
-    ? await getProductsAutomaticDiscounts(
-        store.id,
-        searchResults.map(p => ({ id: p.id, price: p.price }))
-      )
-    : new Map();
+  // שליפת הנחות אוטומטיות ומדבקות לתוצאות (batch - מהיר!) ⚡
+  const [discountsMap, badgesMap] = await Promise.all([
+    searchResults.length > 0 
+      ? getProductsAutomaticDiscounts(
+          store.id,
+          searchResults.map(p => ({ id: p.id, price: p.price }))
+        )
+      : new Map(),
+    searchResults.length > 0
+      ? getProductsBadgesForCards(store.id, searchResults.map(p => p.id))
+      : new Map(),
+  ]);
 
   // Track search query for analytics (fire-and-forget, non-blocking) ⚡
   if (query && query.length >= 2) {
@@ -185,6 +190,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                       inventory={product.inventory}
                       trackInventory={product.trackInventory}
                       allowBackorder={product.allowBackorder}
+                      badges={badgesMap.get(product.id) || []}
                     />
                   );
                 })}

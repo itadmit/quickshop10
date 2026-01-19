@@ -1,4 +1,4 @@
-import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds, getFooterMenuItems } from '@/lib/db/queries';
+import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds, getFooterMenuItems, getProductsBadgesForCards } from '@/lib/db/queries';
 import { 
   HeroSection, 
   CategoriesSection, 
@@ -69,13 +69,16 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
     getFooterMenuItems(store.id),
   ]);
 
-  // שליפת הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת מהירה!) ⚡
+  // שליפת הנחות אוטומטיות ומדבקות לכל המוצרים (batch - שליפה אחת מהירה!) ⚡
   const allProductsList = [...featuredProducts, ...allProducts];
   const uniqueProducts = Array.from(new Map(allProductsList.map(p => [p.id, p])).values());
-  const discountsMap = await getProductsAutomaticDiscounts(
-    store.id,
-    uniqueProducts.map(p => ({ id: p.id, price: p.price }))
-  );
+  const [discountsMap, badgesMap] = await Promise.all([
+    getProductsAutomaticDiscounts(
+      store.id,
+      uniqueProducts.map(p => ({ id: p.id, price: p.price }))
+    ),
+    getProductsBadgesForCards(store.id, uniqueProducts.map(p => p.id)),
+  ]);
 
   // If no sections exist, show empty state with message to add sections
   if (sections.length === 0) {
@@ -227,6 +230,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             sectionId={section.id}
             displayLimit={isPreviewMode && productContent.type !== 'specific' ? productLimit : undefined}
             discountsMap={discountsMap}
+            badgesMap={badgesMap}
             storeSlug={slug}
           />
         );

@@ -44,7 +44,7 @@ export async function createBadge(storeId: string, storeSlug: string, data: Badg
       isActive: data.isActive,
     }).returning();
     
-    revalidatePath(`/shops/${storeSlug}/admin/settings/badges`);
+    revalidatePath(`/shops/${storeSlug}/admin/badges`);
     return { success: true, badge };
   } catch (error) {
     console.error('Error creating badge:', error);
@@ -64,7 +64,7 @@ export async function updateBadge(badgeId: string, storeSlug: string, data: Part
       .where(eq(productBadges.id, badgeId))
       .returning();
     
-    revalidatePath(`/shops/${storeSlug}/admin/settings/badges`);
+    revalidatePath(`/shops/${storeSlug}/admin/badges`);
     revalidatePath(`/shops/${storeSlug}`);
     return { success: true, badge };
   } catch (error) {
@@ -78,7 +78,7 @@ export async function deleteBadge(badgeId: string, storeSlug: string) {
   try {
     await db.delete(productBadges).where(eq(productBadges.id, badgeId));
     
-    revalidatePath(`/shops/${storeSlug}/admin/settings/badges`);
+    revalidatePath(`/shops/${storeSlug}/admin/badges`);
     return { success: true };
   } catch (error) {
     console.error('Error deleting badge:', error);
@@ -94,7 +94,7 @@ export async function toggleBadgeStatus(badgeId: string, storeSlug: string, isAc
       .set({ isActive, updatedAt: new Date() })
       .where(eq(productBadges.id, badgeId));
     
-    revalidatePath(`/shops/${storeSlug}/admin/settings/badges`);
+    revalidatePath(`/shops/${storeSlug}/admin/badges`);
     revalidatePath(`/shops/${storeSlug}`);
     return { success: true };
   } catch (error) {

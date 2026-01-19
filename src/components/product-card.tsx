@@ -129,7 +129,7 @@ export function ProductCard({
             </div>
           )}
           
-          {/* System Badges (out of stock, discount) */}
+          {/* System Badges (out of stock, discount) + Custom Badges (top-right) */}
           <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
             {outOfStock && (
               <span className="text-[10px] tracking-[0.15em] uppercase bg-gray-800 px-3 py-1.5 text-white">
@@ -146,10 +146,20 @@ export function ProductCard({
                 מבצע
               </span>
             )}
+            {/* Custom badges at top-right position - same container */}
+            {badges?.filter(b => b.position === 'top-right').map(badge => (
+              <span
+                key={badge.id}
+                className="text-[10px] tracking-[0.15em] uppercase px-3 py-1.5 font-medium"
+                style={{ backgroundColor: badge.backgroundColor, color: badge.textColor }}
+              >
+                {badge.text}
+              </span>
+            ))}
           </div>
           
-          {/* Custom Product Badges */}
-          <ProductBadges badges={badges} />
+          {/* Custom Product Badges (other positions) */}
+          <ProductBadges badges={badges?.filter(b => b.position !== 'top-right') || []} />
           
           {/* Quick Add Button - Hover only (when showAddToCart is OFF) */}
           {/* ⚠️ IMPORTANT: Always pass ORIGINAL price! Discount is calculated at checkout */}

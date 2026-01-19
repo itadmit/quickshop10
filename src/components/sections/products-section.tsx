@@ -29,6 +29,15 @@ interface AutomaticDiscount {
   categoryIds?: string[]; // קטגוריות המוצר - לחישוב הנחות בצ'קאאוט
 }
 
+// Badge type for display
+interface Badge {
+  id: string;
+  text: string;
+  backgroundColor: string;
+  textColor: string;
+  position: string;
+}
+
 interface ProductsSectionProps {
   title: string | null;
   subtitle: string | null;
@@ -46,10 +55,12 @@ interface ProductsSectionProps {
   displayLimit?: number; // For preview mode - hide products beyond limit
   // הנחות אוטומטיות - Map של productId -> discount
   discountsMap?: Map<string, AutomaticDiscount>;
+  // מדבקות - Map של productId -> badges
+  badgesMap?: Map<string, Badge[]>;
   storeSlug?: string; // 🆕 Required for variants modal
 }
 
-export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap, storeSlug }: ProductsSectionProps & { sectionId?: string }) {
+export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap, badgesMap, storeSlug }: ProductsSectionProps & { sectionId?: string }) {
   // Text alignment classes
   const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
   
@@ -108,6 +119,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 showAddToCart={settings.showAddToCart}
                 addToCartStyle={settings.addToCartStyle}
                 storeSlug={storeSlug}
+                badges={badgesMap?.get(product.id) || []}
               />
             </div>
           ))}

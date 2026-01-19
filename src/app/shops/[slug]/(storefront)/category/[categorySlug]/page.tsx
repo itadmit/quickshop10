@@ -1,4 +1,4 @@
-import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById, getCategoriesByStore, getFooterMenuItems } from '@/lib/db/queries';
+import { getStoreBySlug, getCategoryBySlug, getProductsByCategory, getSubcategories, getCategoryById, getCategoriesByStore, getFooterMenuItems, getProductsBadgesForCards } from '@/lib/db/queries';
 import { getProductsAutomaticDiscounts } from '@/app/actions/automatic-discount';
 import { isOutOfStock } from '@/lib/inventory';
 import { getCategoryPageSettings } from '@/lib/category-page-settings';
@@ -71,14 +71,17 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   }
 
   // חישוב הנחות אוטומטיות לכל המוצרים (batch - שליפה אחת!) ⚡
-  const discountsMap = await getProductsAutomaticDiscounts(
-    store.id,
-    products.map(p => ({ 
-      id: p.id, 
-      price: p.price, 
-      categoryIds: [category.id] // המוצרים בקטגוריה הזו
-    }))
-  );
+  const [discountsMap, badgesMap] = await Promise.all([
+    getProductsAutomaticDiscounts(
+      store.id,
+      products.map(p => ({ 
+        id: p.id, 
+        price: p.price, 
+        categoryIds: [category.id] // המוצרים בקטגוריה הזו
+      }))
+    ),
+    getProductsBadgesForCards(store.id, products.map(p => p.id)),
+  ]);
 
   // Check for custom domain
   const headersList = await headers();
@@ -108,6 +111,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     trackInventory: product.trackInventory,
     allowBackorder: product.allowBackorder,
     automaticDiscount: discountsMap.get(product.id) || null,
+    badges: badgesMap.get(product.id) || [],
   }));
 
   return (

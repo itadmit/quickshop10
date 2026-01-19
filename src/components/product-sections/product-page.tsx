@@ -14,6 +14,7 @@ import { ProductSection } from './index';
 import { ProductImage } from '@/components/product-image';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { ProductCard } from '@/components/product-card';
+import { ProductBadges } from '@/components/storefront/product-badges';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductWithAddons } from '@/components/product-with-addons';
@@ -35,6 +36,15 @@ import { StoryStatsSection } from './story-stats-section';
 // ============================================
 // Types
 // ============================================
+
+// Badge type for display
+interface Badge {
+  id: string;
+  text: string;
+  backgroundColor: string;
+  textColor: string;
+  position: string;
+}
 
 interface ProductPageProps {
   sections: ProductPageSection[];
@@ -61,6 +71,7 @@ interface ProductPageProps {
       variantTitle?: string;
       quantity: number;
     }>;
+    badges?: Badge[];
   };
   variants: {
     id: string;
@@ -932,7 +943,13 @@ export function ProductPage({
                   data-section-id={gallerySection.id}
                   data-section-type="product_gallery"
                   data-section-name="גלריה"
+                  className="relative"
                 >
+                  {/* Product Badges on Gallery */}
+                  {product.badges && product.badges.length > 0 && (
+                    <ProductBadges badges={product.badges} />
+                  )}
+                  
                   <LiveGallerySection
                     mainImage={mainImage || ''}
                     productName={product.name}

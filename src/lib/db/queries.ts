@@ -423,6 +423,7 @@ export async function getProductBySlug(storeId: string, slug: string) {
       upsellProductIds: products.upsellProductIds,
       metadata: products.metadata, // For custom fields (metafields)
       isBundle: products.isBundle, // Bundle support
+      createdAt: products.createdAt, // For badges (new product)
     })
     .from(products)
     .where(and(eq(products.storeId, storeId), eq(products.slug, slug)))

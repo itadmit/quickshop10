@@ -63,6 +63,13 @@ interface ProductData {
     discountPercent: number;
     categoryIds?: string[];
   } | null;
+  badges?: Array<{
+    id: string;
+    text: string;
+    backgroundColor: string;
+    textColor: string;
+    position: string;
+  }>;
 }
 
 interface CategoryPageContentProps {
@@ -494,6 +501,7 @@ export function CategoryPageContent({
                     showAddToCart={settings.products.showAddToCart}
                     addToCartStyle={settings.products.addToCartStyle}
                     storeSlug={storeSlug}
+                    badges={product.badges}
                   />
                 </div>
               ))}

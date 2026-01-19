@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
 import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
 import { getStoreMetafields } from '@/app/shops/[slug]/admin/metafields/actions';
-import { getManualBadgesForStore } from '@/app/shops/[slug]/admin/settings/badges/actions';
+import { getManualBadgesForStore } from '@/app/shops/[slug]/admin/badges/actions';
 
 interface NewProductPageProps {
   params: Promise<{ slug: string }>;

@@ -1,4 +1,4 @@
-import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds, getProductAddonsForStorefront, getFooterMenuItems } from '@/lib/db/queries';
+import { getStoreBySlug, getProductBySlug, getProductsByStore, getProductOptions, getProductVariants, getCategoriesByStore, getProductCategoryIds, getProductAddonsForStorefront, getFooterMenuItems, getProductBadgesForDisplay } from '@/lib/db/queries';
 import { AddToCartButton } from '@/components/add-to-cart-button';
 import { VariantSelector } from '@/components/variant-selector';
 import { ProductWithAddons } from '@/components/product-with-addons';
@@ -121,11 +121,11 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       ).sort((a, b) => a.sortOrder - b.sortOrder)
     : [];
 
-  // Get variants, related products, categories, and automatic discount in parallel - maximum speed!
+  // Get variants, related products, categories, badges and automatic discount in parallel - maximum speed!
   // In preview mode, fetch up to 8 products to allow dynamic count changes
   // Fetch more to account for out-of-stock filtering
   const maxRelatedProducts = isPreviewMode ? 16 : (pageSettings.related.count + 1) * 2;
-  const [options, variants, allProducts, categories, productCategoryIds, productAddons, footerMenuItems] = await Promise.all([
+  const [options, variants, allProducts, categories, productCategoryIds, productAddons, footerMenuItems, productBadges] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
     getProductsByStore(store.id, maxRelatedProducts),
@@ -136,6 +136,13 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     getProductAddonsForStorefront(product.id),
     // Get footer menu items
     getFooterMenuItems(store.id),
+    // Get product badges
+    getProductBadgesForDisplay(store.id, product.id, {
+      createdAt: product.createdAt,
+      isFeatured: product.isFeatured,
+      comparePrice: product.comparePrice,
+      categoryId: product.categoryId,
+    }),
   ]);
   
   // Filter out of stock products (only show products that are available)
@@ -588,6 +595,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     storeId: store.id,
     isBundle: product.isBundle,
     bundleComponents: bundleComponentsData,
+    badges: productBadges, // מדבקות מוצר
   };
   
   const pageContent = (

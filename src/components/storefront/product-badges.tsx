@@ -13,11 +13,12 @@ interface ProductBadgesProps {
   badges: Badge[];
 }
 
+// מיקומים מותאמים לסגנון המדבקות האוטומטיות
 const positionClasses: Record<string, string> = {
-  'top-right': 'absolute top-2 right-2',
-  'top-left': 'absolute top-2 left-2', 
-  'bottom-right': 'absolute bottom-2 right-2',
-  'bottom-left': 'absolute bottom-2 left-2',
+  'top-right': 'absolute top-4 right-4',
+  'top-left': 'absolute top-4 left-4', 
+  'bottom-right': 'absolute bottom-4 right-4',
+  'bottom-left': 'absolute bottom-4 left-4',
 };
 
 export function ProductBadges({ badges }: ProductBadgesProps) {
@@ -36,12 +37,12 @@ export function ProductBadges({ badges }: ProductBadgesProps) {
       {Object.entries(byPosition).map(([position, positionBadges]) => (
         <div 
           key={position}
-          className={`${positionClasses[position] || positionClasses['top-right']} flex flex-col gap-1 z-10`}
+          className={`${positionClasses[position] || positionClasses['top-right']} flex flex-col gap-2 z-10`}
         >
           {positionBadges.map(badge => (
             <span
               key={badge.id}
-              className="px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+              className="text-[10px] tracking-[0.15em] uppercase px-3 py-1.5 font-medium whitespace-nowrap"
               style={{ 
                 backgroundColor: badge.backgroundColor,
                 color: badge.textColor,
@@ -55,4 +56,3 @@ export function ProductBadges({ badges }: ProductBadgesProps) {
     </>
   );
 }
-
