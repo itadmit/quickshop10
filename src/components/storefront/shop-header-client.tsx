@@ -21,7 +21,7 @@ import { MegaMenuDropdown } from '@/components/mega-menu-dropdown';
  * - Server component used in production
  */
 
-// Announcement Bar Component - supports rotating messages with slide animation
+// Announcement Bar Component - supports rotating messages with slide animation and countdown timer
 function AnnouncementBar({ 
   enabled, 
   text, 
@@ -29,6 +29,9 @@ function AnnouncementBar({
   bgColor, 
   textColor,
   onClose,
+  countdownEnabled,
+  countdownDate,
+  countdownTime,
 }: {
   enabled: boolean;
   text: string;
@@ -36,11 +39,60 @@ function AnnouncementBar({
   bgColor: string;
   textColor: string;
   onClose?: () => void;
+  countdownEnabled?: boolean;
+  countdownDate?: string; // YYYY-MM-DD
+  countdownTime?: string; // HH:mm
 }) {
   // Support multiple messages (each line = separate message)
   const messages = text.split('\n').filter(line => line.trim());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isAnimating, setIsAnimating] = useState(false);
+  
+  // Countdown state
+  const [timeLeft, setTimeLeft] = useState<{
+    days: number;
+    hours: number;
+    minutes: number;
+    seconds: number;
+  } | null>(null);
+  
+  // Calculate target date from countdown settings
+  const targetDate = countdownEnabled && countdownDate 
+    ? new Date(`${countdownDate}T${countdownTime || '00:00'}:00`)
+    : null;
+  
+  // Countdown timer effect
+  useEffect(() => {
+    if (!countdownEnabled || !targetDate || isNaN(targetDate.getTime())) {
+      setTimeLeft(null);
+      return;
+    }
+    
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const difference = targetDate.getTime() - now.getTime();
+      
+      if (difference <= 0) {
+        setTimeLeft(null);
+        return;
+      }
+      
+      const days = Math.floor(difference / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+      
+      setTimeLeft({ days, hours, minutes, seconds });
+    };
+    
+    // Calculate immediately
+    calculateTimeLeft();
+    
+    // Update every second
+    const interval = setInterval(calculateTimeLeft, 1000);
+    
+    return () => clearInterval(interval);
+  }, [countdownEnabled, countdownDate, countdownTime, targetDate]);
   
   // Rotate messages every 4 seconds with animation
   useEffect(() => {
@@ -61,6 +113,23 @@ function AnnouncementBar({
   
   const currentMessage = messages[currentIndex];
   
+  // Format countdown display
+  const CountdownTimer = timeLeft ? (
+    <div className="flex items-center gap-1 text-xs font-mono mr-3 opacity-90" dir="ltr">
+      {timeLeft.days > 0 && (
+        <>
+          <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.days).padStart(2, '0')}</span>
+          <span className="opacity-60">:</span>
+        </>
+      )}
+      <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.hours).padStart(2, '0')}</span>
+      <span className="opacity-60">:</span>
+      <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.minutes).padStart(2, '0')}</span>
+      <span className="opacity-60">:</span>
+      <span className="bg-white/20 px-1.5 py-0.5 rounded">{String(timeLeft.seconds).padStart(2, '0')}</span>
+    </div>
+  ) : null;
+  
   return (
     <div 
       className="relative text-center py-2.5 text-sm font-medium overflow-hidden"
@@ -74,13 +143,16 @@ function AnnouncementBar({
             isAnimating ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
           }`}
         >
-          {link ? (
-            <a href={link} className="hover:underline">
-              {currentMessage}
-            </a>
-          ) : (
-            <span>{currentMessage}</span>
-          )}
+          <div className="flex items-center justify-center gap-2">
+            {link ? (
+              <a href={link} className="hover:underline">
+                {currentMessage}
+              </a>
+            ) : (
+              <span>{currentMessage}</span>
+            )}
+            {CountdownTimer}
+          </div>
         </div>
         
         {/* Close button */}
@@ -201,6 +273,10 @@ export function ShopHeaderClient({
   const announcementLink = settings.announcementLink || '';
   const announcementBgColor = settings.announcementBgColor || '#000000';
   const announcementTextColor = settings.announcementTextColor || '#ffffff';
+  // Countdown timer settings
+  const announcementCountdownEnabled = settings.announcementCountdownEnabled ?? false;
+  const announcementCountdownDate = settings.announcementCountdownDate || '';
+  const announcementCountdownTime = settings.announcementCountdownTime || '00:00';
 
   // Organize categories into parent/child structure (for categories mode)
   const parentCategories = categories.filter(c => !c.parentId);
@@ -389,6 +465,9 @@ export function ShopHeaderClient({
       link={announcementLink}
       bgColor={announcementBgColor}
       textColor={announcementTextColor}
+      countdownEnabled={announcementCountdownEnabled}
+      countdownDate={announcementCountdownDate}
+      countdownTime={announcementCountdownTime}
       onClose={() => setAnnouncementDismissed(true)}
     />
   );

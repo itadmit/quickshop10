@@ -29,6 +29,11 @@ const ShopHeaderClient = nextDynamic(
   () => import('@/components/storefront/shop-header-client').then(m => m.ShopHeaderClient),
   { ssr: true }
 );
+// Announcement bar - client component for countdown timer
+const AnnouncementBar = nextDynamic(
+  () => import('@/components/storefront/announcement-bar').then(m => m.AnnouncementBar),
+  { ssr: true }
+);
 
 // Force dynamic rendering because we use cookies for customer auth
 export const dynamic = 'force-dynamic';
@@ -259,25 +264,40 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     </PreviewSettingsProvider>
   ) : (
     // PRODUCTION: Server component (zero JS) - respects DB settings
-    <ShopHeader 
-      storeName={store.name} 
-      storeId={store.id}
-      logoUrl={store.logoUrl}
-      categories={categories}
-      menuItems={menuItems}
-      navigationMode={headerNavigationMode}
-      basePath={basePath}
-      customer={customerData}
-      layout={headerLayout}
-      showSearch={Boolean(storeSettings.headerShowSearch ?? true)}
-      showCart={Boolean(storeSettings.headerShowCart ?? true)}
-      showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
-      isSticky={Boolean(storeSettings.headerSticky ?? true)}
-      mobileMenuShowImages={Boolean(storeSettings.mobileMenuShowImages ?? false)}
-      mobileMenuImageStyle={(storeSettings.mobileMenuImageStyle as 'fullRow' | 'square') ?? 'square'}
-      mobileMenuBgColor={(storeSettings.mobileMenuBgColor as string) ?? '#f9fafb'}
-      megaMenuBgColor={(storeSettings.megaMenuBgColor as string) ?? '#f9fafb'}
-    />
+    // Announcement bar is client component for countdown timer
+    <>
+      {Boolean(storeSettings.announcementEnabled) && (
+        <AnnouncementBar
+          enabled={Boolean(storeSettings.announcementEnabled)}
+          text={(storeSettings.announcementText as string) || ''}
+          link={(storeSettings.announcementLink as string) || ''}
+          bgColor={(storeSettings.announcementBgColor as string) || '#000000'}
+          textColor={(storeSettings.announcementTextColor as string) || '#ffffff'}
+          countdownEnabled={Boolean(storeSettings.announcementCountdownEnabled)}
+          countdownDate={(storeSettings.announcementCountdownDate as string) || ''}
+          countdownTime={(storeSettings.announcementCountdownTime as string) || '00:00'}
+        />
+      )}
+      <ShopHeader 
+        storeName={store.name} 
+        storeId={store.id}
+        logoUrl={store.logoUrl}
+        categories={categories}
+        menuItems={menuItems}
+        navigationMode={headerNavigationMode}
+        basePath={basePath}
+        customer={customerData}
+        layout={headerLayout}
+        showSearch={Boolean(storeSettings.headerShowSearch ?? true)}
+        showCart={Boolean(storeSettings.headerShowCart ?? true)}
+        showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+        isSticky={Boolean(storeSettings.headerSticky ?? true)}
+        mobileMenuShowImages={Boolean(storeSettings.mobileMenuShowImages ?? false)}
+        mobileMenuImageStyle={(storeSettings.mobileMenuImageStyle as 'fullRow' | 'square') ?? 'square'}
+        mobileMenuBgColor={(storeSettings.mobileMenuBgColor as string) ?? '#f9fafb'}
+        megaMenuBgColor={(storeSettings.megaMenuBgColor as string) ?? '#f9fafb'}
+      />
+    </>
   );
 
   // Get custom code from settings (Server-Side injection)

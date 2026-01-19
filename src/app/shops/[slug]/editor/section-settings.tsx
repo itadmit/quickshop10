@@ -64,6 +64,10 @@ interface ThemeSettings {
   announcementLink?: string;
   announcementBgColor?: string;
   announcementTextColor?: string;
+  // Countdown timer settings
+  announcementCountdownEnabled?: boolean;
+  announcementCountdownDate?: string; // ISO date string YYYY-MM-DD
+  announcementCountdownTime?: string; // HH:mm format
   
   // Footer settings
   footerShowLogo?: boolean;
@@ -381,6 +385,41 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                   onChange={(v) => updateSettings({ announcementLink: v })}
                   placeholder="/products"
                 />
+              </SettingsGroup>
+              
+              <SettingsGroup title="שעון ספירה לאחור">
+                <SwitchField
+                  label="הצג טיימר ספירה לאחור"
+                  value={settings.announcementCountdownEnabled ?? false}
+                  onChange={(v) => updateSettings({ announcementCountdownEnabled: v })}
+                />
+                {settings.announcementCountdownEnabled && (
+                  <div className="space-y-3 mt-3">
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">תאריך יעד</label>
+                      <input
+                        type="date"
+                        value={settings.announcementCountdownDate || ''}
+                        onChange={(e) => updateSettings({ announcementCountdownDate: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        dir="ltr"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-700 mb-1">שעה</label>
+                      <input
+                        type="time"
+                        value={settings.announcementCountdownTime || '00:00'}
+                        onChange={(e) => updateSettings({ announcementCountdownTime: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        dir="ltr"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      הטיימר יופיע ליד ההודעה ויספור לאחור עד לתאריך והשעה שנבחרו
+                    </p>
+                  </div>
+                )}
               </SettingsGroup>
               
               <SettingsGroup title="צבעים">

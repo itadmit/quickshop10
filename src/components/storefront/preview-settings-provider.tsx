@@ -35,6 +35,10 @@ interface ThemeSettings {
   announcementLink?: string;
   announcementBgColor?: string;
   announcementTextColor?: string;
+  // Countdown timer
+  announcementCountdownEnabled?: boolean;
+  announcementCountdownDate?: string;
+  announcementCountdownTime?: string;
   footerShowLogo?: boolean;
   footerShowCategories?: boolean;
   footerShowMenu?: boolean;
