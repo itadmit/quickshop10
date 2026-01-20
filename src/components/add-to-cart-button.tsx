@@ -31,7 +31,7 @@ interface AddToCartButtonProps {
   buttonText?: string;
   outOfStockText?: string;
   // סגנון
-  buttonStyle?: 'filled' | 'outline';
+  buttonStyle?: 'filled' | 'outline' | 'minimal';
   fullWidth?: boolean;
   // Bundle support
   isBundle?: boolean;
@@ -114,8 +114,49 @@ export function AddToCartButton({
     });
   };
 
-  // Different styles based on variant
-  const getButtonClasses = () => {
+  // Different styles based on buttonStyle prop (for product page editor)
+  const getButtonStyleClasses = () => {
+    const widthClass = fullWidth ? 'w-full' : '';
+    const baseClasses = 'py-3 px-6 text-sm font-medium transition-all duration-200';
+    
+    if (buttonStyle === 'outline') {
+      return `
+        ${baseClasses} ${widthClass} border
+        ${added 
+          ? 'bg-black text-white border-black' 
+          : outOfStock 
+            ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' 
+            : 'bg-white text-black border-black hover:bg-black hover:text-white'
+        }
+      `;
+    }
+    
+    if (buttonStyle === 'minimal') {
+      return `
+        ${baseClasses} ${widthClass}
+        ${added 
+          ? 'bg-gray-200 text-black' 
+          : outOfStock 
+            ? 'text-gray-400 cursor-not-allowed' 
+            : 'text-black underline hover:no-underline'
+        }
+      `;
+    }
+    
+    // filled (default)
+    return `
+      ${baseClasses} ${widthClass}
+      ${added 
+        ? 'bg-gray-800 text-white' 
+        : outOfStock 
+          ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+          : 'bg-black text-white hover:bg-gray-800'
+      }
+    `;
+  };
+
+  // Legacy variant-based styles (for backwards compatibility)
+  const getVariantClasses = () => {
     if (variant === 'outline') {
       return `
         py-2.5 px-4 text-sm font-medium transition-all duration-200 border rounded-none
@@ -130,16 +171,21 @@ export function AddToCartButton({
     return variant === 'primary' ? 'btn-primary' : 'btn-secondary';
   };
 
+  // Use buttonStyle-based classes if buttonStyle is explicitly set, otherwise use variant
+  const useButtonStyleClasses = buttonStyle !== undefined;
+
   return (
     <button
       onClick={handleClick}
       disabled={added || outOfStock}
       data-add-to-cart-button
       data-out-of-stock={outOfStock ? 'true' : 'false'}
+      data-button-style={buttonStyle}
+      data-full-width={fullWidth ? 'true' : 'false'}
       className={`
-        ${getButtonClasses()}
-        ${variant !== 'outline' && added ? '!bg-black !text-white !border-black' : ''}
-        ${variant !== 'outline' && outOfStock ? '!bg-gray-100 !text-gray-400 !border-gray-200 cursor-not-allowed' : ''}
+        ${useButtonStyleClasses ? getButtonStyleClasses() : getVariantClasses()}
+        ${!useButtonStyleClasses && variant !== 'outline' && added ? '!bg-black !text-white !border-black' : ''}
+        ${!useButtonStyleClasses && variant !== 'outline' && outOfStock ? '!bg-gray-100 !text-gray-400 !border-gray-200 cursor-not-allowed' : ''}
         disabled:cursor-not-allowed
         ${className}
       `}

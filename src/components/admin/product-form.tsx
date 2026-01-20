@@ -84,6 +84,14 @@ interface StoreBadge {
   position: string;
 }
 
+interface CategoryAddon {
+  id: string;
+  name: string;
+  fieldType: 'text' | 'select' | 'checkbox' | 'radio' | 'date';
+  isRequired: boolean;
+  categoryName: string;
+}
+
 interface ProductFormProps {
   storeId: string;
   storeSlug: string;
@@ -91,6 +99,7 @@ interface ProductFormProps {
   categories: Category[];
   allProducts?: UpsellProduct[]; // For upsell product selection
   storeAddons?: StoreAddon[]; // For addon assignment
+  categoryAddons?: CategoryAddon[]; // Addons inherited from categories
   storeMetafields?: MetafieldDefinition[]; // For custom fields
   storeBadges?: StoreBadge[]; // For badge assignment
   product?: Product & { 
@@ -137,7 +146,7 @@ function sanitizeSlug(text: string): string {
     .replace(/-+/g, '-'); // Clean multiple dashes
 }
 
-export function ProductForm({ storeId, storeSlug, customDomain, categories, allProducts = [], storeAddons = [], storeMetafields = [], storeBadges = [], product, mode }: ProductFormProps) {
+export function ProductForm({ storeId, storeSlug, customDomain, categories, allProducts = [], storeAddons = [], categoryAddons = [], storeMetafields = [], storeBadges = [], product, mode }: ProductFormProps) {
   // Build the store URL for SEO preview
   const storeUrl = customDomain || `my-quickshop.com/shops/${storeSlug}`;
   const router = useRouter();
@@ -1939,7 +1948,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
           )}
 
           {/* Product Addons */}
-          {storeAddons.length > 0 && (
+          {(storeAddons.length > 0 || categoryAddons.length > 0) && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-gray-900">תוספות מותאמות</h2>
@@ -1956,8 +1965,53 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                 <p className="text-xs text-gray-500 mb-3">
                   בחר תוספות שיופיעו בעמוד המוצר (למשל: רקמה אישית, אריזת מתנה)
                 </p>
+
+                {/* Category Addons - shown as locked/inherited */}
+                {categoryAddons.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-xs text-gray-400 mb-2">תוספות מקטגוריה (מיושמות אוטומטית)</p>
+                    {categoryAddons.map(addon => {
+                      // Hide from store addons list if already in category
+                      const isAlreadyInProduct = addonIds.includes(addon.id);
+                      return (
+                        <div
+                          key={`cat-${addon.id}`}
+                          className="flex items-center gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50/50 mb-2"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={true}
+                            disabled
+                            className="w-4 h-4 rounded border-gray-300 text-blue-500 cursor-not-allowed"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900">{addon.name}</span>
+                              {addon.isRequired && (
+                                <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded">חובה</span>
+                              )}
+                              <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-600 rounded">
+                                מקטגוריה: {addon.categoryName}
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {addon.fieldType === 'text' && 'טקסט חופשי'}
+                              {addon.fieldType === 'select' && 'בחירה מרשימה'}
+                              {addon.fieldType === 'checkbox' && 'תיבת סימון'}
+                              {addon.fieldType === 'radio' && 'בחירה בודדת'}
+                              {addon.fieldType === 'date' && 'תאריך'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 
-                {storeAddons.map(addon => {
+                {/* Store Addons - selectable, excluding those already from category */}
+                {storeAddons
+                  .filter(addon => !categoryAddons.some(ca => ca.id === addon.id))
+                  .map(addon => {
                   const isSelected = addonIds.includes(addon.id);
                   const priceDisplay = addon.fieldType === 'select' || addon.fieldType === 'radio' 
                     ? addon.options?.filter(o => o.priceAdjustment > 0).length 

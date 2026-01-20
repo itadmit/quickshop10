@@ -16,6 +16,8 @@ import { CookieBanner, type GDPRSettings } from '@/components/storefront/cookie-
 import { TrackingProvider } from '@/components/tracking-provider';
 import { StoreSettingsProvider } from '@/components/store-settings-provider';
 import { StoreProvider } from '@/lib/store-context';
+import { WishlistProvider } from '@/components/wishlist-provider';
+import { getWishlistProductIds } from '@/lib/actions/wishlist';
 import type { TrackingConfig } from '@/lib/tracking';
 import { db } from '@/lib/db';
 import { popups, gamificationCampaigns, gamificationPrizes } from '@/lib/db/schema';
@@ -93,6 +95,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
       ),
     }),
   ]);
+  
+  // Fetch wishlist items for logged-in customers
+  const wishlistItems = customer ? await getWishlistProductIds(customer.id) : [];
   
   // Fetch stories only if plugin is active
   let stories: Story[] = [];
@@ -296,6 +301,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         defaultShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
         defaultShowCart={Boolean(storeSettings.headerShowCart ?? true)}
         defaultShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+        defaultShowWishlist={Boolean(storeSettings.headerShowWishlist)}
         defaultShowLanguageSwitcher={showLanguageSwitcher}
         currentLocale={currentLocale}
         supportedLocales={supportedLocales}
@@ -330,6 +336,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         showSearch={Boolean(storeSettings.headerShowSearch ?? true)}
         showCart={Boolean(storeSettings.headerShowCart ?? true)}
         showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
+        showWishlist={Boolean(storeSettings.headerShowWishlist)}
         showLanguageSwitcher={showLanguageSwitcher}
         isSticky={Boolean(storeSettings.headerSticky ?? true)}
         mobileMenuShowImages={Boolean(storeSettings.mobileMenuShowImages ?? false)}
@@ -373,6 +380,11 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           showDecimalPrices={showDecimalPrices} 
           currency={store.currency}
         >
+          <WishlistProvider 
+            storeId={store.id} 
+            customerId={customer?.id || null}
+            initialItems={wishlistItems}
+          >
           {/* 🌍 Translations Provider - wraps entire storefront */}
           {translations ? (
             <TranslationsProvider translations={translations} locale={currentLocale}>
@@ -527,6 +539,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
               )}
             </div>
           )}
+          </WishlistProvider>
         </StoreSettingsProvider>
       </TrackingProvider>
       

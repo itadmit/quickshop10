@@ -7,11 +7,16 @@ import { revalidatePath } from 'next/cache';
 
 interface UpdateData {
   sku?: string;
+  barcode?: string;
   price?: string;
   comparePrice?: string;
   cost?: string;
+  weight?: string;
   inventory?: number;
   isActive?: boolean;
+  isFeatured?: boolean;
+  trackInventory?: boolean;
+  allowBackorder?: boolean;
   categoryId?: string;
 }
 
@@ -27,6 +32,9 @@ export async function bulkUpdateProduct(
     if (data.sku !== undefined) {
       updateObj.sku = data.sku || null;
     }
+    if (data.barcode !== undefined) {
+      updateObj.barcode = data.barcode || null;
+    }
     if (data.price !== undefined) {
       updateObj.price = data.price || null;
     }
@@ -36,11 +44,23 @@ export async function bulkUpdateProduct(
     if (data.cost !== undefined) {
       updateObj.cost = data.cost || null;
     }
+    if (data.weight !== undefined) {
+      updateObj.weight = data.weight || null;
+    }
     if (data.inventory !== undefined) {
       updateObj.inventory = data.inventory;
     }
     if (data.isActive !== undefined) {
       updateObj.isActive = data.isActive;
+    }
+    if (data.isFeatured !== undefined) {
+      updateObj.isFeatured = data.isFeatured;
+    }
+    if (data.trackInventory !== undefined) {
+      updateObj.trackInventory = data.trackInventory;
+    }
+    if (data.allowBackorder !== undefined) {
+      updateObj.allowBackorder = data.allowBackorder;
     }
     if (data.categoryId !== undefined) {
       updateObj.categoryId = data.categoryId || null;

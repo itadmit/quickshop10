@@ -502,6 +502,7 @@ export function CategoryPageContent({
                     addToCartStyle={settings.products.addToCartStyle}
                     storeSlug={storeSlug}
                     badges={product.badges}
+                    showWishlist={Boolean(storeSettings.headerShowWishlist)}
                   />
                 </div>
               ))}

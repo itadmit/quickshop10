@@ -14,20 +14,24 @@ interface BulkEditPageProps {
 }
 
 async function getBulkEditData(storeId: string, categoryId?: string) {
-  // Get products
+  // Get products with all editable fields
   let query = db
     .select({
       id: products.id,
       name: products.name,
       slug: products.slug,
       sku: products.sku,
+      barcode: products.barcode,
       price: products.price,
       comparePrice: products.comparePrice,
       cost: products.cost,
+      weight: products.weight,
       inventory: products.inventory,
       hasVariants: products.hasVariants,
       trackInventory: products.trackInventory,
+      allowBackorder: products.allowBackorder,
       isActive: products.isActive,
+      isFeatured: products.isFeatured,
       categoryId: products.categoryId,
     })
     .from(products)
@@ -36,17 +40,20 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
 
   const productsData = await query;
 
-  // Get variants
+  // Get variants with all editable fields
   const variantsData = await db
     .select({
       id: productVariants.id,
       productId: productVariants.productId,
       title: productVariants.title,
       sku: productVariants.sku,
+      barcode: productVariants.barcode,
       price: productVariants.price,
       comparePrice: productVariants.comparePrice,
       cost: productVariants.cost,
+      weight: productVariants.weight,
       inventory: productVariants.inventory,
+      allowBackorder: productVariants.allowBackorder,
       isActive: productVariants.isActive,
     })
     .from(productVariants)
@@ -77,19 +84,23 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
   const imageMap = new Map(images.map(img => [img.productId, img.url]));
   const categoryMap = new Map(categoriesData.map(c => [c.id, c.name]));
 
-  // Build items list
+  // Build items list with all fields
   interface BulkEditItem {
     id: string;
     productId: string;
     productName: string;
     variantTitle: string | null;
     sku: string | null;
+    barcode: string | null;
     price: string | null;
     comparePrice: string | null;
     cost: string | null;
+    weight: string | null;
     inventory: number;
     isActive: boolean;
+    isFeatured: boolean;
     trackInventory: boolean;
+    allowBackorder: boolean;
     imageUrl: string | null;
     categoryId: string | null;
     categoryName: string | null;
@@ -112,12 +123,16 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
           productName: product.name,
           variantTitle: variant.title,
           sku: variant.sku || product.sku,
+          barcode: variant.barcode,
           price: variant.price,
           comparePrice: variant.comparePrice,
           cost: variant.cost,
+          weight: variant.weight,
           inventory: variant.inventory ?? 0,
           isActive: product.isActive && variant.isActive,
+          isFeatured: product.isFeatured,
           trackInventory: product.trackInventory,
+          allowBackorder: variant.allowBackorder ?? product.allowBackorder,
           imageUrl: imageMap.get(product.id) || null,
           categoryId: product.categoryId,
           categoryName: product.categoryId ? categoryMap.get(product.categoryId) || null : null,
@@ -132,12 +147,16 @@ async function getBulkEditData(storeId: string, categoryId?: string) {
         productName: product.name,
         variantTitle: null,
         sku: product.sku,
+        barcode: product.barcode,
         price: product.price,
         comparePrice: product.comparePrice,
         cost: product.cost,
+        weight: product.weight,
         inventory: product.inventory ?? 0,
         isActive: product.isActive,
+        isFeatured: product.isFeatured,
         trackInventory: product.trackInventory,
+        allowBackorder: product.allowBackorder,
         imageUrl: imageMap.get(product.id) || null,
         categoryId: product.categoryId,
         categoryName: product.categoryId ? categoryMap.get(product.categoryId) || null : null,
@@ -252,6 +271,7 @@ export default async function BulkEditPage({ params, searchParams }: BulkEditPag
           <li>• לחץ Enter לשמירה או Escape לביטול</li>
           <li>• השינויים נשמרים אוטומטית</li>
           <li>• מלאי נמוך (פחות מ-5) מסומן בכתום, אזל - באדום</li>
+          <li>• כפתור "התאמת עמודות" מאפשר להוסיף/להסיר שדות - ההעדפות שלך נשמרות לפעם הבאה</li>
         </ul>
       </div>
     </div>

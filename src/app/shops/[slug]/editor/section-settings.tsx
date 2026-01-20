@@ -46,6 +46,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerShowWishlist?: boolean;
   headerShowLanguageSwitcher?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
   
@@ -346,6 +347,11 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
               label="הצג חשבון"
               value={settings.headerShowAccount ?? true}
               onChange={(v) => updateSettings({ headerShowAccount: v })}
+            />
+            <SwitchField
+              label="הצג רשימת משאלות"
+              value={settings.headerShowWishlist ?? false}
+              onChange={(v) => updateSettings({ headerShowWishlist: v })}
             />
             <SwitchField
               label="הצג בורר שפה"
@@ -6701,6 +6707,43 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
                 }}
                 defaultColor="#ffffff"
               />
+            </SettingsGroup>
+            
+            <SettingsGroup title="כפתור רשימת משאלות">
+              <SwitchField
+                label="הצג כפתור רשימת משאלות"
+                value={(section.settings.showWishlist as boolean) ?? true}
+                onChange={(v) => updateSettings({ showWishlist: v })}
+              />
+              {(section.settings.showWishlist as boolean) !== false && (
+                <>
+                  <SelectField
+                    label="סגנון כפתור"
+                    value={(section.settings.wishlistStyle as string) || 'outline'}
+                    options={[
+                      { value: 'filled', label: 'מלא' },
+                      { value: 'outline', label: 'מסגרת' },
+                      { value: 'minimal', label: 'מינימלי' },
+                    ]}
+                    onChange={(v) => updateSettings({ wishlistStyle: v })}
+                  />
+                  <SwitchField
+                    label="כפתור ברוחב מלא"
+                    value={(section.settings.wishlistFullWidth as boolean) ?? true}
+                    onChange={(v) => updateSettings({ wishlistFullWidth: v })}
+                  />
+                  <TextField
+                    label="טקסט כפתור"
+                    value={(section.settings.wishlistText as string) || 'הוסף לרשימת משאלות'}
+                    onChange={(v) => updateSettings({ wishlistText: v })}
+                  />
+                  <TextField
+                    label="טקסט כשברשימה"
+                    value={(section.settings.wishlistActiveText as string) || 'ברשימת המשאלות'}
+                    onChange={(v) => updateSettings({ wishlistActiveText: v })}
+                  />
+                </>
+              )}
             </SettingsGroup>
           </>
         )}

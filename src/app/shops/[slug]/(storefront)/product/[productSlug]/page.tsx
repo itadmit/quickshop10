@@ -709,14 +709,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
               trackInventory: p.trackInventory,
               allowBackorder: p.allowBackorder,
             }))}
-            productAddons={productAddons.map(a => ({
-              id: a.id,
-              name: a.name,
-              description: a.placeholder || null,
-              price: String(a.priceAdjustment),
-              isRequired: a.isRequired,
-              maxQuantity: a.maxLength ?? 1,
-            }))}
+            productAddons={productAddons}
             context={dynamicContext}
             basePath={basePath}
             showDecimalPrices={showDecimalPrices}
@@ -727,6 +720,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             storeSlug={slug}
             categoryIds={productCategoryIds}
             storyStats={storyStats}
+            showWishlist={Boolean(storeSettings.headerShowWishlist)}
           />
           
           {/* Footer */}

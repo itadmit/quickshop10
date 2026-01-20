@@ -3,6 +3,7 @@ import { AddToCartButton } from './add-to-cart-button';
 import { ProductCardAddToCart } from './product-card-add-to-cart';
 import { ProductImage } from './product-image';
 import { ProductBadges } from './storefront/product-badges';
+import { ProductCardWishlist } from './product-card-wishlist';
 import { formatPrice } from '@/lib/format-price';
 import { isOutOfStock } from '@/lib/inventory';
 import { getVideoThumbnailUrl, isVideoUrl } from '@/lib/cloudinary';
@@ -50,6 +51,8 @@ interface ProductCardProps {
   storeSlug?: string; // Required for variants modal
   // 🏷️ Product badges
   badges?: Badge[];
+  // ❤️ Wishlist support
+  showWishlist?: boolean;
 }
 
 export function ProductCard({ 
@@ -73,6 +76,7 @@ export function ProductCard({
   addToCartStyle = 'outline',
   storeSlug,
   badges = [],
+  showWishlist = false,
 }: ProductCardProps) {
   // Use video thumbnail (cardImage) if available, otherwise use regular image
   // If cardImage is a video URL, generate a thumbnail from it
@@ -160,6 +164,13 @@ export function ProductCard({
           
           {/* Custom Product Badges (other positions) */}
           <ProductBadges badges={badges?.filter(b => b.position !== 'top-right') || []} />
+          
+          {/* Wishlist Button - Top Left (always visible) */}
+          {showWishlist && (
+            <div className="absolute top-3 left-3 z-10">
+              <ProductCardWishlist productId={id} />
+            </div>
+          )}
           
           {/* Quick Add Button - Hover only (when showAddToCart is OFF) */}
           {/* ⚠️ IMPORTANT: Always pass ORIGINAL price! Discount is calculated at checkout */}

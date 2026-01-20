@@ -1172,9 +1172,9 @@ export function EditorSectionHighlighter() {
         
         // Product Add to Cart - LIVE UPDATES
         if (sectionType === 'product_add_to_cart') {
-          const btn = element.querySelector('button') as HTMLButtonElement;
+          const btn = element.querySelector('button[data-add-to-cart-button]') as HTMLButtonElement;
           if (btn) {
-            const isOutOfStock = btn.disabled || btn.classList.contains('disabled');
+            const isOutOfStock = btn.dataset.outOfStock === 'true';
             const isAdded = btn.textContent?.includes('✓');
             
             // Button text
@@ -1184,6 +1184,48 @@ export function EditorSectionHighlighter() {
               }
               if (updates.settings?.outOfStockText !== undefined && isOutOfStock) {
                 btn.textContent = updates.settings.outOfStockText as string || 'אזל מהמלאי';
+              }
+            }
+            
+            // Button style (filled/outline/minimal)
+            if (updates.settings?.style !== undefined) {
+              const style = updates.settings.style as string;
+              btn.dataset.buttonStyle = style;
+              
+              // Reset all style classes
+              btn.classList.remove(
+                'bg-black', 'bg-white', 'bg-gray-100', 'bg-gray-800', 'bg-gray-200',
+                'text-white', 'text-black', 'text-gray-400',
+                'border', 'border-black', 'border-gray-200',
+                'hover:bg-black', 'hover:bg-gray-800', 'hover:text-white', 'hover:no-underline',
+                'underline'
+              );
+              
+              // Apply new style classes
+              if (!isOutOfStock && !isAdded) {
+                if (style === 'filled') {
+                  btn.classList.add('bg-black', 'text-white', 'hover:bg-gray-800');
+                } else if (style === 'outline') {
+                  btn.classList.add('bg-white', 'text-black', 'border', 'border-black', 'hover:bg-black', 'hover:text-white');
+                } else if (style === 'minimal') {
+                  btn.classList.add('text-black', 'underline', 'hover:no-underline');
+                }
+              } else if (isOutOfStock) {
+                btn.classList.add('bg-gray-100', 'text-gray-400');
+                if (style === 'outline') {
+                  btn.classList.add('border', 'border-gray-200');
+                }
+              }
+            }
+            
+            // Full width
+            if (updates.settings?.fullWidth !== undefined) {
+              const fullWidth = updates.settings.fullWidth as boolean;
+              btn.dataset.fullWidth = fullWidth ? 'true' : 'false';
+              if (fullWidth) {
+                btn.classList.add('w-full');
+              } else {
+                btn.classList.remove('w-full');
               }
             }
             
@@ -1198,6 +1240,81 @@ export function EditorSectionHighlighter() {
             }
             if (updates.settings?.textColor !== undefined) {
               btn.style.color = updates.settings.textColor as string;
+            }
+          }
+          
+          // Wishlist Button - LIVE UPDATES
+          const wishlistBtn = element.querySelector('button[data-wishlist-button]') as HTMLButtonElement;
+          if (wishlistBtn) {
+            // Show/hide wishlist button
+            if (updates.settings?.showWishlist !== undefined) {
+              const wishlistContainer = wishlistBtn.closest('.mt-3') as HTMLElement;
+              if (wishlistContainer) {
+                wishlistContainer.style.display = updates.settings.showWishlist ? '' : 'none';
+              }
+            }
+            
+            // Wishlist button style
+            if (updates.settings?.wishlistStyle !== undefined) {
+              const style = updates.settings.wishlistStyle as string;
+              wishlistBtn.dataset.buttonStyle = style;
+              
+              // Reset style classes
+              wishlistBtn.classList.remove(
+                'bg-red-500', 'bg-gray-100', 'bg-red-50', 'bg-white',
+                'text-white', 'text-gray-600', 'text-red-600',
+                'border', 'border-red-200', 'border-gray-200',
+                'hover:bg-red-600', 'hover:bg-gray-200', 'hover:bg-red-100', 'hover:bg-gray-50',
+                'hover:text-red-500'
+              );
+              
+              const isActive = wishlistBtn.querySelector('svg')?.getAttribute('fill') === 'currentColor';
+              
+              if (style === 'filled') {
+                if (isActive) {
+                  wishlistBtn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+                } else {
+                  wishlistBtn.classList.add('bg-gray-100', 'text-gray-600', 'hover:bg-gray-200', 'hover:text-red-500');
+                }
+              } else if (style === 'minimal') {
+                if (isActive) {
+                  wishlistBtn.classList.add('text-red-600');
+                } else {
+                  wishlistBtn.classList.add('text-gray-600', 'hover:text-red-500');
+                }
+              } else {
+                // outline (default)
+                wishlistBtn.classList.add('border');
+                if (isActive) {
+                  wishlistBtn.classList.add('border-red-200', 'bg-red-50', 'text-red-600', 'hover:bg-red-100');
+                } else {
+                  wishlistBtn.classList.add('border-gray-200', 'bg-white', 'text-gray-600', 'hover:bg-gray-50', 'hover:text-red-500');
+                }
+              }
+            }
+            
+            // Wishlist full width
+            if (updates.settings?.wishlistFullWidth !== undefined) {
+              const fullWidth = updates.settings.wishlistFullWidth as boolean;
+              wishlistBtn.dataset.fullWidth = fullWidth ? 'true' : 'false';
+              if (fullWidth) {
+                wishlistBtn.classList.add('w-full');
+              } else {
+                wishlistBtn.classList.remove('w-full');
+              }
+            }
+            
+            // Wishlist button text
+            if (updates.settings?.wishlistText !== undefined || updates.settings?.wishlistActiveText !== undefined) {
+              const textSpan = wishlistBtn.querySelector('span') as HTMLElement;
+              if (textSpan) {
+                const isActive = wishlistBtn.querySelector('svg')?.getAttribute('fill') === 'currentColor';
+                if (isActive && updates.settings?.wishlistActiveText !== undefined) {
+                  textSpan.textContent = updates.settings.wishlistActiveText as string || 'ברשימת המשאלות';
+                } else if (!isActive && updates.settings?.wishlistText !== undefined) {
+                  textSpan.textContent = updates.settings.wishlistText as string || 'הוסף לרשימת משאלות';
+                }
+              }
             }
           }
         }

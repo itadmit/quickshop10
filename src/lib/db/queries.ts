@@ -1,5 +1,5 @@
 import { db } from './index';
-import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons, contacts, productBadges, productBadgeAssignments } from './schema';
+import { products, productImages, categories, stores, productOptions, productOptionValues, productVariants, productCategories, orders, orderItems, customers, users, menus, menuItems, pages, productAddonAssignments, productAddons, categoryAddonAssignments, contacts, productBadges, productBadgeAssignments } from './schema';
 import { eq, and, desc, asc, inArray, sql, or, isNotNull } from 'drizzle-orm';
 import { cache } from 'react';
 import { unstable_cache } from 'next/cache';
@@ -1140,29 +1140,56 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
 });
 
 // Get active addons for a product (for storefront display)
+// Includes both direct product addons AND category addons
 export const getProductAddonsForStorefront = cache(async (productId: string) => {
-  // First get the addon assignments for this product
-  const assignments = await db
+  // Get product to find its category
+  const product = await db
+    .select({ categoryId: products.categoryId })
+    .from(products)
+    .where(eq(products.id, productId))
+    .limit(1);
+
+  // Get product-level addon assignments
+  const productAssignments = await db
     .select({ addonId: productAddonAssignments.addonId })
     .from(productAddonAssignments)
     .where(eq(productAddonAssignments.productId, productId))
     .orderBy(asc(productAddonAssignments.sortOrder));
 
-  if (assignments.length === 0) return [];
+  const productAddonIds = productAssignments.map(a => a.addonId);
+  const productAddonIdSet = new Set(productAddonIds);
 
-  const addonIds = assignments.map(a => a.addonId);
+  // Get category-level addon assignments (if product has a category)
+  let categoryAddonIds: string[] = [];
+  if (product[0]?.categoryId) {
+    const categoryAssignments = await db
+      .select({ addonId: categoryAddonAssignments.addonId })
+      .from(categoryAddonAssignments)
+      .where(eq(categoryAddonAssignments.categoryId, product[0].categoryId))
+      .orderBy(asc(categoryAddonAssignments.sortOrder));
+    
+    // Filter out duplicates (product addons take priority)
+    categoryAddonIds = categoryAssignments
+      .map(a => a.addonId)
+      .filter(id => !productAddonIdSet.has(id));
+  }
+
+  // Combine all addon IDs (product first, then category)
+  const allAddonIds = [...productAddonIds, ...categoryAddonIds];
+
+  if (allAddonIds.length === 0) return [];
 
   // Get the actual addons (only active ones)
   const addons = await db
     .select()
     .from(productAddons)
     .where(and(
-      inArray(productAddons.id, addonIds),
+      inArray(productAddons.id, allAddonIds),
       eq(productAddons.isActive, true)
     ));
 
-  // Return in the order of assignments
-  return addonIds
+  // Return in the correct order (product addons first, then category addons)
+  return allAddonIds
     .map(id => addons.find(a => a.id === id))
     .filter(Boolean)
     .map(addon => ({

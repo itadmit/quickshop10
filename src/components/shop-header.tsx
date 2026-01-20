@@ -6,6 +6,7 @@ import { UserButton } from './user-button';
 import { SearchButton } from './search-button';
 import { MegaMenuDropdown } from './mega-menu-dropdown';
 import { LanguageSwitcher } from './storefront/language-switcher';
+import { WishlistHeaderButton } from './wishlist-header-button';
 import { getDirection } from '@/lib/translations';
 import type { SupportedLocale } from '@/lib/translations/types';
 
@@ -55,6 +56,7 @@ interface ShopHeaderProps {
   showSearch?: boolean;
   showCart?: boolean;
   showAccount?: boolean;
+  showWishlist?: boolean;
   showLanguageSwitcher?: boolean;
   isSticky?: boolean;
   // Mobile menu settings
@@ -83,6 +85,7 @@ export function ShopHeader({
   showSearch = true,
   showCart = true,
   showAccount = true,
+  showWishlist = false,
   showLanguageSwitcher = false,
   isSticky = true,
   mobileMenuShowImages = false,
@@ -253,8 +256,9 @@ export function ShopHeader({
   // In RTL: first in JSX = rightmost visually, last in JSX = leftmost visually
   // cartAtEnd (default): cart is LAST in JSX = leftmost (for logo-right where icons are on left)
   // cartAtStart: cart is FIRST in JSX = rightmost (for logo-left where icons are on right)
+  // MOBILE: Search moved to left side (near hamburger) to save space
   const Icons = ({ cartAtStart = false }: { cartAtStart?: boolean }) => (
-    <div className="flex items-center gap-0.5 sm:gap-1.5 px-2 sm:px-0">
+    <div className="flex items-center gap-1 sm:gap-2">
       {cartAtStart && showCart && <CartButton />}
       {/* Language Switcher - desktop only (shown in mobile menu instead) */}
       {showLanguageSwitcher && supportedLocales.length > 1 && (
@@ -265,7 +269,9 @@ export function ShopHeader({
           className="hidden lg:flex"
         />
       )}
-      {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
+      {/* Search - desktop only here, mobile search is near hamburger */}
+      {showSearch && <span className="hidden sm:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
+      {showWishlist && <WishlistHeaderButton basePath={basePath} />}
       {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
       {!cartAtStart && showCart && <CartButton />}
     </div>
@@ -278,10 +284,10 @@ export function ShopHeader({
   if (layout === 'logo-right') {
     return (
       <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="max-w-[1800px] mx-auto px-2 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
-            {/* Right: Mobile Menu + Logo */}
-            <div className="flex items-center gap-2">
+            {/* Right: Mobile Menu + Search (mobile) + Logo */}
+            <div className="flex items-center gap-1 sm:gap-2">
               <MobileMenu 
                 categories={categories} 
                 menuItems={menuItems}
@@ -296,6 +302,8 @@ export function ShopHeader({
                 currentLocale={currentLocale}
                 supportedLocales={supportedLocales}
               />
+              {/* Search - mobile only here, desktop search is with other icons */}
+              {showSearch && <span className="sm:hidden"><SearchButton basePath={basePath} storeId={storeId} /></span>}
               <Logo />
             </div>
 
@@ -315,7 +323,7 @@ export function ShopHeader({
   if (layout === 'logo-left') {
     return (
       <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
-        <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+        <div className="max-w-[1800px] mx-auto px-2 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
             {/* Right (in RTL = visual right): Icons with cart at extreme right */}
             <Icons cartAtStart />
@@ -323,9 +331,11 @@ export function ShopHeader({
             {/* Center: Navigation */}
             <Navigation />
 
-            {/* Left (in RTL = visual left): Mobile Menu at extreme + Logo */}
-            <div className="flex items-center gap-2">
+            {/* Left (in RTL = visual left): Mobile Menu + Search (mobile) + Logo */}
+            <div className="flex items-center gap-1 sm:gap-2">
               <Logo />
+              {/* Search - mobile only here */}
+              {showSearch && <span className="sm:hidden"><SearchButton basePath={basePath} storeId={storeId} /></span>}
               <MobileMenu 
                 categories={categories} 
                 menuItems={menuItems}
@@ -351,10 +361,10 @@ export function ShopHeader({
   // Mobile: hamburger on right, logo center, cart at extreme left
   return (
     <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
-      <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
+      <div className="max-w-[1800px] mx-auto px-2 sm:px-6 lg:px-12">
         {/* Top row: Hamburger/Search - Logo - Icons */}
         <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
-          {/* Right: Mobile Menu + Search (desktop) */}
+          {/* Right: Mobile Menu + Search */}
           <div className="flex items-center gap-1 sm:gap-2">
             <MobileMenu 
               categories={categories} 
@@ -370,14 +380,15 @@ export function ShopHeader({
               currentLocale={currentLocale}
               supportedLocales={supportedLocales}
             />
-            {showSearch && <span className="hidden lg:block"><SearchButton basePath={basePath} storeId={storeId} /></span>}
+            {/* Search - all screen sizes, positioned near hamburger */}
+            {showSearch && <SearchButton basePath={basePath} storeId={storeId} />}
           </div>
 
           {/* Center: Logo */}
           <Logo className="absolute left-1/2 -translate-x-1/2" />
 
-          {/* Left: Language (desktop only), User, Search (mobile), Cart at extreme left */}
-          <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-0">
+          {/* Left: Language (desktop only), Wishlist, User, Cart at extreme left */}
+          <div className="flex items-center gap-1 sm:gap-2">
             {showLanguageSwitcher && supportedLocales.length > 1 && (
               <LanguageSwitcher
                 currentLocale={currentLocale}
@@ -386,7 +397,7 @@ export function ShopHeader({
                 className="hidden lg:flex"
               />
             )}
-            {showSearch && <span className="lg:hidden"><SearchButton basePath={basePath} storeId={storeId} /></span>}
+            {showWishlist && <WishlistHeaderButton basePath={basePath} />}
             {showAccount && <UserButton basePath={basePath} initialCustomer={customer} />}
             {showCart && <CartButton />}
           </div>

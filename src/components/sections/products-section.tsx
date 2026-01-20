@@ -58,9 +58,11 @@ interface ProductsSectionProps {
   // מדבקות - Map של productId -> badges
   badgesMap?: Map<string, Badge[]>;
   storeSlug?: string; // 🆕 Required for variants modal
+  // ❤️ Wishlist support
+  showWishlist?: boolean;
 }
 
-export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap, badgesMap, storeSlug }: ProductsSectionProps & { sectionId?: string }) {
+export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap, badgesMap, storeSlug, showWishlist = false }: ProductsSectionProps & { sectionId?: string }) {
   // Text alignment classes
   const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
   
@@ -120,6 +122,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 addToCartStyle={settings.addToCartStyle}
                 storeSlug={storeSlug}
                 badges={badgesMap?.get(product.id) || []}
+                showWishlist={showWishlist}
               />
             </div>
           ))}

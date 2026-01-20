@@ -26,6 +26,7 @@ const VALID_SETTINGS_KEYS = [
   'headerShowSearch',
   'headerShowCart',
   'headerShowAccount',
+  'headerShowWishlist',
   'headerShowLanguageSwitcher',
   'headerNavigationMode', // 'menu' = custom menus, 'categories' = show all categories
   

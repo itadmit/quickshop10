@@ -145,8 +145,8 @@ export function ProductAddons({ addons, onChange, onValidationChange }: ProductA
         const value = values[addon.id] || '';
         
         return (
-          <div key={addon.id} className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-center justify-between mb-2">
+          <div key={addon.id} className="space-y-2">
+            <div className="flex items-center justify-between">
               <label className="text-sm font-medium text-gray-900">
                 {addon.name}
                 {addon.isRequired && <span className="text-red-500 mr-1">*</span>}

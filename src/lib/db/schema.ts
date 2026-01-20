@@ -643,6 +643,22 @@ export const productAddonAssignments = pgTable('product_addon_assignments', {
   uniqueIndex('idx_addon_assignments_unique').on(table.productId, table.addonId),
 ]);
 
+// Category Addon Assignments - Links addons to categories (all products in category get these addons)
+export const categoryAddonAssignments = pgTable('category_addon_assignments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  categoryId: uuid('category_id').references(() => categories.id, { onDelete: 'cascade' }).notNull(),
+  addonId: uuid('addon_id').references(() => productAddons.id, { onDelete: 'cascade' }).notNull(),
+  sortOrder: integer('sort_order').default(0).notNull(),
+  
+  // Optional overrides for this category
+  isRequired: boolean('is_required'), // null = use addon default
+  priceOverride: decimal('price_override', { precision: 10, scale: 2 }), // null = use addon default
+}, (table) => [
+  index('idx_category_addon_assignments_category').on(table.categoryId),
+  index('idx_category_addon_assignments_addon').on(table.addonId),
+  uniqueIndex('idx_category_addon_assignments_unique').on(table.categoryId, table.addonId),
+]);
+
 // ============ PRODUCT WAITLIST ============
 
 // Product Waitlist - Customers waiting for out-of-stock products
@@ -834,6 +850,26 @@ export const customerCreditTransactions = pgTable('customer_credit_transactions'
 }, (table) => [
   index('idx_credit_transactions_customer').on(table.customerId),
   index('idx_credit_transactions_store').on(table.storeId),
+]);
+
+// ============ WISHLIST ============
+
+// Wishlist items - for logged-in customers only (guests use localStorage)
+export const wishlists = pgTable('wishlists', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
+  productId: uuid('product_id').references(() => products.id, { onDelete: 'cascade' }).notNull(),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'cascade' }),
+  // Optional note from customer
+  note: text('note'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_wishlists_customer').on(table.customerId),
+  index('idx_wishlists_store').on(table.storeId),
+  index('idx_wishlists_product').on(table.productId),
+  // Unique constraint: customer can't add same product+variant twice
+  uniqueIndex('idx_wishlists_unique').on(table.customerId, table.productId, table.variantId),
 ]);
 
 // ============ CONTACTS (LEADS) ============
@@ -1870,6 +1906,7 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
     references: [stores.id],
   }),
   products: many(products),
+  addonAssignments: many(categoryAddonAssignments),
 }));
 
 export const productsRelations = relations(products, ({ one, many }) => ({
@@ -1895,6 +1932,7 @@ export const productAddonsRelations = relations(productAddons, ({ one, many }) =
     references: [stores.id],
   }),
   assignments: many(productAddonAssignments),
+  categoryAssignments: many(categoryAddonAssignments),
 }));
 
 export const productAddonAssignmentsRelations = relations(productAddonAssignments, ({ one }) => ({
@@ -1904,6 +1942,17 @@ export const productAddonAssignmentsRelations = relations(productAddonAssignment
   }),
   addon: one(productAddons, {
     fields: [productAddonAssignments.addonId],
+    references: [productAddons.id],
+  }),
+}));
+
+export const categoryAddonAssignmentsRelations = relations(categoryAddonAssignments, ({ one }) => ({
+  category: one(categories, {
+    fields: [categoryAddonAssignments.categoryId],
+    references: [categories.id],
+  }),
+  addon: one(productAddons, {
+    fields: [categoryAddonAssignments.addonId],
     references: [productAddons.id],
   }),
 }));
@@ -1990,6 +2039,26 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   otpCodes: many(customerOtpCodes),
   creditTransactions: many(customerCreditTransactions),
   contacts: many(contacts),
+  wishlists: many(wishlists),
+}));
+
+export const wishlistsRelations = relations(wishlists, ({ one }) => ({
+  store: one(stores, {
+    fields: [wishlists.storeId],
+    references: [stores.id],
+  }),
+  customer: one(customers, {
+    fields: [wishlists.customerId],
+    references: [customers.id],
+  }),
+  product: one(products, {
+    fields: [wishlists.productId],
+    references: [products.id],
+  }),
+  variant: one(productVariants, {
+    fields: [wishlists.variantId],
+    references: [productVariants.id],
+  }),
 }));
 
 export const contactsRelations = relations(contacts, ({ one }) => ({
@@ -3722,6 +3791,8 @@ export type CustomerSession = typeof customerSessions.$inferSelect;
 export type NewCustomerSession = typeof customerSessions.$inferInsert;
 export type CustomerOtpCode = typeof customerOtpCodes.$inferSelect;
 export type NewCustomerOtpCode = typeof customerOtpCodes.$inferInsert;
+export type Wishlist = typeof wishlists.$inferSelect;
+export type NewWishlist = typeof wishlists.$inferInsert;
 export type Contact = typeof contacts.$inferSelect;
 export type NewContact = typeof contacts.$inferInsert;
 export type Order = typeof orders.$inferSelect;
@@ -3886,6 +3957,9 @@ export type ProductAddon = typeof productAddons.$inferSelect;
 export type NewProductAddon = typeof productAddons.$inferInsert;
 export type ProductAddonAssignment = typeof productAddonAssignments.$inferSelect;
 export type NewProductAddonAssignment = typeof productAddonAssignments.$inferInsert;
+
+export type CategoryAddonAssignment = typeof categoryAddonAssignments.$inferSelect;
+export type NewCategoryAddonAssignment = typeof categoryAddonAssignments.$inferInsert;
 
 // Product Waitlist types
 export type ProductWaitlistEntry = typeof productWaitlist.$inferSelect;

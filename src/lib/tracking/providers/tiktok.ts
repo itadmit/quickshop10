@@ -114,6 +114,9 @@ export function trackTikTokEvent<T extends TrackingEventType>(
   currency: string = 'ILS'
 ): void {
   if (typeof window === 'undefined' || !window.ttq) return;
+  
+  // Ensure ttq methods exist (may be blocked by AdBlocker)
+  if (typeof window.ttq.page !== 'function' || typeof window.ttq.track !== 'function') return;
 
   const tiktokEventName = TIKTOK_EVENT_MAP[eventType];
   
@@ -122,10 +125,15 @@ export function trackTikTokEvent<T extends TrackingEventType>(
 
   const params = buildTikTokParams(eventType, payload, currency);
   
-  if (eventType === 'PageView' || eventType === 'ViewHomePage') {
-    window.ttq.page();
-  } else {
-    window.ttq.track(tiktokEventName, params);
+  try {
+    if (eventType === 'PageView' || eventType === 'ViewHomePage') {
+      window.ttq.page();
+    } else {
+      window.ttq.track(tiktokEventName, params);
+    }
+  } catch {
+    // Silently fail if TikTok Pixel is blocked
+    return;
   }
   
   if (process.env.NODE_ENV === 'development') {

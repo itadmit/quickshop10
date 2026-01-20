@@ -232,6 +232,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             discountsMap={discountsMap}
             badgesMap={badgesMap}
             storeSlug={slug}
+            showWishlist={Boolean(storeSettings.headerShowWishlist)}
           />
         );
         break;

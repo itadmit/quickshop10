@@ -27,6 +27,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
+  const storeSettings = (store.settings as Record<string, unknown>) || {};
   
   const query = q?.trim() || '';
   
@@ -197,6 +198,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                       trackInventory={product.trackInventory}
                       allowBackorder={product.allowBackorder}
                       badges={badgesMap.get(product.id) || []}
+                      showWishlist={Boolean(storeSettings.headerShowWishlist)}
                     />
                   );
                 })}

@@ -32,6 +32,7 @@ import {
 } from '@/components/storefront/product-page-preview';
 import { BundleComponentsDisplay } from '@/components/storefront/bundle-components-display';
 import { StoryStatsSection } from './story-stats-section';
+import { ProductWishlistButton } from '@/components/product-wishlist-button';
 
 // ============================================
 // Types
@@ -122,10 +123,12 @@ interface ProductPageProps {
   productAddons: {
     id: string;
     name: string;
-    description: string | null;
-    price: string;
+    fieldType: 'text' | 'select' | 'checkbox' | 'radio' | 'date';
+    placeholder: string | null;
+    options: { label: string; value: string; priceAdjustment: number }[];
+    priceAdjustment: number;
     isRequired: boolean;
-    maxQuantity: number;
+    maxLength: number | null;
   }[];
   context: DynamicContentContext;
   basePath: string;
@@ -142,6 +145,8 @@ interface ProductPageProps {
     likesCount: number;
     commentsCount: number;
   } | null;
+  // ❤️ Wishlist support
+  showWishlist?: boolean;
 }
 
 // ============================================
@@ -166,6 +171,7 @@ export function ProductPage({
   storeSlug,
   categoryIds,
   storyStats,
+  showWishlist = false,
 }: ProductPageProps) {
   // Sort sections by sortOrder and filter active
   const activeSections = sections
@@ -509,7 +515,21 @@ export function ProductPage({
         );
         
       case 'product_add_to_cart':
-        const cartSettings = section.settings as { buttonText?: string; outOfStockText?: string; style?: string; fullWidth?: boolean };
+        const cartSettings = section.settings as { 
+          buttonText?: string; 
+          outOfStockText?: string; 
+          style?: string; 
+          fullWidth?: boolean;
+          // Wishlist settings
+          showWishlist?: boolean;
+          wishlistStyle?: string;
+          wishlistFullWidth?: boolean;
+          wishlistText?: string;
+          wishlistActiveText?: string;
+        };
+        const hasAddons = productAddons.length > 0;
+        const shouldShowWishlist = showWishlist && cartSettings.showWishlist !== false;
+        
         return (
           <div 
             key={section.id}
@@ -535,6 +555,27 @@ export function ProductPage({
                 buttonText={cartSettings.buttonText}
                 outOfStockText={cartSettings.outOfStockText}
               />
+            ) : hasAddons ? (
+              // Use ProductWithAddons when product has addons
+              <ProductWithAddons
+                productId={product.id}
+                productName={product.name}
+                productSlug={product.sku || ''}
+                basePrice={Number(product.price)}
+                finalPrice={Number(finalPrice)}
+                image={product.images[0] || '/placeholder.svg'}
+                sku={product.sku || undefined}
+                inventory={product.inventory}
+                trackInventory={product.trackInventory}
+                allowBackorder={product.allowBackorder ?? false}
+                addons={productAddons}
+                automaticDiscountName={discountLabels.join(' + ') || undefined}
+                discountedPrice={hasAutomaticDiscount ? Number(finalPrice) : undefined}
+                categoryIds={categoryIds}
+                showDecimalPrices={showDecimalPrices}
+                storeSlug={storeSlug}
+                isBundle={product.isBundle}
+              />
             ) : (
               <AddToCartButton
                 productId={product.id}
@@ -554,6 +595,18 @@ export function ProductPage({
                 isBundle={product.isBundle}
                 bundleComponents={product.bundleComponents}
               />
+            )}
+            {/* Wishlist Button - below add to cart */}
+            {shouldShowWishlist && (
+              <div className="mt-3">
+                <ProductWishlistButton 
+                  productId={product.id}
+                  buttonStyle={cartSettings.wishlistStyle as 'filled' | 'outline' | 'minimal'}
+                  fullWidth={cartSettings.wishlistFullWidth}
+                  text={cartSettings.wishlistText}
+                  activeText={cartSettings.wishlistActiveText}
+                />
+              </div>
             )}
           </div>
         );
@@ -713,6 +766,7 @@ export function ProductPage({
                     inventory={p.inventory}
                     trackInventory={p.trackInventory}
                     allowBackorder={p.allowBackorder}
+                    showWishlist={showWishlist}
                   />
                 ))}
               </div>
@@ -766,6 +820,7 @@ export function ProductPage({
                       inventory={p.inventory}
                       trackInventory={p.trackInventory}
                       allowBackorder={p.allowBackorder}
+                      showWishlist={showWishlist}
                     />
                   ))}
                 </div>
@@ -1119,6 +1174,26 @@ export function ProductPage({
                       baseComparePrice={effectiveComparePrice ? Number(effectiveComparePrice) : null}
                       categoryIds={categoryIds}
                       storeSlug={storeSlug}
+                    />
+                  ) : productAddons.length > 0 ? (
+                    <ProductWithAddons
+                      productId={product.id}
+                      productName={product.name}
+                      productSlug={product.sku || ''}
+                      basePrice={Number(product.price)}
+                      finalPrice={Number(finalPrice)}
+                      image={product.images[0] || '/placeholder.svg'}
+                      sku={product.sku || undefined}
+                      inventory={product.inventory}
+                      trackInventory={product.trackInventory}
+                      allowBackorder={product.allowBackorder ?? false}
+                      addons={productAddons}
+                      automaticDiscountName={discountLabels.join(' + ') || undefined}
+                      discountedPrice={hasAutomaticDiscount ? Number(finalPrice) : undefined}
+                      categoryIds={categoryIds}
+                      showDecimalPrices={showDecimalPrices}
+                      storeSlug={storeSlug}
+                      isBundle={product.isBundle}
                     />
                   ) : (
                     <AddToCartButton

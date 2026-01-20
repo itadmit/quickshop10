@@ -1,13 +1,13 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
-import { AddonForm } from '../addon-form';
 import Link from 'next/link';
+import { ImportAddonsForm } from './import-form';
 
-interface NewAddonPageProps {
+interface ImportAddonsPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default async function NewAddonPage({ params }: NewAddonPageProps) {
+export default async function ImportAddonsPage({ params }: ImportAddonsPageProps) {
   const { slug } = await params;
   const store = await getStoreBySlug(slug);
   
@@ -28,15 +28,14 @@ export default async function NewAddonPage({ params }: NewAddonPageProps) {
           </svg>
         </Link>
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">תוספת חדשה</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">ייבוא תוספות מאתר אחר</h1>
           <p className="mt-1 text-sm text-gray-500">
-            צור תוספת בתשלום למוצרים
+            הדבק את קוד ה-HTML של התוספות מאתר אחר (WooCommerce, Shopify, Magento) והמערכת תתרגם אותן אוטומטית
           </p>
         </div>
       </div>
 
-      {/* Form */}
-      <AddonForm storeId={store.id} storeSlug={slug} />
+      <ImportAddonsForm storeId={store.id} storeSlug={slug} />
     </div>
   );
 }

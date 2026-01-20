@@ -1,7 +1,7 @@
 import { getStoreBySlug, getCategoriesByStore, getProductForEdit, getProductsForUpsell } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { ProductForm } from '@/components/admin/product-form';
-import { getStoreAddons } from '@/app/shops/[slug]/admin/addons/actions';
+import { getStoreAddons, getCategoryAddons } from '@/app/shops/[slug]/admin/addons/actions';
 import { getStoreMetafields } from '@/app/shops/[slug]/admin/metafields/actions';
 import { getManualBadgesForStore, getProductBadges } from '@/app/shops/[slug]/admin/badges/actions';
 
@@ -33,6 +33,35 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   if (!product) {
     notFound();
   }
+
+  // Fetch addons from product's categories
+  const categoryIds = product.categoryIds || (product.categoryId ? [product.categoryId] : []);
+  
+  // Get addons for all categories this product belongs to
+  const categoryAddonsPromises = categoryIds.map(async (catId) => {
+    const category = categories.find(c => c.id === catId);
+    const addons = await getCategoryAddons(catId);
+    return addons.map(addon => ({
+      ...addon,
+      categoryName: category?.name || 'קטגוריה',
+    }));
+  });
+  
+  const categoryAddonsArrays = await Promise.all(categoryAddonsPromises);
+  
+  // Flatten and deduplicate (same addon might be in multiple categories)
+  const seenAddonIds = new Set<string>();
+  const categoryAddons = categoryAddonsArrays.flat().filter(addon => {
+    if (seenAddonIds.has(addon.id)) return false;
+    seenAddonIds.add(addon.id);
+    return addon.isActive; // Only active addons
+  }).map(addon => ({
+    id: addon.id,
+    name: addon.name,
+    fieldType: addon.fieldType,
+    isRequired: addon.isRequiredOverride ?? addon.isRequired,
+    categoryName: addon.categoryName,
+  }));
 
   // Format addons for the form
   const formattedAddons = storeAddons
@@ -68,6 +97,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
       categories={categories}
       allProducts={allProducts}
       storeAddons={formattedAddons}
+      categoryAddons={categoryAddons}
       storeMetafields={storeMetafields}
       storeBadges={storeBadges}
       product={productForForm}

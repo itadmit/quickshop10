@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { categories, products, productImages, productCategories, productVariants } from '@/lib/db/schema';
+import { categories, products, productImages, productCategories, productVariants, productAddons, categoryAddonAssignments } from '@/lib/db/schema';
 import { eq, and, asc, desc, inArray, sql } from 'drizzle-orm';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { CategoryEditForm } from './category-edit-form';
 import { ProductsReorderList } from './products-reorder-list';
 import { PerPageSelector } from './per-page-selector';
+import { CategoryAddonsSection } from './category-addons-section';
 
 export const dynamic = 'force-dynamic';
 
@@ -111,6 +112,36 @@ async function getCategoryWithProducts(storeId: string, categoryId: string, perP
   };
 }
 
+// Get addons data for category
+async function getCategoryAddonsData(storeId: string, categoryId: string) {
+  // Get all store addons
+  const storeAddons = await db
+    .select()
+    .from(productAddons)
+    .where(eq(productAddons.storeId, storeId))
+    .orderBy(asc(productAddons.sortOrder), asc(productAddons.name));
+
+  // Get addons assigned to this category
+  const assignments = await db
+    .select({
+      assignment: categoryAddonAssignments,
+      addon: productAddons,
+    })
+    .from(categoryAddonAssignments)
+    .innerJoin(productAddons, eq(categoryAddonAssignments.addonId, productAddons.id))
+    .where(eq(categoryAddonAssignments.categoryId, categoryId))
+    .orderBy(asc(categoryAddonAssignments.sortOrder));
+
+  const assignedAddons = assignments.map(({ assignment, addon }) => ({
+    ...addon,
+    isRequiredOverride: assignment.isRequired,
+    priceOverride: assignment.priceOverride,
+    assignmentId: assignment.id,
+  }));
+
+  return { storeAddons, assignedAddons };
+}
+
 export default async function CategoryEditPage({ params, searchParams }: CategoryEditPageProps) {
   const { slug, id } = await params;
   const { perPage: perPageParam } = await searchParams;
@@ -124,13 +155,17 @@ export default async function CategoryEditPage({ params, searchParams }: Categor
   const perPage = parseInt(perPageParam || '20', 10);
   const validPerPage = [20, 50, 100, 200].includes(perPage) ? perPage : 20;
 
-  const data = await getCategoryWithProducts(store.id, id, validPerPage);
+  const [data, addonsData] = await Promise.all([
+    getCategoryWithProducts(store.id, id, validPerPage),
+    getCategoryAddonsData(store.id, id),
+  ]);
 
   if (!data) {
     notFound();
   }
 
   const { category, allCategories, products: categoryProducts, totalProducts } = data;
+  const { storeAddons, assignedAddons } = addonsData;
 
   return (
     <div className="space-y-6">
@@ -154,12 +189,20 @@ export default async function CategoryEditPage({ params, searchParams }: Categor
 
       <div className="grid grid-cols-12 gap-6">
         {/* Edit Form - Right Side */}
-        <div className="col-span-5">
+        <div className="col-span-5 space-y-6">
           <CategoryEditForm
             category={category}
             allCategories={allCategories}
             storeId={store.id}
             storeSlug={slug}
+          />
+
+          {/* Category Addons */}
+          <CategoryAddonsSection
+            categoryId={id}
+            storeSlug={slug}
+            storeAddons={storeAddons}
+            assignedAddons={assignedAddons}
           />
         </div>
 

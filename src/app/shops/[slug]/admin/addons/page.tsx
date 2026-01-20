@@ -36,15 +36,28 @@ export default async function AddonsPage({ params }: AddonsPageProps) {
             צור תוספות למוצרים עם תמחור גמיש
           </p>
         </div>
-        <Link
-          href={`/shops/${slug}/admin/addons/new`}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-          תוספת חדשה
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/shops/${slug}/admin/addons/import`}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            ייבוא מאתר אחר (HTML)
+          </Link>
+          <Link
+            href={`/shops/${slug}/admin/addons/new`}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black text-white text-sm font-medium rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            תוספת חדשה
+          </Link>
+        </div>
       </div>
 
       {/* Stats Cards */}
