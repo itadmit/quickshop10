@@ -117,7 +117,7 @@ export function AddToCartButton({
   // Different styles based on buttonStyle prop (for product page editor)
   const getButtonStyleClasses = () => {
     const widthClass = fullWidth ? 'w-full' : '';
-    const baseClasses = 'py-3 px-6 text-sm font-medium transition-all duration-200';
+    const baseClasses = 'py-4 px-6 text-sm font-medium transition-all duration-200';
     
     if (buttonStyle === 'outline') {
       return `
