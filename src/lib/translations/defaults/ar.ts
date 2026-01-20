@@ -164,6 +164,7 @@ export const arabicTranslations: UITranslations = {
     freeShippingReached: "أنت مؤهل للشحن المجاني!",
     addons: "إضافات",
     maxQuantityReached: "تم الوصول للحد الأقصى",
+    bundleIncludes: "يشمل",
   },
 
   product: {

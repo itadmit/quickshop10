@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getBundleComponentsForCart } from '@/app/shops/[slug]/admin/products/bundle-actions';
+import { useCartTranslations } from '@/lib/translations/use-translations';
 
 interface CartBundleComponentsProps {
   productId: string;
@@ -10,6 +11,7 @@ interface CartBundleComponentsProps {
 export function CartBundleComponents({ productId }: CartBundleComponentsProps) {
   const [components, setComponents] = useState<{ name: string; variantTitle?: string; quantity: number }[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const t = useCartTranslations();
 
   useEffect(() => {
     let mounted = true;
@@ -46,7 +48,7 @@ export function CartBundleComponents({ productId }: CartBundleComponentsProps) {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <span className="font-medium">כולל:</span>
+        <span className="font-medium">{t.bundleIncludes}:</span>
       </div>
       <div className="space-y-0.5">
         {components.map((comp, i) => (

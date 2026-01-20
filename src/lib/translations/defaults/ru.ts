@@ -164,6 +164,7 @@ export const russianTranslations: UITranslations = {
     freeShippingReached: "Вы получили бесплатную доставку!",
     addons: "Дополнения",
     maxQuantityReached: "Достигнуто максимальное количество",
+    bundleIncludes: "Включает",
   },
 
   product: {

@@ -191,6 +191,7 @@ export interface CartTranslations {
   freeShippingReached: string;
   addons: string;
   maxQuantityReached: string;
+  bundleIncludes: string;
 }
 
 export interface ProductTranslations {

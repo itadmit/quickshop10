@@ -6,6 +6,7 @@ import { UserButton } from './user-button';
 import { SearchButton } from './search-button';
 import { MegaMenuDropdown } from './mega-menu-dropdown';
 import { LanguageSwitcher } from './storefront/language-switcher';
+import { getDirection } from '@/lib/translations';
 import type { SupportedLocale } from '@/lib/translations/types';
 
 interface Category {
@@ -91,6 +92,9 @@ export function ShopHeader({
   currentLocale = 'he',
   supportedLocales = ['he'],
 }: ShopHeaderProps) {
+  // Get direction (RTL/LTR) for current locale
+  const direction = getDirection(currentLocale);
+  
   // Organize categories into parent/child structure (for categories mode)
   const parentCategories = categories.filter(c => !c.parentId);
   const childrenMap = new Map<string, Category[]>();
@@ -275,7 +279,7 @@ export function ShopHeader({
     return (
       <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+          <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
             {/* Right: Mobile Menu + Logo */}
             <div className="flex items-center gap-2">
               <MobileMenu 
@@ -312,7 +316,7 @@ export function ShopHeader({
     return (
       <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
         <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
-          <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+          <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
             {/* Right (in RTL = visual right): Icons with cart at extreme right */}
             <Icons cartAtStart />
 
@@ -349,7 +353,7 @@ export function ShopHeader({
     <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
       <div className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-12">
         {/* Top row: Hamburger/Search - Logo - Icons */}
-        <div className="flex items-center justify-between h-16 sm:h-20" dir="rtl">
+        <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
           {/* Right: Mobile Menu + Search (desktop) */}
           <div className="flex items-center gap-1 sm:gap-2">
             <MobileMenu 

@@ -172,6 +172,7 @@ export const hebrewTranslations: UITranslations = {
     freeShippingReached: "זכאי למשלוח חינם!",
     addons: "תוספות",
     maxQuantityReached: "הגעת למקסימום הזמין",
+    bundleIncludes: "כולל",
   },
 
   product: {

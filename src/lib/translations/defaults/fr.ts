@@ -164,6 +164,7 @@ export const frenchTranslations: UITranslations = {
     freeShippingReached: "Vous bénéficiez de la livraison gratuite !",
     addons: "Suppléments",
     maxQuantityReached: "Quantité maximum atteinte",
+    bundleIncludes: "Inclut",
   },
 
   product: {
