@@ -4,7 +4,9 @@ import { CartSidebar } from '@/components/cart-sidebar';
 import { getCurrentCustomer } from '@/lib/customer-auth';
 import { cache } from 'react';
 import { headers, cookies } from 'next/headers';
-import { detectLocaleWithGeo } from '@/lib/translations';
+import { detectLocaleWithGeo, getUITranslations } from '@/lib/translations';
+import { TranslationsProvider } from '@/lib/translations/use-translations';
+import { isRTL, getDirection } from '@/lib/translations';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
@@ -231,6 +233,16 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   
   const showLanguageSwitcher = Boolean(storeSettings.headerShowLanguageSwitcher) && supportedLocales.length > 1;
   
+  // 🌍 Load translations for current locale (only if store has multiple languages or custom translations)
+  const hasMultipleLanguages = supportedLocales.length > 1;
+  const shouldLoadTranslations = hasMultipleLanguages || store.hasCustomTranslations || currentLocale !== 'he';
+  const translations = shouldLoadTranslations 
+    ? await getUITranslations(store.id, currentLocale)
+    : null;
+  
+  // Get direction (RTL/LTR) for current locale
+  const direction = getDirection(currentLocale);
+  
   // Get menu items for header navigation (only if using menu mode)
   const menuItems: MenuItem[] = headerNavigationMode === 'menu' && mainMenu?.items 
     ? mainMenu.items 
@@ -361,72 +373,159 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           showDecimalPrices={showDecimalPrices} 
           currency={store.currency}
         >
-          {showHeader && (
-            <>
-              {HeaderContent}
-              <CartSidebar basePath={basePath} storeSlug={slug} freeShippingThreshold={freeShippingThreshold} />
-              {/* Stories Bar - Renders only if plugin is active and there are stories (not on checkout) */}
-              {!isCheckoutPage && storiesEnabled && storiesSettings && stories.length > 0 && (
-                <StoriesBar
-                  storeSlug={slug}
-                  stories={stories}
-                  settings={storiesSettings}
-                  pageType="home"
+          {/* 🌍 Translations Provider - wraps entire storefront */}
+          {translations ? (
+            <TranslationsProvider translations={translations} locale={currentLocale}>
+              <div dir={direction}>
+                {showHeader && (
+                  <>
+                    {HeaderContent}
+                    <CartSidebar 
+                      basePath={basePath} 
+                      storeSlug={slug} 
+                      freeShippingThreshold={freeShippingThreshold}
+                      translations={translations.cart}
+                    />
+                  </>
+                )}
+                {/* Stories Bar - Renders only if plugin is active and there are stories (not on checkout) */}
+                {!isCheckoutPage && storiesEnabled && storiesSettings && stories.length > 0 && (
+                  <StoriesBar
+                    storeSlug={slug}
+                    stories={stories}
+                    settings={storiesSettings}
+                    pageType="home"
+                    basePath={basePath}
+                  />
+                )}
+                <main>{children}</main>
+                
+                {/* Floating Advisor Button - Renders only if plugin is active and has advisors (not on checkout) */}
+                {!isCheckoutPage && advisorEnabled && activeAdvisors.length > 0 && (
+                  <FloatingAdvisorButton 
+                    storeSlug={slug} 
+                    storeId={store.id} 
+                    advisors={activeAdvisors}
+                    basePath={basePath}
+                    position={(advisorPlugin?.config as Record<string, unknown>)?.floatingButtonPosition as 'left' | 'right' || 'right'}
+                  />
+                )}
+
+                {/* Popup Display - Renders active popups (not on checkout) */}
+                {!isCheckoutPage && activePopups.length > 0 && (
+                  <PopupDisplay 
+                    popups={activePopups.map(p => ({
+                      id: p.id,
+                      name: p.name,
+                      type: p.type,
+                      trigger: p.trigger,
+                      triggerValue: p.triggerValue || 3,
+                      position: p.position,
+                      frequency: p.frequency,
+                      frequencyDays: p.frequencyDays || 7,
+                      targetPages: p.targetPages,
+                      customTargetUrls: (p.customTargetUrls as string[]) || [],
+                      showOnDesktop: p.showOnDesktop,
+                      showOnMobile: p.showOnMobile,
+                      content: p.content as Record<string, unknown>,
+                      style: p.style as Record<string, unknown>,
+                    }))}
+                    storeSlug={slug}
+                  />
+                )}
+
+                {/* Gamification Popup - Wheel of Fortune / Scratch Card (not on checkout) */}
+                {!isCheckoutPage && (
+                  <GamificationPopupLoader 
+                    campaigns={activeGamificationCampaigns}
+                    storeSlug={slug}
+                    storeName={store.name}
+                    wheelEnabled={wheelEnabled}
+                    scratchEnabled={scratchEnabled}
+                  />
+                )}
+
+                {/* Cookie Consent Banner - GDPR Compliance */}
+                {gdprSettings?.enabled && (
+                  <CookieBanner settings={gdprSettings} storeSlug={slug} />
+                )}
+              </div>
+            </TranslationsProvider>
+          ) : (
+            // Fallback: No translations (Hebrew only store)
+            <div dir="rtl">
+              {showHeader && (
+                <>
+                  {HeaderContent}
+                  <CartSidebar 
+                    basePath={basePath} 
+                    storeSlug={slug} 
+                    freeShippingThreshold={freeShippingThreshold}
+                  />
+                  {/* Stories Bar - Renders only if plugin is active and there are stories (not on checkout) */}
+                  {!isCheckoutPage && storiesEnabled && storiesSettings && stories.length > 0 && (
+                    <StoriesBar
+                      storeSlug={slug}
+                      stories={stories}
+                      settings={storiesSettings}
+                      pageType="home"
+                      basePath={basePath}
+                    />
+                  )}
+                </>
+              )}
+              <main>{children}</main>
+              
+              {/* Floating Advisor Button - Renders only if plugin is active and has advisors (not on checkout) */}
+              {!isCheckoutPage && advisorEnabled && activeAdvisors.length > 0 && (
+                <FloatingAdvisorButton 
+                  storeSlug={slug} 
+                  storeId={store.id} 
+                  advisors={activeAdvisors}
                   basePath={basePath}
+                  position={(advisorPlugin?.config as Record<string, unknown>)?.floatingButtonPosition as 'left' | 'right' || 'right'}
                 />
               )}
-            </>
-          )}
-          <main>{children}</main>
-          
-          {/* Floating Advisor Button - Renders only if plugin is active and has advisors (not on checkout) */}
-          {!isCheckoutPage && advisorEnabled && activeAdvisors.length > 0 && (
-            <FloatingAdvisorButton 
-              storeSlug={slug} 
-              storeId={store.id} 
-              advisors={activeAdvisors}
-              basePath={basePath}
-              position={(advisorPlugin?.config as Record<string, unknown>)?.floatingButtonPosition as 'left' | 'right' || 'right'}
-            />
-          )}
 
-          {/* Popup Display - Renders active popups (not on checkout) */}
-          {!isCheckoutPage && activePopups.length > 0 && (
-            <PopupDisplay 
-              popups={activePopups.map(p => ({
-                id: p.id,
-                name: p.name,
-                type: p.type,
-                trigger: p.trigger,
-                triggerValue: p.triggerValue || 3,
-                position: p.position,
-                frequency: p.frequency,
-                frequencyDays: p.frequencyDays || 7,
-                targetPages: p.targetPages,
-                customTargetUrls: (p.customTargetUrls as string[]) || [],
-                showOnDesktop: p.showOnDesktop,
-                showOnMobile: p.showOnMobile,
-                content: p.content as Record<string, unknown>,
-                style: p.style as Record<string, unknown>,
-              }))}
-              storeSlug={slug}
-            />
-          )}
+              {/* Popup Display - Renders active popups (not on checkout) */}
+              {!isCheckoutPage && activePopups.length > 0 && (
+                <PopupDisplay 
+                  popups={activePopups.map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    type: p.type,
+                    trigger: p.trigger,
+                    triggerValue: p.triggerValue || 3,
+                    position: p.position,
+                    frequency: p.frequency,
+                    frequencyDays: p.frequencyDays || 7,
+                    targetPages: p.targetPages,
+                    customTargetUrls: (p.customTargetUrls as string[]) || [],
+                    showOnDesktop: p.showOnDesktop,
+                    showOnMobile: p.showOnMobile,
+                    content: p.content as Record<string, unknown>,
+                    style: p.style as Record<string, unknown>,
+                  }))}
+                  storeSlug={slug}
+                />
+              )}
 
-          {/* Gamification Popup - Wheel of Fortune / Scratch Card (not on checkout) */}
-          {!isCheckoutPage && (
-            <GamificationPopupLoader 
-              campaigns={activeGamificationCampaigns}
-              storeSlug={slug}
-              storeName={store.name}
-              wheelEnabled={wheelEnabled}
-              scratchEnabled={scratchEnabled}
-            />
-          )}
+              {/* Gamification Popup - Wheel of Fortune / Scratch Card (not on checkout) */}
+              {!isCheckoutPage && (
+                <GamificationPopupLoader 
+                  campaigns={activeGamificationCampaigns}
+                  storeSlug={slug}
+                  storeName={store.name}
+                  wheelEnabled={wheelEnabled}
+                  scratchEnabled={scratchEnabled}
+                />
+              )}
 
-          {/* Cookie Consent Banner - GDPR Compliance */}
-          {gdprSettings?.enabled && (
-            <CookieBanner settings={gdprSettings} storeSlug={slug} />
+              {/* Cookie Consent Banner - GDPR Compliance */}
+              {gdprSettings?.enabled && (
+                <CookieBanner settings={gdprSettings} storeSlug={slug} />
+              )}
+            </div>
           )}
         </StoreSettingsProvider>
       </TrackingProvider>

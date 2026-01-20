@@ -37,7 +37,7 @@ import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
 import { parseRedirectParams, isSuccessfulRedirect } from '@/lib/payments/factory';
 import { executePostPaymentActions, type CartItem, type OrderData } from '@/lib/orders/post-payment';
 import { calculateItemDiscounts } from '@/lib/order-item-discount';
-import { getUITranslations, detectLocaleWithGeo } from '@/lib/translations';
+import { getUITranslations, detectLocaleWithGeo, getDirection } from '@/lib/translations';
 import { hebrewTranslations } from '@/lib/translations/defaults/he';
 import type { SupportedLocale, UITranslations } from '@/lib/translations/types';
 import { cookies } from 'next/headers';
@@ -238,6 +238,9 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   if (hasMultipleLocales || hasCustomTranslations || locale !== 'he') {
     t = await getUITranslations(store.id, locale);
   }
+  
+  // Get direction (RTL/LTR) for current locale
+  const direction = getDirection(locale);
   
   // First try to find existing order by reference (orderNumber)
   let order = null;
@@ -1068,7 +1071,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" dir={direction}>
       {/* Purchase Tracking - fires pixel events to all platforms */}
       <TrackPurchase order={trackingOrder} />
       

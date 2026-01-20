@@ -14,9 +14,12 @@
  * ```
  */
 
-import { useMemo } from 'react';
+'use client';
+
+import React, { useMemo, useContext, createContext } from 'react';
 import { hebrewTranslations } from './defaults/he';
 import { deepMerge, type DeepObject } from './utils/deep-merge';
+import { LOCALE_DIRECTIONS } from './types';
 import type { 
   UITranslations, 
   CheckoutTranslations, 
@@ -26,7 +29,8 @@ import type {
   AccountTranslations,
   FooterTranslations,
   OrderStatusTranslations,
-  DeepPartial
+  DeepPartial,
+  SupportedLocale
 } from './types';
 
 // Re-export types for convenience
@@ -199,4 +203,43 @@ export const defaultGeneral = hebrewTranslations.general;
 export const defaultAccount = hebrewTranslations.account;
 export const defaultFooter = hebrewTranslations.footer;
 export const defaultOrderStatus = hebrewTranslations.orderStatus;
+
+// ============================================
+// Translations Context & Provider
+// ============================================
+
+export const TranslationsContext = createContext<{
+  t: UITranslations;
+  locale: SupportedLocale;
+  direction: 'ltr' | 'rtl';
+}>({
+  t: hebrewTranslations,
+  locale: 'he',
+  direction: 'rtl',
+});
+
+/**
+ * Hook to access translations from context
+ */
+export function useTranslations() {
+  return useContext(TranslationsContext);
+}
+
+/**
+ * Provider component for translations
+ */
+interface TranslationsProviderProps {
+  translations: UITranslations;
+  locale: SupportedLocale;
+  children: React.ReactNode;
+}
+
+export function TranslationsProvider({ translations, locale, children }: TranslationsProviderProps) {
+  const direction = LOCALE_DIRECTIONS[locale] || 'rtl';
+  return React.createElement(
+    TranslationsContext.Provider,
+    { value: { t: translations, locale, direction } },
+    children
+  );
+}
 

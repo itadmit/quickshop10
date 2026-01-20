@@ -4,7 +4,7 @@ import { db } from '@/lib/db';
 import { stores, paymentProviders } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { Suspense } from 'react';
-import { getUITranslations, detectLocaleWithGeo } from '@/lib/translations';
+import { getUITranslations, detectLocaleWithGeo, getDirection } from '@/lib/translations';
 import type { SupportedLocale, CheckoutTranslations } from '@/lib/translations/types';
 
 // Force dynamic rendering - useSearchParams needs it
@@ -184,9 +184,12 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
     );
     checkoutTranslations = uiTranslations.checkout;
   }
+  
+  // Get direction (RTL/LTR) for current locale
+  const direction = getDirection(locale);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50" dir={direction}>
       {/* Header */}
       <div className="bg-white border-b border-gray-100 py-8 px-6">
         <div className="max-w-4xl mx-auto text-center">

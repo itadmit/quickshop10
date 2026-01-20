@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { tracker } from '@/lib/tracking';
 import { CartUpsells } from './cart-upsells';
 import { CartBundleComponents } from './cart-bundle-components';
-import { useCartTranslations, type CartTranslations } from '@/lib/translations/use-translations';
+import { useCartTranslations, useTranslations, type CartTranslations } from '@/lib/translations/use-translations';
 import type { DeepPartial } from '@/lib/translations/types';
 
 interface CartSidebarProps {
@@ -21,6 +21,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold, t
   
   // 🌍 Translations with Hebrew fallback
   const t = useCartTranslations(translations);
+  const { direction } = useTranslations();
   
   // SSR safety - don't render if store context not available
   if (!store) return null;
@@ -73,7 +74,7 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold, t
         className={`fixed top-0 left-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col ${
           cartOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
-        dir="rtl"
+        dir={direction}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 shrink-0">
