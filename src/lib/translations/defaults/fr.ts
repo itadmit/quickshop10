@@ -207,6 +207,7 @@ export const frenchTranslations: UITranslations = {
     search: "Rechercher",
     searchPlaceholder: "Rechercher des produits...",
     searchNoResults: "Aucun résultat trouvé",
+    searchResultsFound: "Trouvé {count} résultats pour",
     menu: "Menu",
     close: "Fermer",
     home: "Accueil",
@@ -305,6 +306,28 @@ export const frenchTranslations: UITranslations = {
     refunded: "Remboursée",
     returned: "Retournée",
     onHold: "En attente",
+  },
+
+  stories: {
+    guest: "Invité",
+    outOfStock: "Produit en rupture de stock",
+    linkCopied: "Lien copié !",
+    adding: "Ajout en cours...",
+    addQuick: "Ajout rapide",
+    previous: "Précédent",
+    next: "Suivant",
+    commentNamePlaceholder: "Votre nom (optionnel)",
+    commentPlaceholder: "Ajouter un commentaire...",
+  },
+
+  wishlist: {
+    title: "Liste de souhaits",
+    loginTitle: "Connectez-vous pour voir la liste de souhaits",
+    loginDescription: "Pour enregistrer des produits dans votre liste de souhaits et les synchroniser entre les appareils, veuillez vous connecter.",
+    loginDescriptionWithItems: "Vous avez {count} produits enregistrés. Connectez-vous pour les enregistrer et les synchroniser entre les appareils.",
+    emptyTitle: "Votre liste de souhaits est vide",
+    emptyDescription: "Cliquez sur le cœur à côté des produits que vous aimez pour les ajouter à votre liste de souhaits",
+    removeFromWishlist: "Retirer de la liste de souhaits",
   },
 };
 

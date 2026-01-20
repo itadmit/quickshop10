@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { Story, StoriesSettings } from './stories-bar';
 import { decodeHtmlEntities } from '@/lib/format-price';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 interface Comment {
   id: string;
@@ -49,6 +50,7 @@ export function StoryViewer({
   onStoryViewed,
   onLikeToggled,
 }: StoryViewerProps) {
+  const { t } = useTranslations();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -278,7 +280,7 @@ export function StoryViewer({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          visitorName: commentName.trim() || 'אורח',
+          visitorName: commentName.trim() || t.stories.guest,
           content: commentText.trim(),
         }),
       });
@@ -338,7 +340,7 @@ export function StoryViewer({
     // 🔒 Check stock before adding to cart
     if (isOutOfStock()) {
       // Show out of stock message instead of adding
-      alert('המוצר אזל מהמלאי');
+      alert(t.stories.outOfStock);
       return;
     }
 
@@ -405,7 +407,7 @@ export function StoryViewer({
     } else {
       // Copy to clipboard
       await navigator.clipboard.writeText(url);
-      alert('הקישור הועתק!');
+      alert(t.stories.linkCopied);
     }
   };
 
@@ -511,12 +513,12 @@ export function StoryViewer({
         <button
           onClick={goToPrevious}
           className="absolute right-0 top-20 bottom-40 w-[15%] z-40"
-          aria-label="הקודם"
+          aria-label={t.stories.previous}
         />
         <button
           onClick={goToNext}
           className="absolute left-0 top-20 bottom-40 w-[15%] z-40"
-          aria-label="הבא"
+          aria-label={t.stories.next}
         />
 
         {/* Main Image/Video - Full screen within phone frame */}
@@ -701,7 +703,7 @@ export function StoryViewer({
                     type="text"
                     value={commentName}
                     onChange={(e) => setCommentName(e.target.value)}
-                    placeholder="השם שלך (אופציונלי)"
+                    placeholder={t.stories.commentNamePlaceholder}
                     className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                 </div>
@@ -710,7 +712,7 @@ export function StoryViewer({
                     type="text"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
-                    placeholder="הוסף תגובה..."
+                    placeholder={t.stories.commentPlaceholder}
                     className="flex-1 px-3 py-2 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
                   />
                   <button
@@ -776,7 +778,7 @@ export function StoryViewer({
                     }`}
                   >
                     <ShoppingCart className="w-5 h-5" />
-                    {isOutOfStock() ? 'אזל מהמלאי' : addingToCart ? 'מוסיף...' : 'הוסף מהר'}
+                    {isOutOfStock() ? t.stories.outOfStock : addingToCart ? t.stories.adding : t.stories.addQuick}
                   </button>
                 </div>
               )}

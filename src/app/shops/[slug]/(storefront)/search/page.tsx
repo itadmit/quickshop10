@@ -9,6 +9,7 @@ import { trackSearchQuery } from '@/lib/actions/reports';
 import { TrackSearch } from '@/components/tracking-events';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { getUITranslations } from '@/lib/translations';
 
 interface SearchPageProps {
   params: Promise<{ slug: string }>;
@@ -28,6 +29,14 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
   const headersList = await headers();
   const basePath = headersList.get('x-custom-domain') ? '' : `/shops/${slug}`;
   const storeSettings = (store.settings as Record<string, unknown>) || {};
+  
+  // Get translations
+  const translations = await getUITranslations(
+    store.id,
+    'he',
+    false,
+    false
+  );
   
   const query = q?.trim() || '';
   
@@ -144,7 +153,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
       {/* Header - Centered */}
       <div className="border-b border-gray-100 py-12 px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <h1 className="font-display text-3xl font-light tracking-wide mb-6">חיפוש</h1>
+          <h1 className="font-display text-3xl font-light tracking-wide mb-6">{translations.general.search}</h1>
           
           {/* Search Form - Centered */}
           <form method="get" className="w-full">
@@ -153,7 +162,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 type="text"
                 name="q"
                 defaultValue={query}
-                placeholder="חפש מוצרים..."
+                placeholder={translations.general.searchPlaceholder}
                 className="flex-1 px-4 py-3 border border-gray-200 rounded-lg focus:border-black focus:outline-none transition-colors text-right"
                 autoFocus
               />
@@ -161,7 +170,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
                 type="submit"
                 className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors cursor-pointer"
               >
-                חפש
+                {translations.general.search}
               </button>
             </div>
           </form>
@@ -174,8 +183,8 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           <>
             <p className="text-gray-600 mb-8 text-center">
               {searchResults.length > 0 
-                ? `נמצאו ${searchResults.length} תוצאות עבור "${query}"`
-                : `לא נמצאו תוצאות עבור "${query}"`
+                ? translations.general.searchResultsFound.replace('{count}', searchResults.length.toString()) + ` "${query}"`
+                : `${translations.general.searchNoResults} עבור "${query}"`
               }
             </p>
             
@@ -217,7 +226,7 @@ export default async function SearchPage({ params, searchParams }: SearchPagePro
           </>
         ) : (
           <div className="text-center py-16">
-            <p className="text-gray-500">הקלד מונח חיפוש כדי למצוא מוצרים</p>
+            <p className="text-gray-500">{translations.general.searchPlaceholder}</p>
           </div>
         )}
       </div>

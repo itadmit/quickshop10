@@ -207,6 +207,7 @@ export const russianTranslations: UITranslations = {
     search: "Поиск",
     searchPlaceholder: "Поиск товаров...",
     searchNoResults: "Ничего не найдено",
+    searchResultsFound: "Найдено {count} результатов для",
     menu: "Меню",
     close: "Закрыть",
     home: "Главная",
@@ -305,6 +306,28 @@ export const russianTranslations: UITranslations = {
     refunded: "Возврат средств",
     returned: "Возвращён",
     onHold: "Приостановлен",
+  },
+
+  stories: {
+    guest: "Гость",
+    outOfStock: "Товар отсутствует в наличии",
+    linkCopied: "Ссылка скопирована!",
+    adding: "Добавление...",
+    addQuick: "Быстрое добавление",
+    previous: "Предыдущий",
+    next: "Следующий",
+    commentNamePlaceholder: "Ваше имя (необязательно)",
+    commentPlaceholder: "Добавить комментарий...",
+  },
+
+  wishlist: {
+    title: "Список желаний",
+    loginTitle: "Войдите, чтобы просмотреть список желаний",
+    loginDescription: "Чтобы сохранять товары в список желаний и синхронизировать между устройствами, пожалуйста, войдите.",
+    loginDescriptionWithItems: "У вас {count} сохранённых товаров. Войдите, чтобы сохранить их и синхронизировать между устройствами.",
+    emptyTitle: "Ваш список желаний пуст",
+    emptyDescription: "Нажмите на сердце рядом с товарами, которые вам нравятся, чтобы добавить их в список желаний",
+    removeFromWishlist: "Удалить из списка желаний",
   },
 };
 

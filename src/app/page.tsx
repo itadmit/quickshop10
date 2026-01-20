@@ -280,12 +280,12 @@ export default function HomePage() {
               <div className="w-16 h-16 bg-white rounded-full overflow-hidden border-2 border-emerald-400 p-0.5">
                 <img 
                   src="https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/argania/smEroidOvE.webp" 
-                  alt="מישל דודנה" 
+                  alt="מישל דונדה" 
                   className="w-full h-full object-cover rounded-full" 
                 />
               </div>
               <div className="text-right">
-                 <div className="text-white font-bold text-lg">מישל דודנה</div>
+                 <div className="text-white font-bold text-lg">מישל דונדה</div>
                  <div className="text-emerald-300">מנהלת אתרים בקבוצת ארגניה</div>
               </div>
            </div>

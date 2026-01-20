@@ -208,6 +208,7 @@ export const englishTranslations: UITranslations = {
     search: "Search",
     searchPlaceholder: "Search products...",
     searchNoResults: "No results found",
+    searchResultsFound: "Found {count} results for",
     menu: "Menu",
     close: "Close",
     home: "Home",
@@ -306,6 +307,28 @@ export const englishTranslations: UITranslations = {
     refunded: "Refunded",
     returned: "Returned",
     onHold: "On Hold",
+  },
+
+  stories: {
+    guest: "Guest",
+    outOfStock: "Product is out of stock",
+    linkCopied: "Link copied!",
+    adding: "Adding...",
+    addQuick: "Quick Add",
+    previous: "Previous",
+    next: "Next",
+    commentNamePlaceholder: "Your name (optional)",
+    commentPlaceholder: "Add a comment...",
+  },
+
+  wishlist: {
+    title: "Wishlist",
+    loginTitle: "Login to view wishlist",
+    loginDescription: "To save products to your wishlist and sync across devices, please log in.",
+    loginDescriptionWithItems: "You have {count} saved products. Log in to save them and sync across devices.",
+    emptyTitle: "Your wishlist is empty",
+    emptyDescription: "Click the heart next to products you like to add them to your wishlist",
+    removeFromWishlist: "Remove from wishlist",
   },
 };
 

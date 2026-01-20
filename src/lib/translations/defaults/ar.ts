@@ -207,6 +207,7 @@ export const arabicTranslations: UITranslations = {
     search: "بحث",
     searchPlaceholder: "ابحث عن منتجات...",
     searchNoResults: "لم يتم العثور على نتائج",
+    searchResultsFound: "تم العثور على {count} نتائج لـ",
     menu: "القائمة",
     close: "إغلاق",
     home: "الرئيسية",
@@ -305,6 +306,28 @@ export const arabicTranslations: UITranslations = {
     refunded: "تم الاسترداد",
     returned: "تم الإرجاع",
     onHold: "معلق",
+  },
+
+  stories: {
+    guest: "ضيف",
+    outOfStock: "المنتج غير متوفر",
+    linkCopied: "تم نسخ الرابط!",
+    adding: "جاري الإضافة...",
+    addQuick: "إضافة سريعة",
+    previous: "السابق",
+    next: "التالي",
+    commentNamePlaceholder: "اسمك (اختياري)",
+    commentPlaceholder: "أضف تعليق...",
+  },
+
+  wishlist: {
+    title: "قائمة الأمنيات",
+    loginTitle: "تسجيل الدخول لعرض قائمة الأمنيات",
+    loginDescription: "لحفظ المنتجات في قائمة الأمنيات ومزامنتها عبر الأجهزة، يرجى تسجيل الدخول.",
+    loginDescriptionWithItems: "لديك {count} منتجات محفوظة. سجل الدخول لحفظها ومزامنتها عبر الأجهزة.",
+    emptyTitle: "قائمة الأمنيات فارغة",
+    emptyDescription: "انقر على القلب بجانب المنتجات التي تحبها لإضافتها إلى قائمة الأمنيات",
+    removeFromWishlist: "إزالة من قائمة الأمنيات",
   },
 };
 

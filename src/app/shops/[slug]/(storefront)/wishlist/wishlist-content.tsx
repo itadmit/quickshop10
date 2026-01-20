@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useWishlistOptional } from '@/components/wishlist-provider';
 import type { WishlistItem } from '@/lib/actions/wishlist';
 import { formatPrice } from '@/lib/format-price';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 interface WishlistPageContentProps {
   initialItems: WishlistItem[];
@@ -25,6 +26,7 @@ export function WishlistPageContent({
   storeId,
   storeCurrency,
 }: WishlistPageContentProps) {
+  const { t } = useTranslations();
   const wishlist = useWishlistOptional();
   const [guestItems, setGuestItems] = useState<string[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -74,12 +76,12 @@ export function WishlistPageContent({
         </div>
         
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          התחבר לצפייה ברשימת המשאלות
+          {t.wishlist.loginTitle}
         </h2>
         <p className="text-gray-500 mb-6 max-w-md mx-auto">
           {isHydrated && guestItems.length > 0 
-            ? `יש לך ${guestItems.length} מוצרים שמורים. התחבר כדי לשמור אותם ולסנכרן בין מכשירים.`
-            : 'כדי לשמור מוצרים לרשימת המשאלות ולסנכרן בין מכשירים, צריך להתחבר.'}
+            ? t.wishlist.loginDescriptionWithItems.replace('{count}', guestItems.length.toString())
+            : t.wishlist.loginDescription}
         </p>
         
         <div className="flex gap-3 justify-center">
@@ -87,13 +89,13 @@ export function WishlistPageContent({
             href={`${basePath}/login`}
             className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
           >
-            התחברות
+            {t.account.login}
           </Link>
           <Link
             href={`${basePath}/register`}
             className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            הרשמה
+            {t.account.register}
           </Link>
         </div>
       </div>
@@ -121,17 +123,17 @@ export function WishlistPageContent({
         </div>
         
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          רשימת המשאלות ריקה
+          {t.wishlist.emptyTitle}
         </h2>
         <p className="text-gray-500 mb-6">
-          לחץ על הלב ליד מוצרים שאהבת כדי להוסיף אותם לרשימה
+          {t.wishlist.emptyDescription}
         </p>
         
         <Link
           href={`${basePath}/products`}
           className="inline-flex px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
         >
-          לכל המוצרים
+          {t.general.allProducts}
         </Link>
       </div>
     );
@@ -196,7 +198,7 @@ export function WishlistPageContent({
                 type="button"
                 onClick={() => handleRemove(item.productId)}
                 className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="הסר מרשימת המשאלות"
+                title={t.wishlist.removeFromWishlist}
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

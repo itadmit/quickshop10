@@ -234,6 +234,7 @@ export interface GeneralTranslations {
   search: string;
   searchPlaceholder: string;
   searchNoResults: string;
+  searchResultsFound: string; // "{count} תוצאות נמצאו עבור"
   menu: string;
   close: string;
   home: string;
@@ -334,6 +335,28 @@ export interface OrderStatusTranslations {
   onHold: string;
 }
 
+export interface StoriesTranslations {
+  guest: string;
+  outOfStock: string;
+  linkCopied: string;
+  adding: string;
+  addQuick: string;
+  previous: string;
+  next: string;
+  commentNamePlaceholder: string;
+  commentPlaceholder: string;
+}
+
+export interface WishlistTranslations {
+  title: string;
+  loginTitle: string;
+  loginDescription: string;
+  loginDescriptionWithItems: string;
+  emptyTitle: string;
+  emptyDescription: string;
+  removeFromWishlist: string;
+}
+
 // ============================================
 // Main UI Translations Interface
 // ============================================
@@ -346,6 +369,8 @@ export interface UITranslations {
   account: AccountTranslations;
   footer: FooterTranslations;
   orderStatus: OrderStatusTranslations;
+  stories: StoriesTranslations;
+  wishlist: WishlistTranslations;
 }
 
 // ============================================

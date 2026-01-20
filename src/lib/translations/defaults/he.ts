@@ -215,6 +215,7 @@ export const hebrewTranslations: UITranslations = {
     search: "חיפוש",
     searchPlaceholder: "חפש מוצרים...",
     searchNoResults: "לא נמצאו תוצאות",
+    searchResultsFound: "נמצאו {count} תוצאות עבור",
     menu: "תפריט",
     close: "סגור",
     home: "בית",
@@ -313,6 +314,28 @@ export const hebrewTranslations: UITranslations = {
     refunded: "זוכתה",
     returned: "הוחזרה",
     onHold: "בהמתנה",
+  },
+
+  stories: {
+    guest: "אורח",
+    outOfStock: "המוצר אזל מהמלאי",
+    linkCopied: "הקישור הועתק!",
+    adding: "מוסיף...",
+    addQuick: "הוסף מהר",
+    previous: "הקודם",
+    next: "הבא",
+    commentNamePlaceholder: "השם שלך (אופציונלי)",
+    commentPlaceholder: "הוסף תגובה...",
+  },
+
+  wishlist: {
+    title: "רשימת משאלות",
+    loginTitle: "התחבר לצפייה ברשימת המשאלות",
+    loginDescription: "כדי לשמור מוצרים לרשימת המשאלות ולסנכרן בין מכשירים, צריך להתחבר.",
+    loginDescriptionWithItems: "יש לך {count} מוצרים שמורים. התחבר כדי לשמור אותם ולסנכרן בין מכשירים.",
+    emptyTitle: "רשימת המשאלות שלך ריקה",
+    emptyDescription: "הוסף מוצרים לרשימת המשאלות כדי לשמור אותם לקנייה מאוחרת יותר",
+    removeFromWishlist: "הסר מרשימת המשאלות",
   },
 };
 
