@@ -81,6 +81,10 @@ export interface CheckoutTranslations {
     cvvPlaceholder: string;
     idNumber: string;
     idNumberPlaceholder: string;
+    securePaymentNote: string;
+    redirectNote: string;
+    completeOrder: string;
+    continue: string;
   };
   account: {
     createAccount: string;
@@ -88,6 +92,9 @@ export interface CheckoutTranslations {
     password: string;
     passwordPlaceholder: string;
     loginPrompt: string;
+    loginLink: string;
+    clubMemberPrompt: string;
+    clubMemberBenefits: string;
     existingAccount: string;
     checkingEmail: string;
   };
@@ -144,6 +151,7 @@ export interface CheckoutTranslations {
     selectStreet: string;
     selectShipping: string;
     acceptTerms: string;
+    termsText: string;
   };
   success: {
     orderPlaced: string;

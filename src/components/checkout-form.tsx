@@ -15,7 +15,7 @@ import { tracker } from '@/lib/tracking';
 import { getProductsByIds } from '@/app/actions/products';
 import { useCitySearch, useStreetSearch } from '@/hooks/useIsraelAddress';
 import { Autocomplete } from '@/components/ui/autocomplete';
-import { useCheckoutTranslations, type CheckoutTranslations } from '@/lib/translations/use-translations';
+import { useCheckoutTranslations, useTranslations, type CheckoutTranslations } from '@/lib/translations/use-translations';
 import type { DeepPartial } from '@/lib/translations/types';
 
 // Import QuickPaymentForm types
@@ -150,6 +150,7 @@ export function CheckoutForm({
   
   // 🌍 Translations with Hebrew fallback
   const t = useCheckoutTranslations(translations);
+  const { t: tGeneral } = useTranslations();
   const router = useRouter();
   const searchParams = useSearchParams();
   const homeUrl = basePath || '/';
@@ -1666,17 +1667,17 @@ export function CheckoutForm({
                   ) : (
                     <div className="bg-gray-50 p-4 mb-6 rounded">
                       <p className="text-sm text-gray-600 mb-2">
-                        כבר חבר מועדון?{' '}
+                        {t.account.clubMemberPrompt}{' '}
                         <button 
                           type="button" 
                           onClick={() => setShowLoginForm(true)}
                           className="text-black underline underline-offset-4 hover:no-underline cursor-pointer"
                         >
-                          התחברות
+                          {t.account.loginLink}
                         </button>
                       </p>
                       <p className="text-xs text-gray-500">
-                        חברי מועדון נהנים מהטבות בלעדיות, מעקב הזמנות ועוד
+                        {t.account.clubMemberBenefits}
                       </p>
                     </div>
                   )}
@@ -1684,7 +1685,7 @@ export function CheckoutForm({
                   <div className="space-y-4">
                     <div>
                       <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                        אימייל *
+                        {t.shipping.email} *
                       </label>
                       <input
                         type="email"
@@ -1841,7 +1842,7 @@ export function CheckoutForm({
                       />
                       <div>
                         <span className="text-sm text-gray-700 group-hover:text-black transition-colors">
-                          אשמח לקבל עדכונים ומבצעים במייל
+                          {t.marketing.subscribe}
                         </span>
                         <p className="text-xs text-gray-500 mt-1">
                           {t.marketing.subscribeDescription}
@@ -2192,7 +2193,7 @@ export function CheckoutForm({
                         </div>
                         
                         <p className="text-xs text-gray-400 text-center">
-                          לאחר לחיצה על הכפתור תועבר לעמוד תשלום מאובטח
+                          {t.payment.redirectNote}
                         </p>
                       </div>
                     ) : (
@@ -2200,18 +2201,18 @@ export function CheckoutForm({
                       <>
                         <div>
                           <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                            מספר כרטיס
+                            {t.payment.cardNumber}
                           </label>
                           <input
                             type="text"
                             className="w-full px-4 py-3 border border-gray-200 focus:border-black transition-colors"
-                            placeholder="1234 5678 9012 3456"
+                            placeholder={t.payment.cardNumberPlaceholder}
                           />
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-                              תוקף
+                              {t.payment.expiration}
                             </label>
                             <input
                               type="text"
@@ -2257,7 +2258,7 @@ export function CheckoutForm({
                         />
                         <div>
                           <span className="text-sm text-gray-700 group-hover:text-black transition-colors">
-                            קראתי ואני מאשר/ת את תנאי השימוש ומדיניות הפרטיות *
+                            {t.errors.termsText}
                           </span>
                         </div>
                       </label>
@@ -2282,7 +2283,7 @@ export function CheckoutForm({
                     }}
                     className="btn-secondary flex-1"
                   >
-                    חזרה
+                    {tGeneral.general.back}
                   </button>
                 )}
                 <button
@@ -2290,10 +2291,10 @@ export function CheckoutForm({
                   disabled={isSubmitting}
                   className="btn-primary flex-1"
                 >
-                  {isSubmitting ? 'מעבד...' : 
+                  {isSubmitting ? t.payment.processing : 
                    (isSinglePage || step === 'payment')
-                     ? (total <= 0 ? 'השלם הזמנה' : `לתשלום ${formatPrice(total)}`)
-                     : 'המשך'}
+                     ? (total <= 0 ? t.payment.completeOrder : `${t.payment.placeOrder} ${formatPrice(total)}`)
+                     : t.payment.continue}
                 </button>
               </div>
             </form>

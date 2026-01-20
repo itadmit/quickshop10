@@ -54,6 +54,10 @@ export const russianTranslations: UITranslations = {
       cvvPlaceholder: "CVV",
       idNumber: "Номер удостоверения",
       idNumberPlaceholder: "123456789",
+      securePaymentNote: "Безопасная оплата - данные карты защищены и не сохраняются у нас",
+      redirectNote: "После нажатия кнопки вы будете перенаправлены на защищённую страницу оплаты",
+      completeOrder: "Завершить заказ",
+      continue: "Продолжить",
     },
     account: {
       createAccount: "Создать аккаунт и присоединиться к нашему клубу",
@@ -61,6 +65,9 @@ export const russianTranslations: UITranslations = {
       password: "Пароль",
       passwordPlaceholder: "Минимум 8 символов",
       loginPrompt: "Войти в существующий аккаунт",
+      loginLink: "Войти",
+      clubMemberPrompt: "Уже член клуба?",
+      clubMemberBenefits: "Члены клуба получают эксклюзивные преимущества, отслеживание заказов и многое другое",
       existingAccount: "Аккаунт с таким email уже существует",
       checkingEmail: "Проверка email...",
     },
@@ -117,6 +124,7 @@ export const russianTranslations: UITranslations = {
       selectStreet: "Пожалуйста, выберите улицу из списка",
       selectShipping: "Пожалуйста, выберите способ доставки",
       acceptTerms: "Пожалуйста, примите условия использования",
+      termsText: "Я прочитал и согласен с условиями использования и политикой конфиденциальности *",
     },
     success: {
       orderPlaced: "Заказ успешно оформлен!",

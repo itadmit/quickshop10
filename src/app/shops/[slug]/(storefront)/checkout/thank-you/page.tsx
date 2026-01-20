@@ -921,7 +921,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
             brand: (orderData.paymentDetails as { cardBrand?: string })?.cardBrand || search.brand_name,
             approvalNum: (orderData.paymentDetails as { approvalNumber?: string })?.approvalNumber || search.approval_num,
           },
-          freeShippingReason: shippingCost === 0 ? 'משלוח חינם' : undefined,
+          freeShippingReason: shippingCost === 0 ? t.checkout.success.free : undefined,
         }).catch(err => console.error('Failed to send order confirmation email:', err));
         
         // Emit order.created event (triggers dashboard notification + mobile push)

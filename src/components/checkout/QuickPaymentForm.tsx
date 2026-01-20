@@ -365,13 +365,13 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
             </svg>
-            <span>מצב בדיקות - לא יחויב סכום אמיתי</span>
+            <span>{t.payment.simulationMode}</span>
           </div>
         )}
 
         {/* Payment methods icons */}
         <div className="flex items-center justify-center gap-4 py-2">
-          <div className="text-[10px] tracking-wider text-gray-400 uppercase">אמצעי תשלום</div>
+          <div className="text-[10px] tracking-wider text-gray-400 uppercase">{t.payment.paymentMethod}</div>
           <div className="flex items-center gap-2">
             <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Visa</span>
             <span className="px-2 py-1 bg-gray-100 rounded text-xs font-medium text-gray-600">Mastercard</span>
@@ -385,7 +385,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
           </svg>
-          תשלום מאובטח - פרטי הכרטיס מוגנים ולא נשמרים אצלנו
+          {t.payment.securePaymentNote}
         </p>
       </div>
     );

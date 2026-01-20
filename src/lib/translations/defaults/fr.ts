@@ -54,6 +54,10 @@ export const frenchTranslations: UITranslations = {
       cvvPlaceholder: "CVV",
       idNumber: "Numéro d'identité",
       idNumberPlaceholder: "123456789",
+      securePaymentNote: "Paiement sécurisé - les détails de la carte sont protégés et ne sont pas sauvegardés chez nous",
+      redirectNote: "Après avoir cliqué sur le bouton, vous serez redirigé vers une page de paiement sécurisée",
+      completeOrder: "Finaliser la commande",
+      continue: "Continuer",
     },
     account: {
       createAccount: "Créer un compte et rejoindre notre club",
@@ -61,6 +65,9 @@ export const frenchTranslations: UITranslations = {
       password: "Mot de passe",
       passwordPlaceholder: "Au moins 8 caractères",
       loginPrompt: "Se connecter à un compte existant",
+      loginLink: "Connexion",
+      clubMemberPrompt: "Déjà membre du club?",
+      clubMemberBenefits: "Les membres du club bénéficient d'avantages exclusifs, de suivi des commandes et plus encore",
       existingAccount: "Un compte existe déjà avec cet email",
       checkingEmail: "Vérification de l'email...",
     },
@@ -117,6 +124,7 @@ export const frenchTranslations: UITranslations = {
       selectStreet: "Veuillez sélectionner une rue dans la liste",
       selectShipping: "Veuillez sélectionner un mode de livraison",
       acceptTerms: "Veuillez accepter les conditions d'utilisation",
+      termsText: "J'ai lu et j'accepte les conditions d'utilisation et la politique de confidentialité *",
     },
     success: {
       orderPlaced: "Commande passée avec succès !",

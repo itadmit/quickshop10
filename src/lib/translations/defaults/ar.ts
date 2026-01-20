@@ -54,6 +54,10 @@ export const arabicTranslations: UITranslations = {
       cvvPlaceholder: "CVV",
       idNumber: "رقم الهوية",
       idNumberPlaceholder: "123456789",
+      securePaymentNote: "دفع آمن - تفاصيل البطاقة محمية ولا يتم حفظها لدينا",
+      redirectNote: "بعد النقر على الزر سيتم توجيهك إلى صفحة دفع آمنة",
+      completeOrder: "إكمال الطلب",
+      continue: "متابعة",
     },
     account: {
       createAccount: "إنشاء حساب والانضمام إلى نادينا",
@@ -61,6 +65,9 @@ export const arabicTranslations: UITranslations = {
       password: "كلمة المرور",
       passwordPlaceholder: "8 أحرف على الأقل",
       loginPrompt: "تسجيل الدخول إلى حساب موجود",
+      loginLink: "تسجيل الدخول",
+      clubMemberPrompt: "هل أنت عضو في النادي بالفعل؟",
+      clubMemberBenefits: "يتمتع أعضاء النادي بفوائد حصرية وتتبع الطلبات والمزيد",
       existingAccount: "يوجد حساب بالفعل بهذا البريد الإلكتروني",
       checkingEmail: "جاري التحقق من البريد...",
     },
@@ -117,6 +124,7 @@ export const arabicTranslations: UITranslations = {
       selectStreet: "يرجى اختيار شارع من القائمة",
       selectShipping: "يرجى اختيار طريقة الشحن",
       acceptTerms: "يرجى قبول شروط الخدمة",
+      termsText: "لقد قرأت وأوافق على شروط الاستخدام وسياسة الخصوصية *",
     },
     success: {
       orderPlaced: "تم تقديم الطلب بنجاح!",

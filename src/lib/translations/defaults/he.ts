@@ -62,6 +62,10 @@ export const hebrewTranslations: UITranslations = {
       cvvPlaceholder: "CVV",
       idNumber: "תעודת זהות",
       idNumberPlaceholder: "123456789",
+      securePaymentNote: "תשלום מאובטח - פרטי הכרטיס מוגנים ולא נשמרים אצלנו",
+      redirectNote: "לאחר לחיצה על הכפתור תועבר לעמוד תשלום מאובטח",
+      completeOrder: "השלם הזמנה",
+      continue: "המשך",
     },
     account: {
       createAccount: "צור חשבון והצטרף למועדון הלקוחות",
@@ -69,6 +73,9 @@ export const hebrewTranslations: UITranslations = {
       password: "סיסמה",
       passwordPlaceholder: "לפחות 8 תווים",
       loginPrompt: "התחבר לחשבון הקיים",
+      loginLink: "התחברות",
+      clubMemberPrompt: "כבר חבר מועדון?",
+      clubMemberBenefits: "חברי מועדון נהנים מהטבות בלעדיות, מעקב הזמנות ועוד",
       existingAccount: "כבר קיים חשבון עם כתובת מייל זו",
       checkingEmail: "בודק מייל...",
     },
@@ -125,6 +132,7 @@ export const hebrewTranslations: UITranslations = {
       selectStreet: "יש לבחור רחוב מהרשימה",
       selectShipping: "יש לבחור שיטת משלוח",
       acceptTerms: "יש לאשר את תנאי השימוש",
+      termsText: "קראתי ואני מאשר/ת את תנאי השימוש ומדיניות הפרטיות *",
     },
     success: {
       orderPlaced: "ההזמנה התקבלה בהצלחה!",
