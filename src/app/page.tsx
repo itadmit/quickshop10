@@ -206,7 +206,7 @@ export default function HomePage() {
               </h1>
               
               <p className="text-xl text-gray-500 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                אנחנו לא רק בונים חנויות - אנחנו בונים עסקים מצליחים.
+                בפלטפורמה שלנו לא רק בונים חנויות - בפלטפורמה שלנו בונים עסקים מצליחים.
                 <br />
                 הכל בעברית, הכל פשוט, והכל עובד.
                 <br />
