@@ -2161,6 +2161,7 @@ export function CheckoutForm({
                         testMode={quickPaymentsConfig.testMode}
                         storeSlug={storeSlug || ''}
                         disabled={isSubmitting}
+                        translations={translations}
                       />
                     ) : hasActivePaymentProvider ? (
                       // Redirect payment providers (PayPlus, Pelecard)
@@ -2306,7 +2307,7 @@ export function CheckoutForm({
               cartTotal={cartOriginalTotal}
               appliedCoupons={appliedCoupons}
               onApply={(coupon) => addCoupon(coupon)}
-              onRemove={(couponId) => { 
+              onRemove={(couponId) => {
                 // מציאת הקופון שמוסר
                 const removedCoupon = appliedCoupons.find(c => c.id === couponId);
                 removeCoupon(couponId);
@@ -2328,6 +2329,7 @@ export function CheckoutForm({
                 productId: item.productId,
                 quantity: item.quantity,
               }))}
+              translations={translations}
               onTriggeredGiftCoupons={(giftCoupons) => {
                 // הוספת קופוני מתנה שמופעלים אוטומטית (legacy - trigger_coupon_codes)
                 for (const gc of giftCoupons) {

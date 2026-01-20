@@ -1,16 +1,18 @@
 'use client';
 
 import { useStoreOptional } from '@/lib/store-context';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 export function CartButton() {
   const store = useStoreOptional();
+  const { t } = useTranslations();
   
   // SSR safety - show placeholder if store context not available yet
   if (!store) {
     return (
       <button className="relative group flex items-center gap-3 opacity-50">
         <span className="text-[11px] tracking-[0.2em] uppercase text-gray-600 hidden sm:block">
-          עגלה
+          {t.general.cart}
         </span>
         <div className="relative">
           <svg 
@@ -39,7 +41,7 @@ export function CartButton() {
       className="relative group flex items-center gap-2 cursor-pointer"
     >
       <span className="text-[11px] tracking-[0.2em] uppercase text-gray-600 group-hover:text-black transition-colors duration-300 hidden sm:block">
-        עגלה
+        {t.general.cart}
       </span>
       <div className="relative w-9 h-9 flex items-center justify-center">
         <svg 

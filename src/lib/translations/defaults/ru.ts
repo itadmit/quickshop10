@@ -46,6 +46,14 @@ export const russianTranslations: UITranslations = {
       simulationMode: "Режим симуляции - реальные данные карты не требуются",
       tryAgain: "Ошибка оплаты. Пожалуйста, попробуйте снова.",
       creditBalance: "Баланс магазина",
+      cardNumber: "Номер карты",
+      cardNumberPlaceholder: "1234 5678 9012 3456",
+      expiration: "Срок действия",
+      expirationPlaceholder: "MM/YY",
+      cvv: "CVV",
+      cvvPlaceholder: "CVV",
+      idNumber: "Номер удостоверения",
+      idNumberPlaceholder: "123456789",
     },
     account: {
       createAccount: "Создать аккаунт и присоединиться к нашему клубу",
@@ -59,6 +67,13 @@ export const russianTranslations: UITranslations = {
     marketing: {
       subscribe: "Хочу получать новости и акции на email",
       subscribeDescription: "Вы можете отписаться в любое время",
+    },
+    coupon: {
+      title: "У вас есть купон?",
+      placeholder: "Введите код купона",
+      addAnother: "Добавить ещё купон",
+      apply: "Применить",
+      remove: "Удалить",
     },
     summary: {
       title: "Итого заказа",
@@ -217,6 +232,7 @@ export const russianTranslations: UITranslations = {
     edit: "Редактировать",
     required: "Обязательно",
     optional: "Необязательно",
+    cart: "Корзина",
   },
 
   account: {

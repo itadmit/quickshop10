@@ -47,6 +47,14 @@ export const englishTranslations: UITranslations = {
       simulationMode: "Simulation mode - no real card details required",
       tryAgain: "Payment failed. Please try again.",
       creditBalance: "Store Credit",
+      cardNumber: "Card Number",
+      cardNumberPlaceholder: "1234 5678 9012 3456",
+      expiration: "Expiration",
+      expirationPlaceholder: "MM/YY",
+      cvv: "CVV",
+      cvvPlaceholder: "CVV",
+      idNumber: "ID Number",
+      idNumberPlaceholder: "123456789",
     },
     account: {
       createAccount: "Create an account and join our club",
@@ -60,6 +68,13 @@ export const englishTranslations: UITranslations = {
     marketing: {
       subscribe: "I'd like to receive updates and promotions via email",
       subscribeDescription: "You can unsubscribe at any time",
+    },
+    coupon: {
+      title: "Do you have a coupon?",
+      placeholder: "Enter coupon code",
+      addAnother: "Add another coupon",
+      apply: "Apply",
+      remove: "Remove",
     },
     summary: {
       title: "Order Summary",
@@ -218,6 +233,7 @@ export const englishTranslations: UITranslations = {
     edit: "Edit",
     required: "Required",
     optional: "Optional",
+    cart: "Cart",
   },
 
   account: {

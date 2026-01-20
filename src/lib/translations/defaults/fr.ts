@@ -46,6 +46,14 @@ export const frenchTranslations: UITranslations = {
       simulationMode: "Mode simulation - aucune carte réelle requise",
       tryAgain: "Échec du paiement. Veuillez réessayer.",
       creditBalance: "Crédit boutique",
+      cardNumber: "Numéro de carte",
+      cardNumberPlaceholder: "1234 5678 9012 3456",
+      expiration: "Date d'expiration",
+      expirationPlaceholder: "MM/YY",
+      cvv: "CVV",
+      cvvPlaceholder: "CVV",
+      idNumber: "Numéro d'identité",
+      idNumberPlaceholder: "123456789",
     },
     account: {
       createAccount: "Créer un compte et rejoindre notre club",
@@ -59,6 +67,13 @@ export const frenchTranslations: UITranslations = {
     marketing: {
       subscribe: "Je souhaite recevoir les mises à jour et promotions par email",
       subscribeDescription: "Vous pouvez vous désabonner à tout moment",
+    },
+    coupon: {
+      title: "Avez-vous un coupon?",
+      placeholder: "Entrez le code du coupon",
+      addAnother: "Ajouter un autre coupon",
+      apply: "Appliquer",
+      remove: "Supprimer",
     },
     summary: {
       title: "Résumé de la commande",
@@ -217,6 +232,7 @@ export const frenchTranslations: UITranslations = {
     edit: "Modifier",
     required: "Obligatoire",
     optional: "Facultatif",
+    cart: "Panier",
   },
 
   account: {

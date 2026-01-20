@@ -73,6 +73,14 @@ export interface CheckoutTranslations {
     simulationMode: string;
     tryAgain: string;
     creditBalance: string;
+    cardNumber: string;
+    cardNumberPlaceholder: string;
+    expiration: string;
+    expirationPlaceholder: string;
+    cvv: string;
+    cvvPlaceholder: string;
+    idNumber: string;
+    idNumberPlaceholder: string;
   };
   account: {
     createAccount: string;
@@ -86,6 +94,13 @@ export interface CheckoutTranslations {
   marketing: {
     subscribe: string;
     subscribeDescription: string;
+  };
+  coupon: {
+    title: string;
+    placeholder: string;
+    addAnother: string;
+    apply: string;
+    remove: string;
   };
   summary: {
     title: string;
@@ -244,6 +259,7 @@ export interface GeneralTranslations {
   edit: string;
   required: string;
   optional: string;
+  cart: string;
 }
 
 export interface AccountTranslations {

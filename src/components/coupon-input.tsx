@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { validateCoupon } from '@/app/actions/coupon';
 import { useStore, type AppliedCoupon } from '@/lib/store-context';
+import { useCheckoutTranslations } from '@/lib/translations/use-translations';
+import type { DeepPartial } from '@/lib/translations/types';
+import type { CheckoutTranslations } from '@/lib/translations/types';
 
 interface CouponInputProps {
   storeId: string;
@@ -16,6 +19,7 @@ interface CouponInputProps {
   onActivatedCoupons?: (coupons: AppliedCoupon[]) => void; // קופונים שמופעלים על ידי קופון משולב
   hasNonStackableAutoDiscount?: boolean; // האם יש הנחה אוטומטית שלא ניתנת לשילוב
   nonStackableAutoDiscountName?: string; // שם ההנחה האוטומטית (לחיווי טוב יותר)
+  translations?: DeepPartial<CheckoutTranslations> | null;
 }
 
 export function CouponInput({ 
@@ -30,11 +34,13 @@ export function CouponInput({
   onActivatedCoupons,
   hasNonStackableAutoDiscount = false,
   nonStackableAutoDiscountName,
+  translations,
 }: CouponInputProps) {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
   const { formatPrice } = useStore();
+  const t = useCheckoutTranslations(translations);
 
   // Check if we can add more coupons
   const hasNonStackableCoupon = appliedCoupons.some(c => !c.stackable);
@@ -157,7 +163,7 @@ export function CouponInput({
   return (
     <div className="bg-white p-6 shadow-sm">
       <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-3">
-        יש לך קופון?
+        {t.coupon.title}
       </label>
       
       {/* Applied coupons list */}
@@ -203,7 +209,7 @@ export function CouponInput({
                 onClick={() => onRemove(coupon.id)}
                 className="text-xs text-gray-500 hover:text-black underline cursor-pointer"
               >
-                הסר
+                {t.coupon.remove}
               </button>
             </div>
           ))}
@@ -218,7 +224,7 @@ export function CouponInput({
             value={couponCode}
             onChange={e => { setCouponCode(e.target.value.toUpperCase()); setCouponError(''); }}
             onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleApply())}
-            placeholder={appliedCoupons.length > 0 ? "הוסף קופון נוסף" : "הזן קוד קופון"}
+            placeholder={appliedCoupons.length > 0 ? t.coupon.addAnother : t.coupon.placeholder}
             className="flex-1 px-4 py-3 border border-gray-200 focus:border-black transition-colors text-base"
             disabled={isValidating}
           />
@@ -228,7 +234,7 @@ export function CouponInput({
             disabled={isValidating || !couponCode.trim()}
             className="px-5 py-3 bg-black text-white text-base transition-colors hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
-            {isValidating ? '...' : 'החל'}
+            {isValidating ? '...' : t.coupon.apply}
           </button>
         </div>
       )}

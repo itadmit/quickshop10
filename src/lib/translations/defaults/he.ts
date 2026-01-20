@@ -54,6 +54,14 @@ export const hebrewTranslations: UITranslations = {
       simulationMode: "מצב סימולציה - לא נדרשים פרטי כרטיס אמיתיים",
       tryAgain: "התשלום נכשל. אנא נסה שנית.",
       creditBalance: "קרדיט",
+      cardNumber: "מספר כרטיס",
+      cardNumberPlaceholder: "1234 5678 9012 3456",
+      expiration: "תוקף",
+      expirationPlaceholder: "MM/YY",
+      cvv: "CVV",
+      cvvPlaceholder: "CVV",
+      idNumber: "תעודת זהות",
+      idNumberPlaceholder: "123456789",
     },
     account: {
       createAccount: "צור חשבון והצטרף למועדון הלקוחות",
@@ -67,6 +75,13 @@ export const hebrewTranslations: UITranslations = {
     marketing: {
       subscribe: "אשמח לקבל עדכונים ומבצעים במייל",
       subscribeDescription: "ניתן לבטל בכל עת",
+    },
+    coupon: {
+      title: "יש לך קופון?",
+      placeholder: "הזן קוד קופון",
+      addAnother: "הוסף קופון נוסף",
+      apply: "החל",
+      remove: "הסר",
     },
     summary: {
       title: "סיכום הזמנה",
@@ -225,6 +240,7 @@ export const hebrewTranslations: UITranslations = {
     edit: "ערוך",
     required: "חובה",
     optional: "אופציונלי",
+    cart: "עגלה",
   },
 
   account: {

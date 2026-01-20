@@ -1,12 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
+import { useCheckoutTranslations } from '@/lib/translations/use-translations';
+import type { DeepPartial } from '@/lib/translations/types';
+import type { CheckoutTranslations } from '@/lib/translations/types';
 
 export interface QuickPaymentFormProps {
   publicKey: string;
   testMode: boolean;
   storeSlug: string;
   disabled?: boolean;
+  translations?: DeepPartial<CheckoutTranslations> | null;
 }
 
 export interface QuickPaymentFormRef {
@@ -90,7 +94,8 @@ declare global {
 }
 
 export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentFormProps>(
-  function QuickPaymentForm({ publicKey, testMode, disabled = false }, ref) {
+  function QuickPaymentForm({ publicKey, testMode, disabled = false, translations }, ref) {
+    const t = useCheckoutTranslations(translations);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [sdkLoaded, setSdkLoaded] = useState(false);
@@ -299,7 +304,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
         {/* Card Number */}
         <div>
           <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-            מספר כרטיס
+            {t.payment.cardNumber}
           </label>
           <div
             id="quick-card-number"
@@ -313,7 +318,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-              תוקף
+              {t.payment.expiration}
             </label>
             <div
               id="quick-card-expiry"
@@ -324,7 +329,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
           </div>
           <div>
             <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-              CVV
+              {t.payment.cvv}
             </label>
             <div
               id="quick-card-cvc"
@@ -338,7 +343,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
         {/* Social ID - regular input (required for Israeli cards) */}
         <div>
           <label className="block text-[11px] tracking-[0.15em] uppercase text-gray-500 mb-2">
-            תעודת זהות
+            {t.payment.idNumber}
           </label>
           <input
             type="text"

@@ -46,6 +46,14 @@ export const arabicTranslations: UITranslations = {
       simulationMode: "وضع المحاكاة - لا حاجة لبيانات بطاقة حقيقية",
       tryAgain: "فشل الدفع. يرجى المحاولة مرة أخرى.",
       creditBalance: "رصيد المتجر",
+      cardNumber: "رقم البطاقة",
+      cardNumberPlaceholder: "1234 5678 9012 3456",
+      expiration: "تاريخ الانتهاء",
+      expirationPlaceholder: "MM/YY",
+      cvv: "CVV",
+      cvvPlaceholder: "CVV",
+      idNumber: "رقم الهوية",
+      idNumberPlaceholder: "123456789",
     },
     account: {
       createAccount: "إنشاء حساب والانضمام إلى نادينا",
@@ -59,6 +67,13 @@ export const arabicTranslations: UITranslations = {
     marketing: {
       subscribe: "أرغب في تلقي التحديثات والعروض عبر البريد الإلكتروني",
       subscribeDescription: "يمكنك إلغاء الاشتراك في أي وقت",
+    },
+    coupon: {
+      title: "هل لديك قسيمة؟",
+      placeholder: "أدخل رمز القسيمة",
+      addAnother: "أضف قسيمة أخرى",
+      apply: "تطبيق",
+      remove: "إزالة",
     },
     summary: {
       title: "ملخص الطلب",
@@ -217,6 +232,7 @@ export const arabicTranslations: UITranslations = {
     edit: "تعديل",
     required: "مطلوب",
     optional: "اختياري",
+    cart: "السلة",
   },
 
   account: {
