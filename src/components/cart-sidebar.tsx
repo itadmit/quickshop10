@@ -71,8 +71,10 @@ export function CartSidebar({ basePath = '', storeSlug, freeShippingThreshold, t
       
       {/* Sidebar */}
       <div 
-        className={`fixed top-0 left-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col ${
-          cartOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed top-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-50 transform transition-transform duration-300 ease-[cubic-bezier(0.25,0.46,0.45,0.94)] flex flex-col ${
+          direction === 'rtl' 
+            ? `right-0 ${cartOpen ? 'translate-x-0' : 'translate-x-full'}`
+            : `left-0 ${cartOpen ? 'translate-x-0' : '-translate-x-full'}`
         }`}
         dir={direction}
       >
