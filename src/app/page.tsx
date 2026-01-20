@@ -35,6 +35,8 @@ import {
 import { LandingHeader } from "@/components/landing/LandingHeader"
 import { LandingFooter } from "@/components/landing/LandingFooter"
 import { HeroProductShowcase } from "@/components/landing/HeroProductShowcase"
+import { LeadCaptureModal } from "@/components/landing/LeadCaptureModal"
+import { SmartWhatsappButton } from "@/components/landing/SmartWhatsappButton"
 import type { Metadata } from 'next'
 
 // ISR - Revalidate every hour for good performance
@@ -212,15 +214,18 @@ export default function HomePage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button href="/register" variant="primary" size="lg" className="w-full sm:w-auto">
+                <Button href="/register" variant="primary" size="lg" className="w-full sm:w-auto text-lg px-8 py-6">
                   <RocketIcon className="ml-2 h-5 w-5" />
-                  הצטרפו למצליחים
+                  התחילו בחינם עכשיו
                 </Button>
-                <Button href="/shops/noir-fashion" variant="outline" size="lg" className="w-full sm:w-auto">
+                <Button href="/shops/noir-fashion" variant="outline" size="lg" className="w-full sm:w-auto px-8 py-6">
                   צפו בחנות לדוגמא
                   <ArrowLeftIcon className="mr-2 h-5 w-5" />
                 </Button>
               </div>
+              <p className="mt-3 text-sm text-gray-400 text-center lg:text-right font-medium">
+                 לא נדרש כרטיס אשראי • 14 יום ניסיון חינם
+              </p>
 
               <div className="mt-10 flex items-center gap-6 justify-center lg:justify-start text-sm font-medium text-gray-500 flex-wrap">
                 <div className="flex items-center gap-2">
@@ -253,6 +258,37 @@ export default function HomePage() {
              <img src="https://quickshopil-storage.s3.amazonaws.com/uploads/reefjewelry/67e51d6ff3fc3.webp" alt="ריף תכשיטים" className="h-12 w-auto object-contain hover:scale-110 transition-transform" />
              <img src="https://quickshopil-storage.s3.amazonaws.com/uploads/sefer/67c5c3d3d4273.webp" alt="ספר טוב" className="h-14 w-auto object-contain hover:scale-110 transition-transform" />
           </div>
+        </div>
+      </section>
+
+      {/* Testimonial Section - Social Proof */}
+      <section className="py-24 bg-emerald-900 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+        <div className="absolute top-0 left-0 w-full h-full bg-linear-to-br from-emerald-900/50 to-black/50"></div>
+        
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+           <div className="flex justify-center gap-1 mb-8">
+             {[1,2,3,4,5].map(i => <StarIcon key={i} className="w-8 h-8 text-yellow-400 fill-yellow-400" />)}
+           </div>
+           
+           <h2 className="text-3xl md:text-5xl font-bold text-white mb-10 leading-tight">
+             "ניסיתי הכל - שופיפיי, וויקס, וורדפרס. <br className="hidden md:block" />
+             רק בקוויק שופ הרגשתי שזה באמת פשוט."
+           </h2>
+           
+           <div className="flex items-center justify-center gap-5">
+              <div className="w-16 h-16 bg-white rounded-full overflow-hidden border-2 border-emerald-400 p-0.5">
+                <img 
+                  src="https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/argania/smEroidOvE.webp" 
+                  alt="מישל דודנה" 
+                  className="w-full h-full object-cover rounded-full" 
+                />
+              </div>
+              <div className="text-right">
+                 <div className="text-white font-bold text-lg">מישל דודנה</div>
+                 <div className="text-emerald-300">מנהלת אתרים בקבוצת ארגניה</div>
+              </div>
+           </div>
         </div>
       </section>
 
@@ -317,7 +353,7 @@ export default function HomePage() {
       </section>
 
       {/* Quick Shop Payments Section */}
-      <section className="py-20 bg-gradient-to-br from-emerald-900 to-slate-900 text-white overflow-hidden relative">
+      <section className="py-20 bg-linear-to-br from-emerald-900 to-slate-900 text-white overflow-hidden relative">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 animate-pulse" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl translate-y-1/3 -translate-x-1/3" />
 
@@ -476,7 +512,7 @@ export default function HomePage() {
               
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
                     <ServerIcon className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
@@ -485,7 +521,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
                     <TruckIcon className="w-5 h-5 text-blue-500" />
                   </div>
                   <div>
@@ -494,7 +530,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
                     <CreditCardIcon className="w-5 h-5 text-emerald-500" />
                   </div>
                   <div>
@@ -508,21 +544,21 @@ export default function HomePage() {
               <h3 className="font-bold text-xl mb-6">תמיכה שאין באף מקום אחר</h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-3 p-4 bg-gray-800 rounded-xl border border-gray-700">
-                  <MessageCircleIcon className="w-6 h-6 text-green-500 flex-shrink-0" />
+                  <MessageCircleIcon className="w-6 h-6 text-green-500 shrink-0" />
                   <div>
                      <div className="font-bold">וואטסאפ ישיר</div>
                      <div className="text-sm text-gray-400">דברו עם בן אדם, לא עם בוט</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-gray-800 rounded-xl border border-gray-700">
-                  <GlobeIcon className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                  <GlobeIcon className="w-6 h-6 text-blue-500 shrink-0" />
                   <div>
                      <div className="font-bold">מדברים עברית</div>
                      <div className="text-sm text-gray-400">מבינים את השוק הישראלי ואת הצרכים שלכם</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 p-4 bg-gray-800 rounded-xl border border-gray-700">
-                  <UsersIcon className="w-6 h-6 text-emerald-500 flex-shrink-0" />
+                  <UsersIcon className="w-6 h-6 text-emerald-500 shrink-0" />
                   <div>
                      <div className="font-bold">קהילה תומכת</div>
                      <div className="text-sm text-gray-400">אלפי בעלי עסקים שכבר הצליחו</div>
@@ -699,27 +735,8 @@ export default function HomePage() {
 
       <LandingFooter />
 
-      {/* WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/972552554432?text=%D7%94%D7%92%D7%A2%D7%AA%D7%99%20%D7%93%D7%A8%D7%9A%20%D7%94%D7%90%D7%AA%D7%A8"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 z-50 group"
-      >
-        <div className="flex items-center gap-3">
-          {/* Tooltip */}
-          <div className="bg-white px-4 py-2 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0 hidden sm:block">
-            <span className="text-gray-800 font-medium text-sm whitespace-nowrap">יש שאלות?</span>
-          </div>
-          
-          {/* WhatsApp Icon */}
-          <div className="w-14 h-14 bg-[#25D366] rounded-full flex items-center justify-center shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300">
-            <svg className="w-7 h-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-          </div>
-        </div>
-      </a>
+      <LeadCaptureModal />
+      <SmartWhatsappButton />
     </div>
   )
 }
