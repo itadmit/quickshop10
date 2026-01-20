@@ -2325,6 +2325,7 @@ export function CheckoutForm({
                 
                 setCouponWarning(null);
               }}
+              formatPrice={formatPrice}
               email={formData.email}
               cartItems={cart.map(item => ({
                 productId: item.productId,

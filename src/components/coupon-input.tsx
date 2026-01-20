@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 import { validateCoupon } from '@/app/actions/coupon';
-import { useStore, type AppliedCoupon } from '@/lib/store-context';
+import { type AppliedCoupon } from '@/lib/store-context';
 import { useCheckoutTranslations } from '@/lib/translations/use-translations';
 import type { DeepPartial } from '@/lib/translations/types';
 import type { CheckoutTranslations } from '@/lib/translations/types';
+
+// Default formatPrice function for when not inside StoreProvider
+const defaultFormatPrice = (price: number) => {
+  return `₪${price.toLocaleString('he-IL', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+};
 
 interface CouponInputProps {
   storeId: string;
@@ -20,6 +25,7 @@ interface CouponInputProps {
   hasNonStackableAutoDiscount?: boolean; // האם יש הנחה אוטומטית שלא ניתנת לשילוב
   nonStackableAutoDiscountName?: string; // שם ההנחה האוטומטית (לחיווי טוב יותר)
   translations?: DeepPartial<CheckoutTranslations> | null;
+  formatPrice?: (price: number) => string; // Optional - for use outside StoreProvider (e.g., POS)
 }
 
 export function CouponInput({ 
@@ -35,11 +41,11 @@ export function CouponInput({
   hasNonStackableAutoDiscount = false,
   nonStackableAutoDiscountName,
   translations,
+  formatPrice = defaultFormatPrice,
 }: CouponInputProps) {
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState('');
   const [isValidating, setIsValidating] = useState(false);
-  const { formatPrice } = useStore();
   const t = useCheckoutTranslations(translations);
 
   // Check if we can add more coupons

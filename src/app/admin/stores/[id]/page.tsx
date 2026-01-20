@@ -53,11 +53,11 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
   const defaultQuickshopPrice = await getSetting('subscription_quickshop_price');
   const defaultPrice = subscription?.plan === 'branding' ? defaultBrandingPrice : defaultQuickshopPrice;
 
-  // Get order stats
+  // Get order stats (only count paid orders for revenue)
   const [orderStats] = await db
     .select({
-      totalOrders: sql<number>`COUNT(*)::int`,
-      totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+      totalOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.financialStatus} = 'paid')::int`,
+      totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric) FILTER (WHERE ${orders.financialStatus} = 'paid'), 0)`,
       paidOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.financialStatus} = 'paid')::int`,
     })
     .from(orders)

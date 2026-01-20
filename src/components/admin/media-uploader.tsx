@@ -356,13 +356,26 @@ export function MediaUploader({
     })));
   }, [value, onChange, showPrimary]);
 
+  // Helper to check if media is video
+  const isMediaVideo = useCallback((media: UploadedMedia) => {
+    return media.mediaType === 'video' || isVideoUrl(media.url);
+  }, []);
+
   // Reorder files (drag within gallery)
+  // Block videos from being dragged to position 0 (primary)
   const handleReorder = useCallback((fromIndex: number, toIndex: number) => {
+    const draggedItem = value[fromIndex];
+    
+    // Block video from being dragged to primary position (index 0)
+    if (toIndex === 0 && isMediaVideo(draggedItem)) {
+      return; // Don't allow video to become primary
+    }
+    
     const newValue = [...value];
     const [removed] = newValue.splice(fromIndex, 1);
     newValue.splice(toIndex, 0, removed);
     onChange(newValue);
-  }, [value, onChange]);
+  }, [value, onChange, isMediaVideo]);
 
   const canAddMore = !multiple ? value.length === 0 : value.length < maxFiles;
   const isUploading = uploading.some(u => u.status === 'uploading');
@@ -370,6 +383,7 @@ export function MediaUploader({
   // Drag state for visual feedback
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [draggingIsVideo, setDraggingIsVideo] = useState(false);
   
   // Accordion state - show all images
   const [showAll, setShowAll] = useState(false);
@@ -381,6 +395,9 @@ export function MediaUploader({
     const isDragOver = dragOverId === media.id && draggingId !== media.id;
     const isPrimaryImage = index === 0;
     
+    // Check if video is being dragged to primary position (blocked)
+    const isBlockedDrop = isDragOver && isPrimaryImage && draggingIsVideo;
+    
     return (
       <div
         key={media.id}
@@ -390,14 +407,17 @@ export function MediaUploader({
           e.dataTransfer.effectAllowed = 'move';
           e.dataTransfer.setData('text/plain', index.toString());
           setDraggingId(media.id);
+          setDraggingIsVideo(isMediaVideo(media));
         }}
         onDragEnd={() => {
           setDraggingId(null);
           setDragOverId(null);
+          setDraggingIsVideo(false);
         }}
         onDragOver={(e) => {
           e.preventDefault();
-          e.dataTransfer.dropEffect = 'move';
+          // Show "not-allowed" cursor if video is being dragged to primary
+          e.dataTransfer.dropEffect = (isPrimaryImage && draggingIsVideo) ? 'none' : 'move';
           if (draggingId !== media.id) {
             setDragOverId(media.id);
           }
@@ -417,11 +437,16 @@ export function MediaUploader({
           }
           setDragOverId(null);
           setDraggingId(null);
+          setDraggingIsVideo(false);
         }}
       >
         <div 
           className={`relative overflow-hidden rounded-xl border-2 transition-all cursor-grab active:cursor-grabbing
-            ${isDragOver ? 'border-blue-500 ring-2 ring-blue-200 scale-105' : 'border-gray-200 hover:border-gray-300'}`}
+            ${isBlockedDrop 
+              ? 'border-red-500 ring-2 ring-red-200 scale-105' 
+              : isDragOver 
+                ? 'border-blue-500 ring-2 ring-blue-200 scale-105' 
+                : 'border-gray-200 hover:border-gray-300'}`}
           style={{ paddingBottom: '100%' }}
         >
           {/* Show thumbnail for videos, image otherwise */}
@@ -470,9 +495,9 @@ export function MediaUploader({
           
           {/* Drop indicator overlay */}
           {isDragOver && (
-            <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center z-10">
-              <div className="bg-blue-500 text-white text-xs font-medium px-2 py-1 rounded">
-                שחרר כאן
+            <div className={`absolute inset-0 flex items-center justify-center z-10 ${isBlockedDrop ? 'bg-red-500/20' : 'bg-blue-500/20'}`}>
+              <div className={`text-white text-xs font-medium px-2 py-1 rounded ${isBlockedDrop ? 'bg-red-500' : 'bg-blue-500'}`}>
+                {isBlockedDrop ? 'לא ניתן לגרור וידאו לתמונה הראשית' : 'שחרר כאן'}
               </div>
             </div>
           )}

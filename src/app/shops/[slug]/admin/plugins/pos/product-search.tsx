@@ -147,7 +147,7 @@ export function ProductSearch({
           type="text"
           value={query}
           onChange={(e) => handleSearch(e.target.value)}
-          placeholder="חיפוש מוצר, SKU או ברקוד..."
+          placeholder="חיפוש מוצר, מק״ט או ברקוד..."
           className="w-full pr-10 pl-4 py-3 text-lg border border-gray-300 rounded-xl focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-shadow"
           autoFocus
         />

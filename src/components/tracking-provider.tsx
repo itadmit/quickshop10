@@ -46,6 +46,7 @@ export function TrackingProvider({ config, children }: TrackingProviderProps) {
   }, [config]);
 
   // Track page views on navigation - only after tracker is ready
+  // Wait for document.title to update (Next.js updates it asynchronously)
   useEffect(() => {
     if (!isReady) return;
 
@@ -53,18 +54,52 @@ export function TrackingProvider({ config, children }: TrackingProviderProps) {
     
     // Avoid tracking the same path twice
     if (lastTrackedPath.current === currentPath) return;
-    lastTrackedPath.current = currentPath;
-
+    
     // Determine page type and track accordingly
     if (pathname === '/' || pathname.match(/\/shops\/[^/]+\/?$/)) {
+      lastTrackedPath.current = currentPath;
       tracker.viewHomePage(currentPath);
       if (process.env.NODE_ENV === 'development') {
         console.log('[TrackingProvider] ViewHomePage:', currentPath);
       }
     } else {
-      tracker.pageView(currentPath, document.title);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[TrackingProvider] PageView:', currentPath);
+      // Wait for document.title to update (Next.js updates it after component render)
+      // Use requestAnimationFrame + setTimeout to ensure title is set
+      const trackPageView = () => {
+        lastTrackedPath.current = currentPath;
+        tracker.pageView(currentPath, document.title);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[TrackingProvider] PageView:', currentPath, 'title:', document.title);
+        }
+      };
+      
+      // Use MutationObserver to detect when title changes, with fallback timeout
+      const titleElement = document.querySelector('title');
+      if (titleElement) {
+        const initialTitle = document.title;
+        let tracked = false;
+        
+        const observer = new MutationObserver(() => {
+          if (!tracked && document.title !== initialTitle) {
+            tracked = true;
+            observer.disconnect();
+            trackPageView();
+          }
+        });
+        
+        observer.observe(titleElement, { childList: true, characterData: true, subtree: true });
+        
+        // Fallback: if title doesn't change within 100ms, track anyway
+        setTimeout(() => {
+          if (!tracked) {
+            tracked = true;
+            observer.disconnect();
+            trackPageView();
+          }
+        }, 100);
+      } else {
+        // No title element, track immediately
+        requestAnimationFrame(trackPageView);
       }
     }
   }, [isReady, pathname, searchParams]);

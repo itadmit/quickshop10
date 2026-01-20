@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
+import { useState, useTransition, useRef, useMemo } from 'react';
 import { ProductSearch } from './product-search';
 import { CustomerSection } from './customer-section';
 import { CartSection } from './cart-section';
 import { createPOSOrder, chargeWithQuickPayment, processExchangeRefund } from './actions';
 import { QuickPaymentForm, type QuickPaymentFormRef } from '@/components/checkout/QuickPaymentForm';
+import type { AppliedCoupon } from '@/lib/store-context';
 
 // ============================================
 // POS Terminal - Client Component
@@ -111,9 +112,8 @@ export function POSTerminal({
   const [shippingMethod, setShippingMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [shippingAmount, setShippingAmount] = useState(0);
   
-  // Discount state
-  const [discountCode, setDiscountCode] = useState('');
-  const [discountAmount, setDiscountAmount] = useState(0);
+  // Discount state - using AppliedCoupon from checkout
+  const [appliedCoupons, setAppliedCoupons] = useState<AppliedCoupon[]>([]);
   
   // Notes
   const [notes, setNotes] = useState('');
@@ -143,6 +143,25 @@ export function POSTerminal({
 
   // Calculate totals
   const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate discount amount from applied coupons
+  const discountAmount = useMemo(() => {
+    return appliedCoupons.reduce((sum, coupon) => {
+      if (coupon.isGiftCard) {
+        // Gift card - use the value directly (already validated amount)
+        return sum + coupon.value;
+      } else if (coupon.type === 'percentage') {
+        // Percentage discount
+        return sum + (subtotal * (coupon.value / 100));
+      } else if (coupon.type === 'fixed_amount') {
+        // Fixed amount discount
+        return sum + coupon.value;
+      }
+      // For other types (buy_x_get_y, etc.) - handled differently
+      return sum;
+    }, 0);
+  }, [appliedCoupons, subtotal]);
+  
   const total = subtotal - discountAmount + shippingAmount;
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -217,8 +236,7 @@ export function POSTerminal({
   // Clear cart
   const clearCart = () => {
     setCart([]);
-    setDiscountCode('');
-    setDiscountAmount(0);
+    setAppliedCoupons([]);
     setNotes('');
   };
 
@@ -252,7 +270,7 @@ export function POSTerminal({
         customer,
         shippingMethod,
         shippingAmount,
-        discountCode: discountCode || undefined,
+        discountCode: appliedCoupons.length > 0 ? appliedCoupons.map(c => c.code).join(',') : undefined,
         discountAmount,
         notes: notes || undefined,
         subtotal,
@@ -335,8 +353,7 @@ export function POSTerminal({
       phone: '',
       type: 'guest',
     });
-    setDiscountCode('');
-    setDiscountAmount(0);
+    setAppliedCoupons([]);
     setNotes('');
     setPendingOrderId(null);
     setOriginalOrderIdForRefund('');
@@ -375,7 +392,7 @@ export function POSTerminal({
         customer,
         shippingMethod,
         shippingAmount,
-        discountCode: discountCode || undefined,
+        discountCode: appliedCoupons.length > 0 ? appliedCoupons.map(c => c.code).join(',') : undefined,
         discountAmount: discountAmount + Math.abs(total), // Add the refund as discount
         notes: `${notes || ''}\nזיכוי מהזמנה ${originalOrderIdForRefund}: ₪${Math.abs(total).toFixed(2)}`.trim(),
         subtotal,
@@ -488,8 +505,10 @@ export function POSTerminal({
           removeItem={removeItem}
           clearCart={clearCart}
           subtotal={subtotal}
-          discountCode={discountCode}
-          setDiscountCode={setDiscountCode}
+          storeId={storeId}
+          appliedCoupons={appliedCoupons}
+          onApplyCoupon={(coupon) => setAppliedCoupons(prev => [...prev, coupon])}
+          onRemoveCoupon={(couponId) => setAppliedCoupons(prev => prev.filter(c => c.id !== couponId))}
           discountAmount={discountAmount}
           shippingAmount={shippingAmount}
           total={total}

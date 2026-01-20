@@ -57,8 +57,8 @@ export default async function UserDetailPage({ params }: UserDetailPageProps) {
   if (storeIds.length > 0) {
     const [stats] = await db
       .select({
-        totalOrders: sql<number>`COUNT(*)::int`,
-        totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+        totalOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.financialStatus} = 'paid')::int`,
+        totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric) FILTER (WHERE ${orders.financialStatus} = 'paid'), 0)`,
       })
       .from(orders)
       .where(inArray(orders.storeId, storeIds));

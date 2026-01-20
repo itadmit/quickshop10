@@ -2,6 +2,8 @@
 
 import type { CartItem } from './pos-terminal';
 import Image from 'next/image';
+import { CouponInput } from '@/components/coupon-input';
+import type { AppliedCoupon } from '@/lib/store-context';
 
 // ============================================
 // Cart Section Component
@@ -14,8 +16,11 @@ interface CartSectionProps {
   removeItem: (itemId: string) => void;
   clearCart: () => void;
   subtotal: number;
-  discountCode: string;
-  setDiscountCode: (code: string) => void;
+  // Coupon props - using CouponInput component
+  storeId: string;
+  appliedCoupons: AppliedCoupon[];
+  onApplyCoupon: (coupon: AppliedCoupon) => void;
+  onRemoveCoupon: (couponId: string) => void;
   discountAmount: number;
   shippingAmount: number;
   total: number;
@@ -42,8 +47,10 @@ export function CartSection({
   removeItem,
   clearCart,
   subtotal,
-  discountCode,
-  setDiscountCode,
+  storeId,
+  appliedCoupons,
+  onApplyCoupon,
+  onRemoveCoupon,
   discountAmount,
   shippingAmount,
   total,
@@ -198,18 +205,14 @@ export function CartSection({
       {/* Summary & Checkout */}
       {cart.length > 0 && (
         <div className="border-t border-gray-200 p-4 space-y-3 bg-gray-50">
-          {/* Discount Code */}
-          <div>
-            <label className="text-xs text-gray-500 mb-1 block">קוד קופון</label>
-            <input
-              type="text"
-              value={discountCode}
-              onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
-              placeholder="הזן קוד קופון..."
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              dir="ltr"
-            />
-          </div>
+          {/* Discount Code - Using CouponInput from checkout */}
+          <CouponInput
+            storeId={storeId}
+            cartTotal={subtotal}
+            appliedCoupons={appliedCoupons}
+            onApply={onApplyCoupon}
+            onRemove={onRemoveCoupon}
+          />
 
           {/* Notes */}
           <div>

@@ -38,6 +38,8 @@ import { getBundleComponentsForCart } from '@/app/shops/[slug]/admin/products/bu
 import Link from 'next/link';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { cache } from 'react';
 
 // Section name labels for editor (Hebrew)
 const sectionNames: Record<string, string> = {
@@ -58,12 +60,55 @@ interface ProductPageProps {
   searchParams: Promise<{ preview?: string }>;
 }
 
+// Cache store lookup for this request
+const getStore = cache(async (slug: string) => {
+  return getStoreBySlug(slug);
+});
+
+// Cache product lookup for this request
+const getProduct = cache(async (storeId: string, productSlug: string) => {
+  return getProductBySlug(storeId, productSlug);
+});
+
+// Generate metadata for the product page (for SEO and Analytics)
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  const { slug, productSlug } = await params;
+  
+  const store = await getStore(slug);
+  if (!store) {
+    return { title: 'מוצר לא נמצא' };
+  }
+
+  const decodedSlug = decodeURIComponent(productSlug);
+  const product = await getProduct(store.id, decodedSlug);
+  
+  if (!product) {
+    return { title: 'מוצר לא נמצא' };
+  }
+
+  // Build title: "שם מוצר | חנות"
+  const title = `${product.name} | ${store.name}`;
+  const description = product.shortDescription || product.description?.substring(0, 160) || `${product.name} - קנו עכשיו בחנות ${store.name}`;
+  const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
+
+  return {
+    title,
+    description: description.replace(/<[^>]*>/g, ''), // Strip HTML tags
+    openGraph: {
+      title,
+      description: description.replace(/<[^>]*>/g, ''),
+      images: mainImage ? [{ url: mainImage }] : undefined,
+      type: 'website',
+    },
+  };
+}
+
 export default async function ProductPage({ params, searchParams }: ProductPageProps) {
   const { slug, productSlug } = await params;
   const { preview } = await searchParams;
   const isPreviewMode = preview === 'true';
   
-  const store = await getStoreBySlug(slug);
+  const store = await getStore(slug);
   
   if (!store) {
     notFound();
@@ -78,7 +123,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     }
   }
   
-  const product = await getProductBySlug(store.id, decodedSlug);
+  const product = await getProduct(store.id, decodedSlug);
 
   if (!product) {
     notFound();

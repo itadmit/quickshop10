@@ -32,10 +32,10 @@ export default async function PlatformAdminPage() {
 
   const [orderStats] = await db
     .select({
-      totalOrders: sql<number>`COUNT(*)::int`,
-      totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric), 0)`,
-      recentOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.createdAt} >= ${thirtyDaysAgo})::int`,
-      recentRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric) FILTER (WHERE ${orders.createdAt} >= ${thirtyDaysAgo}), 0)`,
+      totalOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.financialStatus} = 'paid')::int`,
+      totalRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric) FILTER (WHERE ${orders.financialStatus} = 'paid'), 0)`,
+      recentOrders: sql<number>`COUNT(*) FILTER (WHERE ${orders.createdAt} >= ${thirtyDaysAgo} AND ${orders.financialStatus} = 'paid')::int`,
+      recentRevenue: sql<string>`COALESCE(SUM(${orders.total}::numeric) FILTER (WHERE ${orders.createdAt} >= ${thirtyDaysAgo} AND ${orders.financialStatus} = 'paid'), 0)`,
     })
     .from(orders);
 

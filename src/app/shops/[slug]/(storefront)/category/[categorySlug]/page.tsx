@@ -5,6 +5,8 @@ import { getCategoryPageSettings } from '@/lib/category-page-settings';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { CategoryPageContent } from './category-page-content';
+import type { Metadata } from 'next';
+import { cache } from 'react';
 
 // ISR - Revalidate every 60 seconds
 export const revalidate = 60;
@@ -14,12 +16,48 @@ interface CategoryPageProps {
   searchParams: Promise<{ preview?: string }>;
 }
 
+// Cache store lookup for this request
+const getStore = cache(async (slug: string) => {
+  return getStoreBySlug(slug);
+});
+
+// Generate metadata for the category page (for SEO and Analytics)
+export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
+  const { slug, categorySlug } = await params;
+  
+  const store = await getStore(slug);
+  if (!store) {
+    return { title: 'קטגוריה לא נמצאה' };
+  }
+
+  const decodedCategorySlug = decodeURIComponent(categorySlug);
+  const category = await getCategoryBySlug(store.id, decodedCategorySlug);
+  
+  if (!category) {
+    return { title: 'קטגוריה לא נמצאה' };
+  }
+
+  // Build title: "קטגוריה | חנות"
+  const title = `${category.name} | ${store.name}`;
+  const description = category.description || `מוצרים בקטגוריית ${category.name} בחנות ${store.name}`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: category.imageUrl ? [{ url: category.imageUrl }] : undefined,
+    },
+  };
+}
+
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   const { slug, categorySlug } = await params;
   const { preview } = await searchParams;
   const isPreviewMode = preview === 'true';
   
-  const store = await getStoreBySlug(slug);
+  const store = await getStore(slug);
   
   if (!store) {
     notFound();

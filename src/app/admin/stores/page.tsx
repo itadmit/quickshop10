@@ -24,8 +24,8 @@ export default async function PlatformStoresPage({
       createdAt: stores.createdAt,
       ownerName: users.name,
       ownerEmail: users.email,
-      orderCount: sql<number>`(SELECT COUNT(*) FROM orders WHERE store_id = ${stores.id})::int`,
-      totalRevenue: sql<string>`(SELECT COALESCE(SUM(total::numeric), 0) FROM orders WHERE store_id = ${stores.id})`,
+      orderCount: sql<number>`(SELECT COUNT(*) FROM orders WHERE store_id = ${stores.id} AND financial_status = 'paid')::int`,
+      totalRevenue: sql<string>`(SELECT COALESCE(SUM(total::numeric), 0) FROM orders WHERE store_id = ${stores.id} AND financial_status = 'paid')`,
     })
     .from(stores)
     .leftJoin(users, eq(stores.ownerId, users.id))
