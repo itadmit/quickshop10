@@ -864,6 +864,33 @@ export function ThemeEditor({
         setTimeout(() => setImportSuccess({ show: false, count: 0 }), 5000);
         
         console.log('✅ Import completed successfully!');
+        
+        // Auto-save and refresh iframe after import
+        setTimeout(async () => {
+          console.log('🔄 Auto-saving imported sections...');
+          try {
+            const res = await fetch(`/api/shops/${slug}/editor`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sections: importedSections,
+                themeSettings,
+                page: currentPage,
+              }),
+            });
+            
+            if (res.ok) {
+              console.log('✅ Auto-save completed');
+              setHasChanges(false);
+              // Refresh iframe to show new content
+              setPreviewRefreshKey(prev => prev + 1);
+            } else {
+              console.error('🔴 Auto-save failed');
+            }
+          } catch (err) {
+            console.error('🔴 Auto-save error:', err);
+          }
+        }, 100);
       } else {
         console.log('🔴 No sections found in JSON');
         setImportError('קובץ JSON לא תקין - לא נמצאו סקשנים.\n\nוודא שה-JSON מכיל מערך sections או מערך ישיר של סקשנים.');
