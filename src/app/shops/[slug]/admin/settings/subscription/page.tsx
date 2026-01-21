@@ -53,6 +53,8 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
   const pendingFees = periodTotal * 0.005 * 1.18; // 0.5% + VAT
 
   // Calculate trial period transaction fees (for showing before activation)
+  // Use createdAt instead of paidAt to match dashboard calculations
+  // and handle cases where paidAt might be NULL
   let trialTransactionsTotal = 0;
   let trialTransactionsCount = 0;
   let trialFees = 0;
@@ -67,7 +69,8 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
         and(
           eq(orders.storeId, store.id),
           eq(orders.financialStatus, 'paid'),
-          gte(orders.paidAt, subscription.createdAt)
+          // Use createdAt as fallback when paidAt is NULL
+          sql`COALESCE(${orders.paidAt}, ${orders.createdAt}) >= ${subscription.createdAt}`
         )
       );
     
