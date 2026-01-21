@@ -330,7 +330,7 @@ export default function QuickShopPaymentsPage() {
                   href="/register?service=payments"
                   variant={tier.recommended ? 'primary' : 'outline'}
                   size="lg"
-                  className={`w-full mt-6 rounded-xl ${tier.recommended ? 'bg-green-500 hover:bg-green-400 shadow-lg shadow-green-500/25' : 'bg-slate-700 hover:bg-slate-600 border-0 text-white'}`}
+                  className={`w-full mt-6 rounded-xl ${tier.recommended ? 'bg-green-500 hover:bg-green-400 shadow-lg shadow-green-500/25' : 'bg-transparent hover:bg-slate-700/50 border border-slate-600 text-white'}`}
                 >
                   {tier.recommended ? 'אני רוצה את המסלול הזה' : 'בחר מסלול זה'}
                 </Button>
