@@ -110,10 +110,10 @@ export function JobAccordion({ position }: JobAccordionProps) {
                 <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm">✨</span>
                 תחומי אחריות
               </h4>
-              <ul className="space-y-2">
+              <ul className="space-y-1">
                 {position.responsibilities.map((item, index) => (
-                  <li key={index} className="flex items-start gap-2 text-gray-600">
-                    <span className="text-emerald-500 mt-1">•</span>
+                  <li key={index} className="flex items-start gap-2 text-gray-600 text-sm">
+                    <span className="text-emerald-500 mt-0.5">•</span>
                     {item}
                   </li>
                 ))}
@@ -127,17 +127,17 @@ export function JobAccordion({ position }: JobAccordionProps) {
               <span className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-sm">📌</span>
               דרישות התפקיד
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {position.requirements.map((req, index) => (
-                <li key={index} className="flex items-start gap-2 text-gray-600">
+                <li key={index} className="flex items-start gap-2 text-gray-600 text-sm">
                   {req.isAdvantage ? (
-                    <span className="text-amber-500 mt-1">★</span>
+                    <span className="text-amber-500 mt-0.5">★</span>
                   ) : (
-                    <span className="text-emerald-500 mt-1">✓</span>
+                    <span className="text-emerald-500 mt-0.5">✓</span>
                   )}
                   <span>
                     {req.text}
-                    {req.isAdvantage && <span className="text-amber-600 text-sm mr-1">(יתרון)</span>}
+                    {req.isAdvantage && <span className="text-amber-600 text-xs mr-1">(יתרון)</span>}
                   </span>
                 </li>
               ))}
