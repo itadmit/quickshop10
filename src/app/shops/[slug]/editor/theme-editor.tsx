@@ -179,6 +179,10 @@ export function ThemeEditor({
   const [templateName, setTemplateName] = useState('');
   const [templateDescription, setTemplateDescription] = useState('');
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  // Import modal
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importCode, setImportCode] = useState('');
+  const [importError, setImportError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Debounced auto-refresh for product page sections
@@ -817,7 +821,40 @@ export function ThemeEditor({
 
   // Import template from JSON
   const handleImportJSON = () => {
-    fileInputRef.current?.click();
+    setImportCode('');
+    setImportError('');
+    setShowImportModal(true);
+  };
+
+  // Process imported JSON (from code or file)
+  const processImportedJson = (jsonString: string) => {
+    try {
+      const json = JSON.parse(jsonString);
+      if (json.sections && Array.isArray(json.sections)) {
+        setSections(json.sections.map((s: Section, i: number) => ({
+          ...s,
+          id: s.id || `imported-${Date.now()}-${i}`,
+          sortOrder: i,
+        })));
+        setHasChanges(true);
+        setShowImportModal(false);
+        setImportCode('');
+        setImportError('');
+      } else {
+        setImportError('קובץ JSON לא תקין - חסר מערך sections');
+      }
+    } catch {
+      setImportError('שגיאה בקריאת ה-JSON - ודאו שהפורמט תקין');
+    }
+  };
+
+  // Import from pasted code
+  const handleImportFromCode = () => {
+    if (!importCode.trim()) {
+      setImportError('נא להדביק קוד JSON');
+      return;
+    }
+    processImportedJson(importCode);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -826,22 +863,8 @@ export function ThemeEditor({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        if (json.sections && Array.isArray(json.sections)) {
-          setSections(json.sections.map((s: Section, i: number) => ({
-            ...s,
-            id: s.id || `imported-${Date.now()}-${i}`,
-            sortOrder: i,
-          })));
-          setHasChanges(true);
-          alert('התבנית יובאה בהצלחה! לחץ על "שמור" לראות את השינויים.');
-        } else {
-          alert('קובץ JSON לא תקין');
-        }
-      } catch {
-        alert('שגיאה בקריאת הקובץ');
-      }
+      const jsonString = event.target?.result as string;
+      processImportedJson(jsonString);
     };
     reader.readAsText(file);
     e.target.value = '';
@@ -1482,6 +1505,98 @@ export function ThemeEditor({
                   setTemplateDescription('');
                 }}
                 className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                ביטול
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">ייבוא תבנית</h2>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportCode('');
+                  setImportError('');
+                }}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              הדביקו קוד JSON של תבנית או העלו קובץ JSON
+            </p>
+            
+            <div className="space-y-4">
+              {/* Code Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  הדבק קוד JSON
+                </label>
+                <textarea
+                  value={importCode}
+                  onChange={(e) => {
+                    setImportCode(e.target.value);
+                    setImportError('');
+                  }}
+                  rows={8}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm font-mono bg-gray-50"
+                  placeholder='{"sections": [...]}'
+                  dir="ltr"
+                />
+              </div>
+              
+              {/* Error Message */}
+              {importError && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-600">{importError}</p>
+                </div>
+              )}
+              
+              {/* Divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-gray-200" />
+                <span className="text-xs text-gray-400">או</span>
+                <div className="flex-1 h-px bg-gray-200" />
+              </div>
+              
+              {/* File Upload */}
+              <div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex flex-col items-center gap-2">
+                    <ImportIcon />
+                    <span className="text-sm text-gray-600">לחץ להעלאת קובץ JSON</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleImportFromCode}
+                disabled={!importCode.trim()}
+                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium cursor-pointer"
+              >
+                ייבא מקוד
+              </button>
+              <button
+                onClick={() => {
+                  setShowImportModal(false);
+                  setImportCode('');
+                  setImportError('');
+                }}
+                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 ביטול
               </button>
