@@ -96,7 +96,7 @@ export function JobAccordion({ position }: JobAccordionProps) {
           {/* Description */}
           <div>
             <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 text-sm">📋</span>
+              <span className="w-7 h-7 bg-emerald-100 rounded-full flex items-center justify-center text-xs">📋</span>
               תיאור התפקיד
             </h4>
             <p className="text-gray-600 leading-relaxed">{position.description}</p>
@@ -105,10 +105,10 @@ export function JobAccordion({ position }: JobAccordionProps) {
           {/* Responsibilities */}
           {position.responsibilities.length > 0 && (
             <div>
-              <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <span className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm">✨</span>
-                תחומי אחריות
-              </h4>
+            <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
+              <span className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-xs">✨</span>
+              תחומי אחריות
+            </h4>
               <ul className="space-y-1">
                 {position.responsibilities.map((item, index) => (
                   <li key={index} className="flex items-start gap-2 text-gray-600 text-sm">
@@ -123,7 +123,7 @@ export function JobAccordion({ position }: JobAccordionProps) {
           {/* Requirements */}
           <div>
             <h4 className="font-bold text-gray-900 mb-3 flex items-center gap-2">
-              <span className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 text-sm">📌</span>
+              <span className="w-7 h-7 bg-purple-100 rounded-full flex items-center justify-center text-xs">📌</span>
               דרישות התפקיד
             </h4>
             <ul className="space-y-1">
