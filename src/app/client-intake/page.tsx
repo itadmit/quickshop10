@@ -13,30 +13,30 @@ export const metadata: Metadata = {
 
 export default function ClientIntakePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-white" dir="rtl">
+    <div className="min-h-screen bg-white font-sans text-gray-900" dir="rtl">
       <LandingHeader />
       
       {/* Hero Section */}
-      <section className="relative pt-32 pb-8 overflow-hidden">
+      <section className="relative pt-32 pb-8 overflow-hidden bg-gradient-to-b from-emerald-50/50 to-white">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[120px]" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px]" />
+          <div className="absolute top-[-20%] right-[-10%] w-[600px] h-[600px] bg-emerald-100 rounded-full blur-[120px] opacity-50" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[600px] h-[600px] bg-indigo-100 rounded-full blur-[120px] opacity-50" />
         </div>
 
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full text-emerald-400 text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 border border-emerald-200 rounded-full text-emerald-700 text-sm font-medium mb-6">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
             </span>
             שאלון אפיון מהיר
           </div>
           
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">
-            בואו נבנה לכם את האתר <span className="text-emerald-400">המושלם</span>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight text-gray-900">
+            בואו נבנה לכם את האתר <span className="text-emerald-600">המושלם</span>
           </h1>
           
-          <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-500 max-w-2xl mx-auto">
             ענו על כמה שאלות קצרות ונדע בדיוק מה אתם צריכים.
             <br />
             בסוף נקבל תבנית מוכנה שתואמת את הסגנון שלכם!
@@ -55,4 +55,3 @@ export default function ClientIntakePage() {
     </div>
   );
 }
-

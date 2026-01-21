@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { submitClientIntake } from "@/lib/actions/client-intake";
 
 // Types
@@ -55,13 +54,13 @@ const initialData: WizardData = {
 
 // Design styles with their characteristics
 const designStyles = [
-  { id: 'clean', label: 'נקי', icon: '✨', description: 'עיצוב פשוט ומסודר', color: 'from-slate-400 to-slate-600' },
-  { id: 'luxury', label: 'יוקרתי', icon: '👑', description: 'אלגנטי ומרשים', color: 'from-amber-400 to-amber-600' },
-  { id: 'colorful', label: 'צבעוני', icon: '🎨', description: 'חי ומגוון', color: 'from-pink-400 to-purple-600' },
-  { id: 'minimal', label: 'מינימליסטי', icon: '◻️', description: 'פחות זה יותר', color: 'from-gray-300 to-gray-500' },
-  { id: 'natural', label: 'טבעי', icon: '🌿', description: 'אורגני ורגוע', color: 'from-green-400 to-emerald-600' },
-  { id: 'young', label: 'צעיר', icon: '⚡', description: 'דינמי ואנרגטי', color: 'from-orange-400 to-red-500' },
-  { id: 'tech', label: 'טכנולוגי', icon: '💻', description: 'מודרני וחדשני', color: 'from-blue-400 to-indigo-600' },
+  { id: 'clean', label: 'נקי', icon: '✨', description: 'עיצוב פשוט ומסודר' },
+  { id: 'luxury', label: 'יוקרתי', icon: '👑', description: 'אלגנטי ומרשים' },
+  { id: 'colorful', label: 'צבעוני', icon: '🎨', description: 'חי ומגוון' },
+  { id: 'minimal', label: 'מינימליסטי', icon: '◻️', description: 'פחות זה יותר' },
+  { id: 'natural', label: 'טבעי', icon: '🌿', description: 'אורגני ורגוע' },
+  { id: 'young', label: 'צעיר', icon: '⚡', description: 'דינמי ואנרגטי' },
+  { id: 'tech', label: 'טכנולוגי', icon: '💻', description: 'מודרני וחדשני' },
 ];
 
 const brandColorOptions = [
@@ -127,8 +126,8 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
             idx === currentStep
               ? 'w-8 bg-emerald-500'
               : idx < currentStep
-              ? 'w-2 bg-emerald-500/50'
-              : 'w-2 bg-slate-700'
+              ? 'w-2 bg-emerald-400'
+              : 'w-2 bg-gray-200'
           }`}
         />
       ))}
@@ -139,8 +138,8 @@ function StepIndicator({ currentStep, totalSteps }: { currentStep: number; total
 function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="text-center mb-8">
-      <h2 className="text-2xl md:text-3xl font-bold mb-2">{title}</h2>
-      {subtitle && <p className="text-slate-400">{subtitle}</p>}
+      <h2 className="text-2xl md:text-3xl font-bold mb-2 text-gray-900">{title}</h2>
+      {subtitle && <p className="text-gray-500">{subtitle}</p>}
     </div>
   );
 }
@@ -216,15 +215,15 @@ export function ClientIntakeWizard() {
                     }}
                     className={`relative p-6 rounded-2xl border-2 transition-all duration-300 text-center group ${
                       isSelected
-                        ? 'border-emerald-500 bg-emerald-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
                     }`}
                   >
                     <div className={`text-4xl mb-3 transition-transform group-hover:scale-110`}>
                       {style.icon}
                     </div>
-                    <div className="font-bold text-lg mb-1">{style.label}</div>
-                    <div className="text-sm text-slate-400">{style.description}</div>
+                    <div className="font-bold text-lg mb-1 text-gray-900">{style.label}</div>
+                    <div className="text-sm text-gray-500">{style.description}</div>
                     {isSelected && (
                       <div className="absolute top-3 left-3 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
                         <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -253,69 +252,60 @@ export function ClientIntakeWizard() {
                 onClick={() => updateData({ hasExistingBranding: true })}
                 className={`px-8 py-4 rounded-xl border-2 transition-all ${
                   data.hasExistingBranding === true
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
                 <span className="text-2xl mb-2 block">✅</span>
-                <span className="font-bold">יש לי מיתוג</span>
+                <span className="font-bold text-gray-900">יש לי מיתוג</span>
               </button>
               <button
                 onClick={() => updateData({ hasExistingBranding: false })}
                 className={`px-8 py-4 rounded-xl border-2 transition-all ${
                   data.hasExistingBranding === false
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                    : 'border-gray-200 bg-white hover:border-gray-300'
                 }`}
               >
                 <span className="text-2xl mb-2 block">🎨</span>
-                <span className="font-bold">צריך לבחור צבעים</span>
+                <span className="font-bold text-gray-900">צריך לבחור צבעים</span>
               </button>
             </div>
 
             {/* Conditional Content */}
-            <AnimatePresence mode="wait">
+            <div>
               {data.hasExistingBranding === true && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  className="space-y-4"
-                >
-                  <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                    <label className="block text-sm font-medium mb-2">קישור ללוגו (אופציונלי)</label>
+                <div className="space-y-4 animate-fade-in">
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <label className="block text-sm font-medium mb-2 text-gray-700">קישור ללוגו (אופציונלי)</label>
                     <input
                       type="url"
                       value={data.logoUrl}
                       onChange={(e) => updateData({ logoUrl: e.target.value })}
                       placeholder="https://..."
-                      className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                     />
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-gray-500 mt-2">
                       או שלחו לנו את הלוגו במייל לאחר מילוי השאלון
                     </p>
                   </div>
                   
-                  <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700">
-                    <label className="block text-sm font-medium mb-2">צבעי המותג שלכם</label>
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <label className="block text-sm font-medium mb-2 text-gray-700">צבעי המותג שלכם</label>
                     <input
                       type="text"
                       value={data.customColors}
                       onChange={(e) => updateData({ customColors: e.target.value })}
                       placeholder="למשל: #FF5733, כחול כהה, זהב..."
-                      className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                     />
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {data.hasExistingBranding === false && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                >
-                  <p className="text-center text-slate-400 mb-4">בחרו את הצבעים שאתם אוהבים (עד 3)</p>
+                <div className="animate-fade-in">
+                  <p className="text-center text-gray-500 mb-4">בחרו את הצבעים שאתם אוהבים (עד 3)</p>
                   <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
                     {brandColorOptions.map((color) => {
                       const isSelected = data.brandColors.includes(color.id);
@@ -332,15 +322,15 @@ export function ClientIntakeWizard() {
                           disabled={!isSelected && data.brandColors.length >= 3}
                           className={`relative p-4 rounded-xl border-2 transition-all ${
                             isSelected
-                              ? 'border-emerald-500'
-                              : 'border-slate-700 hover:border-slate-600'
+                              ? 'border-emerald-500 bg-emerald-50'
+                              : 'border-gray-200 bg-white hover:border-gray-300'
                           } ${!isSelected && data.brandColors.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''}`}
                         >
                           <div
-                            className="w-10 h-10 rounded-full mx-auto mb-2 border border-slate-600"
+                            className="w-10 h-10 rounded-full mx-auto mb-2 border border-gray-200 shadow-sm"
                             style={{ backgroundColor: color.color }}
                           />
-                          <span className="text-xs">{color.label}</span>
+                          <span className="text-xs text-gray-700">{color.label}</span>
                           {isSelected && (
                             <div className="absolute top-2 left-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
                               <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -358,12 +348,12 @@ export function ClientIntakeWizard() {
                       value={data.customColors}
                       onChange={(e) => updateData({ customColors: e.target.value })}
                       placeholder="או כתבו צבעים ספציפיים..."
-                      className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                     />
                   </div>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
         );
 
@@ -376,12 +366,12 @@ export function ClientIntakeWizard() {
             />
             <div className="space-y-4">
               {data.referenceSites.map((site, idx) => (
-                <div key={idx} className="bg-slate-800/50 rounded-xl p-5 border border-slate-700">
+                <div key={idx} className="bg-gray-50 rounded-xl p-5 border border-gray-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center font-bold">
+                    <span className="w-8 h-8 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">
                       {idx + 1}
                     </span>
-                    <span className="text-sm text-slate-400">אתר השראה {idx + 1}</span>
+                    <span className="text-sm text-gray-500">אתר השראה {idx + 1}</span>
                   </div>
                   <input
                     type="url"
@@ -392,7 +382,7 @@ export function ClientIntakeWizard() {
                       updateData({ referenceSites: newSites });
                     }}
                     placeholder="כתובת האתר (למשל: https://zara.com)"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent mb-3"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent mb-3 text-gray-900"
                   />
                   <textarea
                     value={site.likes}
@@ -403,7 +393,7 @@ export function ClientIntakeWizard() {
                     }}
                     placeholder="מה אהבתם באתר? (צבעים, מבנה, טיפוגרפיה, תחושה כללית...)"
                     rows={2}
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none text-gray-900"
                   />
                 </div>
               ))}
@@ -411,7 +401,7 @@ export function ClientIntakeWizard() {
                 onClick={() => {
                   updateData({ referenceSites: [...data.referenceSites, { url: "", likes: "" }] });
                 }}
-                className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-slate-400 hover:border-slate-600 hover:text-slate-300 transition-colors"
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
               >
                 + הוסף אתר נוסף
               </button>
@@ -435,14 +425,14 @@ export function ClientIntakeWizard() {
                     onClick={() => updateData({ detailLevel: level.id })}
                     className={`relative p-6 rounded-2xl border-2 transition-all text-right ${
                       isSelected
-                        ? 'border-emerald-500 bg-emerald-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
                     }`}
                   >
                     <div className="text-4xl mb-4">{level.icon}</div>
-                    <div className="font-bold text-lg mb-2">{level.label}</div>
-                    <div className="text-sm text-slate-400 mb-3">{level.description}</div>
-                    <div className="inline-flex px-3 py-1 bg-slate-700/50 rounded-full text-xs text-emerald-400">
+                    <div className="font-bold text-lg mb-2 text-gray-900">{level.label}</div>
+                    <div className="text-sm text-gray-500 mb-3">{level.description}</div>
+                    <div className="inline-flex px-3 py-1 bg-emerald-100 rounded-full text-xs text-emerald-700">
                       {level.sections}
                     </div>
                     {isSelected && (
@@ -480,15 +470,15 @@ export function ClientIntakeWizard() {
                     }}
                     className={`p-4 rounded-xl border-2 transition-all text-right ${
                       isSelected
-                        ? 'border-emerald-500 bg-emerald-500/10'
-                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{feature.icon}</span>
                       <div>
-                        <div className="font-medium text-sm">{feature.label}</div>
-                        <div className="text-xs text-slate-500">{feature.description}</div>
+                        <div className="font-medium text-sm text-gray-900">{feature.label}</div>
+                        <div className="text-xs text-gray-500">{feature.description}</div>
                       </div>
                     </div>
                   </button>
@@ -496,13 +486,13 @@ export function ClientIntakeWizard() {
               })}
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">משהו נוסף שחשוב לציין?</label>
+              <label className="block text-sm font-medium mb-2 text-gray-700">משהו נוסף שחשוב לציין?</label>
               <textarea
                 value={data.customFeatures}
                 onChange={(e) => updateData({ customFeatures: e.target.value })}
                 placeholder="פיצ'רים מיוחדים, אינטגרציות, דרישות טכניות..."
                 rows={3}
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none text-gray-900"
               />
             </div>
           </div>
@@ -517,55 +507,55 @@ export function ClientIntakeWizard() {
             />
             <div className="max-w-xl mx-auto space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-2">שם העסק *</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">שם העסק *</label>
                 <input
                   type="text"
                   value={data.businessName}
                   onChange={(e) => updateData({ businessName: e.target.value })}
                   placeholder="שם החנות / המותג"
-                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">שם איש קשר *</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">שם איש קשר *</label>
                 <input
                   type="text"
                   value={data.contactName}
                   onChange={(e) => updateData({ contactName: e.target.value })}
                   placeholder="השם שלך"
-                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">אימייל *</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">אימייל *</label>
                   <input
                     type="email"
                     value={data.email}
                     onChange={(e) => updateData({ email: e.target.value })}
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">טלפון *</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">טלפון *</label>
                   <input
                     type="tel"
                     value={data.phone}
                     onChange={(e) => updateData({ phone: e.target.value })}
                     placeholder="050-000-0000"
-                    className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">הערות נוספות</label>
+                <label className="block text-sm font-medium mb-2 text-gray-700">הערות נוספות</label>
                 <textarea
                   value={data.additionalNotes}
                   onChange={(e) => updateData({ additionalNotes: e.target.value })}
                   placeholder="כל מה שחשוב לנו לדעת..."
                   rows={3}
-                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none text-gray-900"
                 />
               </div>
             </div>
@@ -580,66 +570,54 @@ export function ClientIntakeWizard() {
   // Success Screen
   if (step === totalSteps) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-12"
-      >
-        <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg className="w-12 h-12 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <div className="text-center py-12 animate-fade-in">
+        <div className="w-24 h-24 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <svg className="w-12 h-12 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h2 className="text-3xl font-bold mb-4">תודה רבה! 🎉</h2>
-        <p className="text-slate-400 text-lg mb-8 max-w-md mx-auto">
+        <h2 className="text-3xl font-bold mb-4 text-gray-900">תודה רבה! 🎉</h2>
+        <p className="text-gray-500 text-lg mb-8 max-w-md mx-auto">
           קיבלנו את הפרטים שלכם. ניצור קשר תוך 24 שעות עם הצעה מותאמת אישית ותבנית מוכנה!
         </p>
-        <div className="bg-slate-800/50 rounded-xl p-6 border border-slate-700 max-w-md mx-auto">
-          <h3 className="font-bold mb-2">מה קורה עכשיו?</h3>
-          <ul className="text-sm text-slate-400 space-y-2 text-right">
+        <div className="bg-emerald-50 rounded-xl p-6 border border-emerald-100 max-w-md mx-auto">
+          <h3 className="font-bold mb-2 text-gray-900">מה קורה עכשיו?</h3>
+          <ul className="text-sm text-gray-600 space-y-2 text-right">
             <li className="flex items-center gap-2">
-              <span className="text-emerald-500">✓</span>
+              <span className="text-emerald-600">✓</span>
               נעבור על התשובות שלכם
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-emerald-500">✓</span>
+              <span className="text-emerald-600">✓</span>
               ניצור תבנית מותאמת אישית
             </li>
             <li className="flex items-center gap-2">
-              <span className="text-emerald-500">✓</span>
+              <span className="text-emerald-600">✓</span>
               נשלח לכם הצעת מחיר
             </li>
           </ul>
         </div>
-      </motion.div>
+      </div>
     );
   }
 
   return (
-    <div className="bg-slate-800/30 rounded-3xl border border-slate-700/50 p-6 md:p-10">
+    <div className="bg-white rounded-3xl border border-gray-200 shadow-lg p-6 md:p-10">
       <StepIndicator currentStep={step} totalSteps={totalSteps} />
       
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.3 }}
-        >
-          {renderStep()}
-        </motion.div>
-      </AnimatePresence>
+      <div key={step} className="animate-fade-in">
+        {renderStep()}
+      </div>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between items-center mt-10 pt-6 border-t border-slate-700">
+      <div className="flex justify-between items-center mt-10 pt-6 border-t border-gray-200">
         <button
           onClick={prevStep}
           disabled={step === 0}
           className={`px-6 py-3 rounded-xl font-medium transition-all ${
             step === 0
               ? 'opacity-0 pointer-events-none'
-              : 'bg-slate-700 hover:bg-slate-600'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
           ← הקודם
@@ -651,8 +629,8 @@ export function ClientIntakeWizard() {
             disabled={!canProceed()}
             className={`px-8 py-3 rounded-xl font-bold transition-all ${
               canProceed()
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-900'
-                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
             הבא →
@@ -663,8 +641,8 @@ export function ClientIntakeWizard() {
             disabled={!canProceed() || isSubmitting}
             className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
               canProceed() && !isSubmitting
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-900'
-                : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
             {isSubmitting ? (
@@ -683,11 +661,10 @@ export function ClientIntakeWizard() {
       </div>
 
       {submitResult && !submitResult.success && (
-        <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-center">
+        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-center">
           {submitResult.message || 'אירעה שגיאה, נסו שוב'}
         </div>
       )}
     </div>
   );
 }
-
