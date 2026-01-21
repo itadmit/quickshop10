@@ -830,20 +830,31 @@ export function ThemeEditor({
   const processImportedJson = (jsonString: string) => {
     try {
       const json = JSON.parse(jsonString);
-      if (json.sections && Array.isArray(json.sections)) {
-        setSections(json.sections.map((s: Section, i: number) => ({
+      
+      // Support both {sections: [...]} and direct [...] array formats
+      const sectionsArray = json.sections || (Array.isArray(json) ? json : null);
+      
+      if (sectionsArray && Array.isArray(sectionsArray) && sectionsArray.length > 0) {
+        const importedSections = sectionsArray.map((s: Section, i: number) => ({
           ...s,
           id: s.id || `imported-${Date.now()}-${i}`,
           sortOrder: i,
-        })));
+          isActive: s.isActive !== false, // Default to active
+        }));
+        
+        setSections(importedSections);
         setHasChanges(true);
         setShowImportModal(false);
         setImportCode('');
         setImportError('');
+        
+        // Show success message
+        alert(`✅ יובאו ${importedSections.length} סקשנים בהצלחה!\n\nלחץ "שמור שינויים" כדי לשמור ולראות בתצוגה המקדימה.`);
       } else {
-        setImportError('קובץ JSON לא תקין - חסר מערך sections');
+        setImportError('קובץ JSON לא תקין - לא נמצאו סקשנים.\n\nוודא שה-JSON מכיל מערך sections או מערך ישיר של סקשנים.');
       }
-    } catch {
+    } catch (err) {
+      console.error('Import JSON error:', err);
       setImportError('שגיאה בקריאת ה-JSON - ודאו שהפורמט תקין');
     }
   };
