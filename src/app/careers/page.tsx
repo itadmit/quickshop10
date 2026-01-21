@@ -1,6 +1,7 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { CareersForm } from "@/components/landing/CareersForm";
+import { JobAccordion } from "@/components/landing/JobAccordion";
 import type { Metadata } from 'next';
 
 // ISR - Revalidate every hour for good performance
@@ -10,6 +11,89 @@ export const metadata: Metadata = {
   title: "דרושים בקוויק שופ - הצטרפו לצוות שלנו",
   description: "מחפשים אתגר חדש? הצטרפו לצוות של קוויק שופ - הפלטפורמה המובילה בישראל לבניית חנויות אונליין. משרות פנויות למפתחים, מעצבים, שיווק ועוד.",
 }
+
+// Job positions data
+const jobPositions = [
+  {
+    id: 'project-manager',
+    title: 'מנהל/ת פרויקטים והקמות – E-Commerce',
+    isNew: true,
+    isFilled: false,
+    location: 'רחובות / היברידי',
+    type: 'משרה מלאה',
+    description: 'התפקיד כולל אחריות מלאה על ניהול לקוחות לאחר סגירת העסקה – אפיון צרכים, הובלת תהליך ההקמה בפועל, עבודה שוטפת עם מערכת QuickShop, תקשורת רציפה מול הלקוחות, גביית תשלומים וסגירת פרויקטים. זהו תפקיד תפעולי מרכזי שמאפשר למייסדים להתמקד בצמיחה ופיתוח מוצר, ללא מכירות וללא פיתוח, עם עצמאות גבוהה, אחריות אמיתית והשפעה ישירה על חוויית הלקוח והצלחת הפרויקטים.',
+    responsibilities: [
+      'אפיון צרכי הלקוח והבנת הדרישות העסקיות',
+      'הקמת חנויות אונליין מקצה לקצה במערכת QuickShop',
+      'תקשורת שוטפת עם לקוחות לאורך כל תהליך ההקמה',
+      'עמידה בלוחות זמנים וניהול ציפיות לקוחות',
+      'גביית תשלומים וסגירת פרויקטים מוצלחים',
+      'שיפור תהליכים ומתודולוגיות עבודה',
+    ],
+    requirements: [
+      { text: 'הבנה בסיסית בעולם ה-E-Commerce' },
+      { text: 'תקשורת מצוינת מול לקוחות' },
+      { text: 'סדר, אחריות ויכולת עבודה עצמאית' },
+      { text: 'יכולת למידה מהירה של מערכות חדשות' },
+      { text: 'ניסיון עם Wix / WooCommerce / Shopify', isAdvantage: true },
+      { text: 'ניסיון בניהול פרויקטים דיגיטליים / אתרי חנויות', isAdvantage: true },
+    ],
+    tags: [
+      { label: 'ניהול לקוחות', color: 'bg-emerald-100 text-emerald-800' },
+      { label: 'E-Commerce', color: 'bg-blue-100 text-blue-800' },
+      { label: 'עבודה עצמאית', color: 'bg-purple-100 text-purple-800' },
+      { label: 'תקשורת בינאישית', color: 'bg-amber-100 text-amber-800' },
+    ],
+  },
+  {
+    id: 'full-stack',
+    title: 'מפתח/ת Full Stack',
+    isNew: false,
+    isFilled: true,
+    location: 'רחובות / היברידי',
+    type: 'משרה מלאה',
+    description: 'מחפשים מפתח/ת מנוסה ב-React, Next.js, TypeScript ו-Node.js. עבודה על פלטפורמת SaaS מתקדמת עם דגש על ביצועים ומהירות.',
+    responsibilities: [],
+    requirements: [],
+    tags: [
+      { label: 'React', color: 'bg-gray-100 text-gray-500' },
+      { label: 'Next.js', color: 'bg-gray-100 text-gray-500' },
+      { label: 'TypeScript', color: 'bg-gray-100 text-gray-500' },
+    ],
+  },
+  {
+    id: 'ux-ui',
+    title: 'מעצב/ת UX/UI',
+    isNew: false,
+    isFilled: true,
+    location: 'רחובות / היברידי',
+    type: 'משרה מלאה',
+    description: 'מחפשים מעצב/ת יצירתי/ת עם ניסיון בעיצוב ממשקים למוצרי SaaS. עבודה על חוויית משתמש מעולה ופיתוח תבניות עיצוב.',
+    responsibilities: [],
+    requirements: [],
+    tags: [
+      { label: 'Figma', color: 'bg-gray-100 text-gray-500' },
+      { label: 'UX Design', color: 'bg-gray-100 text-gray-500' },
+      { label: 'UI Design', color: 'bg-gray-100 text-gray-500' },
+    ],
+  },
+  {
+    id: 'marketing',
+    title: 'משווק/ת דיגיטלי',
+    isNew: false,
+    isFilled: true,
+    location: 'רחובות / היברידי',
+    type: 'משרה מלאה',
+    description: 'מחפשים משווק/ת דיגיטלי עם ניסיון בשיווק B2B, תוכן שיווקי וניהול קמפיינים. עבודה על צמיחה והרחבת בסיס הלקוחות.',
+    responsibilities: [],
+    requirements: [],
+    tags: [
+      { label: 'Content Marketing', color: 'bg-gray-100 text-gray-500' },
+      { label: 'SEO', color: 'bg-gray-100 text-gray-500' },
+      { label: 'Social Media', color: 'bg-gray-100 text-gray-500' },
+    ],
+  },
+];
 
 export default function CareersPage() {
   return (
@@ -31,110 +115,21 @@ export default function CareersPage() {
       {/* Open Positions Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">משרות פנויות</h2>
+          <h2 className="text-3xl font-bold text-center mb-4 text-gray-900">משרות פנויות</h2>
+          <p className="text-center text-gray-500 mb-12">לחצו על משרה לפרטים נוספים</p>
           
-          <div className="space-y-6">
-            {/* New Position - Project Manager */}
-            <div className="bg-gradient-to-br from-emerald-50 to-blue-50 border-2 border-emerald-300 rounded-2xl p-6 hover:shadow-lg transition-shadow relative overflow-hidden">
-              <div className="absolute top-4 left-4 bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                חדש!
-              </div>
+          <div className="space-y-4">
+            {jobPositions.map((position) => (
+              <JobAccordion key={position.id} position={position} />
+            ))}
+
+            {/* General Position - Not Accordion */}
+            <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-6 hover:border-emerald-400 transition-colors">
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">מנהל/ת פרויקטים והקמות – E-Commerce</h3>
+                <div className="flex-1 text-center">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">לא מצאתם משרה מתאימה?</h3>
                   <p className="text-gray-600 mb-4">
-                    התפקיד כולל אחריות מלאה על ניהול לקוחות לאחר סגירת העסקה – אפיון צרכים, הובלת תהליך ההקמה בפועל, עבודה שוטפת עם מערכת QuickShop, תקשורת רציפה מול הלקוחות, גביית תשלומים וסגירת פרויקטים.
-                  </p>
-                  <p className="text-gray-500 text-sm mb-4">
-                    זהו תפקיד תפעולי מרכזי שמאפשר למייסדים להתמקד בצמיחה ופיתוח מוצר, ללא מכירות וללא פיתוח, עם עצמאות גבוהה, אחריות אמיתית והשפעה ישירה על חוויית הלקוח והצלחת הפרויקטים.
-                  </p>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">ניהול לקוחות</span>
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">E-Commerce</span>
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">עבודה עצמאית</span>
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-sm font-medium">תקשורת בינאישית</span>
-                  </div>
-                  <a 
-                    href="#apply-form" 
-                    className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-2.5 rounded-full font-bold hover:bg-emerald-700 transition-colors"
-                  >
-                    הגש מועמדות
-                    <svg className="w-4 h-4 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                    </svg>
-                  </a>
-                </div>
-              </div>
-            </div>
-
-            {/* Filled Position 1 */}
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 opacity-60 relative">
-              <div className="absolute top-4 left-4 bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                גוייס ✓
-              </div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-500 mb-2 line-through">מפתח/ת Full Stack</h3>
-                  <p className="text-gray-400 mb-4">
-                    מחפשים מפתח/ת מנוסה ב-React, Next.js, TypeScript ו-Node.js. עבודה על פלטפורמת SaaS מתקדמת עם דגש על ביצועים ומהירות.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">React</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">Next.js</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">TypeScript</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">Node.js</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Filled Position 2 */}
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 opacity-60 relative">
-              <div className="absolute top-4 left-4 bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                גוייס ✓
-              </div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-500 mb-2 line-through">מעצב/ת UX/UI</h3>
-                  <p className="text-gray-400 mb-4">
-                    מחפשים מעצב/ת יצירתי/ת עם ניסיון בעיצוב ממשקים למוצרי SaaS. עבודה על חוויית משתמש מעולה ופיתוח תבניות עיצוב.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">Figma</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">UX Design</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">UI Design</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Filled Position 3 */}
-            <div className="bg-gray-50 border border-gray-200 rounded-2xl p-6 opacity-60 relative">
-              <div className="absolute top-4 left-4 bg-gray-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                גוייס ✓
-              </div>
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-500 mb-2 line-through">משווק/ת דיגיטלי</h3>
-                  <p className="text-gray-400 mb-4">
-                    מחפשים משווק/ת דיגיטלי עם ניסיון בשיווק B2B, תוכן שיווקי וניהול קמפיינים. עבודה על צמיחה והרחבת בסיס הלקוחות.
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">Content Marketing</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">SEO</span>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm font-medium">Social Media</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* General Position */}
-            <div className="bg-white border border-gray-200 rounded-2xl p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">משרה אחרת?</h3>
-                  <p className="text-gray-600 mb-4">
-                    לא מצאתם משרה שמתאימה? אנחנו תמיד מחפשים אנשים מוכשרים. שלחו לנו קורות חיים ונשמח לשמוע מכם!
+                    אנחנו תמיד מחפשים אנשים מוכשרים. שלחו לנו קורות חיים ונשמח לשמוע מכם!
                   </p>
                   <a 
                     href="#apply-form" 
@@ -170,4 +165,3 @@ export default function CareersPage() {
     </div>
   );
 }
-
