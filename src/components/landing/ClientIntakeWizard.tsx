@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { submitClientIntake } from "@/lib/actions/client-intake";
 
 // Types
@@ -11,8 +11,9 @@ interface WizardData {
   // Step 2: Branding
   hasExistingBranding: boolean | null;
   logoUrl: string;
-  brandColors: string[];
-  customColors: string;
+  primaryColor: string;
+  secondaryColor: string;
+  uploadedFiles: Array<{ name: string; url: string }>;
   
   // Step 3: Reference Sites
   referenceSites: Array<{
@@ -39,8 +40,9 @@ const initialData: WizardData = {
   designStyle: [],
   hasExistingBranding: null,
   logoUrl: "",
-  brandColors: [],
-  customColors: "",
+  primaryColor: "#000000",
+  secondaryColor: "#ffffff",
+  uploadedFiles: [],
   referenceSites: [{ url: "", likes: "" }, { url: "", likes: "" }, { url: "", likes: "" }],
   detailLevel: null,
   specialFeatures: [],
@@ -61,21 +63,6 @@ const designStyles = [
   { id: 'natural', label: 'טבעי', icon: '🌿', description: 'אורגני ורגוע' },
   { id: 'young', label: 'צעיר', icon: '⚡', description: 'דינמי ואנרגטי' },
   { id: 'tech', label: 'טכנולוגי', icon: '💻', description: 'מודרני וחדשני' },
-];
-
-const brandColorOptions = [
-  { id: 'black', label: 'שחור', color: '#000000' },
-  { id: 'white', label: 'לבן', color: '#FFFFFF' },
-  { id: 'gold', label: 'זהב', color: '#D4AF37' },
-  { id: 'silver', label: 'כסף', color: '#C0C0C0' },
-  { id: 'red', label: 'אדום', color: '#EF4444' },
-  { id: 'blue', label: 'כחול', color: '#3B82F6' },
-  { id: 'green', label: 'ירוק', color: '#22C55E' },
-  { id: 'pink', label: 'ורוד', color: '#EC4899' },
-  { id: 'purple', label: 'סגול', color: '#A855F7' },
-  { id: 'orange', label: 'כתום', color: '#F97316' },
-  { id: 'brown', label: 'חום', color: '#92400E' },
-  { id: 'beige', label: 'בז׳', color: '#D2B48C' },
 ];
 
 const specialFeaturesList = [
@@ -144,12 +131,47 @@ function StepTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   );
 }
 
+// Color Picker Component
+function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (color: string) => void }) {
+  return (
+    <div className="flex-1">
+      <label className="block text-sm font-medium mb-2 text-gray-700">{label}</label>
+      <div className="flex items-center gap-3">
+        <div className="relative">
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-14 h-14 rounded-xl border-2 border-gray-200 cursor-pointer overflow-hidden"
+            style={{ padding: 0 }}
+          />
+        </div>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (/^#[0-9A-Fa-f]{0,6}$/.test(val) || val === '') {
+              onChange(val || '#');
+            }
+          }}
+          placeholder="#000000"
+          className="flex-1 px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 font-mono"
+          dir="ltr"
+        />
+      </div>
+    </div>
+  );
+}
+
 // Main Wizard Component
 export function ClientIntakeWizard() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(initialData);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [submitResult, setSubmitResult] = useState<{ success: boolean; message?: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const totalSteps = 6;
 
@@ -163,6 +185,43 @@ export function ClientIntakeWizard() {
 
   const prevStep = () => {
     if (step > 0) setStep(step - 1);
+  };
+
+  const handleFileUpload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    
+    setIsUploading(true);
+    const newFiles: Array<{ name: string; url: string }> = [];
+    
+    try {
+      for (const file of Array.from(files)) {
+        // Upload to Vercel Blob via API
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('folder', 'intake-questionnaire');
+        
+        const response = await fetch('/api/upload-blob', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          newFiles.push({ name: file.name, url: result.url });
+        }
+      }
+      
+      updateData({ uploadedFiles: [...data.uploadedFiles, ...newFiles] });
+    } catch (error) {
+      console.error('Upload error:', error);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    const newFiles = data.uploadedFiles.filter((_, i) => i !== index);
+    updateData({ uploadedFiles: newFiles });
   };
 
   const handleSubmit = async () => {
@@ -183,7 +242,7 @@ export function ClientIntakeWizard() {
   const canProceed = () => {
     switch (step) {
       case 0: return data.designStyle.length > 0;
-      case 1: return data.hasExistingBranding !== null && (data.hasExistingBranding || data.brandColors.length > 0 || data.customColors);
+      case 1: return data.hasExistingBranding !== null;
       case 2: return data.referenceSites.some(site => site.url.trim() !== '');
       case 3: return data.detailLevel !== null;
       case 4: return true; // Features are optional
@@ -213,7 +272,7 @@ export function ClientIntakeWizard() {
                         : [...data.designStyle, style.id];
                       updateData({ designStyle: newStyles });
                     }}
-                    className={`relative p-6 rounded-2xl border-2 transition-all duration-300 text-center group ${
+                    className={`relative p-6 rounded-2xl border-2 transition-all duration-300 text-center group cursor-pointer ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-50'
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
@@ -250,7 +309,7 @@ export function ClientIntakeWizard() {
             <div className="flex gap-4 justify-center mb-8">
               <button
                 onClick={() => updateData({ hasExistingBranding: true })}
-                className={`px-8 py-4 rounded-xl border-2 transition-all ${
+                className={`px-8 py-4 rounded-xl border-2 transition-all cursor-pointer ${
                   data.hasExistingBranding === true
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                     : 'border-gray-200 bg-white hover:border-gray-300'
@@ -261,7 +320,7 @@ export function ClientIntakeWizard() {
               </button>
               <button
                 onClick={() => updateData({ hasExistingBranding: false })}
-                className={`px-8 py-4 rounded-xl border-2 transition-all ${
+                className={`px-8 py-4 rounded-xl border-2 transition-all cursor-pointer ${
                   data.hasExistingBranding === false
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                     : 'border-gray-200 bg-white hover:border-gray-300'
@@ -275,81 +334,148 @@ export function ClientIntakeWizard() {
             {/* Conditional Content */}
             <div>
               {data.hasExistingBranding === true && (
-                <div className="space-y-4 animate-fade-in">
+                <div className="space-y-6 animate-fade-in">
+                  {/* Logo Upload */}
                   <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                    <label className="block text-sm font-medium mb-2 text-gray-700">קישור ללוגו (אופציונלי)</label>
-                    <input
-                      type="url"
-                      value={data.logoUrl}
-                      onChange={(e) => updateData({ logoUrl: e.target.value })}
-                      placeholder="https://..."
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
-                    />
-                    <p className="text-xs text-gray-500 mt-2">
-                      או שלחו לנו את הלוגו במייל לאחר מילוי השאלון
-                    </p>
+                    <label className="block text-sm font-medium mb-3 text-gray-700">העלאת לוגו ותמונות מיתוג</label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*,.pdf"
+                        onChange={(e) => handleFileUpload(e.target.files)}
+                        className="hidden"
+                      />
+                      {isUploading ? (
+                        <div className="flex items-center justify-center gap-2 text-emerald-600">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          מעלה קבצים...
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-4xl mb-2">📤</div>
+                          <p className="text-gray-600 font-medium">לחצו להעלאת קבצים</p>
+                          <p className="text-xs text-gray-400 mt-1">תמונות, לוגו, ספר מותג (PDF)</p>
+                        </>
+                      )}
+                    </div>
+                    
+                    {/* Uploaded files list */}
+                    {data.uploadedFiles.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {data.uploadedFiles.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span className="text-sm text-gray-700">{file.name}</span>
+                            </div>
+                            <button
+                              onClick={() => removeFile(idx)}
+                              className="text-gray-400 hover:text-red-500 cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   
+                  {/* Color Pickers */}
                   <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
-                    <label className="block text-sm font-medium mb-2 text-gray-700">צבעי המותג שלכם</label>
-                    <input
-                      type="text"
-                      value={data.customColors}
-                      onChange={(e) => updateData({ customColors: e.target.value })}
-                      placeholder="למשל: #FF5733, כחול כהה, זהב..."
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
-                    />
+                    <label className="block text-sm font-medium mb-4 text-gray-700">צבעי המותג</label>
+                    <div className="flex gap-6">
+                      <ColorPicker 
+                        label="צבע ראשי" 
+                        value={data.primaryColor} 
+                        onChange={(color) => updateData({ primaryColor: color })} 
+                      />
+                      <ColorPicker 
+                        label="צבע משני" 
+                        value={data.secondaryColor} 
+                        onChange={(color) => updateData({ secondaryColor: color })} 
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               {data.hasExistingBranding === false && (
-                <div className="animate-fade-in">
-                  <p className="text-center text-gray-500 mb-4">בחרו את הצבעים שאתם אוהבים (עד 3)</p>
-                  <div className="grid grid-cols-4 md:grid-cols-6 gap-3">
-                    {brandColorOptions.map((color) => {
-                      const isSelected = data.brandColors.includes(color.id);
-                      return (
-                        <button
-                          key={color.id}
-                          onClick={() => {
-                            if (isSelected) {
-                              updateData({ brandColors: data.brandColors.filter(c => c !== color.id) });
-                            } else if (data.brandColors.length < 3) {
-                              updateData({ brandColors: [...data.brandColors, color.id] });
-                            }
-                          }}
-                          disabled={!isSelected && data.brandColors.length >= 3}
-                          className={`relative p-4 rounded-xl border-2 transition-all ${
-                            isSelected
-                              ? 'border-emerald-500 bg-emerald-50'
-                              : 'border-gray-200 bg-white hover:border-gray-300'
-                          } ${!isSelected && data.brandColors.length >= 3 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                          <div
-                            className="w-10 h-10 rounded-full mx-auto mb-2 border border-gray-200 shadow-sm"
-                            style={{ backgroundColor: color.color }}
-                          />
-                          <span className="text-xs text-gray-700">{color.label}</span>
-                          {isSelected && (
-                            <div className="absolute top-2 left-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center">
-                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
+                <div className="space-y-6 animate-fade-in">
+                  {/* Color Pickers for new branding */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <label className="block text-sm font-medium mb-2 text-gray-700">בחרו צבעים לאתר</label>
+                    <p className="text-xs text-gray-500 mb-4">בחרו צבע ראשי וצבע משני שישמשו את האתר</p>
+                    <div className="flex gap-6">
+                      <ColorPicker 
+                        label="צבע ראשי" 
+                        value={data.primaryColor} 
+                        onChange={(color) => updateData({ primaryColor: color })} 
+                      />
+                      <ColorPicker 
+                        label="צבע משני" 
+                        value={data.secondaryColor} 
+                        onChange={(color) => updateData({ secondaryColor: color })} 
+                      />
+                    </div>
                   </div>
-                  <div className="mt-4">
-                    <input
-                      type="text"
-                      value={data.customColors}
-                      onChange={(e) => updateData({ customColors: e.target.value })}
-                      placeholder="או כתבו צבעים ספציפיים..."
-                      className="w-full px-4 py-3 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900"
-                    />
+                  
+                  {/* Upload for inspiration */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                    <label className="block text-sm font-medium mb-3 text-gray-700">העלאת תמונות השראה (אופציונלי)</label>
+                    <div 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors"
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => handleFileUpload(e.target.files)}
+                        className="hidden"
+                      />
+                      {isUploading ? (
+                        <div className="flex items-center justify-center gap-2 text-emerald-600">
+                          <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          מעלה...
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-3xl mb-2">📤</div>
+                          <p className="text-sm text-gray-600">לחצו להעלאת תמונות</p>
+                        </>
+                      )}
+                    </div>
+                    
+                    {data.uploadedFiles.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {data.uploadedFiles.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white rounded-lg p-3 border border-gray-200">
+                            <div className="flex items-center gap-2">
+                              <span className="text-emerald-500">✓</span>
+                              <span className="text-sm text-gray-700">{file.name}</span>
+                            </div>
+                            <button
+                              onClick={() => removeFile(idx)}
+                              className="text-gray-400 hover:text-red-500 cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -401,7 +527,7 @@ export function ClientIntakeWizard() {
                 onClick={() => {
                   updateData({ referenceSites: [...data.referenceSites, { url: "", likes: "" }] });
                 }}
-                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors"
+                className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               >
                 + הוסף אתר נוסף
               </button>
@@ -423,7 +549,7 @@ export function ClientIntakeWizard() {
                   <button
                     key={level.id}
                     onClick={() => updateData({ detailLevel: level.id })}
-                    className={`relative p-6 rounded-2xl border-2 transition-all text-right ${
+                    className={`relative p-6 rounded-2xl border-2 transition-all text-right cursor-pointer ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-50'
                         : 'border-gray-200 bg-white hover:border-gray-300 hover:shadow-md'
@@ -468,7 +594,7 @@ export function ClientIntakeWizard() {
                         : [...data.specialFeatures, feature.id];
                       updateData({ specialFeatures: newFeatures });
                     }}
-                    className={`p-4 rounded-xl border-2 transition-all text-right ${
+                    className={`p-4 rounded-xl border-2 transition-all text-right cursor-pointer ${
                       isSelected
                         ? 'border-emerald-500 bg-emerald-50'
                         : 'border-gray-200 bg-white hover:border-gray-300'
@@ -614,13 +740,13 @@ export function ClientIntakeWizard() {
         <button
           onClick={prevStep}
           disabled={step === 0}
-          className={`px-6 py-3 rounded-xl font-medium transition-all ${
+          className={`px-6 py-3 rounded-xl font-medium transition-all cursor-pointer ${
             step === 0
               ? 'opacity-0 pointer-events-none'
               : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
           }`}
         >
-          ← הקודם
+          הקודם →
         </button>
 
         {step < totalSteps - 1 ? (
@@ -629,11 +755,11 @@ export function ClientIntakeWizard() {
             disabled={!canProceed()}
             className={`px-8 py-3 rounded-xl font-bold transition-all ${
               canProceed()
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            הבא →
+            ← הבא
           </button>
         ) : (
           <button
@@ -641,7 +767,7 @@ export function ClientIntakeWizard() {
             disabled={!canProceed() || isSubmitting}
             className={`px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2 ${
               canProceed() && !isSubmitting
-                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer'
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >

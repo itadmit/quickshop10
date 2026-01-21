@@ -7,8 +7,9 @@ interface WizardData {
   designStyle: string[];
   hasExistingBranding: boolean | null;
   logoUrl: string;
-  brandColors: string[];
-  customColors: string;
+  primaryColor: string;
+  secondaryColor: string;
+  uploadedFiles: Array<{ name: string; url: string }>;
   referenceSites: Array<{ url: string; likes: string }>;
   detailLevel: 'minimal' | 'medium' | 'detailed' | null;
   specialFeatures: string[];
@@ -40,21 +41,6 @@ const styleLabels: Record<string, string> = {
   natural: 'טבעי',
   young: 'צעיר',
   tech: 'טכנולוגי',
-};
-
-const colorLabels: Record<string, string> = {
-  black: 'שחור',
-  white: 'לבן',
-  gold: 'זהב',
-  silver: 'כסף',
-  red: 'אדום',
-  blue: 'כחול',
-  green: 'ירוק',
-  pink: 'ורוד',
-  purple: 'סגול',
-  orange: 'כתום',
-  brown: 'חום',
-  beige: 'בז׳',
 };
 
 const featureLabels: Record<string, string> = {
@@ -89,6 +75,10 @@ function generateTemplateJson(data: WizardData): object {
   };
   const targetSections = sectionCounts[data.detailLevel || 'medium'];
   
+  // Use uploaded files for images if available
+  const heroImage = data.uploadedFiles.find(f => f.name.toLowerCase().includes('hero') || f.name.toLowerCase().includes('banner'))?.url 
+    || 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420';
+  
   // Base sections that are always included
   const sections: object[] = [
     {
@@ -97,7 +87,7 @@ function generateTemplateJson(data: WizardData): object {
       title: data.businessName.toUpperCase(),
       subtitle: 'ברוכים הבאים לחנות שלנו',
       content: {
-        imageUrl: 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420',
+        imageUrl: heroImage,
         buttonLink: '#products',
         buttonText: 'גלה את הקולקציה',
       },
@@ -167,6 +157,9 @@ function generateTemplateJson(data: WizardData): object {
   
   // Add split banner if selected or if medium+
   if (data.specialFeatures.includes('split_banner') || targetSections >= 5) {
+    // Use uploaded files for split banner images if available
+    const splitImages = data.uploadedFiles.filter(f => !f.name.toLowerCase().includes('logo'));
+    
     sections.push({
       id: `section-split-${Date.now()}`,
       type: 'split_banner',
@@ -177,12 +170,12 @@ function generateTemplateJson(data: WizardData): object {
           {
             link: '/products',
             title: 'קטגוריה 1',
-            imageUrl: 'https://static.zara.net/assets/public/024c/0dd8/e19e4df78c61/f20fd99a35d2/02335629250-p/02335629250-p.jpg?ts=1752493031914&w=1230',
+            imageUrl: splitImages[0]?.url || 'https://static.zara.net/assets/public/024c/0dd8/e19e4df78c61/f20fd99a35d2/02335629250-p/02335629250-p.jpg?ts=1752493031914&w=1230',
           },
           {
             link: '/products',
             title: 'קטגוריה 2',
-            imageUrl: 'https://static.zara.net/assets/public/a132/8434/0ddd438dbcef/110f9ea930b3/05939539716-p/05939539716-p.jpg?ts=1758270012870&w=2560',
+            imageUrl: splitImages[1]?.url || 'https://static.zara.net/assets/public/a132/8434/0ddd438dbcef/110f9ea930b3/05939539716-p/05939539716-p.jpg?ts=1758270012870&w=2560',
           },
         ],
       },
@@ -239,11 +232,18 @@ function generateTemplateJson(data: WizardData): object {
     storeName: data.businessName,
     exportDate: new Date().toISOString(),
     generatedFromIntake: true,
+    cssVariables: {
+      '--color-primary': data.primaryColor || '#000000',
+      '--color-secondary': data.secondaryColor || '#ffffff',
+    },
     intakeData: {
       designStyles: data.designStyle,
       detailLevel: data.detailLevel,
       specialFeatures: data.specialFeatures,
+      primaryColor: data.primaryColor,
+      secondaryColor: data.secondaryColor,
     },
+    uploadedAssets: data.uploadedFiles,
     sections,
   };
 }
@@ -251,7 +251,6 @@ function generateTemplateJson(data: WizardData): object {
 // Format the data for email
 function formatEmailHtml(data: WizardData, templateJson: object): string {
   const designStylesHebrew = data.designStyle.map(s => styleLabels[s] || s).join(', ');
-  const brandColorsHebrew = data.brandColors.map(c => colorLabels[c] || c).join(', ');
   const featuresHebrew = data.specialFeatures.map(f => featureLabels[f] || f).join(', ');
   const detailHebrew = data.detailLevel ? detailLabels[data.detailLevel] : 'לא צוין';
 
@@ -280,6 +279,9 @@ function formatEmailHtml(data: WizardData, templateJson: object): string {
         .badge { display: inline-block; background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin: 2px; }
         .contact-box { background: #f0fdf4; border: 1px solid #10b981; border-radius: 8px; padding: 20px; margin-top: 20px; }
         .footer { background: #f9fafb; padding: 20px; text-align: center; color: #666; font-size: 14px; }
+        .color-box { display: inline-block; width: 30px; height: 30px; border-radius: 6px; vertical-align: middle; margin-left: 8px; border: 1px solid #ddd; }
+        .files-list { background: #f9fafb; padding: 12px; border-radius: 8px; margin-top: 10px; }
+        .files-list a { display: block; color: #10b981; margin-bottom: 5px; }
       </style>
     </head>
     <body>
@@ -311,9 +313,22 @@ function formatEmailHtml(data: WizardData, templateJson: object): string {
               <span class="field-label">יש מיתוג קיים:</span> 
               <span class="field-value">${data.hasExistingBranding ? 'כן' : 'לא'}</span>
             </div>
-            ${data.logoUrl ? `<div class="field"><span class="field-label">קישור ללוגו:</span> <span class="field-value"><a href="${data.logoUrl}">${data.logoUrl}</a></span></div>` : ''}
-            ${brandColorsHebrew ? `<div class="field"><span class="field-label">צבעים נבחרים:</span> <span class="field-value">${brandColorsHebrew}</span></div>` : ''}
-            ${data.customColors ? `<div class="field"><span class="field-label">צבעים מותאמים:</span> <span class="field-value">${data.customColors}</span></div>` : ''}
+            <div class="field">
+              <span class="field-label">צבע ראשי:</span> 
+              <span class="color-box" style="background-color: ${data.primaryColor}"></span>
+              <span class="field-value">${data.primaryColor}</span>
+            </div>
+            <div class="field">
+              <span class="field-label">צבע משני:</span> 
+              <span class="color-box" style="background-color: ${data.secondaryColor}"></span>
+              <span class="field-value">${data.secondaryColor}</span>
+            </div>
+            ${data.uploadedFiles.length > 0 ? `
+            <div class="files-list">
+              <span class="field-label">קבצים שהועלו:</span>
+              ${data.uploadedFiles.map(f => `<a href="${f.url}" target="_blank">📎 ${f.name}</a>`).join('')}
+            </div>
+            ` : ''}
           </div>
           
           <div class="section">
@@ -451,4 +466,3 @@ export async function submitClientIntake(data: WizardData): Promise<{ success: b
     return { success: false, message: 'אירעה שגיאה בשליחת הטופס' };
   }
 }
-
