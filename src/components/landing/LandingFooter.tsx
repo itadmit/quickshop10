@@ -28,6 +28,7 @@ export function LandingFooter() {
               <li><Link href="/for-marketers" className="hover:text-emerald-600 transition-colors">למשווקים</Link></li>
               <li><Link href="/for-developers" className="hover:text-emerald-600 transition-colors">למפתחים</Link></li>
               <li><Link href="/login" className="hover:text-emerald-600 transition-colors">התחברות שותפים</Link></li>
+              <li><Link href="/careers" className="hover:text-emerald-600 transition-colors">דרושים</Link></li>
             </ul>
           </div>
           
