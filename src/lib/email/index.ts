@@ -27,9 +27,15 @@ interface SendEmailOptions {
   html: string;
   text?: string;
   senderName?: string; // Custom sender name (e.g., store name)
+  attachments?: Array<{
+    content: string; // Base64 encoded content
+    filename: string;
+    type: string;
+    disposition: string;
+  }>;
 }
 
-export async function sendEmail({ to, subject, html, text, senderName }: SendEmailOptions) {
+export async function sendEmail({ to, subject, html, text, senderName, attachments }: SendEmailOptions) {
   try {
     await sgMail.send({
       to,
@@ -40,6 +46,7 @@ export async function sendEmail({ to, subject, html, text, senderName }: SendEma
       subject,
       html,
       text: text || html.replace(/<[^>]*>/g, ''),
+      attachments: attachments || [],
     });
     return { success: true };
   } catch (error) {
