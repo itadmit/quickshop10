@@ -88,18 +88,18 @@ export function HeroProductShowcase() {
 
       {/* iPhone Frame */}
       <div 
-        className="relative mx-auto border-gray-900 bg-gray-900 border-[12px] rounded-[3rem] h-[600px] w-[300px] shadow-2xl rotate-[-6deg] hover:rotate-0 transition-all duration-700 z-10 group cursor-pointer"
+        className="relative mx-auto border-gray-900 bg-gray-900 border-[12px] rounded-[3rem] h-[600px] w-[300px] shadow-2xl rotate-[-6deg] hover:rotate-0 transition-all duration-700 z-10 group cursor-pointer overflow-hidden"
         style={{ transitionTimingFunction: 'cubic-bezier(0.25,0.1,0.25,1)' }}
       >
         
         {/* Side Buttons */}
-        <div className="h-[32px] w-[3px] bg-gray-800 absolute -left-[15px] top-[72px] rounded-l-lg"></div>
-        <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[15px] top-[124px] rounded-l-lg"></div>
-        <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[15px] top-[178px] rounded-l-lg"></div>
-        <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[15px] top-[142px] rounded-r-lg"></div>
+        <div className="h-[32px] w-[3px] bg-gray-800 absolute -left-[15px] top-[72px] rounded-l-lg z-50"></div>
+        <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[15px] top-[124px] rounded-l-lg z-50"></div>
+        <div className="h-[46px] w-[3px] bg-gray-800 absolute -left-[15px] top-[178px] rounded-l-lg z-50"></div>
+        <div className="h-[64px] w-[3px] bg-gray-800 absolute -right-[15px] top-[142px] rounded-r-lg z-50"></div>
         
-        {/* Screen Content */}
-        <div className="rounded-[2.2rem] overflow-hidden w-full h-full bg-white relative flex flex-col">
+        {/* Screen Content - עם overflow-hidden כדי שהתמונה תמיד תהיה בתוך המסגרת */}
+        <div className="rounded-[2.2rem] overflow-hidden w-full h-full bg-white relative flex flex-col z-0">
           
           {/* Notch Area */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-black rounded-b-2xl z-30"></div>
@@ -112,12 +112,13 @@ export function HeroProductShowcase() {
              </div>
           </div>
 
-          {/* Product Image Area */}
-          <div className={`h-[65%] ${product.color} relative transition-all duration-500 ease-in-out ${isTransitioning ? 'opacity-0 blur-sm' : 'opacity-100 blur-0'}`}>
+          {/* Product Image Area - עם overflow-hidden נוסף ו-absolute positioning */}
+          <div className={`h-[65%] ${product.color} relative overflow-hidden`}>
              <img 
+               key={product.id}
                src={product.image} 
                alt={product.title} 
-               className="w-full h-full object-cover mix-blend-multiply transition-transform duration-700 group-hover:scale-105"
+               className={`absolute inset-0 w-full h-full object-cover mix-blend-multiply transition-all duration-500 ease-in-out group-hover:scale-105 ${isTransitioning ? 'opacity-0 blur-sm' : 'opacity-100 blur-0'}`}
              />
              {/* App Header Overlay */}
              <div className="absolute top-14 left-0 right-0 px-5 flex justify-between items-center z-20">
