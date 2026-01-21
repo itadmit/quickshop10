@@ -826,13 +826,21 @@ export function ThemeEditor({
     setShowImportModal(true);
   };
 
+  // Import success state for showing toast
+  const [importSuccess, setImportSuccess] = useState<{ show: boolean; count: number }>({ show: false, count: 0 });
+  
   // Process imported JSON (from code or file)
   const processImportedJson = (jsonString: string) => {
+    console.log('🔵 processImportedJson called');
+    console.log('🔵 JSON string length:', jsonString.length);
+    
     try {
       const json = JSON.parse(jsonString);
+      console.log('🟢 JSON parsed successfully:', json);
       
       // Support both {sections: [...]} and direct [...] array formats
       const sectionsArray = json.sections || (Array.isArray(json) ? json : null);
+      console.log('🟢 Sections array:', sectionsArray?.length, 'items');
       
       if (sectionsArray && Array.isArray(sectionsArray) && sectionsArray.length > 0) {
         const importedSections = sectionsArray.map((s: Section, i: number) => ({
@@ -842,19 +850,26 @@ export function ThemeEditor({
           isActive: s.isActive !== false, // Default to active
         }));
         
+        console.log('🟢 Imported sections:', importedSections.length);
+        console.log('🟢 First section:', importedSections[0]);
+        
         setSections(importedSections);
         setHasChanges(true);
         setShowImportModal(false);
         setImportCode('');
         setImportError('');
         
-        // Show success message
-        alert(`✅ יובאו ${importedSections.length} סקשנים בהצלחה!\n\nלחץ "שמור שינויים" כדי לשמור ולראות בתצוגה המקדימה.`);
+        // Show success toast
+        setImportSuccess({ show: true, count: importedSections.length });
+        setTimeout(() => setImportSuccess({ show: false, count: 0 }), 5000);
+        
+        console.log('✅ Import completed successfully!');
       } else {
+        console.log('🔴 No sections found in JSON');
         setImportError('קובץ JSON לא תקין - לא נמצאו סקשנים.\n\nוודא שה-JSON מכיל מערך sections או מערך ישיר של סקשנים.');
       }
     } catch (err) {
-      console.error('Import JSON error:', err);
+      console.error('🔴 Import JSON error:', err);
       setImportError('שגיאה בקריאת ה-JSON - ודאו שהפורמט תקין');
     }
   };
@@ -1079,6 +1094,27 @@ export function ThemeEditor({
         accept=".json"
         className="hidden"
       />
+
+      {/* Import Success Toast */}
+      {importSuccess.show && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+            <span className="font-medium">יובאו {importSuccess.count} סקשנים בהצלחה! לחץ &quot;שמור שינויים&quot;</span>
+            <button 
+              onClick={() => setImportSuccess({ show: false, count: 0 })}
+              className="mr-2 hover:bg-green-600 rounded p-1 cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Top Bar - RTL layout */}
       <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50 relative" dir="rtl">
