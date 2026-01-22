@@ -162,43 +162,50 @@ export function SeriesGridSection({
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-black/30 group-hover:bg-black/50 transition-colors duration-300" />
                 
-                {/* Content */}
+                {/* Content - Title at bottom, description slides up on hover */}
                 <div 
                   className="relative p-8 flex flex-col justify-end text-white"
                   style={{ height: cardHeight }}
                 >
-                  {/* Subtitle - always render for live updates */}
-                  <span 
-                    className="text-xs font-bold tracking-wider uppercase mb-2"
-                    style={{ color: accentColor, display: item.subtitle ? '' : 'none' }}
-                    data-item-subtitle
-                  >
-                    {item.subtitle}
-                  </span>
-                  
-                  <h3 className="text-2xl font-bold mb-2" data-item-title>{item.title}</h3>
-                  
-                  {/* Description - always render for live updates */}
-                  <p 
-                    className={`text-gray-200 mb-4 transition-all duration-300 ${
-                      showDescriptionAlways 
-                        ? 'opacity-100' 
-                        : 'opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0'
-                    }`}
-                    style={{ display: item.description ? '' : 'none' }}
-                    data-item-description
-                  >
-                    {item.description}
-                  </p>
-                  
-                  {buttonText && (
+                  {/* Container for animated content */}
+                  <div className="transform transition-all duration-500 ease-out group-hover:-translate-y-4">
+                    {/* Subtitle - always render for live updates */}
                     <span 
-                      className="w-fit bg-white/20 backdrop-blur-sm border border-white/40 group-hover:bg-white group-hover:text-black text-white px-6 py-2 rounded-full text-sm font-bold transition-all"
-                      data-card-button
+                      className={`text-xs font-bold tracking-wider uppercase mb-2 block transition-all duration-300 ${
+                        showDescriptionAlways ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                      style={{ color: accentColor, display: item.subtitle ? '' : 'none' }}
+                      data-item-subtitle
                     >
-                      {buttonText}
+                      {item.subtitle}
                     </span>
-                  )}
+                    
+                    <h3 className="text-2xl font-bold mb-2 transition-all duration-300" data-item-title>{item.title}</h3>
+                  </div>
+                  
+                  {/* Description - slides up from below */}
+                  <div className={`overflow-hidden transition-all duration-500 ease-out ${
+                    showDescriptionAlways 
+                      ? 'max-h-40 opacity-100' 
+                      : 'max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100'
+                  }`}>
+                    <p 
+                      className="text-gray-200 mb-4 pt-2"
+                      style={{ display: item.description ? '' : 'none' }}
+                      data-item-description
+                    >
+                      {item.description}
+                    </p>
+                    
+                    {buttonText && (
+                      <span 
+                        className="inline-block w-fit bg-white/20 backdrop-blur-sm border border-white/40 group-hover:bg-white group-hover:text-black text-white px-6 py-2 rounded-full text-sm font-bold transition-all duration-300"
+                        data-card-button
+                      >
+                        {buttonText}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </Link>
             ))}

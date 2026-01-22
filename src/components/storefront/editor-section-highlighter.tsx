@@ -1020,13 +1020,15 @@ export function EditorSectionHighlighter() {
                 if (descEl) {
                   descEl.textContent = item.description;
                   descEl.style.display = item.description ? '' : 'none';
-                  // Force show description during editing (override opacity-0 from CSS)
-                  if (item.description) {
-                    descEl.style.opacity = '1';
-                    descEl.style.transform = 'translateY(0)';
-                  } else {
-                    descEl.style.opacity = '';
-                    descEl.style.transform = '';
+                  
+                  // Force show description container during editing (for slide-up effect)
+                  const descContainer = descEl.parentElement;
+                  if (descContainer && item.description) {
+                    descContainer.style.maxHeight = '160px';
+                    descContainer.style.opacity = '1';
+                  } else if (descContainer && !item.description) {
+                    descContainer.style.maxHeight = '';
+                    descContainer.style.opacity = '';
                   }
                 }
               }
