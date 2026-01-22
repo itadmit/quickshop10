@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { customers, orders, users } from '@/lib/db/schema';
 import { eq, and, desc, count, sql, gte } from 'drizzle-orm';
 import Link from 'next/link';
+import { CrmNav } from '../crm-nav';
 
 // ============================================
 // CRM Reports Page
@@ -71,7 +72,7 @@ export default async function CRMReportsPage({ params, searchParams }: ReportsPa
   ] = await Promise.all([
     // Agent performance
     db.select({
-      agentId: orders.createdById,
+      agentId: orders.createdByUserId,
       agentName: users.name,
       agentEmail: users.email,
       orderCount: count(),
@@ -79,15 +80,15 @@ export default async function CRMReportsPage({ params, searchParams }: ReportsPa
       avgOrderValue: sql<number>`COALESCE(AVG(CAST(${orders.total} AS DECIMAL)), 0)`,
     })
       .from(orders)
-      .leftJoin(users, eq(orders.createdById, users.id))
+      .leftJoin(users, eq(orders.createdByUserId, users.id))
       .where(and(
         eq(orders.storeId, store.id),
         eq(orders.utmSource, 'pos'),
         eq(orders.financialStatus, 'paid'),
-        sql`${orders.createdById} IS NOT NULL`,
+        sql`${orders.createdByUserId} IS NOT NULL`,
         gte(orders.createdAt, startDate)
       ))
-      .groupBy(orders.createdById, users.name, users.email)
+      .groupBy(orders.createdByUserId, users.name, users.email)
       .orderBy(desc(sql`SUM(CAST(${orders.total} AS DECIMAL))`)),
 
     // All customers with tags
@@ -168,30 +169,31 @@ export default async function CRMReportsPage({ params, searchParams }: ReportsPa
   };
 
   return (
-    <div className="p-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">דוחות CRM</h1>
-          <p className="text-slate-500">ניתוח ביצועי מכירות וסוכנים</p>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">מערכת CRM</h1>
+        <p className="text-gray-500">ניתוח ביצועי מכירות וסוכנים</p>
+      </div>
 
-        {/* Period Selector */}
-        <div className="flex items-center gap-2">
-          {(['week', 'month', 'quarter', 'year'] as const).map(p => (
-            <Link
-              key={p}
-              href={`/shops/${slug}/admin/plugins/crm/reports?period=${p}`}
-              className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
-                period === p
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              {periodLabels[p]}
-            </Link>
-          ))}
-        </div>
+      {/* Navigation */}
+      <CrmNav storeSlug={slug} />
+
+      {/* Period Selector */}
+      <div className="flex items-center justify-end gap-2">
+        {(['week', 'month', 'quarter', 'year'] as const).map(p => (
+          <Link
+            key={p}
+            href={`/shops/${slug}/admin/plugins/crm/reports?period=${p}`}
+            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+              period === p
+                ? 'bg-indigo-600 text-white'
+                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            {periodLabels[p]}
+          </Link>
+        ))}
       </div>
 
       {/* Overview Stats */}

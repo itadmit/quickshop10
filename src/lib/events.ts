@@ -13,23 +13,39 @@ import { db } from '@/lib/db';
 import { storeEvents, notifications, webhooks, webhookDeliveries } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { sendNewOrderPushNotification, sendLowStockPushNotification } from './push-notifications';
+import { processAutomations } from './automations';
 
-type EventType = 
+// Events that are stored in the database (must match schema enum)
+type DatabaseEventType = 
   | 'order.created' 
   | 'order.paid' 
   | 'order.fulfilled' 
   | 'order.cancelled'
-  | 'order.custom_status_changed'  // CRM: Custom workflow status changed
   | 'customer.created' 
   | 'customer.updated'
-  | 'customer.tag_added'           // CRM: Tag added to customer
+  | 'customer.tag_added'
+  | 'product.low_stock' 
+  | 'product.out_of_stock'
+  | 'discount.used'
+  | 'cart.abandoned';
+
+// All event types (including CRM-specific that don't get stored)
+type EventType = 
+  | DatabaseEventType
+  | 'order.custom_status_changed'  // CRM: Custom workflow status changed
   | 'customer.tag_removed'         // CRM: Tag removed from customer
   | 'crm.note_added'               // CRM: Note added to customer
   | 'crm.task_created'             // CRM: Task created
-  | 'crm.task_completed'           // CRM: Task completed
-  | 'product.low_stock' 
-  | 'product.out_of_stock'
-  | 'discount.used';
+  | 'crm.task_completed';          // CRM: Task completed
+
+// Check if event should be stored in database
+function isDatabaseEvent(type: EventType): type is DatabaseEventType {
+  return [
+    'order.created', 'order.paid', 'order.fulfilled', 'order.cancelled',
+    'customer.created', 'customer.updated', 'customer.tag_added',
+    'product.low_stock', 'product.out_of_stock', 'discount.used', 'cart.abandoned'
+  ].includes(type);
+}
 
 type EventData = {
   storeId: string;
@@ -52,20 +68,37 @@ export async function emitEvent(event: EventData): Promise<void> {
 
 async function processEvent(event: EventData): Promise<void> {
   try {
-    // 1. Create event record
-    const [eventRecord] = await db.insert(storeEvents).values({
-      storeId: event.storeId,
-      eventType: event.type,
-      resourceId: event.resourceId,
-      resourceType: event.resourceType,
-      data: event.data,
-    }).returning();
+    let eventRecordId: string | undefined;
+
+    // 1. Create event record (only for database events)
+    if (isDatabaseEvent(event.type)) {
+      const [eventRecord] = await db.insert(storeEvents).values({
+        storeId: event.storeId,
+        eventType: event.type,
+        resourceId: event.resourceId,
+        resourceType: event.resourceType,
+        data: event.data,
+      }).returning();
+      eventRecordId = eventRecord.id;
+    }
 
     // 2. Create notification for dashboard
     await createNotification(event);
 
     // 3. Trigger webhooks (async, non-blocking)
-    triggerWebhooks(event.storeId, event.type, eventRecord.id, event.data);
+    if (eventRecordId) {
+      triggerWebhooks(event.storeId, event.type, eventRecordId, event.data);
+    }
+
+    // 4. Process automations (async, non-blocking)
+    processAutomations({
+      storeId: event.storeId,
+      type: event.type,
+      resourceId: event.resourceId,
+      resourceType: event.resourceType,
+      data: event.data,
+      eventId: eventRecordId,
+    });
 
     console.log(`[Events] Emitted: ${event.type} for store ${event.storeId}`);
   } catch (error) {
@@ -149,6 +182,11 @@ async function createNotification(event: EventData): Promise<void> {
       type: 'system',
       title: 'משימה הושלמה',
       getMessage: (data) => `משימה "${data.taskTitle}" הושלמה`,
+    },
+    'cart.abandoned': {
+      type: 'system',
+      title: 'עגלה נטושה',
+      getMessage: (data) => `${data.customerName || data.customerEmail || 'לקוח'} נטש עגלה בשווי ₪${Number(data.cartTotal || 0).toFixed(2)}`,
     },
   };
 

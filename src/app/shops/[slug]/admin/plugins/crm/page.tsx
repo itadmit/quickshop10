@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { customers, orders, crmTasks, crmNotes, users, storeMembers } from '@/lib/db/schema';
 import { eq, and, desc, count, sql, gte } from 'drizzle-orm';
 import Link from 'next/link';
+import { CrmNav } from './crm-nav';
 
 // ============================================
 // CRM Dashboard - Professional Overview
@@ -43,16 +44,12 @@ export default async function CRMPage({ params }: CRMPageProps) {
   startOfWeek.setDate(today.getDate() - 7);
   const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-  // Get all stats in parallel
+  // Get basic stats (these tables always exist)
   const [
     customerStats,
     posStatsToday,
     posStatsWeek,
     posStatsMonth,
-    pendingTasks,
-    overdueTasks,
-    recentTasks,
-    recentNotes,
     recentCustomers,
     topAgents,
     taggedCustomers,
@@ -101,55 +98,6 @@ export default async function CRMPage({ params }: CRMPageProps) {
         gte(orders.createdAt, startOfMonth)
       )),
     
-    // Pending tasks count
-    db.select({ count: count() })
-      .from(crmTasks)
-      .where(and(
-        eq(crmTasks.storeId, store.id),
-        eq(crmTasks.status, 'pending')
-      )),
-
-    // Overdue tasks
-    db.select({ count: count() })
-      .from(crmTasks)
-      .where(and(
-        eq(crmTasks.storeId, store.id),
-        eq(crmTasks.status, 'pending'),
-        sql`${crmTasks.dueDate} < NOW()`
-      )),
-    
-    // Recent tasks
-    db.select({
-      id: crmTasks.id,
-      title: crmTasks.title,
-      status: crmTasks.status,
-      priority: crmTasks.priority,
-      dueDate: crmTasks.dueDate,
-      customerId: crmTasks.customerId,
-      customerName: customers.firstName,
-    })
-      .from(crmTasks)
-      .leftJoin(customers, eq(crmTasks.customerId, customers.id))
-      .where(eq(crmTasks.storeId, store.id))
-      .orderBy(desc(crmTasks.createdAt))
-      .limit(5),
-
-    // Recent notes
-    db.select({
-      id: crmNotes.id,
-      content: crmNotes.content,
-      createdAt: crmNotes.createdAt,
-      customerName: customers.firstName,
-      customerEmail: customers.email,
-      userName: users.name,
-    })
-      .from(crmNotes)
-      .leftJoin(customers, eq(crmNotes.customerId, customers.id))
-      .leftJoin(users, eq(crmNotes.userId, users.id))
-      .where(eq(crmNotes.storeId, store.id))
-      .orderBy(desc(crmNotes.createdAt))
-      .limit(5),
-    
     // Recent customers
     db.select({
       id: customers.id,
@@ -168,20 +116,20 @@ export default async function CRMPage({ params }: CRMPageProps) {
     
     // Top agents (by order count)
     db.select({
-      agentId: orders.createdById,
+      agentId: orders.createdByUserId,
       agentName: users.name,
       orderCount: count(),
       totalSales: sql<number>`COALESCE(SUM(CAST(${orders.total} AS DECIMAL)), 0)`,
     })
       .from(orders)
-      .leftJoin(users, eq(orders.createdById, users.id))
+      .leftJoin(users, eq(orders.createdByUserId, users.id))
       .where(and(
         eq(orders.storeId, store.id),
         eq(orders.utmSource, 'pos'),
-        sql`${orders.createdById} IS NOT NULL`,
+        sql`${orders.createdByUserId} IS NOT NULL`,
         gte(orders.createdAt, startOfMonth)
       ))
-      .groupBy(orders.createdById, users.name)
+      .groupBy(orders.createdByUserId, users.name)
       .orderBy(desc(sql`COUNT(*)`))
       .limit(5),
 
@@ -193,6 +141,78 @@ export default async function CRMPage({ params }: CRMPageProps) {
       .from(customers)
       .where(eq(customers.storeId, store.id)),
   ]);
+
+  // CRM-specific queries (wrapped in try-catch for tables that might not exist yet)
+  let pendingTasks: { count: number }[] = [{ count: 0 }];
+  let overdueTasks: { count: number }[] = [{ count: 0 }];
+  let recentTasks: Array<{
+    id: string;
+    title: string;
+    status: string;
+    priority: string;
+    dueDate: Date | null;
+    customerId: string | null;
+    customerName: string | null;
+  }> = [];
+  let recentNotes: Array<{
+    id: string;
+    content: string;
+    createdAt: Date | null;
+    customerName: string | null;
+    customerEmail: string | null;
+    userName: string | null;
+  }> = [];
+
+  try {
+    [pendingTasks, overdueTasks, recentTasks, recentNotes] = await Promise.all([
+      db.select({ count: count() })
+        .from(crmTasks)
+        .where(and(
+          eq(crmTasks.storeId, store.id),
+          eq(crmTasks.status, 'pending')
+        )),
+
+      db.select({ count: count() })
+        .from(crmTasks)
+        .where(and(
+          eq(crmTasks.storeId, store.id),
+          eq(crmTasks.status, 'pending'),
+          sql`${crmTasks.dueDate} < NOW()`
+        )),
+      
+      db.select({
+        id: crmTasks.id,
+        title: crmTasks.title,
+        status: crmTasks.status,
+        priority: crmTasks.priority,
+        dueDate: crmTasks.dueDate,
+        customerId: crmTasks.customerId,
+        customerName: customers.firstName,
+      })
+        .from(crmTasks)
+        .leftJoin(customers, eq(crmTasks.customerId, customers.id))
+        .where(eq(crmTasks.storeId, store.id))
+        .orderBy(desc(crmTasks.createdAt))
+        .limit(5),
+
+      db.select({
+        id: crmNotes.id,
+        content: crmNotes.content,
+        createdAt: crmNotes.createdAt,
+        customerName: customers.firstName,
+        customerEmail: customers.email,
+        userName: users.name,
+      })
+        .from(crmNotes)
+        .leftJoin(customers, eq(crmNotes.customerId, customers.id))
+        .leftJoin(users, eq(crmNotes.userId, users.id))
+        .where(eq(crmNotes.storeId, store.id))
+        .orderBy(desc(crmNotes.createdAt))
+        .limit(5),
+    ]);
+  } catch (error) {
+    console.error('[CRM] Error fetching CRM data (tables may not exist):', error);
+  }
 
   // Calculate tag distribution
   const tagCounts: Record<string, number> = {};
@@ -214,12 +234,15 @@ export default async function CRMPage({ params }: CRMPageProps) {
   };
 
   return (
-    <div className="p-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">דשבורד CRM</h1>
-        <p className="text-slate-500">סקירה כללית של פעילות הלקוחות והמכירות</p>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">מערכת CRM</h1>
+        <p className="text-gray-500">ניהול לקוחות, משימות ודוחות</p>
       </div>
+
+      {/* Navigation */}
+      <CrmNav storeSlug={slug} />
 
       {/* Stats Grid */}
       <div className="grid grid-cols-4 gap-6 mb-8">

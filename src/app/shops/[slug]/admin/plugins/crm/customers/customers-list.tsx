@@ -23,10 +23,10 @@ interface Customer {
   phone: string | null;
   totalOrders: number | null;
   totalSpent: string | null;
-  tags: unknown;
+  tags: string[] | null;
   createdAt: Date | null;
   lastOrderAt: Date | null;
-  acceptsMarketing: boolean;
+  acceptsMarketing: boolean | null;
 }
 
 interface CustomersListProps {

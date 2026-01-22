@@ -1189,9 +1189,10 @@ export const automaticDiscounts = pgTable('automatic_discounts', {
 
 export const eventTypeEnum = pgEnum('event_type', [
   'order.created', 'order.paid', 'order.fulfilled', 'order.cancelled',
-  'customer.created', 'customer.updated',
+  'customer.created', 'customer.updated', 'customer.tag_added',
   'product.low_stock', 'product.out_of_stock',
   'discount.used',
+  'cart.abandoned',
 ]);
 
 export const storeEvents = pgTable('store_events', {
@@ -1268,6 +1269,124 @@ export const webhookDeliveries = pgTable('webhook_deliveries', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_webhook_deliveries_webhook').on(table.webhookId),
+]);
+
+// ============ AUTOMATIONS SYSTEM ============
+// "If this then that" automation rules for stores
+
+export const automationTriggerTypeEnum = pgEnum('automation_trigger_type', [
+  // Order events
+  'order.created',
+  'order.paid',
+  'order.fulfilled',
+  'order.cancelled',
+  // Customer events
+  'customer.created',
+  'customer.updated',
+  'customer.tag_added',
+  'customer.tag_removed',
+  // Product events
+  'product.low_stock',
+  'product.out_of_stock',
+  // Cart events
+  'cart.abandoned',
+  // Time-based
+  'schedule.daily',
+  'schedule.weekly',
+]);
+
+export const automationActionTypeEnum = pgEnum('automation_action_type', [
+  // Core system actions (available to all)
+  'send_email',
+  'send_sms',
+  'change_order_status',
+  'add_customer_tag',
+  'remove_customer_tag',
+  'update_marketing_consent',
+  'webhook_call',
+  // CRM Plugin actions (require CRM plugin)
+  'crm.create_task',
+  'crm.add_note',
+]);
+
+export const automations = pgTable('automations', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Metadata
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  
+  // Trigger configuration
+  triggerType: automationTriggerTypeEnum('trigger_type').notNull(),
+  triggerConditions: jsonb('trigger_conditions').default({}).notNull(), // e.g., { minOrderTotal: 100 }
+  
+  // Action configuration
+  actionType: automationActionTypeEnum('action_type').notNull(),
+  actionConfig: jsonb('action_config').default({}).notNull(), // e.g., { template: "abandoned_cart", delay: 60 }
+  
+  // Timing
+  delayMinutes: integer('delay_minutes').default(0).notNull(), // delay before executing action
+  
+  // Status
+  isActive: boolean('is_active').default(true).notNull(),
+  isBuiltIn: boolean('is_built_in').default(false).notNull(), // true for system automations
+  
+  // Stats
+  totalRuns: integer('total_runs').default(0).notNull(),
+  totalSuccesses: integer('total_successes').default(0).notNull(),
+  totalFailures: integer('total_failures').default(0).notNull(),
+  lastRunAt: timestamp('last_run_at'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_automations_store').on(table.storeId),
+  index('idx_automations_store_trigger').on(table.storeId, table.triggerType),
+  index('idx_automations_active').on(table.storeId, table.isActive),
+]);
+
+export const automationRunStatusEnum = pgEnum('automation_run_status', [
+  'pending',
+  'scheduled',
+  'running',
+  'completed',
+  'failed',
+  'cancelled',
+]);
+
+export const automationRuns = pgTable('automation_runs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  automationId: uuid('automation_id').references(() => automations.id, { onDelete: 'cascade' }).notNull(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Trigger info
+  triggerEventId: uuid('trigger_event_id').references(() => storeEvents.id, { onDelete: 'set null' }),
+  triggerData: jsonb('trigger_data').default({}).notNull(), // snapshot of trigger data
+  
+  // Target info
+  resourceId: uuid('resource_id'), // order_id, customer_id, etc.
+  resourceType: varchar('resource_type', { length: 50 }), // 'order', 'customer', etc.
+  
+  // Execution
+  status: automationRunStatusEnum('status').default('pending').notNull(),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  
+  // Result
+  result: jsonb('result'), // { success: true, emailSent: true, ... }
+  error: text('error'),
+  
+  // Scheduling (for delayed automations)
+  scheduledFor: timestamp('scheduled_for'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_automation_runs_automation').on(table.automationId),
+  index('idx_automation_runs_store').on(table.storeId),
+  index('idx_automation_runs_status').on(table.status),
+  index('idx_automation_runs_scheduled').on(table.scheduledFor),
+  index('idx_automation_runs_created').on(table.createdAt),
 ]);
 
 // ============ CRM PLUGIN ============
@@ -1967,6 +2086,7 @@ export const storesRelations = relations(stores, ({ one, many }) => ({
   events: many(storeEvents),
   notifications: many(notifications),
   webhooks: many(webhooks),
+  automations: many(automations),
   members: many(storeMembers),
   teamInvitations: many(teamInvitations),
 }));
@@ -2257,6 +2377,30 @@ export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one })
   }),
   event: one(storeEvents, {
     fields: [webhookDeliveries.eventId],
+    references: [storeEvents.id],
+  }),
+}));
+
+// Automations relations
+export const automationsRelations = relations(automations, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [automations.storeId],
+    references: [stores.id],
+  }),
+  runs: many(automationRuns),
+}));
+
+export const automationRunsRelations = relations(automationRuns, ({ one }) => ({
+  automation: one(automations, {
+    fields: [automationRuns.automationId],
+    references: [automations.id],
+  }),
+  store: one(stores, {
+    fields: [automationRuns.storeId],
+    references: [stores.id],
+  }),
+  triggerEvent: one(storeEvents, {
+    fields: [automationRuns.triggerEventId],
     references: [storeEvents.id],
   }),
 }));
@@ -3933,6 +4077,12 @@ export type Webhook = typeof webhooks.$inferSelect;
 export type NewWebhook = typeof webhooks.$inferInsert;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type NewWebhookDelivery = typeof webhookDeliveries.$inferInsert;
+
+// Automations types
+export type Automation = typeof automations.$inferSelect;
+export type NewAutomation = typeof automations.$inferInsert;
+export type AutomationRun = typeof automationRuns.$inferSelect;
+export type NewAutomationRun = typeof automationRuns.$inferInsert;
 
 // CRM Plugin types
 export type CrmNote = typeof crmNotes.$inferSelect;

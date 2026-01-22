@@ -239,6 +239,21 @@ const salesMenuItems: MenuItem[] = [
     ),
   },
   {
+    label: 'אוטומציות',
+    href: '/automations',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="5" y="8" width="14" height="12" rx="2"/>
+        <path d="M9 8V6a3 3 0 016 0v2"/>
+        <circle cx="9" cy="13" r="1.5" fill="currentColor"/>
+        <circle cx="15" cy="13" r="1.5" fill="currentColor"/>
+        <path d="M10 17h4"/>
+        <path d="M2 12h3"/>
+        <path d="M19 12h3"/>
+      </svg>
+    ),
+  },
+  {
     label: 'פופאפים',
     href: '/popups',
     icon: (

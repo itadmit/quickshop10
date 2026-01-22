@@ -162,11 +162,13 @@ export async function uploadToCloudinarySigned(
   // Create form data
   const formData = new FormData();
   
-  if (file instanceof Buffer) {
+  if (Buffer.isBuffer(file)) {
     // Convert Buffer to Blob for FormData
-    const blob = new Blob([file]);
+    const uint8Array = new Uint8Array(file);
+    const blob = new Blob([uint8Array]);
     formData.append('file', blob, options.filename || 'upload');
   } else {
+    // file is a File
     formData.append('file', file);
   }
   

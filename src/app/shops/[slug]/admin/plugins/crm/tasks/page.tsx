@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { crmTasks, users, customers, orders, storeMembers } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { TasksList } from './tasks-list';
+import { CrmNav } from '../crm-nav';
 
 // ============================================
 // CRM Tasks Page
@@ -109,12 +110,15 @@ export default async function CRMTasksPage({ params, searchParams }: TasksPagePr
   };
 
   return (
-    <div className="p-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">משימות</h1>
-        <p className="text-slate-500">{stats.total} משימות • {stats.pending} ממתינות</p>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">מערכת CRM</h1>
+        <p className="text-gray-500">{stats.total} משימות • {stats.pending} ממתינות</p>
       </div>
+
+      {/* Navigation */}
+      <CrmNav storeSlug={slug} />
 
       <TasksList
         storeId={store.id}

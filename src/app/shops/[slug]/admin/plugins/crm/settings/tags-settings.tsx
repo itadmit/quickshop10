@@ -121,11 +121,11 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
   return (
     <div className="space-y-6">
       {/* Tags List */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div>
-            <h2 className="font-semibold text-gray-900">תגיות CRM</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="font-semibold text-slate-900">תגיות CRM</h2>
+            <p className="text-sm text-slate-500 mt-1">
               הגדר תגיות מותאמות אישית לסיווג לקוחות
             </p>
           </div>
@@ -133,14 +133,14 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
             <button
               type="button"
               onClick={handleInitDefaults}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
             >
               הוסף תגיות ברירת מחדל
             </button>
           )}
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-6 space-y-4">
           {/* Existing Tags */}
           {tags.length > 0 ? (
             <div className="space-y-3">
@@ -152,18 +152,18 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
                         type="text"
                         value={tag.label}
                         onChange={(e) => handleUpdateTag(tag.id, 'label', e.target.value)}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       />
                       <input
                         type="color"
                         value={tag.color}
                         onChange={(e) => handleUpdateTag(tag.id, 'color', e.target.value)}
-                        className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
+                        className="w-10 h-10 rounded-xl border border-slate-200 cursor-pointer"
                       />
                       <button
                         type="button"
                         onClick={() => setEditingId(null)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                        className="p-2 text-green-600 hover:bg-green-50 rounded-xl"
                       >
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -177,15 +177,15 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
                           className="w-4 h-4 rounded-full"
                           style={{ backgroundColor: tag.color }}
                         />
-                        <span className="font-medium text-gray-900">{tag.label}</span>
+                        <span className="font-medium text-slate-900">{tag.label}</span>
                         {tag.isDefault && (
-                          <span className="text-xs text-gray-400">(ברירת מחדל)</span>
+                          <span className="text-xs text-slate-400">(ברירת מחדל)</span>
                         )}
                       </div>
                       <button
                         type="button"
                         onClick={() => setEditingId(tag.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -194,7 +194,7 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
                       <button
                         type="button"
                         onClick={() => handleRemoveTag(tag.id)}
-                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
                       >
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -206,19 +206,19 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-500 text-center py-4">
+            <p className="text-sm text-slate-500 text-center py-4">
               עדיין לא הוגדרו תגיות
             </p>
           )}
 
           {/* Add New Tag */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
             <input
               type="text"
               value={newLabel}
               onChange={(e) => setNewLabel(e.target.value)}
               placeholder="שם התגית החדשה"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="flex-1 px-4 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
@@ -230,12 +230,12 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
               type="color"
               value={newColor}
               onChange={(e) => setNewColor(e.target.value)}
-              className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer"
+              className="w-10 h-10 rounded-xl border border-slate-200 cursor-pointer"
             />
             <button
               type="button"
               onClick={handleAddTag}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+              className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -246,14 +246,14 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
 
           {/* Quick Color Picker */}
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">צבעים מהירים:</span>
+            <span className="text-xs text-slate-500">צבעים מהירים:</span>
             {DEFAULT_COLORS.map(color => (
               <button
                 key={color}
                 type="button"
                 onClick={() => setNewColor(color)}
                 className={`w-6 h-6 rounded-full border-2 transition-all ${
-                  newColor === color ? 'border-gray-900 scale-110' : 'border-transparent'
+                  newColor === color ? 'border-slate-900 scale-110' : 'border-transparent'
                 }`}
                 style={{ backgroundColor: color }}
               />
@@ -264,7 +264,7 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
 
       {/* Error */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
           {error}
         </div>
       )}
@@ -275,7 +275,7 @@ export function TagsSettings({ storeId, storeSlug, initialTags }: TagsSettingsPr
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium"
+          className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 font-medium"
         >
           {isPending ? 'שומר...' : 'שמור שינויים'}
         </button>

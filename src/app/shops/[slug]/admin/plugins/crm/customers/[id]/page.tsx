@@ -66,7 +66,7 @@ export default async function CRMCustomerDetailPage({ params }: CustomerDetailPa
       createdByName: users.name,
     })
     .from(orders)
-    .leftJoin(users, eq(orders.createdById, users.id))
+    .leftJoin(users, eq(orders.createdByUserId, users.id))
     .where(eq(orders.customerId, id))
     .orderBy(desc(orders.createdAt))
     .limit(20);
@@ -106,6 +106,9 @@ export default async function CRMCustomerDetailPage({ params }: CustomerDetailPa
     ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
     : customer.email;
 
+  // Calculate lastOrderAt from the most recent order
+  const lastOrderAt = customerOrders.length > 0 ? customerOrders[0].createdAt : null;
+
   return (
     <div className="p-8">
       {/* Breadcrumb */}
@@ -114,17 +117,32 @@ export default async function CRMCustomerDetailPage({ params }: CustomerDetailPa
           href={`/shops/${slug}/admin/plugins/crm/customers`}
           className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-          </svg>
           חזרה ללקוחות
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+          </svg>
         </Link>
       </div>
 
       <CustomerDetailView
         storeId={store.id}
         storeSlug={slug}
-        customer={customer}
+        customer={{
+          id: customer.id,
+          email: customer.email,
+          firstName: customer.firstName,
+          lastName: customer.lastName,
+          phone: customer.phone,
+          totalOrders: customer.totalOrders,
+          totalSpent: customer.totalSpent,
+          creditBalance: customer.creditBalance,
+          acceptsMarketing: customer.acceptsMarketing ?? false,
+          defaultAddress: customer.defaultAddress as Record<string, unknown> | null,
+          notes: customer.notes,
+          createdAt: customer.createdAt,
+          lastOrderAt,
+          lastLoginAt: customer.lastLoginAt,
+        }}
         customerName={customerName}
         customerTags={(customer.tags || []) as string[]}
         crmTags={crmTags}

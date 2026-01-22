@@ -3,8 +3,9 @@ import { notFound, redirect } from 'next/navigation';
 import { getStorePlugin } from '@/lib/plugins/loader';
 import { db } from '@/lib/db';
 import { customers, orders } from '@/lib/db/schema';
-import { eq, desc, sql, ilike, or } from 'drizzle-orm';
+import { eq, desc, sql, ilike, or, and } from 'drizzle-orm';
 import { CustomersList } from './customers-list';
+import { CrmNav } from '../crm-nav';
 
 // ============================================
 // CRM Customers Page
@@ -43,8 +44,38 @@ export default async function CRMCustomersPage({ params, searchParams }: Custome
     isDefault?: boolean;
   }>) || [];
 
-  // Build query
-  let query = db
+  // Build search condition if needed
+  const searchCondition = search
+    ? or(
+        ilike(customers.email, `%${search}%`),
+        ilike(customers.firstName, `%${search}%`),
+        ilike(customers.lastName, `%${search}%`),
+        ilike(customers.phone, `%${search}%`)
+      )
+    : undefined;
+
+  // Build where clause
+  const whereClause = searchCondition
+    ? and(eq(customers.storeId, store.id), searchCondition)
+    : eq(customers.storeId, store.id);
+
+  // Determine sort order
+  const orderByClause = (() => {
+    switch (sort) {
+      case 'oldest':
+        return customers.createdAt;
+      case 'most_orders':
+        return desc(customers.totalOrders);
+      case 'highest_value':
+        return desc(sql`CAST(${customers.totalSpent} AS DECIMAL)`);
+      case 'newest':
+      default:
+        return desc(customers.createdAt);
+    }
+  })();
+
+  // Execute query with lastOrderAt calculated from orders
+  const allCustomers = await db
     .select({
       id: customers.id,
       email: customers.email,
@@ -55,41 +86,18 @@ export default async function CRMCustomersPage({ params, searchParams }: Custome
       totalSpent: customers.totalSpent,
       tags: customers.tags,
       createdAt: customers.createdAt,
-      lastOrderAt: customers.lastOrderAt,
       acceptsMarketing: customers.acceptsMarketing,
+      // Calculate lastOrderAt from orders table
+      lastOrderAt: sql<Date | null>`(
+        SELECT MAX(${orders.createdAt}) 
+        FROM ${orders} 
+        WHERE ${orders.customerId} = ${customers.id}
+      )`,
     })
     .from(customers)
-    .where(eq(customers.storeId, store.id));
-
-  // Apply search filter
-  if (search) {
-    query = query.where(
-      or(
-        ilike(customers.email, `%${search}%`),
-        ilike(customers.firstName, `%${search}%`),
-        ilike(customers.lastName, `%${search}%`),
-        ilike(customers.phone, `%${search}%`)
-      )
-    ) as typeof query;
-  }
-
-  // Apply sorting
-  switch (sort) {
-    case 'oldest':
-      query = query.orderBy(customers.createdAt) as typeof query;
-      break;
-    case 'most_orders':
-      query = query.orderBy(desc(customers.totalOrders)) as typeof query;
-      break;
-    case 'highest_value':
-      query = query.orderBy(desc(sql`CAST(${customers.totalSpent} AS DECIMAL)`)) as typeof query;
-      break;
-    case 'newest':
-    default:
-      query = query.orderBy(desc(customers.createdAt)) as typeof query;
-  }
-
-  const allCustomers = await query.limit(100);
+    .where(whereClause)
+    .orderBy(orderByClause)
+    .limit(100);
 
   // Filter by tag on client (JSONB array)
   let filteredCustomers = allCustomers;
@@ -113,15 +121,18 @@ export default async function CRMCustomersPage({ params, searchParams }: Custome
   };
 
   return (
-    <div className="p-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">לקוחות</h1>
-        <p className="text-slate-500">ניהול לקוחות, תגיות והערות</p>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">מערכת CRM</h1>
+        <p className="text-gray-500">ניהול לקוחות, תגיות והערות</p>
       </div>
 
+      {/* Navigation */}
+      <CrmNav storeSlug={slug} />
+
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <p className="text-2xl font-bold text-slate-900">{stats.total}</p>
           <p className="text-sm text-slate-500">סה״כ לקוחות</p>
