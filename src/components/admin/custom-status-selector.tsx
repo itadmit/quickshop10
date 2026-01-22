@@ -48,8 +48,9 @@ export function CustomStatusSelector({
 
   const handleSelectStatus = (statusId: string | null) => {
     setIsOpen(false);
+    const selectedStatus = statusId ? customStatuses.find(s => s.id === statusId) : null;
     startTransition(async () => {
-      await updateOrderCustomStatus(orderId, storeSlug, statusId);
+      await updateOrderCustomStatus(orderId, storeSlug, statusId, selectedStatus?.name || null);
     });
   };
 

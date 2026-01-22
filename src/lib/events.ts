@@ -19,8 +19,14 @@ type EventType =
   | 'order.paid' 
   | 'order.fulfilled' 
   | 'order.cancelled'
+  | 'order.custom_status_changed'  // CRM: Custom workflow status changed
   | 'customer.created' 
   | 'customer.updated'
+  | 'customer.tag_added'           // CRM: Tag added to customer
+  | 'customer.tag_removed'         // CRM: Tag removed from customer
+  | 'crm.note_added'               // CRM: Note added to customer
+  | 'crm.task_created'             // CRM: Task created
+  | 'crm.task_completed'           // CRM: Task completed
   | 'product.low_stock' 
   | 'product.out_of_stock'
   | 'discount.used';
@@ -29,7 +35,7 @@ type EventData = {
   storeId: string;
   type: EventType;
   resourceId?: string;
-  resourceType?: 'order' | 'customer' | 'product' | 'discount';
+  resourceType?: 'order' | 'customer' | 'product' | 'discount' | 'crm_note' | 'crm_task';
   data: Record<string, unknown>;
 };
 
@@ -113,6 +119,36 @@ async function createNotification(event: EventData): Promise<void> {
       type: 'system',
       title: 'קופון מומש',
       getMessage: (data) => `קופון ${data.code} מומש בהזמנה #${data.orderNumber}`,
+    },
+    'order.custom_status_changed': {
+      type: 'system',
+      title: 'סטטוס הזמנה עודכן',
+      getMessage: (data) => `הזמנה #${data.orderNumber} שונתה ל"${data.newStatus}"`,
+    },
+    'customer.tag_added': {
+      type: 'system',
+      title: 'תגית נוספה',
+      getMessage: (data) => `תגית "${data.tagLabel}" נוספה ל${data.customerName}`,
+    },
+    'customer.tag_removed': {
+      type: 'system',
+      title: 'תגית הוסרה',
+      getMessage: (data) => `תגית "${data.tagLabel}" הוסרה מ${data.customerName}`,
+    },
+    'crm.note_added': {
+      type: 'system',
+      title: 'הערה חדשה',
+      getMessage: (data) => `הערה נוספה על ${data.customerName}`,
+    },
+    'crm.task_created': {
+      type: 'system',
+      title: 'משימה חדשה',
+      getMessage: (data) => `משימה "${data.taskTitle}" נוצרה`,
+    },
+    'crm.task_completed': {
+      type: 'system',
+      title: 'משימה הושלמה',
+      getMessage: (data) => `משימה "${data.taskTitle}" הושלמה`,
     },
   };
 
@@ -319,4 +355,111 @@ export function emitLowStock(
   }
 }
 
+// ============ CRM Events ============
+
+/**
+ * Emit when order custom status is changed
+ */
+export function emitOrderCustomStatusChanged(
+  storeId: string,
+  orderId: string,
+  orderNumber: string,
+  oldStatus: string | null,
+  newStatus: string | null,
+  statusLabel: string | null
+): void {
+  emitEvent({
+    storeId,
+    type: 'order.custom_status_changed',
+    resourceId: orderId,
+    resourceType: 'order',
+    data: {
+      orderNumber,
+      oldStatus,
+      newStatus,
+      newStatusLabel: statusLabel,
+      timestamp: new Date().toISOString(),
+    },
+  });
+}
+
+/**
+ * Emit when tags are added/removed from customer
+ */
+export function emitCustomerTagChanged(
+  storeId: string,
+  customerId: string,
+  customerName: string,
+  customerEmail: string,
+  action: 'added' | 'removed',
+  tagId: string,
+  tagLabel: string
+): void {
+  emitEvent({
+    storeId,
+    type: action === 'added' ? 'customer.tag_added' : 'customer.tag_removed',
+    resourceId: customerId,
+    resourceType: 'customer',
+    data: {
+      customerName,
+      customerEmail,
+      tagId,
+      tagLabel,
+      action,
+      timestamp: new Date().toISOString(),
+    },
+  });
+}
+
+/**
+ * Emit when CRM note is added
+ */
+export function emitCrmNoteAdded(
+  storeId: string,
+  noteId: string,
+  customerId: string,
+  customerName: string,
+  authorName: string
+): void {
+  emitEvent({
+    storeId,
+    type: 'crm.note_added',
+    resourceId: noteId,
+    resourceType: 'crm_note',
+    data: {
+      customerId,
+      customerName,
+      authorName,
+      timestamp: new Date().toISOString(),
+    },
+  });
+}
+
+/**
+ * Emit when CRM task is created/completed
+ */
+export function emitCrmTaskEvent(
+  storeId: string,
+  taskId: string,
+  taskTitle: string,
+  action: 'created' | 'completed',
+  customerId?: string,
+  customerName?: string,
+  assignedTo?: string
+): void {
+  emitEvent({
+    storeId,
+    type: action === 'created' ? 'crm.task_created' : 'crm.task_completed',
+    resourceId: taskId,
+    resourceType: 'crm_task',
+    data: {
+      taskTitle,
+      customerId,
+      customerName,
+      assignedTo,
+      action,
+      timestamp: new Date().toISOString(),
+    },
+  });
+}
 

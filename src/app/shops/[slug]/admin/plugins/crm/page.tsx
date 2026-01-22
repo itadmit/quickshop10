@@ -2,14 +2,12 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound, redirect } from 'next/navigation';
 import { getStorePlugin } from '@/lib/plugins/loader';
 import { db } from '@/lib/db';
-import { customers, orders, crmTasks, users, storeMembers } from '@/lib/db/schema';
-import { eq, and, desc, count, sql } from 'drizzle-orm';
+import { customers, orders, crmTasks, crmNotes, users, storeMembers } from '@/lib/db/schema';
+import { eq, and, desc, count, sql, gte } from 'drizzle-orm';
 import Link from 'next/link';
-import { CRMDashboard } from './crm-dashboard';
 
 // ============================================
-// CRM Plugin - Main Page
-// Dashboard with quick stats and recent activity
+// CRM Dashboard - Professional Overview
 // ============================================
 
 interface CRMPageProps {
@@ -38,20 +36,33 @@ export default async function CRMPage({ params }: CRMPageProps) {
     isDefault?: boolean;
   }>) || [];
 
-  // Get stats
+  // Date ranges
+  const today = new Date();
+  const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - 7);
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  // Get all stats in parallel
   const [
     customerStats,
-    orderStats,
-    taskStats,
+    posStatsToday,
+    posStatsWeek,
+    posStatsMonth,
+    pendingTasks,
+    overdueTasks,
+    recentTasks,
+    recentNotes,
     recentCustomers,
-    teamMembers,
+    topAgents,
+    taggedCustomers,
   ] = await Promise.all([
-    // Customer count
+    // Total customers
     db.select({ count: count() })
       .from(customers)
       .where(eq(customers.storeId, store.id)),
     
-    // Orders from POS (utmSource = 'pos')
+    // Today's POS sales
     db.select({ 
       count: count(),
       total: sql<number>`COALESCE(SUM(CAST(${orders.total} AS DECIMAL)), 0)`,
@@ -60,24 +71,91 @@ export default async function CRMPage({ params }: CRMPageProps) {
       .where(and(
         eq(orders.storeId, store.id),
         eq(orders.utmSource, 'pos'),
-        eq(orders.financialStatus, 'paid')
+        eq(orders.financialStatus, 'paid'),
+        gte(orders.createdAt, startOfDay)
       )),
     
-    // Pending tasks
+    // This week's POS sales
+    db.select({ 
+      count: count(),
+      total: sql<number>`COALESCE(SUM(CAST(${orders.total} AS DECIMAL)), 0)`,
+    })
+      .from(orders)
+      .where(and(
+        eq(orders.storeId, store.id),
+        eq(orders.utmSource, 'pos'),
+        eq(orders.financialStatus, 'paid'),
+        gte(orders.createdAt, startOfWeek)
+      )),
+    
+    // This month's POS sales
+    db.select({ 
+      count: count(),
+      total: sql<number>`COALESCE(SUM(CAST(${orders.total} AS DECIMAL)), 0)`,
+    })
+      .from(orders)
+      .where(and(
+        eq(orders.storeId, store.id),
+        eq(orders.utmSource, 'pos'),
+        eq(orders.financialStatus, 'paid'),
+        gte(orders.createdAt, startOfMonth)
+      )),
+    
+    // Pending tasks count
     db.select({ count: count() })
       .from(crmTasks)
       .where(and(
         eq(crmTasks.storeId, store.id),
         eq(crmTasks.status, 'pending')
       )),
+
+    // Overdue tasks
+    db.select({ count: count() })
+      .from(crmTasks)
+      .where(and(
+        eq(crmTasks.storeId, store.id),
+        eq(crmTasks.status, 'pending'),
+        sql`${crmTasks.dueDate} < NOW()`
+      )),
     
-    // Recent customers with tags
+    // Recent tasks
+    db.select({
+      id: crmTasks.id,
+      title: crmTasks.title,
+      status: crmTasks.status,
+      priority: crmTasks.priority,
+      dueDate: crmTasks.dueDate,
+      customerId: crmTasks.customerId,
+      customerName: customers.firstName,
+    })
+      .from(crmTasks)
+      .leftJoin(customers, eq(crmTasks.customerId, customers.id))
+      .where(eq(crmTasks.storeId, store.id))
+      .orderBy(desc(crmTasks.createdAt))
+      .limit(5),
+
+    // Recent notes
+    db.select({
+      id: crmNotes.id,
+      content: crmNotes.content,
+      createdAt: crmNotes.createdAt,
+      customerName: customers.firstName,
+      customerEmail: customers.email,
+      userName: users.name,
+    })
+      .from(crmNotes)
+      .leftJoin(customers, eq(crmNotes.customerId, customers.id))
+      .leftJoin(users, eq(crmNotes.userId, users.id))
+      .where(eq(crmNotes.storeId, store.id))
+      .orderBy(desc(crmNotes.createdAt))
+      .limit(5),
+    
+    // Recent customers
     db.select({
       id: customers.id,
       email: customers.email,
       firstName: customers.firstName,
       lastName: customers.lastName,
-      phone: customers.phone,
       totalOrders: customers.totalOrders,
       totalSpent: customers.totalSpent,
       tags: customers.tags,
@@ -86,84 +164,340 @@ export default async function CRMPage({ params }: CRMPageProps) {
       .from(customers)
       .where(eq(customers.storeId, store.id))
       .orderBy(desc(customers.createdAt))
-      .limit(10),
+      .limit(5),
     
-    // Team members (for task assignment)
+    // Top agents (by order count)
     db.select({
-      userId: storeMembers.userId,
-      role: storeMembers.role,
-      userName: users.name,
-      userEmail: users.email,
+      agentId: orders.createdById,
+      agentName: users.name,
+      orderCount: count(),
+      totalSales: sql<number>`COALESCE(SUM(CAST(${orders.total} AS DECIMAL)), 0)`,
     })
-      .from(storeMembers)
-      .leftJoin(users, eq(storeMembers.userId, users.id))
-      .where(eq(storeMembers.storeId, store.id)),
+      .from(orders)
+      .leftJoin(users, eq(orders.createdById, users.id))
+      .where(and(
+        eq(orders.storeId, store.id),
+        eq(orders.utmSource, 'pos'),
+        sql`${orders.createdById} IS NOT NULL`,
+        gte(orders.createdAt, startOfMonth)
+      ))
+      .groupBy(orders.createdById, users.name)
+      .orderBy(desc(sql`COUNT(*)`))
+      .limit(5),
+
+    // Customers by tag count
+    db.select({
+      id: customers.id,
+      tags: customers.tags,
+    })
+      .from(customers)
+      .where(eq(customers.storeId, store.id)),
   ]);
 
+  // Calculate tag distribution
+  const tagCounts: Record<string, number> = {};
+  taggedCustomers.forEach(c => {
+    const tags = (c.tags || []) as string[];
+    tags.forEach(tagId => {
+      tagCounts[tagId] = (tagCounts[tagId] || 0) + 1;
+    });
+  });
+
+  const formatCurrency = (n: number) => `₪${n.toLocaleString()}`;
+  const formatDate = (d: Date | null) => d ? new Date(d).toLocaleDateString('he-IL', { day: 'numeric', month: 'short' }) : '-';
+
+  const priorityIcons: Record<string, string> = { high: '🔴', medium: '🟡', low: '🟢' };
+  const statusColors: Record<string, string> = {
+    pending: 'bg-amber-100 text-amber-800',
+    in_progress: 'bg-blue-100 text-blue-800',
+    completed: 'bg-green-100 text-green-800',
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="p-8">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
-        <div className="px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link 
-                href={`/shops/${slug}/admin`}
-                className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h1 className="text-xl font-bold text-gray-900">CRM</h1>
-                  <p className="text-sm text-gray-500">{store.name}</p>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">דשבורד CRM</h1>
+        <p className="text-slate-500">סקירה כללית של פעילות הלקוחות והמכירות</p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-4 gap-6 mb-8">
+        {/* Customers */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+              </svg>
+            </div>
+            <Link href={`/shops/${slug}/admin/plugins/crm/customers`} className="text-xs text-indigo-600 hover:text-indigo-700">
+              הצג הכל →
+            </Link>
+          </div>
+          <p className="text-3xl font-bold text-slate-900 mb-1">{customerStats[0]?.count || 0}</p>
+          <p className="text-sm text-slate-500">סה״כ לקוחות</p>
+        </div>
+
+        {/* Today Sales */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+              </svg>
+            </div>
+            <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+              {posStatsToday[0]?.count || 0} עסקאות
+            </span>
+          </div>
+          <p className="text-3xl font-bold text-slate-900 mb-1">{formatCurrency(Number(posStatsToday[0]?.total || 0))}</p>
+          <p className="text-sm text-slate-500">מכירות היום</p>
+        </div>
+
+        {/* Week Sales */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+              </svg>
+            </div>
+            <span className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded-full font-medium">
+              {posStatsWeek[0]?.count || 0} עסקאות
+            </span>
+          </div>
+          <p className="text-3xl font-bold text-slate-900 mb-1">{formatCurrency(Number(posStatsWeek[0]?.total || 0))}</p>
+          <p className="text-sm text-slate-500">מכירות השבוע</p>
+        </div>
+
+        {/* Tasks */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <div className="flex items-center justify-between mb-4">
+            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <Link href={`/shops/${slug}/admin/plugins/crm/tasks`} className="text-xs text-amber-600 hover:text-amber-700">
+              הצג הכל →
+            </Link>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <p className="text-3xl font-bold text-slate-900">{pendingTasks[0]?.count || 0}</p>
+            {(overdueTasks[0]?.count || 0) > 0 && (
+              <span className="text-sm text-red-600 font-medium">({overdueTasks[0].count} באיחור!)</span>
+            )}
+          </div>
+          <p className="text-sm text-slate-500">משימות פתוחות</p>
+        </div>
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-3 gap-6">
+        {/* Left Column - 2/3 */}
+        <div className="col-span-2 space-y-6">
+          {/* Agent Performance */}
+          {topAgents.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h2 className="font-semibold text-slate-900">ביצועי סוכנים - החודש</h2>
+                <Link href={`/shops/${slug}/admin/plugins/crm/reports`} className="text-sm text-indigo-600 hover:text-indigo-700">
+                  דוח מלא
+                </Link>
+              </div>
+              <div className="p-6">
+                <div className="space-y-4">
+                  {topAgents.map((agent, i) => (
+                    <div key={agent.agentId || i} className="flex items-center gap-4">
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-400 to-violet-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        {i + 1}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-900">{agent.agentName || 'משתמש'}</p>
+                        <p className="text-sm text-slate-500">{agent.orderCount} הזמנות</p>
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-slate-900">{formatCurrency(Number(agent.totalSales))}</p>
+                        <p className="text-xs text-slate-400">מכירות</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
-            
-            {/* Quick Actions */}
-            <div className="flex items-center gap-2">
-              <Link
-                href={`/shops/${slug}/admin/plugins/crm/settings`}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                title="הגדרות"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+          )}
+
+          {/* Recent Tasks */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="font-semibold text-slate-900">משימות אחרונות</h2>
+              <Link href={`/shops/${slug}/admin/plugins/crm/tasks`} className="text-sm text-indigo-600 hover:text-indigo-700">
+                כל המשימות
               </Link>
             </div>
+            {recentTasks.length === 0 ? (
+              <div className="p-8 text-center text-slate-500">
+                <p>אין משימות</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {recentTasks.map(task => (
+                  <div key={task.id} className="px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">{priorityIcons[task.priority] || '⚪'}</span>
+                      <div>
+                        <p className="font-medium text-slate-900">{task.title}</p>
+                        {task.customerName && (
+                          <p className="text-sm text-slate-500">לקוח: {task.customerName}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {task.dueDate && (
+                        <span className="text-sm text-slate-400">{formatDate(task.dueDate)}</span>
+                      )}
+                      <span className={`text-xs px-2 py-1 rounded-full ${statusColors[task.status] || ''}`}>
+                        {task.status === 'pending' ? 'ממתין' : task.status === 'in_progress' ? 'בביצוע' : 'הושלם'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Notes */}
+          {recentNotes.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-100">
+                <h2 className="font-semibold text-slate-900">הערות אחרונות</h2>
+              </div>
+              <div className="divide-y divide-slate-100">
+                {recentNotes.map(note => (
+                  <div key={note.id} className="px-6 py-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-900">{note.customerName || note.customerEmail}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-sm text-slate-500">{note.userName || 'משתמש'}</span>
+                      </div>
+                      <span className="text-xs text-slate-400">{formatDate(note.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-slate-600 line-clamp-2">{note.content}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Column - 1/3 */}
+        <div className="space-y-6">
+          {/* Monthly Overview */}
+          <div className="bg-gradient-to-br from-indigo-600 to-violet-600 rounded-2xl p-6 text-white">
+            <h3 className="text-sm font-medium text-indigo-100 mb-4">סיכום חודשי</h3>
+            <div className="space-y-4">
+              <div>
+                <p className="text-3xl font-bold">{formatCurrency(Number(posStatsMonth[0]?.total || 0))}</p>
+                <p className="text-sm text-indigo-200">הכנסות מקופה</p>
+              </div>
+              <div className="pt-4 border-t border-white/20">
+                <p className="text-2xl font-bold">{posStatsMonth[0]?.count || 0}</p>
+                <p className="text-sm text-indigo-200">עסקאות בקופה</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tags Distribution */}
+          {crmTags.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-900">תגיות לקוחות</h3>
+                <Link href={`/shops/${slug}/admin/plugins/crm/settings`} className="text-xs text-slate-400 hover:text-slate-600">
+                  ערוך
+                </Link>
+              </div>
+              <div className="space-y-3">
+                {crmTags.map(tag => {
+                  const tagCount = tagCounts[tag.id] || 0;
+                  const percentage = customerStats[0]?.count ? Math.round((tagCount / customerStats[0].count) * 100) : 0;
+                  
+                  return (
+                    <div key={tag.id} className="flex items-center gap-3">
+                      <span 
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: tag.color }}
+                      />
+                      <span className="text-sm text-slate-700 flex-1">{tag.label}</span>
+                      <span className="text-sm font-medium text-slate-900">{tagCount}</span>
+                      <span className="text-xs text-slate-400 w-10 text-left">{percentage}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Customers */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-900">לקוחות חדשים</h3>
+              <Link href={`/shops/${slug}/admin/plugins/crm/customers`} className="text-xs text-indigo-600 hover:text-indigo-700">
+                הצג הכל
+              </Link>
+            </div>
+            {recentCustomers.length === 0 ? (
+              <div className="p-6 text-center text-slate-500">
+                <p className="text-sm">אין לקוחות</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {recentCustomers.map(customer => {
+                  const name = customer.firstName || customer.lastName 
+                    ? `${customer.firstName || ''} ${customer.lastName || ''}`.trim()
+                    : customer.email;
+                  const customerTagIds = (customer.tags || []) as string[];
+                  
+                  return (
+                    <Link
+                      key={customer.id}
+                      href={`/shops/${slug}/admin/plugins/crm/customers/${customer.id}`}
+                      className="px-6 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 bg-slate-100 rounded-full flex items-center justify-center">
+                          <span className="text-sm font-medium text-slate-600">
+                            {name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 text-sm">{name}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            {customerTagIds.slice(0, 2).map(tagId => {
+                              const tag = crmTags.find(t => t.id === tagId);
+                              if (!tag) return null;
+                              return (
+                                <span
+                                  key={tagId}
+                                  className="w-2 h-2 rounded-full"
+                                  style={{ backgroundColor: tag.color }}
+                                  title={tag.label}
+                                />
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-400">{formatDate(customer.createdAt)}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
-      </header>
-
-      {/* Dashboard */}
-      <CRMDashboard
-        storeId={store.id}
-        storeSlug={slug}
-        stats={{
-          totalCustomers: customerStats[0]?.count || 0,
-          posOrders: orderStats[0]?.count || 0,
-          posRevenue: Number(orderStats[0]?.total || 0),
-          pendingTasks: taskStats[0]?.count || 0,
-        }}
-        crmTags={crmTags}
-        recentCustomers={recentCustomers}
-        teamMembers={teamMembers.map(m => ({
-          id: m.userId,
-          name: m.userName || m.userEmail || 'משתמש',
-          role: m.role,
-        }))}
-      />
+      </div>
     </div>
   );
 }
-

@@ -8,6 +8,7 @@ import { getConfiguredProvider } from '@/lib/payments';
 import type { PaymentProviderType } from '@/lib/payments/types';
 import { getConfiguredShippingProvider } from '@/lib/shipping/factory';
 import type { CreateShipmentRequest, ShipmentAddress, ShipmentPackage } from '@/lib/shipping/types';
+import { emitOrderCustomStatusChanged } from '@/lib/events';
 
 /**
  * Update custom workflow status for an order
@@ -16,8 +17,26 @@ import type { CreateShipmentRequest, ShipmentAddress, ShipmentPackage } from '@/
 export async function updateOrderCustomStatus(
   orderId: string, 
   storeSlug: string, 
-  customStatus: string | null
+  customStatus: string | null,
+  statusLabel?: string | null
 ) {
+  // Get current order to find old status
+  const [order] = await db
+    .select({ 
+      customStatus: orders.customStatus, 
+      orderNumber: orders.orderNumber,
+      storeId: orders.storeId 
+    })
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
+
+  if (!order) {
+    return { success: false, error: 'Order not found' };
+  }
+
+  const oldStatus = order.customStatus;
+
   await db
     .update(orders)
     .set({ 
@@ -25,6 +44,18 @@ export async function updateOrderCustomStatus(
       updatedAt: new Date()
     })
     .where(eq(orders.id, orderId));
+
+  // Emit webhook event for custom status change
+  if (oldStatus !== customStatus) {
+    emitOrderCustomStatusChanged(
+      order.storeId,
+      orderId,
+      order.orderNumber,
+      oldStatus,
+      customStatus,
+      statusLabel || null
+    );
+  }
 
   revalidatePath(`/shops/${storeSlug}/admin/orders/${orderId}`);
   revalidatePath(`/shops/${storeSlug}/admin/orders`);
