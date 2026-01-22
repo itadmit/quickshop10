@@ -441,6 +441,62 @@ export class FocusProvider extends BaseShippingProvider {
       if (response.error || response.shgiya_yn === 'y' || response.shgiya_yn === 'Y') {
         const errorMsg = response.message || 'שגיאה ביצירת משלוח';
         const errorCode = response.errorCode || 'CREATE_FAILED';
+        
+        // Check if error indicates shipment already exists
+        // Format: "אסמכתא: {orderNumber} כבר נקלטה במשלוח: {shipmentNumber}"
+        // Examples:
+        // - "אסמכתא: 3431 כבר נקלטה במשלוח: -2950717"
+        // - "כבר נקלטה במשלוח: 12345"
+        const alreadyExistsMatch = errorMsg.match(/כבר\s+נקלטה\s+במשלוח[:\s]+(-?\d+)/i) || 
+                                  errorMsg.match(/already.*received.*shipment[:\s]+(-?\d+)/i) ||
+                                  errorMsg.match(/במשלוח[:\s]+(-?\d+)/i);
+        
+        if (alreadyExistsMatch) {
+          const existingShipmentNumber = alreadyExistsMatch[1];
+          console.log(`[Focus] Shipment already exists in Focus: ${existingShipmentNumber}`);
+          
+          // Try to get tracking info for the existing shipment
+          try {
+            const trackingInfo = await this.getTrackingInfo({
+              trackingNumber: existingShipmentNumber,
+              storeId: request.storeId,
+            });
+            
+            if (trackingInfo.success) {
+              // Shipment exists and we can track it - treat as success
+              const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${existingShipmentNumber},-A,-A,-A,-A,-A,-A,-N,-A${request.orderNumber || ''}`;
+              
+              return {
+                success: true,
+                providerShipmentId: existingShipmentNumber,
+                trackingNumber: existingShipmentNumber,
+                labelUrl,
+                providerResponse: {
+                  ...response,
+                  ship_create_num: existingShipmentNumber,
+                  already_exists: true,
+                },
+              };
+            }
+          } catch (trackingError) {
+            console.warn(`[Focus] Could not verify existing shipment ${existingShipmentNumber}:`, trackingError);
+            // Continue to return error, but with shipment number in response
+          }
+          
+          // Even if we can't verify, return the shipment number in the response
+          // so the caller can handle it
+          return {
+            success: false,
+            errorCode: 'SHIPMENT_ALREADY_EXISTS',
+            errorMessage: errorMsg,
+            providerResponse: {
+              ...response,
+              ship_create_num: existingShipmentNumber,
+              already_exists: true,
+            },
+          };
+        }
+        
         console.error(`[Focus] API Error: ${errorMsg} (Code: ${errorCode})`);
         return {
           success: false,
@@ -453,13 +509,41 @@ export class FocusProvider extends BaseShippingProvider {
       const shipmentNumber = response.ship_create_num;
       const randomNumber = response.ship_num_rand;
       
-      // Check for error in response
+      // Check for error in response (ship_create_error field)
       if (response.ship_create_error) {
-        console.error(`[Focus] Shipment creation error: ${response.ship_create_error} (Code: ${response.ship_create_error_code})`);
+        const errorMsg = response.ship_create_error;
+        console.error(`[Focus] Shipment creation error: ${errorMsg} (Code: ${response.ship_create_error_code})`);
+        
+        // Also check ship_create_error for "already exists" pattern
+        // Format: "אסמכתא: {orderNumber} כבר נקלטה במשלוח: {shipmentNumber}-"
+        const alreadyExistsMatch = errorMsg.match(/כבר\s+נקלטה\s+במשלוח[:\s]+(-?\d+)/i) || 
+                                  errorMsg.match(/במשלוח[:\s]+(-?\d+)/i);
+        
+        if (alreadyExistsMatch) {
+          const existingShipmentNumber = alreadyExistsMatch[1];
+          console.log(`[Focus] (ship_create_error) Shipment already exists in Focus: ${existingShipmentNumber}`);
+          
+          // Build label URL for the existing shipment
+          const labelUrl = `${this.getApiUrl()}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${existingShipmentNumber},-A,-A,-A,-A,-A,-A,-N,-A${request.orderNumber || ''}`;
+          
+          // Return as successful with the existing shipment info
+          return {
+            success: true,
+            providerShipmentId: existingShipmentNumber,
+            trackingNumber: existingShipmentNumber,
+            labelUrl,
+            providerResponse: {
+              ...response,
+              ship_create_num: existingShipmentNumber,
+              already_exists: true,
+            },
+          };
+        }
+        
         return {
           success: false,
           errorCode: response.ship_create_error_code || 'CREATE_ERROR',
-          errorMessage: response.ship_create_error,
+          errorMessage: errorMsg,
           providerResponse: response,
         };
       }
