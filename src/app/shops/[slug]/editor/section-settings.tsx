@@ -724,8 +724,8 @@ function ContentSettings({
           <ToggleField
             label="יישור טקסט"
             options={['ימין', 'מרכז', 'שמאל']}
-            value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
-            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
         )}
       </SettingsGroup>
@@ -847,8 +847,8 @@ function DesignSettings({
           <ToggleField
             label="יישור אופקי"
             options={['ימין', 'מרכז', 'שמאל']}
-            value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
-            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
           <ToggleField
             label="יישור אנכי"
@@ -1163,8 +1163,8 @@ function DesignSettings({
           <ToggleField
             label="יישור טקסט"
             options={['ימין', 'מרכז', 'שמאל']}
-            value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
-            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
           <ToggleField
             label="מיקום טקסט"
@@ -1512,11 +1512,11 @@ function DesignSettings({
           />
           <SelectField
             label="יישור טקסט"
-            value={(section.settings.textAlign as string) || 'right'}
+            value={(section.settings.textAlign as string) || 'left'}
             options={[
-              { value: 'right', label: 'ימין' },
+              { value: 'left', label: 'ימין' },
               { value: 'center', label: 'מרכז' },
-              { value: 'left', label: 'שמאל' },
+              { value: 'right', label: 'שמאל' },
             ]}
             onChange={(v) => updateSettings('textAlign', v)}
           />
@@ -7222,11 +7222,11 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
             
             <SelectField
               label="יישור טקסט"
-              value={(section.content.textAlign as string) || 'right'}
+              value={(section.content.textAlign as string) || 'left'}
               options={[
-                { value: 'right', label: 'ימין' },
+                { value: 'left', label: 'ימין' },
                 { value: 'center', label: 'מרכז' },
-                { value: 'left', label: 'שמאל' },
+                { value: 'right', label: 'שמאל' },
               ]}
               onChange={(v) => updateContent({ textAlign: v })}
             />
