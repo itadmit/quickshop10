@@ -1942,10 +1942,11 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       ]
     },
     features: {
-      items: [
-        { icon: 'truck', title: 'משלוח חינם', description: 'משלוח חינם בהזמנה מעל 200₪' },
-        { icon: 'shield', title: 'תשלום מאובטח', description: 'כל התשלומים מאובטחים ומוצפנים' },
-        { icon: 'refresh', title: 'החזרה קלה', description: '14 ימי החזרה ללא שאלות' }
+      features: [
+        { icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+        { icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
+        { icon: 'shield', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
+        { icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' }
       ]
     },
     reviews: {
