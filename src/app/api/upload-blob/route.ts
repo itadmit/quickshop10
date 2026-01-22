@@ -12,6 +12,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
+
+// Runtime config - use nodejs for sharp (image processing)
+export const runtime = 'nodejs';
+// Longer timeout for video uploads (60 seconds on Pro, 10 on free)
+export const maxDuration = 60;
 import { put, del } from '@vercel/blob';
 import { db } from '@/lib/db';
 import { media } from '@/lib/db/schema';

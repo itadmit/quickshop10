@@ -184,6 +184,80 @@ async function createShipmentForOrder(
     const response = await provider.createShipment(request);
     
     if (!response.success) {
+      // Check if shipment already exists in provider
+      const providerResponse = response.providerResponse as Record<string, unknown> | undefined;
+      const alreadyExists = providerResponse?.already_exists === true;
+      const existingShipmentNumber = providerResponse?.ship_create_num as string | undefined;
+      
+      if (alreadyExists && existingShipmentNumber) {
+        console.log(`Auto-send: Shipment already exists in provider: ${existingShipmentNumber}`);
+        
+        // Check if we already have this shipment in our database
+        const [existingShipment] = await db
+          .select({ id: shipments.id })
+          .from(shipments)
+          .where(eq(shipments.orderId, order.id))
+          .limit(1);
+        
+        if (existingShipment) {
+          // Shipment already in DB, just clear the error
+          await db
+            .update(orders)
+            .set({
+              fulfillmentStatus: 'fulfilled',
+              shipmentError: null,
+              shipmentErrorAt: null,
+              updatedAt: new Date(),
+            })
+            .where(eq(orders.id, order.id));
+          
+          return {
+            success: true,
+            trackingNumber: existingShipmentNumber,
+          };
+        }
+        
+        // Shipment exists in provider but not in our DB - save it
+        // Build label URL for Focus provider
+        const FOCUS_BASE_URL = 'https://focusdelivery.co.il/RunCom.Server/Request.aspx';
+        const labelUrl = `${FOCUS_BASE_URL}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${existingShipmentNumber},-A,-A,-A,-A,-A,-A,-N,-A${order.orderNumber || ''}`;
+        
+        const [shipment] = await db.insert(shipments).values({
+          storeId: order.storeId,
+          orderId: order.id,
+          provider: providerConfig.provider,
+          providerShipmentId: existingShipmentNumber,
+          trackingNumber: existingShipmentNumber,
+          status: 'created',
+          statusDescription: 'נוצר אוטומטית (משלוח קיים)',
+          labelUrl,
+          recipientName: recipient.name,
+          recipientPhone: recipient.phone,
+          recipientAddress: recipient,
+          providerResponse: providerResponse,
+        }).returning();
+        
+        // Update order fulfillment status and clear error
+        await db
+          .update(orders)
+          .set({
+            fulfillmentStatus: 'fulfilled',
+            shipmentError: null,
+            shipmentErrorAt: null,
+            updatedAt: new Date(),
+          })
+          .where(eq(orders.id, order.id));
+        
+        console.log(`Auto-send: Saved existing shipment ${existingShipmentNumber}`);
+        
+        return {
+          success: true,
+          trackingNumber: existingShipmentNumber,
+          labelUrl,
+          shipmentId: shipment.id,
+        };
+      }
+      
       const errorMessage = response.errorMessage || 'Failed to create shipment';
       console.error(`Auto-send: Failed to create shipment - ${errorMessage}`);
       

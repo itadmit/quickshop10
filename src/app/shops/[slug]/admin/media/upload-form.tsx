@@ -2,6 +2,7 @@
 
 import { useState, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { upload } from '@vercel/blob/client';
 import {
   validateFile,
   formatFileSize,
@@ -22,6 +23,9 @@ interface FileUpload {
   status: 'pending' | 'uploading' | 'success' | 'error';
   error?: string;
 }
+
+// Threshold for using client-side upload (4MB)
+const CLIENT_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
 
 export function UploadForm({ storeId, slug }: UploadFormProps) {
   const router = useRouter();
@@ -64,29 +68,77 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
 
       try {
         setUploads(prev =>
-          prev.map(u => u.id === upload.id ? { ...u, status: 'uploading', progress: 20 } : u)
+          prev.map(u => u.id === upload.id ? { ...u, status: 'uploading', progress: 10 } : u)
         );
 
-        // Upload to Cloudinary - API also saves to media library
         const cloudinaryFolder = `quickshop/stores/${slug}`;
+        const isLargeFile = upload.file.size > CLIENT_UPLOAD_THRESHOLD;
 
-        const formData = new FormData();
-        formData.append('file', upload.file);
-        formData.append('folder', cloudinaryFolder);
-        formData.append('tags', ['quickshop', 'media-library', slug].join(','));
-        formData.append('storeId', storeId); // Save to media library
-        
-        const response = await fetch('/api/upload-blob', {
-          method: 'POST',
-          body: formData,
-        });
-        
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Upload failed');
+        if (isLargeFile) {
+          // Use client-side upload for large files (videos, etc.)
+          console.log(`[Upload] Using client upload for large file: ${upload.file.name} (${formatFileSize(upload.file.size)})`);
+          
+          const extension = upload.file.name.split('.').pop() || 'bin';
+          const uniqueId = crypto.randomUUID().slice(0, 10);
+          const pathname = `${cloudinaryFolder}/${uniqueId}.${extension}`;
+          
+          await upload(pathname, upload.file, {
+            access: 'public',
+            handleUploadUrl: '/api/upload-blob/client',
+            clientPayload: JSON.stringify({
+              storeId,
+              folder: cloudinaryFolder,
+            }),
+            onUploadProgress: (progress) => {
+              setUploads(prev =>
+                prev.map(u => u.id === upload.id ? { ...u, progress: Math.round(progress.percentage) } : u)
+              );
+            },
+          });
+        } else {
+          // Use server-side upload for small files (with image optimization)
+          setUploads(prev =>
+            prev.map(u => u.id === upload.id ? { ...u, progress: 30 } : u)
+          );
+
+          const formData = new FormData();
+          formData.append('file', upload.file);
+          formData.append('folder', cloudinaryFolder);
+          formData.append('tags', ['quickshop', 'media-library', slug].join(','));
+          formData.append('storeId', storeId);
+          
+          const response = await fetch('/api/upload-blob', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (!response.ok) {
+            let errorMessage = 'העלאה נכשלה';
+            try {
+              const contentType = response.headers.get('content-type');
+              if (contentType?.includes('application/json')) {
+                const error = await response.json();
+                errorMessage = error.error || errorMessage;
+              } else {
+                const text = await response.text();
+                if (text.includes('Request Entity Too Large') || response.status === 413) {
+                  errorMessage = 'קובץ גדול מדי. מקסימום 4MB (נסה וידאו קצר יותר)';
+                } else if (text.includes('timeout') || text.includes('TIMEOUT')) {
+                  errorMessage = 'פג הזמן - נסה שוב';
+                } else {
+                  errorMessage = text.substring(0, 100) || errorMessage;
+                }
+              }
+            } catch {
+              if (response.status === 413) {
+                errorMessage = 'קובץ גדול מדי';
+              } else {
+                errorMessage = response.statusText || errorMessage;
+              }
+            }
+            throw new Error(errorMessage);
+          }
         }
-        
-        // API already creates media record - no need to call createMediaRecord
 
         setUploads(prev =>
           prev.map(u => u.id === upload.id ? { ...u, status: 'success', progress: 100 } : u)

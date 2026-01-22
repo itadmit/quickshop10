@@ -256,6 +256,82 @@ async function executeRetry() {
         const response = await provider.createShipment(request);
         
         if (!response.success) {
+          // Check if shipment already exists in provider
+          const providerResponse = response.providerResponse as Record<string, unknown> | undefined;
+          const alreadyExists = providerResponse?.already_exists === true;
+          const existingShipmentNumber = providerResponse?.ship_create_num as string | undefined;
+          
+          if (alreadyExists && existingShipmentNumber) {
+            console.log(`[RetryShipments] ${order.orderNumber} - Shipment already exists: ${existingShipmentNumber}`);
+            
+            // Check if we already have this shipment in our database
+            const [existingShipment] = await db
+              .select({ id: shipments.id })
+              .from(shipments)
+              .where(eq(shipments.orderId, order.id))
+              .limit(1);
+            
+            if (existingShipment) {
+              // Shipment already in DB, just clear the error
+              await db
+                .update(orders)
+                .set({
+                  fulfillmentStatus: 'fulfilled',
+                  shipmentError: null,
+                  shipmentErrorAt: null,
+                  updatedAt: new Date(),
+                })
+                .where(eq(orders.id, order.id));
+              
+              results.push({
+                orderNumber: order.orderNumber,
+                success: true,
+                trackingNumber: existingShipmentNumber,
+              });
+              continue;
+            }
+            
+            // Shipment exists in provider but not in our DB - save it
+            // Build label URL for Focus provider
+            const FOCUS_BASE_URL = 'https://focusdelivery.co.il/RunCom.Server/Request.aspx';
+            const labelUrl = `${FOCUS_BASE_URL}?APPNAME=run&PRGNAME=ship_print_ws&ARGUMENTS=-N${existingShipmentNumber},-A,-A,-A,-A,-A,-A,-N,-A${order.orderNumber || ''}`;
+            
+            await db.insert(shipments).values({
+              storeId: order.storeId,
+              orderId: order.id,
+              provider: providerConfig.provider,
+              providerShipmentId: existingShipmentNumber,
+              trackingNumber: existingShipmentNumber,
+              status: 'created',
+              statusDescription: 'נוצר אוטומטית (retry - משלוח קיים)',
+              labelUrl,
+              recipientName: recipient.name,
+              recipientPhone: recipient.phone,
+              recipientAddress: recipient,
+              providerResponse: providerResponse,
+            });
+            
+            // Update order - mark as fulfilled and clear error
+            await db
+              .update(orders)
+              .set({
+                fulfillmentStatus: 'fulfilled',
+                shipmentError: null,
+                shipmentErrorAt: null,
+                updatedAt: new Date(),
+              })
+              .where(eq(orders.id, order.id));
+            
+            console.log(`[RetryShipments] ${order.orderNumber} SUCCESS - Saved existing shipment ${existingShipmentNumber}`);
+            
+            results.push({
+              orderNumber: order.orderNumber,
+              success: true,
+              trackingNumber: existingShipmentNumber,
+            });
+            continue;
+          }
+          
           console.error(`[RetryShipments] ${order.orderNumber} failed: ${response.errorMessage}`);
           
           // Update error (but keep trying later)

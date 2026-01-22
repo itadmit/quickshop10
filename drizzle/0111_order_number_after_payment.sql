@@ -20,3 +20,4 @@ ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL;
 -- New orders will start with order_number = NULL until payment succeeds
 
 
+
