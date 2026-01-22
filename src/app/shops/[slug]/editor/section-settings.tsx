@@ -3705,7 +3705,7 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
             onClick={addFeature}
             className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
           >
-            + הוסף יתרון
+            + הוסף חוזקה
           </button>
         </div>
       </SettingsGroup>

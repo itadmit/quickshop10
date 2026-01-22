@@ -73,7 +73,7 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   // תוכן
   { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },
   { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
-  { type: 'features', label: 'יתרונות', icon: Sparkles, category: 'תוכן' },
+  { type: 'features', label: 'חוזקות', icon: Sparkles, category: 'תוכן' },
   { type: 'faq', label: 'שאלות נפוצות', icon: HelpCircle, category: 'תוכן' },
   // קטלוג
   { type: 'categories', label: 'קטגוריות', icon: Tag, category: 'קטלוג' },
