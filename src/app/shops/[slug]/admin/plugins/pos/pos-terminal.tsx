@@ -84,6 +84,7 @@ interface POSTerminalProps {
   categories: Category[];
   recentCustomers: Customer[];
   quickPaymentConfig?: QuickPaymentConfig; // 🆕 Quick Payment configuration
+  currentUserId?: string; // CRM Plugin: מי המשתמש שיוצר את ההזמנה
 }
 
 export function POSTerminal({
@@ -93,6 +94,7 @@ export function POSTerminal({
   categories,
   recentCustomers,
   quickPaymentConfig,
+  currentUserId,
 }: POSTerminalProps) {
   // 🆕 Mode: sale (רגיל) or exchange (החלפה/החזרה)
   const [mode, setMode] = useState<'sale' | 'exchange'>('sale');
@@ -279,6 +281,7 @@ export function POSTerminal({
         isExchange: mode === 'exchange', // 🆕 סימון שזו החלפה
         markAsPaid, // 🆕 סמן כשולם (ללא תשלום)
         skipPaymentProvider: useQuickPayment, // 🆕 דלג על ספק תשלום אם יש Quick Payment
+        createdByUserId: currentUserId, // CRM Plugin: מי יצר את ההזמנה
       });
 
       if (result.success) {

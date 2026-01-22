@@ -6,6 +6,7 @@ import { products, productImages, categories, customers, paymentProviders } from
 import { eq, and, desc, inArray } from 'drizzle-orm';
 import { POSTerminal } from './pos-terminal';
 import Link from 'next/link';
+import { getCurrentUser } from '@/lib/auth';
 
 // ============================================
 // POS Page - Server Component
@@ -128,6 +129,9 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
     enabled: false,
   };
 
+  // Get current user for CRM tracking (who created the order)
+  const currentUser = await getCurrentUser();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -189,6 +193,7 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
         categories={storeCategories}
         recentCustomers={recentCustomers}
         quickPaymentConfig={quickPaymentConfig}
+        currentUserId={currentUser?.id}
       />
     </div>
   );

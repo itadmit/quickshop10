@@ -273,6 +273,51 @@ export const pluginRegistry: PluginDefinition[] = [
   },
 
   // ============================================
+  // 📋 CRM - ניהול לקוחות
+  // ============================================
+  {
+    slug: 'crm',
+    name: 'מערכת CRM',
+    description: 'ניהול לקוחות מתקדם עם תגיות, הערות ומשימות - מושלם לחנויות פיזיות עם סוכני מכירות',
+    type: 'core',
+    category: 'operations',
+    version: '1.0.0',
+    icon: 'users',
+    author: 'QuickShop',
+    isFree: false,
+    price: 149,
+    trialDays: 14,
+    defaultConfig: {
+      enabled: true,
+      defaultTags: [
+        { id: 'vip', label: 'VIP', color: '#FFD700', isDefault: true },
+        { id: 'new', label: 'חדש', color: '#3B82F6', isDefault: true },
+        { id: 'returning', label: 'חוזר', color: '#10B981', isDefault: true },
+        { id: 'problematic', label: 'בעייתי', color: '#EF4444', isDefault: true },
+        { id: 'b2b', label: 'B2B', color: '#8B5CF6', isDefault: true },
+      ],
+    },
+    metadata: {
+      menuItem: {
+        icon: 'Users',
+        label: 'CRM',
+        href: '/plugins/crm',
+        section: 'addons',
+        badge: 'חדש',
+      },
+      features: [
+        'תגיות מותאמות ללקוחות',
+        'הערות CRM',
+        'משימות והקצאה לסוכנים',
+        'מעקב מי יצר כל הזמנה',
+        'אינטגרציה עם תוסף קופה',
+        'סינון לקוחות לפי תגיות',
+      ],
+      screenshots: [],
+    },
+  },
+
+  // ============================================
   // ⭐ REVIEWS - ביקורות
   // ============================================
   {

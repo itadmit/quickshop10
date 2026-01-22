@@ -171,6 +171,10 @@ export const bundlePricingTypeEnum = pgEnum('bundle_pricing_type', [
   'discount_fixed'      // הנחה בסכום קבוע מסכום הרכיבים
 ]);
 
+// CRM Plugin enums
+export const crmTaskPriorityEnum = pgEnum('crm_task_priority', ['low', 'medium', 'high']);
+export const crmTaskStatusEnum = pgEnum('crm_task_status', ['pending', 'in_progress', 'completed', 'cancelled']);
+
 // ============ USERS & AUTH ============
 
 export const users = pgTable('users', {
@@ -244,6 +248,15 @@ export const stores = pgTable('stores', {
     id: string;
     name: string;
     color: string; // hex color for badge
+  }>>().default([]),
+  
+  // CRM Plugin: Customer tag definitions for this store
+  // Array of { id: string, label: string, color: string, isDefault?: boolean }
+  crmTags: jsonb('crm_tags').$type<Array<{
+    id: string;
+    label: string;
+    color: string;
+    isDefault?: boolean;
   }>>().default([]),
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -809,6 +822,8 @@ export const customers = pgTable('customers', {
   acceptsMarketing: boolean('accepts_marketing').default(false),
   emailVerifiedAt: timestamp('email_verified_at'),
   lastLoginAt: timestamp('last_login_at'),
+  // CRM Plugin: Customer tags (array of tag IDs from store.crmTags)
+  tags: jsonb('tags').$type<string[]>().default([]),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
@@ -1008,6 +1023,9 @@ export const orders = pgTable('orders', {
   // References customOrderStatuses[].id from stores table
   customStatus: varchar('custom_status', { length: 50 }),
   
+  // CRM Plugin: Who created this order (e.g., POS agent)
+  createdByUserId: uuid('created_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -1018,6 +1036,7 @@ export const orders = pgTable('orders', {
   index('idx_orders_status').on(table.storeId, table.status),
   index('idx_orders_unread').on(table.storeId, table.isRead),
   index('idx_orders_influencer').on(table.influencerId),
+  index('idx_orders_created_by').on(table.createdByUserId),
 ]);
 
 export const orderItems = pgTable('order_items', {
@@ -1249,6 +1268,46 @@ export const webhookDeliveries = pgTable('webhook_deliveries', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => [
   index('idx_webhook_deliveries_webhook').on(table.webhookId),
+]);
+
+// ============ CRM PLUGIN ============
+
+// CRM Notes - notes about customers
+export const crmNotes = pgTable('crm_notes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'set null' }), // Who wrote the note
+  content: text('content').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_crm_notes_store').on(table.storeId),
+  index('idx_crm_notes_customer').on(table.customerId),
+]);
+
+// CRM Tasks - tasks related to customers or orders
+export const crmTasks = pgTable('crm_tasks', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'set null' }),
+  orderId: uuid('order_id').references(() => orders.id, { onDelete: 'set null' }),
+  assignedTo: uuid('assigned_to').references(() => users.id, { onDelete: 'set null' }),
+  title: varchar('title', { length: 255 }).notNull(),
+  description: text('description'),
+  dueDate: timestamp('due_date'),
+  priority: crmTaskPriorityEnum('priority').default('medium').notNull(),
+  status: crmTaskStatusEnum('status').default('pending').notNull(),
+  completedAt: timestamp('completed_at'),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_crm_tasks_store').on(table.storeId),
+  index('idx_crm_tasks_customer').on(table.customerId),
+  index('idx_crm_tasks_order').on(table.orderId),
+  index('idx_crm_tasks_assigned').on(table.assignedTo),
+  index('idx_crm_tasks_status').on(table.storeId, table.status),
+  index('idx_crm_tasks_due_date').on(table.storeId, table.dueDate),
 ]);
 
 // ============ ANALYTICS - Traffic & Behavior ============
@@ -2199,6 +2258,47 @@ export const webhookDeliveriesRelations = relations(webhookDeliveries, ({ one })
   event: one(storeEvents, {
     fields: [webhookDeliveries.eventId],
     references: [storeEvents.id],
+  }),
+}));
+
+// CRM Plugin relations
+export const crmNotesRelations = relations(crmNotes, ({ one }) => ({
+  store: one(stores, {
+    fields: [crmNotes.storeId],
+    references: [stores.id],
+  }),
+  customer: one(customers, {
+    fields: [crmNotes.customerId],
+    references: [customers.id],
+  }),
+  user: one(users, {
+    fields: [crmNotes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const crmTasksRelations = relations(crmTasks, ({ one }) => ({
+  store: one(stores, {
+    fields: [crmTasks.storeId],
+    references: [stores.id],
+  }),
+  customer: one(customers, {
+    fields: [crmTasks.customerId],
+    references: [customers.id],
+  }),
+  order: one(orders, {
+    fields: [crmTasks.orderId],
+    references: [orders.id],
+  }),
+  assignedToUser: one(users, {
+    fields: [crmTasks.assignedTo],
+    references: [users.id],
+    relationName: 'assignedTo',
+  }),
+  createdByUser: one(users, {
+    fields: [crmTasks.createdBy],
+    references: [users.id],
+    relationName: 'createdBy',
   }),
 }));
 
@@ -3833,6 +3933,12 @@ export type Webhook = typeof webhooks.$inferSelect;
 export type NewWebhook = typeof webhooks.$inferInsert;
 export type WebhookDelivery = typeof webhookDeliveries.$inferSelect;
 export type NewWebhookDelivery = typeof webhookDeliveries.$inferInsert;
+
+// CRM Plugin types
+export type CrmNote = typeof crmNotes.$inferSelect;
+export type NewCrmNote = typeof crmNotes.$inferInsert;
+export type CrmTask = typeof crmTasks.$inferSelect;
+export type NewCrmTask = typeof crmTasks.$inferInsert;
 
 // Analytics types
 export type AnalyticsEvent = typeof analyticsEvents.$inferSelect;

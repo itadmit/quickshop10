@@ -7,6 +7,10 @@ import { OrderFilters } from './order-filters';
 import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { parseDateRange } from '@/components/admin/report-header';
 import { ExportOrdersButton } from './export-orders-modal';
+import { isPluginActive } from '@/lib/plugins/loader';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { inArray } from 'drizzle-orm';
 
 // ============================================
 // Orders Page - Server Component
@@ -265,6 +269,33 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     color: string;
   }>) || [];
   
+  // CRM Plugin: Check if CRM is active to show "Created By" column
+  const crmActive = await isPluginActive(store.id, 'crm');
+  
+  // CRM Plugin: Get user names for orders that have createdByUserId
+  let ordersWithUserNames = paginatedOrders.map(o => ({ ...o, createdByUserName: null as string | null }));
+  
+  if (crmActive) {
+    const userIds = paginatedOrders
+      .map(o => o.createdByUserId)
+      .filter((id): id is string => !!id);
+    
+    if (userIds.length > 0) {
+      const uniqueUserIds = [...new Set(userIds)];
+      const usersData = await db
+        .select({ id: users.id, name: users.name, email: users.email })
+        .from(users)
+        .where(inArray(users.id, uniqueUserIds));
+      
+      const userMap = new Map(usersData.map(u => [u.id, u.name || u.email || 'סוכן']));
+      
+      ordersWithUserNames = paginatedOrders.map(o => ({
+        ...o,
+        createdByUserName: o.createdByUserId ? (userMap.get(o.createdByUserId) || 'סוכן') : null,
+      }));
+    }
+  }
+  
   // Check if any advanced filters are active (beyond default date range)
   const hasNonDefaultDateFilter = period && period !== '30d'; // User explicitly changed from default
   const hasAdvancedFilters = itemCountMin || itemCountMax || categoryId || couponCode || 
@@ -298,7 +329,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
       />
 
       <OrdersDataTable
-        orders={paginatedOrders}
+        orders={ordersWithUserNames}
         storeSlug={slug}
         tabs={tabs}
         currentTab={effectiveStatus}
@@ -311,6 +342,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
           perPage,
         }}
         customStatuses={customStatuses}
+        showCreatedBy={crmActive}
       />
     </div>
   );

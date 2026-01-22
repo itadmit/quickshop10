@@ -28,6 +28,7 @@ interface POSOrder {
   isExchange?: boolean; // 🆕 האם זו החלפה/החזרה
   markAsPaid?: boolean; // 🆕 סמן כשולם (ללא תשלום)
   skipPaymentProvider?: boolean; // 🆕 דלג על ספק תשלום (Quick Payment)
+  createdByUserId?: string; // CRM Plugin: מי יצר את ההזמנה (סוכן POS)
 }
 
 // 🆕 Quick Payment charge request
@@ -311,6 +312,8 @@ export async function createPOSOrder(
       note: order.notes || null,
       // POS source tracking
       utmSource: 'pos',
+      // CRM Plugin: מי יצר את ההזמנה (סוכן POS)
+      createdByUserId: order.createdByUserId || null,
     }).returning();
 
     // Create order items and handle inventory

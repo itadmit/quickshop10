@@ -27,6 +27,8 @@ type Order = {
   shipmentError: string | null;
   utmSource: string | null;
   customStatus: string | null;
+  createdByUserId: string | null; // CRM Plugin: מי יצר את ההזמנה
+  createdByUserName?: string | null; // CRM Plugin: שם המשתמש שיצר (מאוכלס בעמוד)
   customer?: {
     firstName: string | null;
     lastName: string | null;
@@ -54,6 +56,7 @@ interface OrdersDataTableProps {
     perPage: number;
   };
   customStatuses?: CustomStatusDef[];
+  showCreatedBy?: boolean; // CRM Plugin: האם להציג עמודת "נוצר על ידי"
 }
 
 const fulfillmentLabels: Record<string, string> = {
@@ -103,6 +106,7 @@ export function OrdersDataTable({
   sortOrder = 'newest',
   pagination,
   customStatuses = [],
+  showCreatedBy = false,
 }: OrdersDataTableProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -378,6 +382,23 @@ export function OrdersDataTable({
         <span className="text-gray-500">{formatDate(order.createdAt)}</span>
       ),
     },
+    // CRM Plugin: עמודת "נוצר על ידי" - רק אם showCreatedBy=true
+    ...(showCreatedBy ? [{
+      key: 'createdBy' as keyof Order,
+      header: 'נוצר ע״י',
+      width: '120px',
+      align: 'center' as const,
+      render: (order: Order) => {
+        if (!order.createdByUserId) {
+          return <span className="text-gray-400 text-xs">אתר</span>;
+        }
+        return (
+          <span className="text-gray-700 text-xs">
+            {order.createdByUserName || 'סוכן'}
+          </span>
+        );
+      },
+    }] : []),
     {
       key: 'actions',
       header: 'פעולות',

@@ -677,6 +677,7 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
       shipmentError: orders.shipmentError,
       utmSource: orders.utmSource, // For traffic source filtering
       customStatus: orders.customStatus, // Custom workflow status
+      createdByUserId: orders.createdByUserId, // CRM Plugin: מי יצר את ההזמנה
       customer: {
         id: customers.id,
         firstName: customers.firstName,
