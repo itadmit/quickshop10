@@ -2,13 +2,11 @@
 
 import { useState, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { upload } from '@vercel/blob/client';
 import {
   validateFile,
   formatFileSize,
   ALLOWED_IMAGE_TYPES,
   ALLOWED_VIDEO_TYPES,
-  MAX_FILE_SIZE,
 } from '@/lib/cloudinary';
 
 interface UploadFormProps {
@@ -24,11 +22,8 @@ interface FileUpload {
   error?: string;
 }
 
-// Max file size: 15MB
-const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
-// Threshold for using client-side upload - only for VIDEOS over 4MB
-// Images always go through server for WebP optimization
-const CLIENT_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
+// Max file size: 15MB (images) / 100MB (videos via Cloudinary)
+const MAX_UPLOAD_SIZE = 100 * 1024 * 1024;
 
 export function UploadForm({ storeId, slug }: UploadFormProps) {
   const router = useRouter();
@@ -83,46 +78,11 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
         );
 
         const cloudinaryFolder = `quickshop/stores/${slug}`;
-        const isVideo = fileUpload.file.type.startsWith('video/');
-        const isLargeVideo = isVideo && fileUpload.file.size > CLIENT_UPLOAD_THRESHOLD;
 
-        if (isLargeVideo) {
-          // Use client-side upload ONLY for large videos
-          console.log(`[Upload] Using client upload for large video: ${fileUpload.file.name} (${formatFileSize(fileUpload.file.size)})`);
-          
-          const extension = fileUpload.file.name.split('.').pop() || 'mp4';
-          const uniqueId = crypto.randomUUID().slice(0, 10);
-          const pathname = `${cloudinaryFolder}/${uniqueId}.${extension}`;
-          
-          const blob = await upload(pathname, fileUpload.file, {
-            access: 'public',
-            handleUploadUrl: '/api/upload-blob/client',
-            clientPayload: JSON.stringify({
-              storeId,
-              folder: cloudinaryFolder,
-            }),
-            onUploadProgress: (progress) => {
-              setUploads(prev =>
-                prev.map(u => u.id === fileUpload.id ? { ...u, progress: Math.round(progress.percentage) } : u)
-              );
-            },
-          });
-          
-          // Save media record to database (since onUploadCompleted callback may not work in local dev)
-          await fetch('/api/upload-blob/save-media', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              storeId,
-              folder: cloudinaryFolder,
-              url: blob.url,
-              pathname: blob.pathname,
-              contentType: blob.contentType,
-              originalFilename: fileUpload.file.name,
-              size: fileUpload.file.size,
-            }),
-          });
-        } else {
+        // All uploads go through server:
+        // - Images → Vercel Blob (with WebP optimization)
+        // - Videos → Cloudinary (for proper video streaming with CDN)
+        {
           // Use server-side upload for images (with WebP optimization) and small videos
           setUploads(prev =>
             prev.map(u => u.id === fileUpload.id ? { ...u, progress: 30 } : u)

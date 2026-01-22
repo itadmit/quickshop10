@@ -22,6 +22,7 @@ import { db } from '@/lib/db';
 import { media } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
 import sharp from 'sharp';
+import { uploadToCloudinary } from '@/lib/cloudinary';
 
 // Max file size: 15MB
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
@@ -134,7 +135,67 @@ export async function POST(request: NextRequest) {
     // Determine resource type
     const resourceType = getResourceType(file.type);
     
-    // Convert file to buffer
+    // ⚠️ VIDEO UPLOADS: Use Cloudinary instead of Vercel Blob
+    // Cloudinary provides proper video streaming (CDN, buffering, adaptive bitrate)
+    // Vercel Blob doesn't support video streaming well - causes buffering issues
+    if (resourceType === 'video') {
+      console.log(`🎬 Video detected, uploading to Cloudinary: ${file.name}`);
+      try {
+        const cloudinaryResult = await uploadToCloudinary(file, {
+          folder: folder,
+          resourceType: 'video',
+        });
+        
+        // Save to media library if storeId provided
+        let mediaRecord = null;
+        if (storeId && !skipMediaRecord) {
+          try {
+            const [newMedia] = await db.insert(media).values({
+              storeId,
+              filename: cloudinaryResult.public_id.split('/').pop() || cloudinaryResult.public_id,
+              originalFilename: file.name || null,
+              mimeType: file.type,
+              size: cloudinaryResult.bytes || file.size,
+              width: cloudinaryResult.width || null,
+              height: cloudinaryResult.height || null,
+              url: cloudinaryResult.secure_url,
+              thumbnailUrl: cloudinaryResult.secure_url.replace('/upload/', '/upload/so_0,f_jpg,q_auto,w_300/'), // Video thumbnail
+              publicId: cloudinaryResult.public_id,
+              alt: null,
+              folder: folder.split('/').pop() || null,
+            }).returning();
+            mediaRecord = newMedia;
+          } catch (dbError) {
+            console.error('Error saving video to media library:', dbError);
+          }
+        }
+        
+        return NextResponse.json({
+          public_id: cloudinaryResult.public_id,
+          secure_url: cloudinaryResult.secure_url,
+          url: cloudinaryResult.secure_url,
+          thumbnail_url: cloudinaryResult.secure_url.replace('/upload/', '/upload/so_0,f_jpg,q_auto,w_300/'),
+          format: cloudinaryResult.format || 'mp4',
+          width: cloudinaryResult.width,
+          height: cloudinaryResult.height,
+          bytes: cloudinaryResult.bytes || file.size,
+          resource_type: 'video',
+          created_at: new Date().toISOString(),
+          original_filename: file.name,
+          folder,
+          media_id: mediaRecord?.id,
+          storage: 'cloudinary', // Indicate video is stored on Cloudinary
+        });
+      } catch (cloudinaryError) {
+        console.error('Cloudinary video upload failed:', cloudinaryError);
+        return NextResponse.json(
+          { error: 'העלאת וידאו נכשלה. נסה שוב.' },
+          { status: 500 }
+        );
+      }
+    }
+    
+    // Convert file to buffer (for images/raw files)
     const bytes = await file.arrayBuffer();
     let buffer: Buffer = Buffer.from(new Uint8Array(bytes));
     
