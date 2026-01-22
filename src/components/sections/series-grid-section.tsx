@@ -180,7 +180,7 @@ export function SeriesGridSection({
                       {item.subtitle}
                     </span>
                     
-                    <h3 className="text-2xl font-bold mb-2 transition-all duration-300" data-item-title>{item.title}</h3>
+                    <h3 className="text-2xl font-bold mb-0 transition-all duration-300" data-item-title>{item.title}</h3>
                   </div>
                   
                   {/* Description - slides up from below */}
@@ -190,7 +190,7 @@ export function SeriesGridSection({
                       : 'max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100'
                   }`}>
                     <p 
-                      className="text-gray-200 mb-4 pt-2"
+                      className="text-gray-200 mb-4 pt-1"
                       style={{ display: item.description ? '' : 'none' }}
                       data-item-description
                     >
