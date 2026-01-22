@@ -975,10 +975,10 @@ export function EditorSectionHighlighter() {
                   <div style="min-height: 200px;" class="overflow-hidden">
                     <div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl || ''}'); min-height: 200px;" data-item-bg></div>
                   </div>
-                  <div class="p-5">
-                    ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary);" data-item-subtitle>${item.subtitle}</span>` : ''}
-                    <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${item.title || 'סדרה חדשה'}</h3>
-                    ${item.description ? `<p class="text-sm text-muted leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
+                  <div class="p-6">
+                    <span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary); display: ${item.subtitle ? '' : 'none'};" data-item-subtitle>${item.subtitle || ''}</span>
+                    <h3 class="text-xl font-bold text-gray-900 mt-1 mb-3" data-item-title>${item.title || 'סדרה חדשה'}</h3>
+                    <p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" style="display: ${item.description ? '' : 'none'};" data-item-description>${item.description || ''}</p>
                   </div>
                 `;
                 grid.appendChild(newCard);

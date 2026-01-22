@@ -167,20 +167,29 @@ export function SeriesGridSection({
                   className="relative p-8 flex flex-col justify-end text-white"
                   style={{ height: cardHeight }}
                 >
+                  {/* Subtitle - always render for live updates */}
+                  <span 
+                    className="text-xs font-bold tracking-wider uppercase mb-2"
+                    style={{ color: accentColor, display: item.subtitle ? '' : 'none' }}
+                    data-item-subtitle
+                  >
+                    {item.subtitle}
+                  </span>
+                  
                   <h3 className="text-2xl font-bold mb-2" data-item-title>{item.title}</h3>
                   
-                  {item.description && (
-                    <p 
-                      className={`text-gray-200 mb-4 transition-all duration-300 ${
-                        showDescriptionAlways 
-                          ? 'opacity-100' 
-                          : 'opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0'
-                      }`}
-                      data-item-description
-                    >
-                      {item.description}
-                    </p>
-                  )}
+                  {/* Description - always render for live updates */}
+                  <p 
+                    className={`text-gray-200 mb-4 transition-all duration-300 ${
+                      showDescriptionAlways 
+                        ? 'opacity-100' 
+                        : 'opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0'
+                    }`}
+                    style={{ display: item.description ? '' : 'none' }}
+                    data-item-description
+                  >
+                    {item.description}
+                  </p>
                   
                   {buttonText && (
                     <span 
@@ -239,7 +248,7 @@ export function SeriesGridSection({
                   
                   {/* Text Content */}
                   <div className="p-6">
-                    {/* Eyebrow / Subtitle */}
+                    {/* Eyebrow / Subtitle - always render for live updates */}
                     <span 
                       className="text-xs font-bold tracking-wider uppercase"
                       style={{ color: accentColor, display: item.subtitle ? '' : 'none' }}
@@ -253,15 +262,14 @@ export function SeriesGridSection({
                       {item.title}
                     </h3>
                     
-                    {/* Description */}
-                    {item.description && (
-                      <p 
-                        className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3"
-                        data-item-description
-                      >
-                        {item.description}
-                      </p>
-                    )}
+                    {/* Description - always render for live updates */}
+                    <p 
+                      className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3"
+                      style={{ display: item.description ? '' : 'none' }}
+                      data-item-description
+                    >
+                      {item.description}
+                    </p>
                     
                     {/* Link - only show if buttonText is not empty */}
                     {buttonText && (
