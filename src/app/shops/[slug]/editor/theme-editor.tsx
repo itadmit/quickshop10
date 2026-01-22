@@ -1860,6 +1860,15 @@ function getSectionDefaultTitle(type: string): string {
     faq: 'שאלות ותשובות',
     gallery: 'גלריה',
     team: 'צוות',
+    reviews: 'ביקורות לקוחות',
+    logos: 'לוגואים',
+    banner_small: 'באנר קטן',
+    // Argania Premium sections
+    hero_slider: 'סליידר הירו',
+    hero_premium: 'הירו פרימיום',
+    series_grid: 'גריד סדרות',
+    quote_banner: 'באנר ציטוט',
+    featured_items: 'פריטים מובילים',
     // Product page sections (V2)
     product_gallery: 'גלריית מוצר',
     product_info: 'פרטי מוצר',
@@ -1992,7 +2001,60 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     spacer: {},
     video: {
       videoUrl: '',
-    }
+    },
+    // Argania Premium sections
+    series_grid: {
+      items: [
+        {
+          id: '1',
+          title: 'סדרה 1',
+          description: 'תיאור קצר של הסדרה הראשונה.',
+          imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800',
+          link: '/products',
+        },
+        {
+          id: '2',
+          title: 'סדרה 2',
+          description: 'תיאור קצר של הסדרה השנייה.',
+          imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
+          link: '/products',
+        },
+        {
+          id: '3',
+          title: 'סדרה 3',
+          description: 'תיאור קצר של הסדרה השלישית.',
+          imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800',
+          link: '/products',
+        },
+      ],
+    },
+    hero_premium: {
+      imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920',
+      buttonText: 'לחנות',
+      buttonLink: '/products',
+    },
+    quote_banner: {
+      quote: 'הציטוט שלכם כאן',
+      author: 'שם המחבר',
+    },
+    featured_items: {
+      items: [
+        { id: '1', title: 'פריט 1', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600', link: '/products' },
+        { id: '2', title: 'פריט 2', imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', link: '/products' },
+        { id: '3', title: 'פריט 3', imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600', link: '/products' },
+      ],
+    },
+    hero_slider: {
+      slides: [
+        {
+          id: '1',
+          imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920',
+          title: 'שקופית 1',
+          buttonText: 'לחנות',
+          buttonLink: '/products',
+        },
+      ],
+    },
   };
   return defaults[type] || {};
 }
@@ -2057,6 +2119,31 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
     divider: {},
     spacer: { height: '40px' },
     video: { autoplay: false, controls: true },
+    // Argania Premium sections
+    series_grid: {
+      style: 'cards',
+      columns: 3,
+      buttonText: 'לצפייה במוצרים',
+      minHeight: '200px',
+      imageRatio: 'auto',
+    },
+    hero_premium: {
+      height: '90vh',
+      overlay: 0.3,
+    },
+    quote_banner: {
+      height: '60vh',
+      overlay: 0.4,
+    },
+    featured_items: {
+      columns: 3,
+      gap: 8,
+    },
+    hero_slider: {
+      height: '90vh',
+      autoplay: true,
+      interval: 5000,
+    },
   };
   return defaults[type] || {};
 }
