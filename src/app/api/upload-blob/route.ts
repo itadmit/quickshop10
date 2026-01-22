@@ -22,7 +22,7 @@ import { db } from '@/lib/db';
 import { media } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
 import sharp from 'sharp';
-import { uploadToCloudinary } from '@/lib/cloudinary';
+import { uploadToCloudinarySigned } from '@/lib/cloudinary';
 
 // Max file size: 15MB
 const MAX_FILE_SIZE = 15 * 1024 * 1024;
@@ -141,9 +141,10 @@ export async function POST(request: NextRequest) {
     if (resourceType === 'video') {
       console.log(`🎬 Video detected, uploading to Cloudinary: ${file.name}`);
       try {
-        const cloudinaryResult = await uploadToCloudinary(file, {
+        const cloudinaryResult = await uploadToCloudinarySigned(file, {
           folder: folder,
           resourceType: 'video',
+          filename: file.name,
         });
         
         // Save to media library if storeId provided

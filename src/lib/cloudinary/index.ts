@@ -110,6 +110,104 @@ export async function uploadToCloudinary(
   return response.json();
 }
 
+// ===== Server-Side Upload (Signed) =====
+// Use this for server-side uploads - doesn't require upload preset
+
+export async function uploadToCloudinarySigned(
+  file: File | Buffer,
+  options: UploadOptions & { filename?: string } = {}
+): Promise<CloudinaryUploadResult> {
+  const crypto = await import('crypto');
+  
+  if (!cloudinaryConfig.cloudName || !cloudinaryConfig.apiKey || !cloudinaryConfig.apiSecret) {
+    console.error('Cloudinary credentials missing:', {
+      hasCloudName: Boolean(cloudinaryConfig.cloudName),
+      hasApiKey: Boolean(cloudinaryConfig.apiKey),
+      hasApiSecret: Boolean(cloudinaryConfig.apiSecret),
+    });
+    throw new Error('Cloudinary credentials missing. Set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET');
+  }
+
+  const timestamp = Math.round(Date.now() / 1000);
+  const resourceType = options.resourceType || 'auto';
+  
+  // Build params for signature
+  const params: Record<string, string> = {
+    timestamp: timestamp.toString(),
+  };
+  
+  if (options.folder) {
+    params.folder = options.folder;
+  }
+  
+  if (options.publicId) {
+    params.public_id = options.publicId;
+  }
+  
+  if (options.tags && options.tags.length > 0) {
+    params.tags = options.tags.join(',');
+  }
+  
+  // Sort and create signature string
+  const sortedParams = Object.keys(params)
+    .sort()
+    .map(key => `${key}=${params[key]}`)
+    .join('&');
+  
+  const signature = crypto
+    .createHash('sha1')
+    .update(sortedParams + cloudinaryConfig.apiSecret)
+    .digest('hex');
+  
+  // Create form data
+  const formData = new FormData();
+  
+  if (file instanceof Buffer) {
+    // Convert Buffer to Blob for FormData
+    const blob = new Blob([file]);
+    formData.append('file', blob, options.filename || 'upload');
+  } else {
+    formData.append('file', file);
+  }
+  
+  formData.append('api_key', cloudinaryConfig.apiKey);
+  formData.append('timestamp', timestamp.toString());
+  formData.append('signature', signature);
+  
+  // Add other params
+  Object.entries(params).forEach(([key, value]) => {
+    if (key !== 'timestamp') {
+      formData.append(key, value);
+    }
+  });
+  
+  const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/${resourceType}/upload`;
+  
+  console.log('🎬 Uploading to Cloudinary (signed):', {
+    cloudName: cloudinaryConfig.cloudName,
+    resourceType,
+    folder: options.folder,
+  });
+  
+  const response = await fetch(uploadUrl, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    console.error('Cloudinary Signed Upload Error:', {
+      status: response.status,
+      error,
+    });
+    throw new Error(error.error?.message || error.message || 'Failed to upload to Cloudinary');
+  }
+
+  const result = await response.json();
+  console.log('✅ Cloudinary upload successful:', result.secure_url);
+  return result;
+}
+
 // ===== Image URL Transformations =====
 
 export interface TransformOptions {
