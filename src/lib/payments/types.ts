@@ -4,7 +4,7 @@
  */
 
 // Provider identifiers
-export type PaymentProviderType = 'payplus' | 'pelecard' | 'quick_payments';
+export type PaymentProviderType = 'payplus' | 'pelecard' | 'quick_payments' | 'paypal';
 
 // Transaction types
 export type TransactionType = 'charge' | 'refund' | 'void' | 'authorization';

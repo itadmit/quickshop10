@@ -1673,13 +1673,8 @@ export function CheckoutForm({
           </div>
         )}
 
-        {/* Mobile-only Coupon Input - appears at top on mobile */}
-        <div className="lg:hidden mb-6">
-          <CouponInput {...couponInputProps} />
-        </div>
-
-        <div className="grid lg:grid-cols-5 gap-6">
-          {/* Form */}
+        <div className="flex flex-col-reverse lg:grid lg:grid-cols-5 gap-6">
+          {/* Form - appears second on mobile (bottom), first on desktop (left) */}
           <div className="lg:col-span-3">
             <form onSubmit={handleSubmit} className="bg-white p-8 shadow-sm">
               {(isSinglePage || step === 'details') && (
@@ -2355,12 +2350,10 @@ export function CheckoutForm({
             </form>
           </div>
 
-          {/* Sidebar */}
+          {/* Sidebar - appears first on mobile (top), second on desktop (right) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Coupon - Desktop only (mobile version is above the grid) */}
-            <div className="hidden lg:block">
-              <CouponInput {...couponInputProps} />
-            </div>
+            {/* Coupon */}
+            <CouponInput {...couponInputProps} />
             
             {/* Coupon Warning */}
             {couponWarning && (
