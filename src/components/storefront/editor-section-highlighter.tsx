@@ -932,6 +932,8 @@ export function EditorSectionHighlighter() {
         // SERIES GRID / FEATURED ITEMS UPDATES
         // =====================================================
         if (updates.content?.items !== undefined) {
+          console.log('[EditorHighlighter] Received items update for section:', sectionId, updates.content.items);
+          
           const items = updates.content.items as Array<{
             id: string;
             title?: string;
@@ -947,6 +949,8 @@ export function EditorSectionHighlighter() {
           const grid = element.querySelector('[data-items-grid]') as HTMLElement;
           const existingItems = element.querySelectorAll('[data-item-id]');
           const existingIds = new Set(Array.from(existingItems).map(el => (el as HTMLElement).dataset.itemId));
+          
+          console.log('[EditorHighlighter] Found grid:', !!grid, 'existing items count:', existingItems.length);
           
           // Remove items that no longer exist
           existingItems.forEach((itemEl) => {
@@ -991,8 +995,11 @@ export function EditorSectionHighlighter() {
               itemEl = allItems[index] as HTMLElement;
             }
             if (itemEl) {
+              console.log('[EditorHighlighter] Updating item:', item.id, 'itemEl found:', !!itemEl);
+              
               if (item.title !== undefined) {
                 const titleEl = itemEl.querySelector('[data-item-title], h3') as HTMLElement;
+                console.log('[EditorHighlighter] Title update:', item.title, 'element found:', !!titleEl);
                 if (titleEl) titleEl.textContent = item.title;
               }
               if (item.name !== undefined) {
@@ -1000,17 +1007,27 @@ export function EditorSectionHighlighter() {
                 if (nameEl) nameEl.textContent = item.name;
               }
               if (item.subtitle !== undefined) {
-                const subEl = itemEl.querySelector('[data-item-subtitle], span') as HTMLElement;
+                const subEl = itemEl.querySelector('[data-item-subtitle]') as HTMLElement;
+                console.log('[EditorHighlighter] Subtitle update:', item.subtitle, 'element found:', !!subEl);
                 if (subEl) {
                   subEl.textContent = item.subtitle;
                   subEl.style.display = item.subtitle ? '' : 'none';
                 }
               }
               if (item.description !== undefined) {
-                const descEl = itemEl.querySelector('[data-item-description], p') as HTMLElement;
+                const descEl = itemEl.querySelector('[data-item-description]') as HTMLElement;
+                console.log('[EditorHighlighter] Description update:', item.description, 'element found:', !!descEl);
                 if (descEl) {
                   descEl.textContent = item.description;
                   descEl.style.display = item.description ? '' : 'none';
+                  // Force show description during editing (override opacity-0 from CSS)
+                  if (item.description) {
+                    descEl.style.opacity = '1';
+                    descEl.style.transform = 'translateY(0)';
+                  } else {
+                    descEl.style.opacity = '';
+                    descEl.style.transform = '';
+                  }
                 }
               }
               // Handle video/image updates for featured_items
