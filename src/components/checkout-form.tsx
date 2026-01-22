@@ -1532,6 +1532,56 @@ export function CheckoutForm({
     }
   };
 
+  // 🎫 Coupon Input Section - shared between mobile and desktop
+  const handleCouponRemove = (couponId: string) => {
+    const removedCoupon = appliedCoupons.find(c => c.id === couponId);
+    removeCoupon(couponId);
+    if (removedCoupon) {
+      const triggeredGiftCoupons = appliedCoupons.filter(
+        c => c.triggeredByCode?.toUpperCase() === removedCoupon.code.toUpperCase()
+      );
+      for (const giftCoupon of triggeredGiftCoupons) {
+        removeCoupon(giftCoupon.id);
+      }
+    }
+    setCouponWarning(null);
+  };
+
+  const handleTriggeredGiftCoupons = (giftCoupons: AppliedCoupon[]) => {
+    for (const gc of giftCoupons) {
+      if (!appliedCoupons.some(c => c.id === gc.id)) {
+        addCoupon(gc);
+      }
+    }
+  };
+
+  const handleActivatedCoupons = (activatedCoupons: AppliedCoupon[]) => {
+    for (const ac of activatedCoupons) {
+      if (!appliedCoupons.some(c => c.id === ac.id)) {
+        addCoupon(ac);
+      }
+    }
+  };
+
+  const couponInputProps = {
+    storeId: storeId || '',
+    cartTotal: cartOriginalTotal,
+    appliedCoupons,
+    onApply: (coupon: AppliedCoupon) => addCoupon(coupon),
+    onRemove: handleCouponRemove,
+    formatPrice,
+    email: formData.email,
+    cartItems: cart.map(item => ({
+      productId: item.productId,
+      quantity: item.quantity,
+    })),
+    translations,
+    onTriggeredGiftCoupons: handleTriggeredGiftCoupons,
+    onActivatedCoupons: handleActivatedCoupons,
+    hasNonStackableAutoDiscount: autoDiscounts.some(d => !d.stackable),
+    nonStackableAutoDiscountName: autoDiscounts.find(d => !d.stackable)?.name,
+  };
+
   // Show loading state while redirecting to thank you page - ZARA style
   if (isRedirecting) {
     return (
@@ -1625,48 +1675,7 @@ export function CheckoutForm({
 
         {/* Mobile-only Coupon Input - appears at top on mobile */}
         <div className="lg:hidden mb-6">
-          <CouponInput
-            storeId={storeId || ''}
-            cartTotal={cartOriginalTotal}
-            appliedCoupons={appliedCoupons}
-            onApply={(coupon) => addCoupon(coupon)}
-            onRemove={(couponId) => {
-              const removedCoupon = appliedCoupons.find(c => c.id === couponId);
-              removeCoupon(couponId);
-              if (removedCoupon) {
-                const triggeredGiftCoupons = appliedCoupons.filter(
-                  c => c.triggeredByCode?.toUpperCase() === removedCoupon.code.toUpperCase()
-                );
-                for (const giftCoupon of triggeredGiftCoupons) {
-                  removeCoupon(giftCoupon.id);
-                }
-              }
-              setCouponWarning(null);
-            }}
-            formatPrice={formatPrice}
-            email={formData.email}
-            cartItems={cart.map(item => ({
-              productId: item.productId,
-              quantity: item.quantity,
-            }))}
-            translations={translations}
-            onTriggeredGiftCoupons={(giftCoupons) => {
-              for (const gc of giftCoupons) {
-                if (!appliedCoupons.some(c => c.id === gc.id)) {
-                  addCoupon(gc);
-                }
-              }
-            }}
-            onActivatedCoupons={(activatedCoupons) => {
-              for (const ac of activatedCoupons) {
-                if (!appliedCoupons.some(c => c.id === ac.id)) {
-                  addCoupon(ac);
-                }
-              }
-            }}
-            hasNonStackableAutoDiscount={autoDiscounts.some(d => !d.stackable)}
-            nonStackableAutoDiscountName={autoDiscounts.find(d => !d.stackable)?.name}
-          />
+          <CouponInput {...couponInputProps} />
         </div>
 
         <div className="grid lg:grid-cols-5 gap-6">
@@ -2350,56 +2359,7 @@ export function CheckoutForm({
           <div className="lg:col-span-2 space-y-6">
             {/* Coupon - Desktop only (mobile version is above the grid) */}
             <div className="hidden lg:block">
-              <CouponInput
-                storeId={storeId || ''}
-                cartTotal={cartOriginalTotal}
-                appliedCoupons={appliedCoupons}
-                onApply={(coupon) => addCoupon(coupon)}
-                onRemove={(couponId) => {
-                  // מציאת הקופון שמוסר
-                  const removedCoupon = appliedCoupons.find(c => c.id === couponId);
-                  removeCoupon(couponId);
-                  
-                  // אם מסירים קופון טריגר, צריך להסיר גם את קופוני המתנה שהופעלו על ידו
-                  if (removedCoupon) {
-                    const triggeredGiftCoupons = appliedCoupons.filter(
-                      c => c.triggeredByCode?.toUpperCase() === removedCoupon.code.toUpperCase()
-                    );
-                    for (const giftCoupon of triggeredGiftCoupons) {
-                      removeCoupon(giftCoupon.id);
-                    }
-                  }
-                  
-                  setCouponWarning(null);
-                }}
-                formatPrice={formatPrice}
-                email={formData.email}
-                cartItems={cart.map(item => ({
-                  productId: item.productId,
-                  quantity: item.quantity,
-                }))}
-                translations={translations}
-                onTriggeredGiftCoupons={(giftCoupons) => {
-                  // הוספת קופוני מתנה שמופעלים אוטומטית (legacy - trigger_coupon_codes)
-                  for (const gc of giftCoupons) {
-                    // וידוא שלא כבר מופעל
-                    if (!appliedCoupons.some(c => c.id === gc.id)) {
-                      addCoupon(gc);
-                    }
-                  }
-                }}
-                onActivatedCoupons={(activatedCoupons) => {
-                  // הוספת קופונים שמופעלים על ידי קופון משולב (activates_coupon_codes)
-                  for (const ac of activatedCoupons) {
-                    // וידוא שלא כבר מופעל
-                    if (!appliedCoupons.some(c => c.id === ac.id)) {
-                      addCoupon(ac);
-                    }
-                  }
-                }}
-                hasNonStackableAutoDiscount={autoDiscounts.some(d => !d.stackable)}
-                nonStackableAutoDiscountName={autoDiscounts.find(d => !d.stackable)?.name}
-              />
+              <CouponInput {...couponInputProps} />
             </div>
             
             {/* Coupon Warning */}
