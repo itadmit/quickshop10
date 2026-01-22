@@ -17,10 +17,20 @@ export async function POST(request: NextRequest) {
     const jsonResponse = await handleUpload({
       body,
       request,
-      onBeforeGenerateToken: async (pathname) => {
+      onBeforeGenerateToken: async (pathname, clientPayload) => {
         // Extract folder and filename info from pathname
         // pathname will be like: "quickshop/stores/argania/xyz123.mp4"
-        console.log('[Blob Client] Generating token for:', pathname);
+        console.log('[Blob Client] Generating token for:', pathname, 'clientPayload:', clientPayload);
+        
+        // Parse clientPayload to get storeId and folder
+        let parsedPayload: { storeId?: string; folder?: string } = {};
+        if (clientPayload) {
+          try {
+            parsedPayload = JSON.parse(clientPayload);
+          } catch (e) {
+            console.error('[Blob Client] Failed to parse clientPayload:', e);
+          }
+        }
         
         return {
           allowedContentTypes: [
@@ -31,6 +41,8 @@ export async function POST(request: NextRequest) {
           maximumSizeInBytes: 15 * 1024 * 1024, // 15MB max
           tokenPayload: JSON.stringify({
             pathname,
+            storeId: parsedPayload.storeId,
+            folder: parsedPayload.folder,
           }),
         };
       },

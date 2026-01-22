@@ -89,7 +89,7 @@ const nextConfig: NextConfig = {
               // Fonts
               "font-src 'self' https://fonts.gstatic.com data:",
               // Connect - API calls (including Israeli payment providers)
-              "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://api.cloudinary.com https://res.cloudinary.com https://*.stripe.com https://*.paypal.com https://*.payme.io https://gateway.pelecard.biz wss:",
+              "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://api.cloudinary.com https://res.cloudinary.com https://*.stripe.com https://*.paypal.com https://*.payme.io https://gateway.pelecard.biz https://vercel.com https://*.vercel.com https://*.blob.vercel-storage.com wss:",
               // Frame ancestors - prevent embedding (clickjacking protection)
               "frame-ancestors 'self'",
               // Frames - for payment iframes (Stripe, PayPal, PayMe, Pelecard, reCAPTCHA)
