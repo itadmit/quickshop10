@@ -664,29 +664,59 @@ export function EditorSectionHighlighter() {
           });
         }
         
-        // Style change (cards/overlay) - requires refresh for series_grid
+        // Style change (cards/overlay) - rebuild DOM for series_grid
         if (updates.settings?.style !== undefined) {
           const sectionName = (element as HTMLElement).dataset.sectionName;
           if (sectionName === 'גריד סדרות') {
-            // For style changes, we need to trigger a full refresh of the section
-            // since the DOM structure is completely different between cards and overlay
-            (element as HTMLElement).dataset.needsRefresh = 'true';
-            // Display a message that save is needed for this change
-            const existingMsg = element.querySelector('[data-refresh-msg]');
-            if (!existingMsg) {
-              const msg = document.createElement('div');
-              msg.setAttribute('data-refresh-msg', '');
-              msg.className = 'absolute inset-0 bg-black/50 flex items-center justify-center z-50';
-              msg.innerHTML = `
-                <div class="bg-white rounded-lg p-4 text-center shadow-lg">
-                  <p class="text-sm text-gray-600">שמור כדי לראות את השינוי בסגנון</p>
-                </div>
-              `;
-              (element as HTMLElement).style.position = 'relative';
-              element.appendChild(msg);
-              // Remove after 2 seconds
-              setTimeout(() => msg.remove(), 2000);
+            const newStyle = updates.settings.style as string;
+            const grid = element.querySelector('[data-items-grid]');
+            if (grid) {
+              const existingItems = grid.querySelectorAll('[data-item-id]');
+              const roundedClass = (element as HTMLElement).dataset.roundedCorners !== 'false' ? 'rounded-2xl' : 'rounded-none';
+              
+              existingItems.forEach((item) => {
+                const itemEl = item as HTMLElement;
+                const itemId = itemEl.dataset.itemId;
+                const titleEl = itemEl.querySelector('[data-item-title]');
+                const descEl = itemEl.querySelector('[data-item-description]');
+                const bgEl = itemEl.querySelector('[data-item-bg]') as HTMLElement;
+                const bgImage = bgEl?.style.backgroundImage || '';
+                const title = titleEl?.textContent || '';
+                const desc = descEl?.textContent || '';
+                
+                if (newStyle === 'overlay') {
+                  // Convert to overlay style
+                  itemEl.className = `group relative ${roundedClass} overflow-hidden`;
+                  itemEl.style.height = '320px';
+                  itemEl.style.background = '';
+                  itemEl.innerHTML = `
+                    <div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="${bgImage ? `background-image: ${bgImage}` : 'background: #d1d5db'}" data-item-bg></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                    <div class="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                      <h3 class="text-xl font-bold mb-2" data-item-title>${title}</h3>
+                      ${desc ? `<p class="text-sm opacity-90 mb-4" data-item-description>${desc}</p>` : ''}
+                    </div>
+                  `;
+                } else {
+                  // Convert to cards style
+                  const cardBg = (element as HTMLElement).dataset.cardBackground || '#f9f7f4';
+                  const minHeight = (element as HTMLElement).dataset.minImageHeight || '200px';
+                  itemEl.className = `group ${roundedClass} overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300`;
+                  itemEl.style.height = '';
+                  itemEl.style.background = cardBg;
+                  itemEl.innerHTML = `
+                    <div class="overflow-hidden" style="min-height: ${minHeight}" data-image-container>
+                      <div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="${bgImage ? `background-image: ${bgImage};` : 'background: #d1d5db;'} min-height: ${minHeight}" data-item-bg></div>
+                    </div>
+                    <div class="p-5">
+                      <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${title}</h3>
+                      ${desc ? `<p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" data-item-description>${desc}</p>` : ''}
+                    </div>
+                  `;
+                }
+              });
             }
+            (element as HTMLElement).dataset.seriesStyle = newStyle;
           }
         }
         
