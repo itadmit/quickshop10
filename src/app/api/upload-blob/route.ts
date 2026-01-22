@@ -23,8 +23,8 @@ import { media } from '@/lib/db/schema';
 import { nanoid } from 'nanoid';
 import sharp from 'sharp';
 
-// Max file size: 20MB
-const MAX_FILE_SIZE = 20 * 1024 * 1024;
+// Max file size: 15MB
+const MAX_FILE_SIZE = 15 * 1024 * 1024;
 
 // Allowed file types
 const ALLOWED_TYPES = {

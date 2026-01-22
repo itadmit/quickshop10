@@ -590,7 +590,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   }
 
   // Handle NEW product page sections V2 (product_* prefix and content sections)
-  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video', 'features', 'text_block', 'image_text'].includes(section.type)) {
+  // NOTE: image_text is handled separately in the regular section settings (has ImageTextContentSettings)
+  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video', 'features', 'text_block'].includes(section.type)) {
     return (
       <ProductPageSectionSettingsV2 
         section={section}

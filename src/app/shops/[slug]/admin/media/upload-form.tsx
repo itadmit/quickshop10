@@ -24,7 +24,10 @@ interface FileUpload {
   error?: string;
 }
 
-// Threshold for using client-side upload (4MB)
+// Max file size: 15MB
+const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
+// Threshold for using client-side upload - only for VIDEOS over 4MB
+// Images always go through server for WebP optimization
 const CLIENT_UPLOAD_THRESHOLD = 4 * 1024 * 1024;
 
 export function UploadForm({ storeId, slug }: UploadFormProps) {
@@ -47,42 +50,51 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
 
     // Validate files
     const validUploads: FileUpload[] = [];
-    for (const upload of newUploads) {
-      const validation = validateFile(upload.file, {
-        maxSize: MAX_FILE_SIZE,
+    for (const fileUpload of newUploads) {
+      // Check max size (15MB)
+      if (fileUpload.file.size > MAX_UPLOAD_SIZE) {
+        fileUpload.status = 'error';
+        fileUpload.error = 'קובץ גדול מדי. מקסימום 15MB';
+        validUploads.push(fileUpload);
+        continue;
+      }
+      
+      const validation = validateFile(fileUpload.file, {
+        maxSize: MAX_UPLOAD_SIZE,
         allowedTypes: [...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES],
       });
 
       if (!validation.valid) {
-        upload.status = 'error';
-        upload.error = validation.error;
+        fileUpload.status = 'error';
+        fileUpload.error = validation.error;
       }
-      validUploads.push(upload);
+      validUploads.push(fileUpload);
     }
 
     setUploads(prev => [...prev, ...validUploads]);
 
     // Upload valid files
-    for (const upload of validUploads) {
-      if (upload.status === 'error') continue;
+    for (const fileUpload of validUploads) {
+      if (fileUpload.status === 'error') continue;
 
       try {
         setUploads(prev =>
-          prev.map(u => u.id === upload.id ? { ...u, status: 'uploading', progress: 10 } : u)
+          prev.map(u => u.id === fileUpload.id ? { ...u, status: 'uploading', progress: 10 } : u)
         );
 
         const cloudinaryFolder = `quickshop/stores/${slug}`;
-        const isLargeFile = upload.file.size > CLIENT_UPLOAD_THRESHOLD;
+        const isVideo = fileUpload.file.type.startsWith('video/');
+        const isLargeVideo = isVideo && fileUpload.file.size > CLIENT_UPLOAD_THRESHOLD;
 
-        if (isLargeFile) {
-          // Use client-side upload for large files (videos, etc.)
-          console.log(`[Upload] Using client upload for large file: ${upload.file.name} (${formatFileSize(upload.file.size)})`);
+        if (isLargeVideo) {
+          // Use client-side upload ONLY for large videos
+          console.log(`[Upload] Using client upload for large video: ${fileUpload.file.name} (${formatFileSize(fileUpload.file.size)})`);
           
-          const extension = upload.file.name.split('.').pop() || 'bin';
+          const extension = fileUpload.file.name.split('.').pop() || 'mp4';
           const uniqueId = crypto.randomUUID().slice(0, 10);
           const pathname = `${cloudinaryFolder}/${uniqueId}.${extension}`;
           
-          await upload(pathname, upload.file, {
+          await upload(pathname, fileUpload.file, {
             access: 'public',
             handleUploadUrl: '/api/upload-blob/client',
             clientPayload: JSON.stringify({
@@ -91,18 +103,18 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
             }),
             onUploadProgress: (progress) => {
               setUploads(prev =>
-                prev.map(u => u.id === upload.id ? { ...u, progress: Math.round(progress.percentage) } : u)
+                prev.map(u => u.id === fileUpload.id ? { ...u, progress: Math.round(progress.percentage) } : u)
               );
             },
           });
         } else {
-          // Use server-side upload for small files (with image optimization)
+          // Use server-side upload for images (with WebP optimization) and small videos
           setUploads(prev =>
-            prev.map(u => u.id === upload.id ? { ...u, progress: 30 } : u)
+            prev.map(u => u.id === fileUpload.id ? { ...u, progress: 30 } : u)
           );
 
           const formData = new FormData();
-          formData.append('file', upload.file);
+          formData.append('file', fileUpload.file);
           formData.append('folder', cloudinaryFolder);
           formData.append('tags', ['quickshop', 'media-library', slug].join(','));
           formData.append('storeId', storeId);
@@ -122,7 +134,7 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
               } else {
                 const text = await response.text();
                 if (text.includes('Request Entity Too Large') || response.status === 413) {
-                  errorMessage = 'קובץ גדול מדי. מקסימום 4MB (נסה וידאו קצר יותר)';
+                  errorMessage = 'קובץ גדול מדי לעיבוד בשרת. נסה קובץ קטן יותר.';
                 } else if (text.includes('timeout') || text.includes('TIMEOUT')) {
                   errorMessage = 'פג הזמן - נסה שוב';
                 } else {
@@ -141,12 +153,12 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
         }
 
         setUploads(prev =>
-          prev.map(u => u.id === upload.id ? { ...u, status: 'success', progress: 100 } : u)
+          prev.map(u => u.id === fileUpload.id ? { ...u, status: 'success', progress: 100 } : u)
         );
       } catch (error) {
         console.error('Upload failed:', error);
         setUploads(prev =>
-          prev.map(u => u.id === upload.id ? { 
+          prev.map(u => u.id === fileUpload.id ? { 
             ...u, 
             status: 'error', 
             error: error instanceof Error ? error.message : 'העלאה נכשלה' 

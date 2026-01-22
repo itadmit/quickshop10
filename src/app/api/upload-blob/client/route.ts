@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
             'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/mpeg',
             'application/pdf',
           ],
-          maximumSizeInBytes: 50 * 1024 * 1024, // 50MB max for client uploads
+          maximumSizeInBytes: 15 * 1024 * 1024, // 15MB max
           tokenPayload: JSON.stringify({
             pathname,
           }),

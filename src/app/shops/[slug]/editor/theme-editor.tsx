@@ -1851,20 +1851,30 @@ function getSectionDefaultTitle(type: string): string {
     video_banner: 'באנר וידאו',
     split_banner: 'באנר מפוצל',
     contact: 'צור קשר',
+    // Content sections
+    image_text: 'תמונה + טקסט',
+    text_block: 'בלוק טקסט',
+    video: 'וידאו',
+    features: 'פיצ\'רים',
+    testimonials: 'המלצות',
+    faq: 'שאלות ותשובות',
+    gallery: 'גלריה',
+    team: 'צוות',
     // Product page sections (V2)
-    product_gallery: '',
-    product_info: '',
-    product_description: '',
+    product_gallery: 'גלריית מוצר',
+    product_info: 'פרטי מוצר',
+    product_description: 'תיאור מוצר',
     product_reviews: 'ביקורות',
     product_related: 'אולי יעניין אותך',
     product_upsells: 'מוצרים נוספים',
-    accordion: '',
-    tabs: '',
-    breadcrumb: '',
-    divider: '',
-    spacer: '',
+    // Utility sections
+    accordion: 'אקורדיון',
+    tabs: 'טאבים',
+    breadcrumb: 'נתיב ניווט',
+    divider: 'קו הפרדה',
+    spacer: 'רווח',
   };
-  return titles[type] || 'סקשן חדש';
+  return titles[type] || type;
 }
 
 function getSectionDefaultContent(type: string): Record<string, unknown> {
