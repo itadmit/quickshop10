@@ -190,7 +190,7 @@ export function SeriesGridSection({
                       : 'max-h-0 opacity-0 group-hover:max-h-40 group-hover:opacity-100'
                   }`}>
                     <p 
-                      className="text-gray-200 mb-4 pt-1"
+                      className="text-gray-200 mb-4"
                       style={{ display: item.description ? '' : 'none' }}
                       data-item-description
                     >
