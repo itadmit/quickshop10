@@ -49,9 +49,12 @@ export function CouponInput({
   const t = useCheckoutTranslations(translations);
 
   // Check if we can add more coupons
-  const hasNonStackableCoupon = appliedCoupons.some(c => !c.stackable);
+  // קופונים שהוזנו ידנית (לא מופעלים אוטומטית על ידי קופון אחר)
+  const manuallyAppliedCoupons = appliedCoupons.filter(c => !c.triggeredByCode);
+  const hasNonStackableCoupon = manuallyAppliedCoupons.some(c => !c.stackable);
   // אם יש הנחה אוטומטית לא ניתנת לשילוב, לא ניתן להוסיף קופונים
-  const canAddMore = !hasNonStackableCoupon && !hasNonStackableAutoDiscount && appliedCoupons.length < 3; // Max 3 coupons
+  // אם יש קופון לא-stackable, לא ניתן להוסיף קופונים נוספים
+  const canAddMore = !hasNonStackableCoupon && !hasNonStackableAutoDiscount;
 
   const handleApply = async () => {
     setCouponError('');
@@ -252,9 +255,7 @@ export function CouponInput({
             ? `לא ניתן לשלב קופון עם ההנחה האוטומטית${nonStackableAutoDiscountName ? ` "${nonStackableAutoDiscountName}"` : ''}`
             : hasNonStackableCoupon 
               ? 'הקופון שהוחל לא ניתן לשילוב עם קופונים אחרים'
-              : appliedCoupons.length >= 3
-                ? 'הגעת למקסימום הקופונים'
-                : null}
+              : null}
         </p>
       )}
       

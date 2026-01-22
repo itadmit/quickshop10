@@ -85,8 +85,8 @@ export const hebrewTranslations: UITranslations = {
     },
     coupon: {
       title: "יש לך קופון?",
-      placeholder: "הזן קוד קופון",
-      addAnother: "הוסף קופון נוסף",
+      placeholder: "קופון / גיפט קארד - הזן אותו כאן",
+      addAnother: "קופון / גיפט קארד נוסף - הזן אותו כאן",
       apply: "החל",
       remove: "הסר",
     },

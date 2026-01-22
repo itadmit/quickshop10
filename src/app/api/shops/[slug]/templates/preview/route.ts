@@ -159,7 +159,7 @@ export async function GET(
 }
 
 // Render individual section preview
-function renderSectionPreview(section: { type: string; title: string | null; subtitle: string | null; content: Record<string, unknown>; settings: Record<string, unknown> }): string {
+function renderSectionPreview(section: { type: string; title: string | null; subtitle: string | null; content: Record<string, unknown>; settings: Record<string, unknown>; id?: string }): string {
   switch (section.type) {
     case 'hero':
       return `

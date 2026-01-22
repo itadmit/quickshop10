@@ -230,10 +230,18 @@ function calculateFixedAmountDiscount(
   
   if (matchingTotal === 0) return null;
   
-  // 🔧 הנחה קבועה מוחלת על כל מוצר (לפי כמות)
-  // למשל: הנחה של 7₪ על כל מוצר = 7₪ × סה"כ כמות מוצרים
-  const totalQuantity = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
-  const amount = Math.min(discount.value * totalQuantity, matchingTotal);
+  // 🔧 תיקון: הנחה קבועה מהסכום הכולל (לא לכל מוצר)
+  // אם applies_to = 'all' או 'member' - הנחה קבועה פעם אחת מהסל
+  // אם applies_to = 'product' או 'category' - הנחה לכל מוצר מתאים (לפי כמות)
+  let amount: number;
+  if (discount.appliesTo === 'all' || discount.appliesTo === 'member') {
+    // הנחה קבועה פעם אחת מהסכום הכולל
+    amount = Math.min(discount.value, matchingTotal);
+  } else {
+    // הנחה לכל מוצר מתאים (לפי כמות)
+    const totalQuantity = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
+    amount = Math.min(discount.value * totalQuantity, matchingTotal);
+  }
   
   return {
     discountId: discount.id,
