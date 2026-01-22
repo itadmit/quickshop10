@@ -623,6 +623,73 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // Image aspect ratio for series_grid
+        if (updates.settings?.imageAspectRatio !== undefined) {
+          const imgContainers = element.querySelectorAll('[data-image-container]');
+          const aspectRatio = updates.settings.imageAspectRatio as string;
+          imgContainers.forEach((container) => {
+            const el = container as HTMLElement;
+            // Remove existing aspect classes
+            el.classList.remove('aspect-square', 'aspect-[3/4]', 'aspect-video');
+            // Add new aspect class or use min-height
+            switch (aspectRatio) {
+              case 'square': 
+                el.classList.add('aspect-square');
+                el.style.minHeight = '';
+                break;
+              case 'portrait': 
+                el.classList.add('aspect-[3/4]');
+                el.style.minHeight = '';
+                break;
+              case 'landscape': 
+                el.classList.add('aspect-video');
+                el.style.minHeight = '';
+                break;
+              default: // 'auto'
+                el.style.minHeight = (updates.settings?.minImageHeight as string) || '200px';
+            }
+            // Update inner bg div too
+            const bgDiv = el.querySelector('[data-item-bg]') as HTMLElement;
+            if (bgDiv) {
+              switch (aspectRatio) {
+                case 'square':
+                case 'portrait':
+                case 'landscape':
+                  bgDiv.style.minHeight = '';
+                  break;
+                default:
+                  bgDiv.style.minHeight = (updates.settings?.minImageHeight as string) || '200px';
+              }
+            }
+          });
+        }
+        
+        // Style change (cards/overlay) - requires refresh for series_grid
+        if (updates.settings?.style !== undefined) {
+          const sectionName = (element as HTMLElement).dataset.sectionName;
+          if (sectionName === 'גריד סדרות') {
+            // For style changes, we need to trigger a full refresh of the section
+            // since the DOM structure is completely different between cards and overlay
+            (element as HTMLElement).dataset.needsRefresh = 'true';
+            // Display a message that save is needed for this change
+            const existingMsg = element.querySelector('[data-refresh-msg]');
+            if (!existingMsg) {
+              const msg = document.createElement('div');
+              msg.setAttribute('data-refresh-msg', '');
+              msg.className = 'absolute inset-0 bg-black/50 flex items-center justify-center z-50';
+              msg.innerHTML = `
+                <div class="bg-white rounded-lg p-4 text-center shadow-lg">
+                  <p class="text-sm text-gray-600">שמור כדי לראות את השינוי בסגנון</p>
+                </div>
+              `;
+              (element as HTMLElement).style.position = 'relative';
+              element.appendChild(msg);
+              // Remove after 2 seconds
+              setTimeout(() => msg.remove(), 2000);
+            }
+          }
+        }
+        
         // Overlay opacity
         if (updates.settings?.overlay !== undefined) {
           let overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
@@ -1773,41 +1840,91 @@ export function EditorSectionHighlighter() {
               { id: '2', title: 'סדרה 2', description: 'תיאור קצר של הסדרה.' },
               { id: '3', title: 'סדרה 3', description: 'תיאור קצר של הסדרה.' },
             ];
+            const seriesStyle = (event.data.settings?.style as string) || 'cards';
+            const seriesCols = (event.data.settings?.columns as number) || 3;
+            const seriesMobileCols = (event.data.settings?.mobileColumns as number) || 1;
+            const seriesAspectRatio = (event.data.settings?.imageAspectRatio as string) || 'auto';
+            const seriesMinHeight = (event.data.settings?.minImageHeight as string) || '200px';
+            
             placeholder.className = 'py-16';
             placeholder.style.backgroundColor = '#ffffff';
             placeholder.dataset.sectionName = 'גריד סדרות';
-            html = `
-              <div class="max-w-7xl mx-auto px-6">
-                ${title ? `
-                  <div class="text-center mb-12">
-                    ${subtitle ? `<span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37);">${subtitle}</span>` : ''}
-                    <h2 class="text-3xl font-bold mt-2" data-section-title>${title}</h2>
-                    <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary, #d4af37);"></div>
+            placeholder.dataset.seriesStyle = seriesStyle;
+            
+            // Get aspect ratio class
+            const getAspectClass = (ratio: string) => {
+              switch (ratio) {
+                case 'square': return 'aspect-square';
+                case 'portrait': return 'aspect-[3/4]';
+                case 'landscape': return 'aspect-video';
+                default: return '';
+              }
+            };
+            const aspectClass = getAspectClass(seriesAspectRatio);
+            
+            if (seriesStyle === 'overlay') {
+              // Overlay style
+              html = `
+                <div class="max-w-7xl mx-auto px-6">
+                  <div class="text-center mb-12" data-section-header style="${(title || subtitle) ? '' : 'display:none'}">
+                    <span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37); ${subtitle ? '' : 'display:none'}" data-section-subtitle>${subtitle || ''}</span>
+                    <h2 class="text-3xl font-bold mt-2" data-section-title style="${title ? '' : 'display:none'}">${title || ''}</h2>
+                    <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary, #d4af37);" data-accent-color-bg></div>
                   </div>
-                ` : ''}
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" data-items-grid>
-                  ${seriesItems.map((item) => `
-                    <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: #f9f7f4;" data-item-id="${item.id}">
-                      <div style="min-height: 200px;" class="overflow-hidden">
+                  <div class="grid grid-cols-${seriesMobileCols} md:grid-cols-${seriesCols} gap-6" data-items-grid>
+                    ${seriesItems.map((item) => `
+                      <a href="#" class="group relative rounded-2xl overflow-hidden" style="height: 320px;" data-item-id="${item.id}">
                         ${item.imageUrl 
-                          ? `<div class="w-full h-full bg-cover bg-center" style="background-image: url('${item.imageUrl}'); min-height: 200px;" data-item-bg></div>`
-                          : `<div class="w-full h-full bg-gray-200 flex items-center justify-center" style="min-height: 200px;" data-item-bg>
-                              <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');" data-item-bg></div>`
+                          : `<div class="absolute inset-0 bg-gray-300 flex items-center justify-center" data-item-bg>
+                              <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
                             </div>`
                         }
-                      </div>
-                      <div class="p-5">
-                        ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37);" data-item-subtitle>${item.subtitle}</span>` : ''}
-                        <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${item.title}</h3>
-                        ${item.description ? `<p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
-                      </div>
-                    </div>
-                  `).join('')}
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <div class="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                          <h3 class="text-xl font-bold mb-2" data-item-title>${item.title}</h3>
+                          ${item.description ? `<p class="text-sm opacity-90 mb-4" data-item-description>${item.description}</p>` : ''}
+                        </div>
+                      </a>
+                    `).join('')}
+                  </div>
                 </div>
-              </div>
-            `;
+              `;
+            } else {
+              // Cards style (default)
+              html = `
+                <div class="max-w-7xl mx-auto px-6">
+                  <div class="text-center mb-12" data-section-header style="${(title || subtitle) ? '' : 'display:none'}">
+                    <span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37); ${subtitle ? '' : 'display:none'}" data-section-subtitle>${subtitle || ''}</span>
+                    <h2 class="text-3xl font-bold mt-2" data-section-title style="${title ? '' : 'display:none'}">${title || ''}</h2>
+                    <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary, #d4af37);" data-accent-color-bg></div>
+                  </div>
+                  <div class="grid grid-cols-${seriesMobileCols} md:grid-cols-${seriesCols} gap-6" data-items-grid>
+                    ${seriesItems.map((item) => `
+                      <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: #f9f7f4;" data-item-id="${item.id}">
+                        <div class="overflow-hidden ${aspectClass}" style="${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-image-container>
+                          ${item.imageUrl 
+                            ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}'); ${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-item-bg></div>`
+                            : `<div class="w-full h-full bg-gray-200 flex items-center justify-center" style="${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-item-bg>
+                                <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              </div>`
+                          }
+                        </div>
+                        <div class="p-5">
+                          ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37);" data-item-subtitle>${item.subtitle}</span>` : ''}
+                          <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${item.title}</h3>
+                          ${item.description ? `<p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            }
             break;
 
           case 'accordion':
