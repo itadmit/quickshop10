@@ -26,11 +26,18 @@ type Order = {
   customerEmail: string | null;
   shipmentError: string | null;
   utmSource: string | null;
+  customStatus: string | null;
   customer?: {
     firstName: string | null;
     lastName: string | null;
     email: string;
   } | null;
+};
+
+type CustomStatusDef = {
+  id: string;
+  name: string;
+  color: string;
 };
 
 interface OrdersDataTableProps {
@@ -46,6 +53,7 @@ interface OrdersDataTableProps {
     totalItems: number;
     perPage: number;
   };
+  customStatuses?: CustomStatusDef[];
 }
 
 const fulfillmentLabels: Record<string, string> = {
@@ -94,6 +102,7 @@ export function OrdersDataTable({
   searchValue,
   sortOrder = 'newest',
   pagination,
+  customStatuses = [],
 }: OrdersDataTableProps) {
   const router = useRouter();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -332,6 +341,25 @@ export function OrdersDataTable({
         );
       },
     },
+    // Custom workflow status column - only shown if store has custom statuses
+    ...(customStatuses.length > 0 ? [{
+      key: 'customStatus' as const,
+      header: 'סטטוס',
+      width: '120px',
+      align: 'center' as const,
+      render: (order: Order) => {
+        const status = customStatuses.find(s => s.id === order.customStatus);
+        if (!status) return <span className="text-gray-400 text-xs">-</span>;
+        return (
+          <span 
+            className="px-2 py-0.5 text-xs font-medium rounded-full text-white"
+            style={{ backgroundColor: status.color }}
+          >
+            {status.name}
+          </span>
+        );
+      },
+    }] : []),
     {
       key: 'total',
       header: 'סכום',

@@ -676,6 +676,7 @@ export const getStoreOrders = cache(async (storeId: string, limit?: number) => {
       customerEmail: orders.customerEmail,
       shipmentError: orders.shipmentError,
       utmSource: orders.utmSource, // For traffic source filtering
+      customStatus: orders.customStatus, // Custom workflow status
       customer: {
         id: customers.id,
         firstName: customers.firstName,

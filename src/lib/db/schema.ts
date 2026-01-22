@@ -238,6 +238,14 @@ export const stores = pgTable('stores', {
   supportedLocales: varchar('supported_locales', { length: 5 }).array().default(['he']),
   hasCustomTranslations: boolean('has_custom_translations').default(false).notNull(),
   
+  // Custom order workflow statuses (e.g., "הועבר למתפרה", "בתפירה", "בהכנה")
+  // Array of { id: string, name: string, color: string }
+  customOrderStatuses: jsonb('custom_order_statuses').$type<Array<{
+    id: string;
+    name: string;
+    color: string; // hex color for badge
+  }>>().default([]),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
@@ -995,6 +1003,10 @@ export const orders = pgTable('orders', {
   invoiceNumber: varchar('invoice_number', { length: 100 }),
   invoiceLink: varchar('invoice_link', { length: 500 }),
   invoiceGeneratedAt: timestamp('invoice_generated_at'),
+  
+  // Custom workflow status (store-specific, e.g., "הועבר למתפרה", "בתפירה")
+  // References customOrderStatuses[].id from stores table
+  customStatus: varchar('custom_status', { length: 50 }),
   
   // Timestamps
   createdAt: timestamp('created_at').defaultNow().notNull(),

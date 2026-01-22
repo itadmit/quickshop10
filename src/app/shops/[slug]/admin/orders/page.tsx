@@ -258,6 +258,13 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
     label: c.name,
   }));
   
+  // Get custom order statuses from store settings
+  const customStatuses = (store.customOrderStatuses as Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>) || [];
+  
   // Check if any advanced filters are active (beyond default date range)
   const hasNonDefaultDateFilter = period && period !== '30d'; // User explicitly changed from default
   const hasAdvancedFilters = itemCountMin || itemCountMax || categoryId || couponCode || 
@@ -303,6 +310,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
           totalItems: sortedOrders.length,
           perPage,
         }}
+        customStatuses={customStatuses}
       />
     </div>
   );

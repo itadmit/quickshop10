@@ -20,6 +20,7 @@ const settingsTabs = [
   { id: 'subscription', label: 'מנוי', path: '/subscription' },
   { id: 'domain', label: 'דומיין', path: '/domain' },
   { id: 'payments', label: 'תשלומים', path: '/payments' },
+  { id: 'orders', label: 'הזמנות', path: '/orders' },
   { id: 'tracking', label: 'מעקב', path: '/tracking' },
   { id: 'checkout', label: 'קופה', path: '/checkout' },
   { id: 'shipping', label: 'משלוח', path: '/shipping' },

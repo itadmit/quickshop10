@@ -9,6 +9,29 @@ import type { PaymentProviderType } from '@/lib/payments/types';
 import { getConfiguredShippingProvider } from '@/lib/shipping/factory';
 import type { CreateShipmentRequest, ShipmentAddress, ShipmentPackage } from '@/lib/shipping/types';
 
+/**
+ * Update custom workflow status for an order
+ * This is a store-specific status (e.g., "הועבר למתפרה", "בתפירה")
+ */
+export async function updateOrderCustomStatus(
+  orderId: string, 
+  storeSlug: string, 
+  customStatus: string | null
+) {
+  await db
+    .update(orders)
+    .set({ 
+      customStatus,
+      updatedAt: new Date()
+    })
+    .where(eq(orders.id, orderId));
+
+  revalidatePath(`/shops/${storeSlug}/admin/orders/${orderId}`);
+  revalidatePath(`/shops/${storeSlug}/admin/orders`);
+  
+  return { success: true };
+}
+
 export async function fulfillOrder(orderId: string, storeSlug: string) {
   await db
     .update(orders)

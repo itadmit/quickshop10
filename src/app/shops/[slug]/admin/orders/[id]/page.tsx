@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/admin/ui';
 import { OrderDetailActions, FulfillButton } from '@/components/admin/order-detail-actions';
 import { calculateItemDiscounts, type OrderItemWithDiscount } from '@/lib/order-item-discount';
+import { CustomStatusSelector, CustomStatusBadge } from '@/components/admin/custom-status-selector';
 
 interface OrderPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -72,6 +73,16 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
   // Get all shipments for this order (for exchanges there may be multiple)
   const orderShipments = await getOrderShipments(id);
 
+  // Get custom order statuses from store settings
+  const customStatuses = (store.customOrderStatuses as Array<{
+    id: string;
+    name: string;
+    color: string;
+  }>) || [];
+
+  // Get current custom status object
+  const currentCustomStatus = customStatuses.find(s => s.id === order.customStatus);
+
   // Calculate per-item discounts (for showing strikethrough prices)
   const itemsWithDiscounts = await calculateItemDiscounts(
     store.id,
@@ -118,7 +129,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
       {/* Header */}
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-xl font-bold text-gray-900">
             #{order.orderNumber}
           </h1>
@@ -132,17 +143,32 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
           >
             {order.status === 'cancelled' ? statusLabels.cancelled : fulfillmentLabels[order.fulfillmentStatus!]}
           </Badge>
+          {/* Custom workflow status badge */}
+          {currentCustomStatus && (
+            <CustomStatusBadge status={currentCustomStatus} />
+          )}
         </div>
 
         {/* Actions */}
-        <OrderDetailActions 
-          orderId={order.id}
-          storeSlug={slug}
-          fulfillmentStatus={order.fulfillmentStatus!}
-          financialStatus={order.financialStatus!}
-          status={order.status!}
-          shipment={orderShipments[0] || null}
-        />
+        <div className="flex items-center gap-3">
+          {/* Custom Status Selector - only show if store has custom statuses */}
+          {customStatuses.length > 0 && (
+            <CustomStatusSelector
+              orderId={order.id}
+              storeSlug={slug}
+              customStatuses={customStatuses}
+              currentStatusId={order.customStatus}
+            />
+          )}
+          <OrderDetailActions 
+            orderId={order.id}
+            storeSlug={slug}
+            fulfillmentStatus={order.fulfillmentStatus!}
+            financialStatus={order.financialStatus!}
+            status={order.status!}
+            shipment={orderShipments[0] || null}
+          />
+        </div>
       </div>
 
       {/* Subtitle */}
