@@ -3557,13 +3557,29 @@ function ImageTextContentSettings({ section, onUpdate, storeInfo }: { section: S
   );
 }
 
-// Features Content Settings
+// Features Content Settings - Available icons list
+const FEATURE_ICONS = [
+  { value: 'truck', label: 'משלוח', icon: 'M1 3h15v13H1zm15 5h4l3 3v5h-7m-13 0a2.5 2.5 0 105 0m8 0a2.5 2.5 0 105 0' },
+  { value: 'refresh', label: 'החזרות', icon: 'M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16' },
+  { value: 'shield', label: 'אבטחה', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+  { value: 'check', label: 'אישור', icon: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3' },
+  { value: 'message', label: 'תמיכה', icon: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z' },
+  { value: 'sparkles', label: 'איכות', icon: 'M12 3l-1.9 5.8a2 2 0 01-1.3 1.3L3 12l5.8 1.9a2 2 0 011.3 1.3L12 21l1.9-5.8a2 2 0 011.3-1.3L21 12l-5.8-1.9a2 2 0 01-1.3-1.3L12 3zM5 3v4M19 17v4M3 5h4M17 19h4' },
+  { value: 'heart', label: 'אהבה', icon: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z' },
+  { value: 'star', label: 'מועדפים', icon: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z' },
+  { value: 'gift', label: 'מתנה', icon: 'M20 12v10H4V12m16-5H4v5h16V7zm-8 15V7m0 0H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z' },
+  { value: 'clock', label: 'זמן', icon: 'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2' },
+  { value: 'percent', label: 'הנחה', icon: 'M19 5L5 19M9 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20 17.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z' },
+  { value: 'award', label: 'פרס', icon: 'M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12' },
+  { value: 'zap', label: 'מהירות', icon: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z' },
+] as const;
+
 function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
   const features = (section.content.features as Array<{ icon: string; title: string; description: string }>) || [
-    { icon: '🚚', title: 'משלוח חינם', description: 'בהזמנה מעל ₪200' },
-    { icon: '↩️', title: 'החזרות', description: '14 יום להחזרה' },
-    { icon: '🔒', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
-    { icon: '💬', title: 'תמיכה', description: '24/7 זמינים' },
+    { icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+    { icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
+    { icon: 'shield', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
+    { icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
   ];
 
   const updateFeatures = (newFeatures: Array<{ icon: string; title: string; description: string }>) => {
@@ -3577,7 +3593,7 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
   };
 
   const addFeature = () => {
-    updateFeatures([...features, { icon: '⭐', title: 'יתרון חדש', description: 'תיאור' }]);
+    updateFeatures([...features, { icon: 'star', title: 'יתרון חדש', description: 'תיאור היתרון' }]);
   };
 
   const removeFeature = (index: number) => {
@@ -3593,14 +3609,25 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
     updateFeatures(newFeatures);
   };
 
+  // Render icon SVG by name
+  const renderIcon = (iconName: string, size = 20) => {
+    const iconData = FEATURE_ICONS.find(i => i.value === iconName);
+    if (!iconData) return <span className="text-gray-400">?</span>;
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d={iconData.icon} />
+      </svg>
+    );
+  };
+
   return (
     <>
-      <SettingsGroup title="יתרונות">
+      <SettingsGroup title="חוזקות">
         <div className="space-y-3">
           {features.map((feature, index) => (
             <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">יתרון {index + 1}</span>
+                <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => moveFeature(index, 'up')}
@@ -3627,29 +3654,51 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
                   </button>
                 </div>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={feature.icon}
-                  onChange={(e) => updateFeature(index, 'icon', e.target.value)}
-                  className="w-12 text-center text-xl border border-gray-200 rounded px-1 py-1"
-                  placeholder="🔥"
-                />
+              
+              {/* Icon Selector */}
+              <div className="flex gap-2 items-center">
+                <label className="text-xs text-gray-500 w-12">אייקון</label>
+                <div className="flex-1 flex items-center gap-2">
+                  <div className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded bg-gray-50">
+                    {renderIcon(feature.icon, 18)}
+                  </div>
+                  <select
+                    value={feature.icon}
+                    onChange={(e) => updateFeature(index, 'icon', e.target.value)}
+                    className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
+                  >
+                    {FEATURE_ICONS.map((icon) => (
+                      <option key={icon.value} value={icon.value}>
+                        {icon.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              
+              {/* Title */}
+              <div className="flex gap-2 items-center">
+                <label className="text-xs text-gray-500 w-12">כותרת</label>
                 <input
                   type="text"
                   value={feature.title}
                   onChange={(e) => updateFeature(index, 'title', e.target.value)}
-                  className="flex-1 text-sm border border-gray-200 rounded px-2 py-1"
-                  placeholder="כותרת"
+                  className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5"
+                  placeholder="כותרת החוזקה"
                 />
               </div>
-              <input
-                type="text"
-                value={feature.description}
-                onChange={(e) => updateFeature(index, 'description', e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1"
-                placeholder="תיאור"
-              />
+              
+              {/* Description */}
+              <div className="flex gap-2 items-center">
+                <label className="text-xs text-gray-500 w-12">תיאור</label>
+                <input
+                  type="text"
+                  value={feature.description}
+                  onChange={(e) => updateFeature(index, 'description', e.target.value)}
+                  className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5"
+                  placeholder="תיאור קצר"
+                />
+              </div>
             </div>
           ))}
           <button

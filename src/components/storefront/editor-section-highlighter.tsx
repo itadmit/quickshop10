@@ -1079,6 +1079,71 @@ export function EditorSectionHighlighter() {
         }
         
         // =====================================================
+        // FEATURES SECTION UPDATES
+        // =====================================================
+        if (updates.content?.features !== undefined) {
+          const features = updates.content.features as Array<{
+            id?: string;
+            icon?: string;
+            title: string;
+            description?: string;
+          }>;
+          
+          const featuresGrid = element.querySelector('[data-features-grid]');
+          if (featuresGrid) {
+            const featureEls = featuresGrid.querySelectorAll('[data-feature-id]');
+            
+            features.forEach((feature, index) => {
+              const featureEl = featureEls[index] as HTMLElement;
+              if (featureEl) {
+                // Update title
+                const titleEl = featureEl.querySelector('[data-feature-title]') as HTMLElement;
+                if (titleEl && feature.title !== undefined) {
+                  titleEl.textContent = feature.title;
+                }
+                
+                // Update description
+                const descEl = featureEl.querySelector('[data-feature-description]') as HTMLElement;
+                if (descEl) {
+                  descEl.textContent = feature.description || '';
+                  descEl.style.display = feature.description ? '' : 'none';
+                }
+                
+                // Update icon
+                if (feature.icon) {
+                  const iconContainer = featureEl.querySelector('[data-feature-icon]') as HTMLElement;
+                  if (iconContainer) {
+                    const svgEl = iconContainer.querySelector('svg');
+                    if (svgEl) {
+                      // Icon paths map
+                      const iconPaths: Record<string, string> = {
+                        truck: 'M1 3h15v13H1zm15 5h4l3 3v5h-7m-13 0a2.5 2.5 0 105 0m8 0a2.5 2.5 0 105 0',
+                        refresh: 'M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16',
+                        shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+                        check: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
+                        message: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
+                        sparkles: 'M12 3l-1.9 5.8a2 2 0 01-1.3 1.3L3 12l5.8 1.9a2 2 0 011.3 1.3L12 21l1.9-5.8a2 2 0 011.3-1.3L21 12l-5.8-1.9a2 2 0 01-1.3-1.3L12 3zM5 3v4M19 17v4M3 5h4M17 19h4',
+                        heart: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z',
+                        star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+                        gift: 'M20 12v10H4V12m16-5H4v5h16V7zm-8 15V7m0 0H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z',
+                        clock: 'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2',
+                        percent: 'M19 5L5 19M9 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20 17.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
+                        award: 'M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12',
+                        zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+                      };
+                      const pathEl = svgEl.querySelector('path');
+                      if (pathEl && iconPaths[feature.icon]) {
+                        pathEl.setAttribute('d', iconPaths[feature.icon]);
+                      }
+                    }
+                  }
+                }
+              }
+            });
+          }
+        }
+        
+        // =====================================================
         // CATEGORY VISIBILITY UPDATES
         // =====================================================
           if (updates.content?.categoryIds !== undefined) {
