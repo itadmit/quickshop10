@@ -401,7 +401,7 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
 
     case 'series_grid':
       const seriesItems = (section.content.items as Array<{ id: string; title: string; subtitle?: string; description?: string; imageUrl?: string; gradientFrom?: string; gradientTo?: string }>) || [];
-      const seriesSettings = section.settings as { style?: string; columns?: number; mobileColumns?: number; buttonText?: string; cardBackground?: string; minImageHeight?: string; sectionBackground?: string; accentColor?: string };
+      const seriesSettings = section.settings as { style?: string; columns?: number; mobileColumns?: number; buttonText?: string; cardBackground?: string; minImageHeight?: string; sectionBackground?: string; accentColor?: string; roundedCorners?: boolean };
       const cols = seriesSettings.columns || 3;
       const mobileCols = seriesSettings.mobileColumns || 1;
       const seriesStyle = seriesSettings.style || 'overlay';
@@ -410,6 +410,7 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
       const accentCol = seriesSettings.accentColor || '#d4af37';
       const minImgHeight = seriesSettings.minImageHeight || '200px';
       const seriesBtnText = seriesSettings.buttonText || '';
+      const seriesRounded = seriesSettings.roundedCorners !== false ? 'rounded-2xl' : 'rounded-none';
       
       // Cards style - image on top, text below
       if (seriesStyle === 'cards') {
@@ -425,7 +426,7 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
               ` : ''}
               <div class="grid grid-cols-${mobileCols} md:grid-cols-${cols} gap-6" data-items-grid>
                 ${seriesItems.map((item, i) => `
-                  <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: ${cardBg};" data-item-id="${item.id}">
+                  <div class="group ${seriesRounded} overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: ${cardBg};" data-item-id="${item.id}">
                     <div style="min-height: ${minImgHeight};" class="overflow-hidden">
                       ${item.imageUrl 
                         ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}'); min-height: ${minImgHeight};" data-item-bg></div>`
@@ -464,7 +465,7 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
             ` : ''}
             <div class="grid grid-cols-${mobileCols} md:grid-cols-${cols} gap-6" data-items-grid>
               ${seriesItems.map(item => `
-                <a href="#" class="group relative h-80 rounded-2xl overflow-hidden" data-item-id="${item.id}">
+                <a href="#" class="group relative h-80 ${seriesRounded} overflow-hidden" data-item-id="${item.id}">
                   ${item.imageUrl 
                     ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');" data-item-bg></div>`
                     : `<div class="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'});" data-item-bg></div>`

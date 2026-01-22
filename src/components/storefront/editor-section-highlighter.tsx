@@ -690,6 +690,17 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // Rounded corners for series_grid
+        if (updates.settings?.roundedCorners !== undefined) {
+          const cards = element.querySelectorAll('[data-item-id]');
+          const isRounded = updates.settings.roundedCorners as boolean;
+          cards.forEach((card) => {
+            const el = card as HTMLElement;
+            el.classList.remove('rounded-2xl', 'rounded-none');
+            el.classList.add(isRounded ? 'rounded-2xl' : 'rounded-none');
+          });
+        }
+        
         // Overlay opacity
         if (updates.settings?.overlay !== undefined) {
           let overlayEl = element.querySelector('[data-overlay]') as HTMLElement;

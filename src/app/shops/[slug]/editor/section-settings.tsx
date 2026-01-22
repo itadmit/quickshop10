@@ -719,12 +719,15 @@ function ContentSettings({
           multiline
           placeholder="הזן תת-כותרת"
         />
-        <ToggleField
-          label="יישור טקסט"
-          options={['ימין', 'מרכז', 'שמאל']}
-          value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
-          onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
-        />
+        {/* Hide text alignment for series_grid - not relevant */}
+        {section.type !== 'series_grid' && (
+          <ToggleField
+            label="יישור טקסט"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'right' ? 'ימין' : (section.settings.textAlign as string) === 'left' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'right' : v === 'שמאל' ? 'left' : 'center')}
+          />
+        )}
       </SettingsGroup>
 
       {/* Type-specific content */}
@@ -4447,6 +4450,12 @@ function SeriesGridContentSettings({ section, onUpdate, storeInfo }: { section: 
           description="בסגנון 'שכבה על תמונה' - התיאור יוצג תמיד ולא רק בהעברת עכבר"
           value={(section.settings.showDescriptionAlways as boolean) || false}
           onChange={(v) => updateSettings('showDescriptionAlways', v)}
+        />
+        <SwitchField
+          label="עיגול פינות"
+          description="פינות מעוגלות לכרטיסים"
+          value={(section.settings.roundedCorners as boolean) !== false}
+          onChange={(v) => updateSettings('roundedCorners', v)}
         />
       </SettingsGroup>
       <SettingsGroup title="צבעים">

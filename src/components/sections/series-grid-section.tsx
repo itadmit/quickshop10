@@ -47,6 +47,7 @@ interface SeriesGridSectionProps {
     layout?: 'uniform' | 'featured';
     imageAspectRatio?: 'square' | 'portrait' | 'landscape' | 'auto';
     showDescriptionAlways?: boolean; // Show description always (not just on hover)
+    roundedCorners?: boolean;      // Rounded corners for cards (default: true)
   };
   basePath: string;
   sectionId?: string;
@@ -72,6 +73,10 @@ export function SeriesGridSection({
   const layout = settings.layout || 'uniform';
   const imageAspectRatio = settings.imageAspectRatio || 'auto';
   const showDescriptionAlways = settings.showDescriptionAlways || false;
+  const roundedCorners = settings.roundedCorners !== false; // Default: true
+  
+  // Rounded corners class
+  const roundedClass = roundedCorners ? 'rounded-2xl' : 'rounded-none';
 
   // Mobile grid (1 or 2 columns)
   const mobileGridCols = mobileColumns === 2 ? 'grid-cols-2' : 'grid-cols-1';
@@ -132,7 +137,7 @@ export function SeriesGridSection({
               <Link
                 key={item.id}
                 href={item.link.startsWith('/') ? `${basePath}${item.link}` : item.link}
-                className="group relative overflow-hidden rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500"
+                className={`group relative overflow-hidden ${roundedClass} shadow-lg hover:shadow-2xl transition-all duration-500`}
                 style={{ animationDelay: `${index * 100}ms` }}
                 data-item-id={item.id}
               >
@@ -201,7 +206,7 @@ export function SeriesGridSection({
                 <div
                   key={item.id}
                   className={`
-                    group overflow-hidden rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300
+                    group overflow-hidden ${roundedClass} shadow-sm hover:shadow-xl transition-all duration-300
                     ${layout === 'featured' && index < 2 ? 'lg:col-span-1' : ''}
                   `}
                   style={{ 
