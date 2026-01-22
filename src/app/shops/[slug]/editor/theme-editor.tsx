@@ -2123,7 +2123,8 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
     series_grid: {
       style: 'cards',
       columns: 3,
-      buttonText: 'לצפייה במוצרים',
+      mobileColumns: 1,
+      buttonText: '',
       minHeight: '200px',
       imageRatio: 'auto',
     },

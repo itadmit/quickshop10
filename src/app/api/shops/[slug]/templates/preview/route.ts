@@ -401,40 +401,47 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
 
     case 'series_grid':
       const seriesItems = (section.content.items as Array<{ id: string; title: string; subtitle?: string; description?: string; imageUrl?: string; gradientFrom?: string; gradientTo?: string }>) || [];
-      const seriesSettings = section.settings as { style?: string; columns?: number; buttonText?: string; cardBackground?: string };
+      const seriesSettings = section.settings as { style?: string; columns?: number; mobileColumns?: number; buttonText?: string; cardBackground?: string; minImageHeight?: string; sectionBackground?: string; accentColor?: string };
       const cols = seriesSettings.columns || 3;
+      const mobileCols = seriesSettings.mobileColumns || 1;
       const seriesStyle = seriesSettings.style || 'overlay';
       const cardBg = seriesSettings.cardBackground || '#f9f7f4';
+      const sectionBg = seriesSettings.sectionBackground || '#ffffff';
+      const accentCol = seriesSettings.accentColor || '#d4af37';
+      const minImgHeight = seriesSettings.minImageHeight || '200px';
+      const seriesBtnText = seriesSettings.buttonText || '';
       
       // Cards style - image on top, text below
       if (seriesStyle === 'cards') {
         return `
-          <section class="py-16 bg-alt">
+          <section class="py-16" style="background: ${sectionBg};" data-section-id="${section.id}" data-section-name="גריד סדרות">
             <div class="max-w-7xl mx-auto px-6">
               ${section.title ? `
                 <div class="text-center mb-12">
-                  <span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary);">${section.subtitle || ''}</span>
-                  <h2 class="text-3xl font-bold mt-2">${section.title}</h2>
-                  <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary);"></div>
+                  ${section.subtitle ? `<span class="text-sm font-bold tracking-wider uppercase" style="color: ${accentCol};">${section.subtitle}</span>` : ''}
+                  <h2 class="text-3xl font-bold mt-2" data-section-title>${section.title}</h2>
+                  <div class="w-16 h-1 mx-auto mt-4" style="background: ${accentCol};"></div>
                 </div>
               ` : ''}
-              <div class="grid grid-cols-2 md:grid-cols-${cols} gap-6">
+              <div class="grid grid-cols-${mobileCols} md:grid-cols-${cols} gap-6" data-items-grid>
                 ${seriesItems.map((item, i) => `
-                  <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: ${cardBg};">
-                    <div class="h-48 overflow-hidden">
+                  <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: ${cardBg};" data-item-id="${item.id}">
+                    <div style="min-height: ${minImgHeight};" class="overflow-hidden">
                       ${item.imageUrl 
-                        ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}');"></div>`
-                        : `<div class="w-full h-full flex items-center justify-center" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'});"></div>`
+                        ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}'); min-height: ${minImgHeight};" data-item-bg></div>`
+                        : `<div class="w-full h-full flex items-center justify-center" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'}); min-height: ${minImgHeight};" data-item-bg></div>`
                       }
                     </div>
                     <div class="p-5">
-                      ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary);">${item.subtitle}</span>` : ''}
-                      <h3 class="text-lg font-bold mt-1 mb-2">${item.title}</h3>
-                      ${item.description ? `<p class="text-sm text-muted leading-relaxed mb-4 line-clamp-3">${item.description}</p>` : ''}
-                      <a href="#" class="inline-flex items-center text-sm font-bold" style="color: var(--template-primary);">
-                        ${seriesSettings.buttonText || 'לצפייה במוצרים'}
-                        <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                      </a>
+                      ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: ${accentCol};" data-item-subtitle>${item.subtitle}</span>` : ''}
+                      <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${item.title}</h3>
+                      ${item.description ? `<p class="text-sm text-muted leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
+                      ${seriesBtnText ? `
+                        <a href="#" class="inline-flex items-center text-sm font-bold" style="color: ${accentCol};" data-card-button>
+                          ${seriesBtnText}
+                          <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                        </a>
+                      ` : ''}
                     </div>
                   </div>
                 `).join('')}
@@ -446,30 +453,32 @@ function renderSectionPreview(section: { type: string; title: string | null; sub
       
       // Overlay style (default) - full background with hover reveal
       return `
-        <section class="py-16">
+        <section class="py-16" style="background: ${sectionBg};" data-section-id="${section.id}" data-section-name="גריד סדרות">
           <div class="max-w-7xl mx-auto px-6">
             ${section.title ? `
               <div class="text-center mb-12">
-                <span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary);">${section.subtitle || ''}</span>
-                <h2 class="text-3xl font-bold mt-2">${section.title}</h2>
-                <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary);"></div>
+                ${section.subtitle ? `<span class="text-sm font-bold tracking-wider uppercase" style="color: ${accentCol};">${section.subtitle}</span>` : ''}
+                <h2 class="text-3xl font-bold mt-2" data-section-title>${section.title}</h2>
+                <div class="w-16 h-1 mx-auto mt-4" style="background: ${accentCol};"></div>
               </div>
             ` : ''}
-            <div class="grid grid-cols-2 md:grid-cols-${cols} gap-6">
+            <div class="grid grid-cols-${mobileCols} md:grid-cols-${cols} gap-6" data-items-grid>
               ${seriesItems.map(item => `
-                <a href="#" class="group relative h-80 rounded-2xl overflow-hidden">
+                <a href="#" class="group relative h-80 rounded-2xl overflow-hidden" data-item-id="${item.id}">
                   ${item.imageUrl 
-                    ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');"></div>`
-                    : `<div class="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'});"></div>`
+                    ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');" data-item-bg></div>`
+                    : `<div class="absolute inset-0 transition-transform duration-500 group-hover:scale-110" style="background: linear-gradient(135deg, ${item.gradientFrom || '#d4af37'}, ${item.gradientTo || '#b5952f'});" data-item-bg></div>`
                   }
                   <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
                   <div class="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                    <h3 class="text-xl font-bold mb-2">${item.title}</h3>
-                    ${item.description ? `<p class="text-sm opacity-90 mb-4">${item.description}</p>` : ''}
-                    <span class="inline-flex items-center text-sm font-medium" style="color: var(--template-primary);">
-                      ${seriesSettings.buttonText || 'לסדרה'}
-                      <svg class="w-4 h-4 mr-2 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    </span>
+                    <h3 class="text-xl font-bold mb-2" data-item-title>${item.title}</h3>
+                    ${item.description ? `<p class="text-sm opacity-90 mb-4" data-item-description>${item.description}</p>` : ''}
+                    ${seriesBtnText ? `
+                      <span class="inline-flex items-center text-sm font-medium" style="color: ${accentCol};" data-card-button>
+                        ${seriesBtnText}
+                        <svg class="w-4 h-4 mr-2 transition-transform group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                      </span>
+                    ` : ''}
                   </div>
                 </a>
               `).join('')}

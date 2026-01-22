@@ -588,6 +588,41 @@ export function EditorSectionHighlighter() {
           });
         }
         
+        // Button text for cards (series_grid, featured_items)
+        if (updates.settings?.buttonText !== undefined) {
+          const btnEls = element.querySelectorAll('[data-card-button]');
+          const btnText = updates.settings.buttonText as string;
+          btnEls.forEach((btnEl) => {
+            // For link buttons, only update text content (keep the arrow icon)
+            const textNode = Array.from(btnEl.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+            if (textNode) {
+              textNode.textContent = btnText;
+            } else if (btnEl.firstChild?.nodeType === Node.TEXT_NODE) {
+              btnEl.firstChild.textContent = btnText;
+            }
+            // Hide/show button based on whether text is empty
+            (btnEl as HTMLElement).style.display = btnText ? '' : 'none';
+          });
+        }
+        
+        // Section background (series_grid, etc.)
+        if (updates.settings?.sectionBackground !== undefined) {
+          (element as HTMLElement).style.backgroundColor = updates.settings.sectionBackground as string;
+        }
+        
+        // Columns settings - requires page refresh for proper grid update
+        if (updates.settings?.columns !== undefined || updates.settings?.mobileColumns !== undefined) {
+          const grid = element.querySelector('[data-items-grid]') as HTMLElement;
+          if (grid) {
+            const cols = (updates.settings?.columns as number) || 3;
+            const mobileCols = (updates.settings?.mobileColumns as number) || 1;
+            // Remove existing grid classes
+            grid.className = grid.className.replace(/grid-cols-\d+/g, '').replace(/md:grid-cols-\d+/g, '').replace(/lg:grid-cols-\d+/g, '').trim();
+            // Add new grid classes
+            grid.classList.add(`grid-cols-${mobileCols}`, `md:grid-cols-${cols}`, 'grid', 'gap-6');
+          }
+        }
+        
         // Overlay opacity
         if (updates.settings?.overlay !== undefined) {
           let overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
@@ -799,16 +834,57 @@ export function EditorSectionHighlighter() {
             videoUrl?: string;
             link?: string;
           }>;
+          
+          // Get the grid container and existing items
+          const grid = element.querySelector('[data-items-grid]') as HTMLElement;
+          const existingItems = element.querySelectorAll('[data-item-id]');
+          const existingIds = new Set(Array.from(existingItems).map(el => (el as HTMLElement).dataset.itemId));
+          
+          // Remove items that no longer exist
+          existingItems.forEach((itemEl) => {
+            const itemId = (itemEl as HTMLElement).dataset.itemId;
+            if (!items.find(item => item.id === itemId)) {
+              itemEl.remove();
+            }
+          });
+          
           items.forEach((item, index) => {
             // Try to find item by id first, then by index
             let itemEl = element.querySelector(`[data-item-id="${item.id}"]`) as HTMLElement;
+            
+            // If item doesn't exist and we have a grid, create a new card
+            if (!itemEl && grid && !existingIds.has(item.id)) {
+              const sectionName = (element as HTMLElement).dataset.sectionName || '';
+              const isSeriesGrid = sectionName === 'גריד סדרות' || element.querySelector('[data-items-grid]');
+              
+              if (isSeriesGrid) {
+                // Create new series grid card (cards style)
+                const newCard = document.createElement('div');
+                newCard.className = 'group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all';
+                newCard.style.backgroundColor = '#f9f7f4';
+                newCard.setAttribute('data-item-id', item.id);
+                newCard.innerHTML = `
+                  <div style="min-height: 200px;" class="overflow-hidden">
+                    <div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl || ''}'); min-height: 200px;" data-item-bg></div>
+                  </div>
+                  <div class="p-5">
+                    ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary);" data-item-subtitle>${item.subtitle}</span>` : ''}
+                    <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${item.title || 'סדרה חדשה'}</h3>
+                    ${item.description ? `<p class="text-sm text-muted leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
+                  </div>
+                `;
+                grid.appendChild(newCard);
+                itemEl = newCard;
+              }
+            }
+            
             if (!itemEl) {
               const allItems = element.querySelectorAll('[data-item-id]');
               itemEl = allItems[index] as HTMLElement;
             }
             if (itemEl) {
               if (item.title !== undefined) {
-                const titleEl = itemEl.querySelector('h3') as HTMLElement;
+                const titleEl = itemEl.querySelector('[data-item-title], h3') as HTMLElement;
                 if (titleEl) titleEl.textContent = item.title;
               }
               if (item.name !== undefined) {
@@ -816,12 +892,18 @@ export function EditorSectionHighlighter() {
                 if (nameEl) nameEl.textContent = item.name;
               }
               if (item.subtitle !== undefined) {
-                const subEl = itemEl.querySelector('span') as HTMLElement;
-                if (subEl) subEl.textContent = item.subtitle;
+                const subEl = itemEl.querySelector('[data-item-subtitle], span') as HTMLElement;
+                if (subEl) {
+                  subEl.textContent = item.subtitle;
+                  subEl.style.display = item.subtitle ? '' : 'none';
+                }
               }
               if (item.description !== undefined) {
-                const descEl = itemEl.querySelector('p') as HTMLElement;
-                if (descEl) descEl.textContent = item.description;
+                const descEl = itemEl.querySelector('[data-item-description], p') as HTMLElement;
+                if (descEl) {
+                  descEl.textContent = item.description;
+                  descEl.style.display = item.description ? '' : 'none';
+                }
               }
               // Handle video/image updates for featured_items
               if (item.videoUrl !== undefined) {
@@ -854,7 +936,7 @@ export function EditorSectionHighlighter() {
                 }
               }
               if (item.imageUrl !== undefined) {
-                const imgContainer = itemEl.querySelector('[style*="background-image"], .bg-cover') as HTMLElement;
+                const imgContainer = itemEl.querySelector('[data-item-bg], [style*="background-image"], .bg-cover') as HTMLElement;
                 if (imgContainer) {
                   imgContainer.style.backgroundImage = item.imageUrl ? `url("${item.imageUrl}")` : 'none';
                 }

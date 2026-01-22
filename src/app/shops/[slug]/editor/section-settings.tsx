@@ -4401,7 +4401,7 @@ function SeriesGridContentSettings({ section, onUpdate, storeInfo }: { section: 
           onChange={(v) => updateSettings('style', v)}
         />
         <SelectField
-          label="עמודות"
+          label="עמודות - מחשב"
           value={String((section.settings.columns as number) || 3)}
           options={[
             { value: '2', label: '2' },
@@ -4409,6 +4409,15 @@ function SeriesGridContentSettings({ section, onUpdate, storeInfo }: { section: 
             { value: '4', label: '4' },
           ]}
           onChange={(v) => updateSettings('columns', parseInt(v))}
+        />
+        <SelectField
+          label="עמודות - מובייל"
+          value={String((section.settings.mobileColumns as number) || 1)}
+          options={[
+            { value: '1', label: '1' },
+            { value: '2', label: '2' },
+          ]}
+          onChange={(v) => updateSettings('mobileColumns', parseInt(v))}
         />
         <TextField
           label="גובה מינימום לתמונות"
@@ -4429,9 +4438,9 @@ function SeriesGridContentSettings({ section, onUpdate, storeInfo }: { section: 
         />
         <TextField
           label="טקסט כפתור"
-          value={(section.settings.buttonText as string) || 'לצפייה במוצרים'}
+          value={(section.settings.buttonText as string) || ''}
           onChange={(v) => updateSettings('buttonText', v)}
-          placeholder="לצפייה במוצרים"
+          placeholder="לצפייה במוצרים (השאר ריק להסתרת הכפתור)"
         />
         <SwitchField
           label="הצג תיאור תמיד"

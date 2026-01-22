@@ -37,6 +37,7 @@ interface SeriesGridSectionProps {
   settings: {
     style?: 'overlay' | 'cards';
     columns?: 2 | 3 | 4;
+    mobileColumns?: 1 | 2;         // Mobile columns (1 or 2)
     cardHeight?: string;           // Card height for overlay style
     minImageHeight?: string;       // Min height for cards style images
     sectionBackground?: string;
@@ -61,21 +62,26 @@ export function SeriesGridSection({
 }: SeriesGridSectionProps) {
   const style = settings.style || 'overlay';
   const columns = settings.columns || 3;
+  const mobileColumns = settings.mobileColumns || 1;
   const cardHeight = settings.cardHeight || '400px';
   const minImageHeight = settings.minImageHeight || '200px';
   const sectionBg = settings.sectionBackground || '#ffffff';
   const accentColor = settings.accentColor || '#d4af37';
-  const buttonText = settings.buttonText || 'גלי את הסדרה';
+  const buttonText = settings.buttonText || '';  // Empty by default = no button
   const cardBg = settings.cardBackground || '#f9f7f4';
   const layout = settings.layout || 'uniform';
   const imageAspectRatio = settings.imageAspectRatio || 'auto';
   const showDescriptionAlways = settings.showDescriptionAlways || false;
 
+  // Mobile grid (1 or 2 columns)
+  const mobileGridCols = mobileColumns === 2 ? 'grid-cols-2' : 'grid-cols-1';
+  
+  // Desktop grid
   const gridCols = columns === 2 
-    ? 'md:grid-cols-2' 
+    ? `${mobileGridCols} md:grid-cols-2` 
     : columns === 4 
-      ? 'md:grid-cols-2 lg:grid-cols-4'
-      : 'lg:grid-cols-3 md:grid-cols-2';
+      ? `${mobileGridCols} md:grid-cols-2 lg:grid-cols-4`
+      : `${mobileGridCols} md:grid-cols-2 lg:grid-cols-3`;
 
   // Aspect ratio classes for cards style
   const getAspectClass = () => {
@@ -158,24 +164,27 @@ export function SeriesGridSection({
                 >
                   <h3 className="text-2xl font-bold mb-2" data-item-title>{item.title}</h3>
                   
-                  <p 
-                    className={`text-gray-200 mb-4 transition-all duration-300 ${
-                      showDescriptionAlways 
-                        ? 'opacity-100' 
-                        : 'opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0'
-                    }`}
-                    style={{ display: item.description ? '' : 'none' }}
-                    data-item-description
-                  >
-                    {item.description}
-                  </p>
+                  {item.description && (
+                    <p 
+                      className={`text-gray-200 mb-4 transition-all duration-300 ${
+                        showDescriptionAlways 
+                          ? 'opacity-100' 
+                          : 'opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0'
+                      }`}
+                      data-item-description
+                    >
+                      {item.description}
+                    </p>
+                  )}
                   
-                  <span 
-                    className="w-fit bg-white/20 backdrop-blur-sm border border-white/40 group-hover:bg-white group-hover:text-black text-white px-6 py-2 rounded-full text-sm font-bold transition-all"
-                    data-card-button
-                  >
-                    {buttonText}
-                  </span>
+                  {buttonText && (
+                    <span 
+                      className="w-fit bg-white/20 backdrop-blur-sm border border-white/40 group-hover:bg-white group-hover:text-black text-white px-6 py-2 rounded-full text-sm font-bold transition-all"
+                      data-card-button
+                    >
+                      {buttonText}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
@@ -240,34 +249,37 @@ export function SeriesGridSection({
                     </h3>
                     
                     {/* Description */}
-                    <p 
-                      className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3"
-                      style={{ display: item.description ? '' : 'none' }}
-                      data-item-description
-                    >
-                      {item.description}
-                    </p>
-                    
-                    {/* Link */}
-                    <Link
-                      href={item.link.startsWith('/') ? `${basePath}${item.link}` : item.link}
-                      className="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:gap-3"
-                      style={{ color: accentColor }}
-                      data-card-button
-                    >
-                      {buttonText}
-                      <svg 
-                        width="16" 
-                        height="16" 
-                        viewBox="0 0 24 24" 
-                        fill="none" 
-                        stroke="currentColor" 
-                        strokeWidth="2"
-                        className="rtl:rotate-180"
+                    {item.description && (
+                      <p 
+                        className="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3"
+                        data-item-description
                       >
-                        <path d="M5 12h14m-7-7l7 7-7 7" />
-                      </svg>
-                    </Link>
+                        {item.description}
+                      </p>
+                    )}
+                    
+                    {/* Link - only show if buttonText is not empty */}
+                    {buttonText && (
+                      <Link
+                        href={item.link.startsWith('/') ? `${basePath}${item.link}` : item.link}
+                        className="inline-flex items-center gap-2 text-sm font-bold transition-colors hover:gap-3"
+                        style={{ color: accentColor }}
+                        data-card-button
+                      >
+                        {buttonText}
+                        <svg 
+                          width="16" 
+                          height="16" 
+                          viewBox="0 0 24 24" 
+                          fill="none" 
+                          stroke="currentColor" 
+                          strokeWidth="2"
+                          className="rtl:rotate-180"
+                        >
+                          <path d="M5 12h14m-7-7l7 7-7 7" />
+                        </svg>
+                      </Link>
+                    )}
                   </div>
                 </div>
               );
