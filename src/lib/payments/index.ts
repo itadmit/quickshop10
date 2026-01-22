@@ -28,6 +28,7 @@ export {
 export { PayPlusProvider } from './providers/payplus';
 export { PelecardProvider } from './providers/pelecard';
 export { QuickPaymentsProvider } from './providers/quick-payments';
+export { PayPalProvider } from './providers/paypal';
 export { BasePaymentProvider } from './providers/base';
 
 // Quick Payments specific types

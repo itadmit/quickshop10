@@ -18,6 +18,7 @@ import type {
 import { PayPlusProvider } from './providers/payplus';
 import { PelecardProvider } from './providers/pelecard';
 import { QuickPaymentsProvider } from './providers/quick-payments';
+import { PayPalProvider } from './providers/paypal';
 
 // Re-export from provider-info for convenience
 export { PROVIDER_INFO, getAvailableProviders, getProviderInfo } from './provider-info';
@@ -27,6 +28,7 @@ const providerRegistry: Record<PaymentProviderType, new () => IPaymentProvider> 
   payplus: PayPlusProvider,
   pelecard: PelecardProvider,
   quick_payments: QuickPaymentsProvider,
+  paypal: PayPalProvider,
 };
 
 /**
@@ -132,6 +134,11 @@ export function detectProviderFromParams(
     return 'quick_payments';
   }
   
+  // PayPal-specific params (token = order ID, PayerID = payer identifier)
+  if (params.token && (params.PayerID || params.payerId)) {
+    return 'paypal';
+  }
+  
   return null;
 }
 
@@ -175,6 +182,12 @@ export function isSuccessfulRedirect(params: Record<string, string | undefined>)
   
   // Quick Payments (PayMe) success - after 3DS redirect
   if (params.status_code === '0' || params.sale_status === 'completed') {
+    return true;
+  }
+  
+  // PayPal success - customer approved the order (has token and PayerID)
+  // Note: This only means approval, still needs capture!
+  if (params.token && (params.PayerID || params.payerId)) {
     return true;
   }
   

@@ -180,7 +180,8 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   
   // Get order reference from query params (fallback to parsed result)
   const orderReference = search.more_info || search.ref || paymentResult?.orderReference;
-  const pageRequestUid = search.page_request_uid || paymentResult?.requestId;
+  // Note: For PayPal, search.token is the order ID which we store as providerRequestId
+  const pageRequestUid = search.page_request_uid || search.token || paymentResult?.requestId;
   
   // Check payment status (for backwards compatibility with PayPlus)
   const paymentStatus = search.status;
@@ -195,6 +196,54 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
   // For Pelecard, check PelecardStatusCode explicitly for failure
   if (search.PelecardStatusCode && search.PelecardStatusCode !== '000') {
     redirect(`${basePath}/checkout?error=payment_failed`);
+  }
+  
+  // ========== PAYPAL SPECIAL HANDLING ==========
+  // PayPal requires capture after customer approval (unlike other providers)
+  // Check for PayPal params: token (order ID) and PayerID
+  const paypalOrderId = search.token;
+  const paypalPayerId = search.PayerID || search.payerId;
+  let paypalCaptureResult: { success: boolean; captureId?: string; error?: string } | null = null;
+  
+  if (paypalOrderId && paypalPayerId) {
+    console.log(`Thank you page: PayPal detected - capturing order ${paypalOrderId}`);
+    
+    try {
+      // Call capture API
+      const captureResponse = await fetch(
+        `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/paypal/capture`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            storeSlug: slug,
+            orderId: paypalOrderId,
+            payerId: paypalPayerId,
+          }),
+        }
+      );
+      
+      const captureData = await captureResponse.json();
+      
+      if (captureData.success || captureData.alreadyCaptured) {
+        paypalCaptureResult = { 
+          success: true, 
+          captureId: captureData.captureId 
+        };
+        console.log(`Thank you page: PayPal capture successful - captureId: ${captureData.captureId}`);
+      } else {
+        paypalCaptureResult = { 
+          success: false, 
+          error: captureData.error || 'Capture failed' 
+        };
+        console.error(`Thank you page: PayPal capture failed - ${captureData.error}`);
+        // Redirect to checkout with error
+        redirect(`${basePath}/checkout?error=paypal_capture_failed`);
+      }
+    } catch (error) {
+      console.error(`Thank you page: PayPal capture error`, error);
+      redirect(`${basePath}/checkout?error=paypal_capture_failed`);
+    }
   }
   
   // Get store

@@ -68,6 +68,26 @@ export const PROVIDER_INFO: Record<PaymentProviderType, PaymentProviderInfo> = {
       { key: 'sellerSecret', label: 'Secret Key', labelHe: 'מפתח סודי', type: 'password', required: false },
     ],
   },
+  paypal: {
+    type: 'paypal',
+    name: 'PayPal',
+    nameHe: 'פייפאל',
+    description: 'Global payment solution - PayPal, credit cards, and alternative payment methods worldwide',
+    descriptionHe: 'פתרון תשלום גלובלי - פייפאל, כרטיסי אשראי ואמצעי תשלום חלופיים ברחבי העולם',
+    logo: 'https://www.paypalobjects.com/webstatic/mktg/logo/pp_cc_mark_111x69.jpg',
+    supportedFeatures: {
+      creditCard: true,
+      bit: false,
+      applePay: true,
+      googlePay: true,
+      paypal: true,
+      recurring: true,
+    },
+    requiredCredentials: [
+      { key: 'clientId', label: 'Client ID', labelHe: 'מזהה לקוח', type: 'text', required: true },
+      { key: 'clientSecret', label: 'Client Secret', labelHe: 'מפתח סודי', type: 'password', required: true },
+    ],
+  },
 };
 
 /**
