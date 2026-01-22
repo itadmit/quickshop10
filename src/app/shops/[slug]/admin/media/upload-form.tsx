@@ -94,7 +94,7 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
           const uniqueId = crypto.randomUUID().slice(0, 10);
           const pathname = `${cloudinaryFolder}/${uniqueId}.${extension}`;
           
-          await upload(pathname, fileUpload.file, {
+          const blob = await upload(pathname, fileUpload.file, {
             access: 'public',
             handleUploadUrl: '/api/upload-blob/client',
             clientPayload: JSON.stringify({
@@ -106,6 +106,21 @@ export function UploadForm({ storeId, slug }: UploadFormProps) {
                 prev.map(u => u.id === fileUpload.id ? { ...u, progress: Math.round(progress.percentage) } : u)
               );
             },
+          });
+          
+          // Save media record to database (since onUploadCompleted callback may not work in local dev)
+          await fetch('/api/upload-blob/save-media', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              storeId,
+              folder: cloudinaryFolder,
+              url: blob.url,
+              pathname: blob.pathname,
+              contentType: blob.contentType,
+              originalFilename: fileUpload.file.name,
+              size: fileUpload.file.size,
+            }),
           });
         } else {
           // Use server-side upload for images (with WebP optimization) and small videos
