@@ -1474,6 +1474,11 @@ export function EditorSectionHighlighter() {
           logos: 'לוגואים',
           contact: 'צור קשר',
           custom: 'מותאם אישית',
+          series_grid: 'גריד סדרות',
+          hero_premium: 'באנר פרימיום',
+          hero_slider: 'סליידר הירו',
+          quote_banner: 'באנר ציטוט',
+          featured_items: 'פריטים מובילים',
         };
         placeholder.dataset.sectionName = sectionNames[sectionType] || sectionType;
         
@@ -1755,6 +1760,49 @@ export function EditorSectionHighlighter() {
                   ${[1,2,3,4,5].map(() => `
                     <div class="w-24 h-12 bg-gray-100 rounded flex items-center justify-center">
                       <span class="text-gray-400 text-xs">לוגו</span>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
+
+          case 'series_grid':
+            const seriesItems = (content?.items as Array<{id: string; title: string; subtitle?: string; description?: string; imageUrl?: string}>) || [
+              { id: '1', title: 'סדרה 1', description: 'תיאור קצר של הסדרה.' },
+              { id: '2', title: 'סדרה 2', description: 'תיאור קצר של הסדרה.' },
+              { id: '3', title: 'סדרה 3', description: 'תיאור קצר של הסדרה.' },
+            ];
+            placeholder.className = 'py-16';
+            placeholder.style.backgroundColor = '#ffffff';
+            placeholder.dataset.sectionName = 'גריד סדרות';
+            html = `
+              <div class="max-w-7xl mx-auto px-6">
+                ${title ? `
+                  <div class="text-center mb-12">
+                    ${subtitle ? `<span class="text-sm font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37);">${subtitle}</span>` : ''}
+                    <h2 class="text-3xl font-bold mt-2" data-section-title>${title}</h2>
+                    <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary, #d4af37);"></div>
+                  </div>
+                ` : ''}
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" data-items-grid>
+                  ${seriesItems.map((item) => `
+                    <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: #f9f7f4;" data-item-id="${item.id}">
+                      <div style="min-height: 200px;" class="overflow-hidden">
+                        ${item.imageUrl 
+                          ? `<div class="w-full h-full bg-cover bg-center" style="background-image: url('${item.imageUrl}'); min-height: 200px;" data-item-bg></div>`
+                          : `<div class="w-full h-full bg-gray-200 flex items-center justify-center" style="min-height: 200px;" data-item-bg>
+                              <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>`
+                        }
+                      </div>
+                      <div class="p-5">
+                        ${item.subtitle ? `<span class="text-xs font-bold tracking-wider uppercase" style="color: var(--template-primary, #d4af37);" data-item-subtitle>${item.subtitle}</span>` : ''}
+                        <h3 class="text-lg font-bold mt-1 mb-2" data-item-title>${item.title}</h3>
+                        ${item.description ? `<p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
+                      </div>
                     </div>
                   `).join('')}
                 </div>
