@@ -42,7 +42,9 @@ function SpacingBox({ label, values, unit, onChange, onUnitChange }: SpacingBoxP
 
   return (
     <div className="py-3">
+      {/* Header row with label, unit selector and link button */}
       <div className="flex items-center justify-between mb-3">
+        <span className="text-xs text-[var(--editor-text-secondary)]">{label}</span>
         <div className="flex items-center gap-2">
           <EditorSelect
             label=""
@@ -51,91 +53,88 @@ function SpacingBox({ label, values, unit, onChange, onUnitChange }: SpacingBoxP
             onChange={onUnitChange}
             compact
           />
-          <span className="text-xs text-[var(--editor-text-secondary)]">{label}</span>
+          {/* Link button */}
+          <button
+            onClick={() => setLinked(!linked)}
+            className={`p-1.5 rounded transition-colors ${
+              linked 
+                ? 'bg-[var(--editor-accent-blue)] text-white' 
+                : 'bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-muted)] hover:text-[var(--editor-text-primary)]'
+            }`}
+            title={linked ? 'מקושר - שינוי אחד משפיע על כולם' : 'לא מקושר'}
+          >
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              {linked ? (
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+              ) : (
+                <>
+                  <path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-3 3a5 5 0 0 0 0 7.07" />
+                  <path d="M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l3-3a5 5 0 0 0 0-7.07" />
+                  <path d="M2 2l20 20" />
+                </>
+              )}
+            </svg>
+          </button>
         </div>
-        {/* Link button */}
-        <button
-          onClick={() => setLinked(!linked)}
-          className={`p-1.5 rounded transition-colors ${
-            linked 
-              ? 'bg-[var(--editor-accent-blue)] text-white' 
-              : 'bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-muted)] hover:text-[var(--editor-text-primary)]'
-          }`}
-          title={linked ? 'מקושר - שינוי אחד משפיע על כולם' : 'לא מקושר'}
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            {linked ? (
-              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-            ) : (
-              <>
-                <path d="M18.84 12.25l1.72-1.71a5 5 0 0 0-7.07-7.07l-3 3a5 5 0 0 0 0 7.07" />
-                <path d="M5.16 11.75l-1.72 1.71a5 5 0 0 0 7.07 7.07l3-3a5 5 0 0 0 0-7.07" />
-                <path d="M2 2l20 20" />
-              </>
-            )}
-          </svg>
-        </button>
       </div>
       
-      {/* Grid of inputs - 3x3 layout like the image */}
-      <div className="grid grid-cols-3 gap-1 items-center">
-        {/* Row 1: empty - top - empty */}
-        <div />
-        <input
-          type="text"
-          value={values.top}
-          onChange={(e) => handleChange('top', e.target.value)}
-          placeholder="auto"
-          className="w-full px-2 py-1.5 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
-                     rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
-          dir="ltr"
-        />
-        <div />
-        
-        {/* Row 2: left - labels - right */}
-        <input
-          type="text"
-          value={values.left}
-          onChange={(e) => handleChange('left', e.target.value)}
-          placeholder="auto"
-          className="w-full px-2 py-1.5 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
-                     rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
-          dir="ltr"
-        />
-        <div className="flex justify-between text-[8px] text-[var(--editor-text-muted)] px-1">
-          <span>שמאל</span>
-          <span>תחתון</span>
-          <span>ימין</span>
+      {/* Single row of 4 inputs - Elementor style */}
+      <div className="flex gap-2">
+        {/* Top */}
+        <div className="flex-1">
+          <input
+            type="text"
+            value={values.top}
+            onChange={(e) => handleChange('top', e.target.value)}
+            placeholder="-"
+            className="w-full px-2 py-2 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                       rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+            dir="ltr"
+          />
+          <div className="text-[9px] text-center text-[var(--editor-text-muted)] mt-1">עליון</div>
         </div>
-        <input
-          type="text"
-          value={values.right}
-          onChange={(e) => handleChange('right', e.target.value)}
-          placeholder="auto"
-          className="w-full px-2 py-1.5 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
-                     rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
-          dir="ltr"
-        />
         
-        {/* Row 3: empty - bottom - empty */}
-        <div />
-        <input
-          type="text"
-          value={values.bottom}
-          onChange={(e) => handleChange('bottom', e.target.value)}
-          placeholder="auto"
-          className="w-full px-2 py-1.5 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
-                     rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
-          dir="ltr"
-        />
-        <div />
-      </div>
-      
-      {/* Labels row */}
-      <div className="grid grid-cols-3 gap-1 mt-1">
-        <div />
-        <div className="text-[8px] text-center text-[var(--editor-text-muted)]">עליון</div>
-        <div />
+        {/* Right */}
+        <div className="flex-1">
+          <input
+            type="text"
+            value={values.right}
+            onChange={(e) => handleChange('right', e.target.value)}
+            placeholder="-"
+            className="w-full px-2 py-2 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                       rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+            dir="ltr"
+          />
+          <div className="text-[9px] text-center text-[var(--editor-text-muted)] mt-1">ימין</div>
+        </div>
+        
+        {/* Bottom */}
+        <div className="flex-1">
+          <input
+            type="text"
+            value={values.bottom}
+            onChange={(e) => handleChange('bottom', e.target.value)}
+            placeholder="-"
+            className="w-full px-2 py-2 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                       rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+            dir="ltr"
+          />
+          <div className="text-[9px] text-center text-[var(--editor-text-muted)] mt-1">תחתון</div>
+        </div>
+        
+        {/* Left */}
+        <div className="flex-1">
+          <input
+            type="text"
+            value={values.left}
+            onChange={(e) => handleChange('left', e.target.value)}
+            placeholder="-"
+            className="w-full px-2 py-2 text-xs text-center bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                       rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+            dir="ltr"
+          />
+          <div className="text-[9px] text-center text-[var(--editor-text-muted)] mt-1">שמאל</div>
+        </div>
       </div>
     </div>
   );

@@ -895,11 +895,14 @@ export function ProductPage({
     const sectionPadding = getPaddingClasses(section.settings as Record<string, unknown>);
     const hasPadding = sectionPadding.paddingTop || sectionPadding.paddingBottom;
     
-    if (!hasPadding) return content;
+    // Always wrap with a keyed fragment/div for proper React reconciliation
+    if (!hasPadding) {
+      return <div key={section.id}>{content}</div>;
+    }
     
     return (
       <div 
-        key={`padding-${section.id}`}
+        key={section.id}
         style={{
           paddingTop: sectionPadding.paddingTop || undefined,
           paddingBottom: sectionPadding.paddingBottom || undefined,

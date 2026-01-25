@@ -4,11 +4,44 @@ import { useState } from 'react';
 import { ChevronDownIcon, CheckCircleIcon } from '@/components/admin/icons';
 import { X } from 'lucide-react';
 
+// עלויות נלוות - לפי תעריפון
 const additionalCosts = [
-  { name: "עמלת Bit", price: "1.5%", desc: "על כל תשלום ב-Bit" },
-  { name: "עמלת Apple Pay / Google Pay", price: "0.5%", desc: "תוספת לעמלה הבסיסית" },
-  { name: "החזר כספי (Refund)", price: "₪3", desc: "לכל החזר" },
-  { name: "תשלומים (קרדיט)", price: "0.8%", desc: "תוספת לכל תשלום מעל 1" },
+  // עמלות תשלום
+  { category: "עמלות תשלום", items: [
+    { name: "כרטיסים שהונפקו בחו״ל", price: "3.5%", desc: "תוספת לעמלה הבסיסית" },
+    { name: "כרטיסי פרמיום (אמק״ס/דיינרס)", price: "1.5%", desc: "תוספת לעמלה הבסיסית" },
+    { name: "תשלום ב-Bit", price: "0.30%", desc: "תוספת לעמלה הבסיסית" },
+    { name: "Apple Pay / Google Pay", price: "0.80%", desc: "תוספת לעמלה הבסיסית" },
+    { name: "עסקה אינטרנטית", price: "פטור", desc: "ללא תוספת" },
+  ]},
+  // עמלות תשלומים (קרדיט)
+  { category: "תשלומים וניכיון", items: [
+    { name: "עמלת ניכיון לעסקת תשלומים", price: "פריים + 5%", desc: "לכל תשלום מעל 1" },
+    { name: "זיכוי מהיר (6 ימי עסקים)", price: "פריים + 5%", desc: "במקום 21 יום" },
+  ]},
+  // עמלות זיכוי והכחשה
+  { category: "זיכויים והכחשות", items: [
+    { name: "זיכוי עסקה (Refund)", price: "₪4.9", desc: "לכל זיכוי" },
+    { name: "הכחשת עסקה - כרטיס ישראלי", price: "₪69", desc: "Chargeback" },
+    { name: "הכחשת עסקה - כרטיס חו״ל", price: "$25", desc: "Chargeback" },
+  ]},
+  // שירותים כלולים
+  { category: "שירותים כלולים ללא עלות", items: [
+    { name: "שירות טוקנים לחיוב חוזר", price: "חינם", desc: "למנויים ותשלומים חוזרים" },
+    { name: "שירות API", price: "חינם", desc: "אינטגרציה מלאה" },
+    { name: "התאמות אשראי", price: "חינם", desc: "אוטומטי" },
+    { name: "חיוב מחזורי הו״ק למנויים", price: "חינם", desc: "הוראת קבע" },
+    { name: "שליחת קישור לתשלום", price: "חינם", desc: "Payment Link" },
+    { name: "עמוד קבוע לחיוב (קורסים/שיעורים)", price: "חינם", desc: "דף תשלום קבוע" },
+    { name: "פלאגין WooCommerce / Shopify", price: "חינם", desc: "התקנה מיידית" },
+  ]},
+  // שירותים בתשלום
+  { category: "שירותים נוספים בתשלום", items: [
+    { name: "העברה בין ארנקים PayMe", price: "0.15%", desc: "העברות פנימיות" },
+    { name: "אישור מכירה/ביטול ב-SMS", price: "₪0.3", desc: "לכל הודעה" },
+    { name: "שירות עדכון כרטיסים מוחלפים", price: "₪150 הקמה + ₪39/חודש", desc: "עדכון אוטומטי" },
+    { name: "חשבוניות דיגיטליות", price: "₪30/חודש + ₪0.4 למסמך", desc: "הפקה אוטומטית" },
+  ]},
 ];
 
 interface AdditionalCostsAccordionProps {
@@ -66,21 +99,32 @@ export function AdditionalCostsAccordion({ signupUrl }: AdditionalCostsAccordion
           />
         </button>
         
-        <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96 mt-3' : 'max-h-0'}`}>
-          <div className="bg-slate-800/30 rounded-xl border border-slate-700/30 p-4 space-y-3">
-            {additionalCosts.map((cost, idx) => (
-              <div 
-                key={idx}
-                className="flex items-center justify-between py-2 border-b border-slate-700/30 last:border-0"
-              >
-                <div>
-                  <div className="font-medium text-slate-200">{cost.name}</div>
-                  <div className="text-xs text-slate-500">{cost.desc}</div>
+        <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-[800px] mt-3' : 'max-h-0'}`}>
+          <div className="bg-slate-800/30 rounded-xl border border-slate-700/30 p-4 space-y-4 max-h-[500px] overflow-y-auto">
+            {additionalCosts.map((category, catIdx) => (
+              <div key={catIdx}>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 pb-1 border-b border-slate-700/50">
+                  {category.category}
                 </div>
-                <div className="text-green-400 font-bold">{cost.price}</div>
+                <div className="space-y-1">
+                  {category.items.map((cost, idx) => (
+                    <div 
+                      key={idx}
+                      className="flex items-center justify-between py-1.5 text-sm"
+                    >
+                      <div className="flex-1">
+                        <span className="text-slate-300">{cost.name}</span>
+                        <span className="text-slate-600 mr-2 text-xs">({cost.desc})</span>
+                      </div>
+                      <div className={`font-bold mr-4 ${cost.price === 'חינם' || cost.price === 'פטור' ? 'text-green-400' : 'text-amber-400'}`}>
+                        {cost.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
-            <div className="pt-2 text-xs text-slate-500 text-center">
+            <div className="pt-3 text-xs text-slate-500 text-center border-t border-slate-700/50">
               * כל המחירים לפני מע״מ
             </div>
           </div>
