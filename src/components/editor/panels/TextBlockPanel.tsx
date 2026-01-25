@@ -24,10 +24,10 @@ import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import {
   TypographyControl,
   ButtonControl,
-  SpacingControl,
   BackgroundColorControl,
   MaxWidthControl,
   AlignmentControl,
+  AdvancedControl,
 } from '../controls';
 
 interface Section {
@@ -244,9 +244,9 @@ export function TextBlockPanel({ section, onUpdate, onClose }: TextBlockPanelPro
               />
             </EditorSection>
 
-            {/* ===== ריווחים ===== */}
-            <EditorSection title="ריווחים" defaultOpen={false}>
-              <SpacingControl
+            {/* ===== מתקדם ===== */}
+            <EditorSection title="מתקדם" defaultOpen={false}>
+              <AdvancedControl
                 settings={section.settings}
                 onChange={updateSettings}
               />

@@ -35,3 +35,5 @@ export {
   AlignmentControl 
 } from './GridControl';
 
+// Advanced settings (margin, padding, z-index, CSS ID/Classes)
+export { AdvancedControl } from './AdvancedControl';

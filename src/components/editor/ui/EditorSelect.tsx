@@ -21,6 +21,7 @@ interface EditorSelectProps {
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  compact?: boolean;  // Smaller version without label
 }
 
 export function EditorSelect({
@@ -30,6 +31,7 @@ export function EditorSelect({
   onChange,
   placeholder = 'בחר...',
   className = '',
+  compact = false,
 }: EditorSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -46,6 +48,52 @@ export function EditorSelect({
   }, []);
 
   const selectedOption = options.find(o => o.value === value);
+
+  // Compact mode - just the button without label
+  if (compact) {
+    return (
+      <div className={`relative ${className}`} ref={ref}>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="flex items-center gap-1 bg-[var(--editor-bg-tertiary)] rounded px-2 py-1 
+                     border border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)] transition-colors"
+        >
+          <span className="text-xs text-[var(--editor-text-primary)]">
+            {selectedOption?.label || placeholder}
+          </span>
+          <ChevronDown 
+            className={`w-2.5 h-2.5 text-[var(--editor-text-muted)] transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+          />
+        </button>
+
+        {/* Dropdown for compact */}
+        {isOpen && (
+          <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
+                          border border-[var(--editor-border-default)] shadow-lg py-1 min-w-16 max-h-48 overflow-auto">
+            {options.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => {
+                  onChange(option.value);
+                  setIsOpen(false);
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-2 py-1.5 text-xs
+                           transition-colors
+                           ${value === option.value 
+                             ? 'bg-[var(--editor-accent-blue)]/10 text-[var(--editor-accent-blue)]' 
+                             : 'text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-hover)] hover:text-[var(--editor-text-primary)]'}`}
+              >
+                <span>{option.label}</span>
+                {value === option.value && (
+                  <Check className="w-3 h-3" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`relative py-2 group ${className}`} ref={ref}>

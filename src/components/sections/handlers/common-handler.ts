@@ -145,20 +145,79 @@ export function applyCommonUpdates(
     el.style.backgroundColor = updates.settings.backgroundColor as string;
   }
 
-  if (updates.settings?.paddingTop !== undefined) {
-    el.style.paddingTop = `${updates.settings.paddingTop}px`;
-  }
+  // Get units (default to px)
+  const marginUnit = (updates.settings?.marginUnit as string) || 'px';
+  const paddingUnit = (updates.settings?.paddingUnit as string) || 'px';
 
-  if (updates.settings?.paddingBottom !== undefined) {
-    el.style.paddingBottom = `${updates.settings.paddingBottom}px`;
-  }
-
+  // Margin - all four sides
   if (updates.settings?.marginTop !== undefined) {
-    el.style.marginTop = `${updates.settings.marginTop}px`;
+    const val = updates.settings.marginTop;
+    el.style.marginTop = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+  }
+  if (updates.settings?.marginRight !== undefined) {
+    const val = updates.settings.marginRight;
+    el.style.marginRight = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+  }
+  if (updates.settings?.marginBottom !== undefined) {
+    const val = updates.settings.marginBottom;
+    el.style.marginBottom = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+  }
+  if (updates.settings?.marginLeft !== undefined) {
+    const val = updates.settings.marginLeft;
+    el.style.marginLeft = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
   }
 
-  if (updates.settings?.marginBottom !== undefined) {
-    el.style.marginBottom = `${updates.settings.marginBottom}px`;
+  // Padding - all four sides
+  if (updates.settings?.paddingTop !== undefined) {
+    const val = updates.settings.paddingTop;
+    el.style.paddingTop = val === '' ? '' : `${val}${paddingUnit}`;
+  }
+  if (updates.settings?.paddingRight !== undefined) {
+    const val = updates.settings.paddingRight;
+    el.style.paddingRight = val === '' ? '' : `${val}${paddingUnit}`;
+  }
+  if (updates.settings?.paddingBottom !== undefined) {
+    const val = updates.settings.paddingBottom;
+    el.style.paddingBottom = val === '' ? '' : `${val}${paddingUnit}`;
+  }
+  if (updates.settings?.paddingLeft !== undefined) {
+    const val = updates.settings.paddingLeft;
+    el.style.paddingLeft = val === '' ? '' : `${val}${paddingUnit}`;
+  }
+
+  // Z-Index
+  if (updates.settings?.zIndex !== undefined) {
+    const val = updates.settings.zIndex;
+    el.style.zIndex = val === '' ? '' : String(val);
+    if (val !== '') {
+      el.style.position = 'relative';
+    }
+  }
+
+  // CSS ID
+  if (updates.settings?.customId !== undefined) {
+    const newId = updates.settings.customId as string;
+    if (newId) {
+      el.id = newId;
+    } else {
+      el.removeAttribute('id');
+    }
+  }
+
+  // CSS Classes
+  if (updates.settings?.customClass !== undefined) {
+    // Remove old custom classes (those that were added previously)
+    const oldCustomClass = el.dataset.customClass;
+    if (oldCustomClass) {
+      oldCustomClass.split(' ').forEach(cls => cls && el.classList.remove(cls));
+    }
+    
+    // Add new custom classes
+    const newCustomClass = updates.settings.customClass as string;
+    if (newCustomClass) {
+      newCustomClass.split(' ').forEach(cls => cls && el.classList.add(cls));
+      el.dataset.customClass = newCustomClass;
+    }
   }
 
   if (updates.settings?.textAlign !== undefined) {
