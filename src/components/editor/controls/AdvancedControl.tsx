@@ -28,16 +28,42 @@ interface SpacingBoxProps {
 function SpacingBox({ label, values, unit, onChange, onUnitChange }: SpacingBoxProps) {
   const [linked, setLinked] = useState(false);
 
+  // Clean value - remove whitespace, keep only numbers and minus sign
+  const cleanValue = (val: string): string => {
+    const cleaned = val.trim();
+    // Allow empty, numbers, and minus for negative values
+    if (cleaned === '' || cleaned === '-') return cleaned;
+    // Remove non-numeric characters except minus at start
+    return cleaned.replace(/[^\d-]/g, '').replace(/(?!^)-/g, '');
+  };
+
   const handleChange = (side: 'top' | 'right' | 'bottom' | 'left', value: string) => {
+    const cleanedValue = cleanValue(value);
+    
     if (linked) {
       // Update all sides when linked
-      onChange('top', value);
-      onChange('right', value);
-      onChange('bottom', value);
-      onChange('left', value);
+      onChange('top', cleanedValue);
+      onChange('right', cleanedValue);
+      onChange('bottom', cleanedValue);
+      onChange('left', cleanedValue);
     } else {
-      onChange(side, value);
+      onChange(side, cleanedValue);
     }
+  };
+
+  // When linking is toggled ON, copy first non-empty value to all fields
+  const handleLinkToggle = () => {
+    if (!linked) {
+      // Finding first non-empty value to copy to all
+      const firstValue = values.top || values.right || values.bottom || values.left || '';
+      if (firstValue) {
+        onChange('top', firstValue);
+        onChange('right', firstValue);
+        onChange('bottom', firstValue);
+        onChange('left', firstValue);
+      }
+    }
+    setLinked(!linked);
   };
 
   return (
@@ -55,7 +81,7 @@ function SpacingBox({ label, values, unit, onChange, onUnitChange }: SpacingBoxP
           />
           {/* Link button */}
           <button
-            onClick={() => setLinked(!linked)}
+            onClick={handleLinkToggle}
             className={`p-1.5 rounded transition-colors ${
               linked 
                 ? 'bg-[var(--editor-accent-blue)] text-white' 
