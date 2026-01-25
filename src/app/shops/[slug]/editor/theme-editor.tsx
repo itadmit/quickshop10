@@ -746,7 +746,7 @@ export function ThemeEditor({
     }));
     setHasChanges(true);
     
-    // Send live update to iframe for visual preview (both home and product pages)
+    // Send live update to iframe - NO REFRESH, just DOM manipulation
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
         type: 'SECTION_CONTENT_UPDATE',
@@ -1005,7 +1005,8 @@ export function ThemeEditor({
     setSelectedSectionId(newSection.id);
     setHasChanges(true);
     
-    // Send message to iframe to add section (works for both home and product pages)
+    // Send message to iframe to add section with placeholder
+    // Like Shopify - instant preview, no page refresh
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage({
         type: 'SECTION_ADD',
@@ -1855,7 +1856,7 @@ function getSectionDefaultTitle(type: string): string {
     image_text: 'תמונה + טקסט',
     text_block: 'בלוק טקסט',
     video: 'וידאו',
-    features: 'פיצ\'רים',
+    features: 'חוזקות',
     testimonials: 'המלצות',
     faq: 'שאלות ותשובות',
     gallery: 'גלריה',
@@ -1950,8 +1951,10 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       ]
     },
     reviews: {
-      items: [
-        { name: 'לקוח מרוצה', rating: 5, text: 'שירות מעולה ומוצרים איכותיים!', date: new Date().toISOString() }
+      reviews: [
+        { author: 'שרה כ.', rating: 5, text: 'מוצר מעולה, ממליצה בחום!' },
+        { author: 'דוד מ.', rating: 5, text: 'איכות גבוהה ומשלוח מהיר' },
+        { author: 'רחל ל.', rating: 4, text: 'שירות לקוחות מצוין' },
       ]
     },
     faq: {
@@ -2145,6 +2148,32 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       height: '90vh',
       autoplay: true,
       interval: 5000,
+    },
+    // Content sections with columns
+    reviews: {
+      columns: 3,
+      mobileColumns: 1,
+      showRating: true,
+      showDate: true,
+      showAvatar: true,
+      style: 'cards',
+    },
+    gallery: {
+      columns: 4,
+      mobileColumns: 2,
+      gap: 4,
+    },
+    logos: {
+      columns: 5,
+      mobileColumns: 3,
+    },
+    faq: {
+      style: 'accordion',
+    },
+    features: {
+      columns: 4,
+      mobileColumns: 2,
+      style: 'grid',
     },
   };
   return defaults[type] || {};

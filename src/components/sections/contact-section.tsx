@@ -1,9 +1,13 @@
 /**
  * ContactSection - Server Component with Client Form
  * סקשן יצירת קשר - הטופס עצמו הוא client component לצורך חיווי
+ * 
+ * 🔧 Uses shared section-system constants
  */
 
 import { ContactForm } from './contact-form';
+import { TITLE_SIZES, FONT_WEIGHTS, MAX_WIDTHS } from '@/lib/section-system';
+import type { TitleSize, FontWeight } from '@/lib/section-system';
 
 interface ContactSectionProps {
   title: string | null;
@@ -28,15 +32,19 @@ interface ContactSectionProps {
   };
   settings: {
     layout?: 'simple' | 'split' | 'form-only' | 'info-only';
-    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | 'full';
+    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
     textAlign?: 'right' | 'center' | 'left';
     backgroundColor?: string;
     textColor?: string;
     paddingY?: 'small' | 'medium' | 'large';
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: TitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
+    // Typography - Subtitle
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
     // Button
     buttonTextColor?: string;
     buttonBackgroundColor?: string;
@@ -48,27 +56,6 @@ interface ContactSectionProps {
   sectionId?: string;
   storeSlug?: string;
 }
-
-const TITLE_SIZES = {
-  sm: 'text-xl md:text-2xl',
-  md: 'text-2xl md:text-3xl',
-  lg: 'text-3xl md:text-4xl',
-  xl: 'text-4xl md:text-5xl',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-light',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
-
-const TEXT_ALIGN = {
-  right: 'text-right',
-  center: 'text-center',
-  left: 'text-left',
-};
 
 export function ContactSection({ 
   title, 
@@ -84,17 +71,16 @@ export function ContactSection({
   const paddingY = settings.paddingY || 'medium';
   const textAlign = settings.textAlign || 'center';
   
-  // Typography settings with defaults
-  const titleSize = settings.titleSize || 'lg';
+  // Check if numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'lg' : (titleSizeValue || 'lg');
   const titleWeight = settings.titleWeight || 'light';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
 
-  const maxWidthClass = {
-    'sm': 'max-w-sm',
-    'md': 'max-w-md',
-    'lg': 'max-w-2xl',
-    'xl': 'max-w-4xl',
-    'full': 'max-w-7xl',
-  }[maxWidth];
+  const maxWidthClass = MAX_WIDTHS[maxWidth] || MAX_WIDTHS.lg;
 
   const paddingClass = {
     'small': 'py-8',
@@ -106,6 +92,8 @@ export function ContactSection({
   // Default showForm to true unless explicitly set to false
   const showForm = (content.showForm !== false) && layout !== 'info-only';
 
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+
   return (
     <section 
       className={`${paddingClass} px-4 ${settings.customClass || ''}`}
@@ -115,13 +103,40 @@ export function ContactSection({
       }}
       id={settings.customId || 'contact'}
       data-section-id={sectionId}
+      data-section-type="contact"
       data-section-name="יצירת קשר"
     >
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
+      
       <div className={`${maxWidthClass} mx-auto`}>
         {/* Title */}
         {title && (
           <h2 
-            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} ${TEXT_ALIGN[textAlign]} tracking-wide mb-4`}
+            className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} ${`text-${textAlign}`} tracking-wide mb-4`}
             data-section-title
             style={{ color: settings.titleColor || 'inherit' }}
           >
@@ -132,7 +147,7 @@ export function ContactSection({
         {/* Subtitle */}
         {subtitle && (
           <p 
-            className={`text-lg opacity-80 mb-8 ${TEXT_ALIGN[textAlign]}`}
+            className={`${!isNumericSubtitleSize ? 'text-lg' : ''} opacity-80 mb-8 ${`text-${textAlign}`}`}
             data-section-subtitle
           >
             {subtitle}

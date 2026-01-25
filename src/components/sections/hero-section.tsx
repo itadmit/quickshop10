@@ -23,6 +23,16 @@ interface HeroSectionProps {
     customClass?: string;
     customId?: string;
     customCss?: string;
+    // Typography - Title
+    titleColor?: string;
+    titleSize?: number;
+    titleSizeMobile?: number;
+    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
+    // Typography - Subtitle
+    subtitleColor?: string;
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
+    subtitleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
   };
   basePath: string;
 }
@@ -38,6 +48,16 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   const containerType = settings.containerType || 'container';
   const paddingTop = settings.paddingTop || 0;
   const paddingBottom = settings.paddingBottom || 0;
+  
+  // Typography settings
+  const titleColor = settings.titleColor || '#ffffff';
+  const titleSize = settings.titleSize; // numeric px value
+  const titleSizeMobile = settings.titleSizeMobile;
+  const titleWeight = settings.titleWeight || 'extralight';
+  const subtitleColor = settings.subtitleColor || 'rgba(255,255,255,0.9)';
+  const subtitleSize = settings.subtitleSize;
+  const subtitleSizeMobile = settings.subtitleSizeMobile;
+  const subtitleWeight = settings.subtitleWeight || 'normal';
 
   // Check if there's any image
   const hasImage = !!(content.imageUrl || content.mobileImageUrl);
@@ -60,6 +80,7 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
         ...(settings.customCss ? { cssText: settings.customCss } : {})
       }}
       data-section-id={sectionId}
+      data-section-type="hero"
       data-section-name="באנר ראשי"
       data-has-image={hasImage ? 'true' : 'false'}
     >
@@ -94,10 +115,37 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
         } : undefined}
         data-content-container
       >
+        {/* Scoped responsive styles */}
+        {(titleSize || subtitleSize) && (
+          <style dangerouslySetInnerHTML={{ __html: `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${titleSizeMobile || (titleSize ? titleSize * 0.6 : 48)}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSize || 96}px !important;
+              }
+            }
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${subtitleSizeMobile || (subtitleSize ? subtitleSize * 0.8 : 12)}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSize || 14}px !important;
+              }
+            }
+          `}} />
+        )}
+        
         {/* Title */}
         <h1 
-          className="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 animate-fade-in uppercase"
-          style={{ display: title ? '' : 'none' }}
+          className={`font-display tracking-[0.3em] mb-6 animate-fade-in uppercase ${
+            !titleSize ? 'text-5xl md:text-7xl lg:text-8xl' : ''
+          } font-${titleWeight}`}
+          style={{ 
+            display: title ? '' : 'none',
+            color: titleColor,
+          }}
           data-section-title
         >
           {title || ''}
@@ -105,8 +153,13 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
         
         {/* Subtitle */}
         <p 
-          className="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12 animate-slide-up"
-          style={{ display: subtitle ? '' : 'none' }}
+          className={`tracking-[0.4em] uppercase mb-12 animate-slide-up ${
+            !subtitleSize ? 'text-xs md:text-sm' : ''
+          } font-${subtitleWeight}`}
+          style={{ 
+            display: subtitle ? '' : 'none',
+            color: subtitleColor,
+          }}
           data-section-subtitle
         >
           {subtitle || ''}

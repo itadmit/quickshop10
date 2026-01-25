@@ -1,9 +1,17 @@
 /**
  * VideoBannerSection - Server Component
  * באנר וידאו - אפס JS, מהיר כמו PHP!
+ * 
+ * 🔧 Uses shared section-system constants
  */
 
 import Link from 'next/link';
+import { 
+  TITLE_SIZES_LARGE as TITLE_SIZES, 
+  SUBTITLE_SIZES_HERO as SUBTITLE_SIZES, 
+  FONT_WEIGHTS_HERO as FONT_WEIGHTS 
+} from '@/lib/section-system';
+import type { TitleSize, SubtitleSize, FontWeight } from '@/lib/section-system';
 
 interface VideoBannerSectionProps {
   title: string | null;
@@ -27,14 +35,16 @@ interface VideoBannerSectionProps {
     // Text Alignment & Position
     textAlign?: 'right' | 'center' | 'left';
     textPosition?: 'top' | 'center' | 'bottom';
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: TitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
     // Typography - Subtitle
     subtitleColor?: string;
-    subtitleSize?: 'sm' | 'md' | 'lg';
-    subtitleWeight?: 'light' | 'normal' | 'medium' | 'semibold';
+    subtitleSize?: SubtitleSize | number;
+    subtitleSizeMobile?: number;
+    subtitleWeight?: FontWeight;
     // Button
     buttonTextColor?: string;
     buttonBackgroundColor?: string;
@@ -50,27 +60,6 @@ interface VideoBannerSectionProps {
   basePath: string;
   sectionId?: string;
 }
-
-const TITLE_SIZES = {
-  sm: 'text-2xl md:text-4xl',
-  md: 'text-3xl md:text-5xl',
-  lg: 'text-4xl md:text-6xl lg:text-7xl',
-  xl: 'text-5xl md:text-7xl lg:text-8xl',
-};
-
-const SUBTITLE_SIZES = {
-  sm: 'text-xs',
-  md: 'text-sm',
-  lg: 'text-base',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-extralight',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
 
 export function VideoBannerSection({ 
   title, 
@@ -90,9 +79,16 @@ export function VideoBannerSection({
   // Text settings
   const textAlign = settings.textAlign || 'center';
   const textPosition = settings.textPosition || 'center';
-  const titleSize = settings.titleSize || 'lg';
+  
+  // Check for numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'lg' : (titleSizeValue || 'lg');
   const titleWeight = settings.titleWeight || 'light';
-  const subtitleSize = settings.subtitleSize || 'sm';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
+  const subtitleSize = isNumericSubtitleSize ? 'sm' : (subtitleSizeValue || 'sm');
   const subtitleWeight = settings.subtitleWeight || 'normal';
 
   // Determine what to show on mobile vs desktop
@@ -115,6 +111,8 @@ export function VideoBannerSection({
     borderColor: settings.buttonBorderColor || '#ffffff',
   };
 
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+
   return (
     <section 
       className={`relative overflow-hidden ${settings.customClass || ''}`}
@@ -126,10 +124,37 @@ export function VideoBannerSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="video_banner"
       data-section-name="באנר וידאו"
       data-has-media={hasAnyMedia ? 'true' : 'false'}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.6}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
       
       {/* Mobile Media */}
       {hasMobileMedia && (
@@ -188,14 +213,14 @@ export function VideoBannerSection({
       >
         <div className={`max-w-2xl px-6 ${textAlignClass}`}>
           <p 
-            className={`${SUBTITLE_SIZES[subtitleSize]} ${FONT_WEIGHTS[subtitleWeight]} tracking-[0.4em] uppercase mb-6 ${!subtitle ? 'hidden' : ''}`}
+            className={`${!isNumericSubtitleSize ? SUBTITLE_SIZES[subtitleSize as SubtitleSize] : ''} ${FONT_WEIGHTS[subtitleWeight]} tracking-[0.4em] uppercase mb-6 ${!subtitle ? 'hidden' : ''}`}
             style={{ color: settings.subtitleColor || 'rgba(255,255,255,0.8)' }}
             data-section-subtitle
           >
             {subtitle || ''}
           </p>
           <h2 
-            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-[0.2em] uppercase mb-8 ${!title ? 'hidden' : ''}`}
+            className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} tracking-[0.2em] uppercase mb-8 ${!title ? 'hidden' : ''}`}
             style={{ color: settings.titleColor || '#ffffff' }}
             data-section-title
           >

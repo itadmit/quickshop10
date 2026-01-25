@@ -2,7 +2,12 @@
  * FAQSection - Server Component
  * שאלות נפוצות - אפס JS בסיסי, מהיר כמו PHP!
  * משתמש ב-<details> HTML נייטיבי לפתיחה/סגירה בלי JS
+ * 
+ * 🔧 Uses shared section-system constants
  */
+
+import { TITLE_SIZES, FONT_WEIGHTS, MAX_WIDTHS } from '@/lib/section-system';
+import type { TitleSize, FontWeight } from '@/lib/section-system';
 
 interface FAQItem {
   id: string;
@@ -17,15 +22,18 @@ interface FAQSectionProps {
     items?: FAQItem[];
   };
   settings: {
-    maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
+    maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     backgroundColor?: string;
     style?: 'accordion' | 'cards' | 'simple';
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: TitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
     // Typography - Subtitle
     subtitleColor?: string;
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
     // Question styling
     questionColor?: string;
     answerColor?: string;
@@ -40,21 +48,6 @@ interface FAQSectionProps {
   sectionId?: string;
 }
 
-const TITLE_SIZES = {
-  sm: 'text-xl md:text-2xl',
-  md: 'text-2xl md:text-3xl',
-  lg: 'text-3xl md:text-4xl',
-  xl: 'text-4xl md:text-5xl',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-light',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
-
 export function FAQSection({ 
   title, 
   subtitle, 
@@ -64,15 +57,17 @@ export function FAQSection({
 }: FAQSectionProps) {
   const maxWidth = settings.maxWidth || 'lg';
   const style = settings.style || 'accordion';
-  const titleSize = settings.titleSize || 'md';
+  
+  // Check if numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'md' : (titleSizeValue || 'md');
   const titleWeight = settings.titleWeight || 'light';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
 
-  const maxWidthClass = {
-    'sm': 'max-w-sm',
-    'md': 'max-w-2xl',
-    'lg': 'max-w-3xl',
-    'xl': 'max-w-4xl',
-  }[maxWidth];
+  const maxWidthClass = MAX_WIDTHS[maxWidth] || MAX_WIDTHS.lg;
 
   // Default FAQ items for preview/empty state
   const items = content.items?.length ? content.items : [
@@ -81,6 +76,8 @@ export function FAQSection({
     { id: '3', question: 'האם יש אחריות על המוצרים?', answer: 'כן, כל המוצרים שלנו מגיעים עם אחריות יצרן מלאה. לפרטים נוספים צרו קשר.' },
     { id: '4', question: 'איך אפשר לעקוב אחרי ההזמנה?', answer: 'לאחר השליחה תקבלו מייל עם מספר מעקב. ניתן לעקוב באזור האישי או דרך אתר חברת המשלוחים.' },
   ];
+
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
 
   return (
     <section 
@@ -92,21 +89,49 @@ export function FAQSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="faq"
       data-section-name="שאלות נפוצות"
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
+      
       <div className={`${maxWidthClass} mx-auto`}>
         {/* Header */}
         <div className="text-center mb-12">
           <h2 
-            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-3 ${!title ? 'hidden' : ''}`}
+            className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-3 ${!title ? 'hidden' : ''}`}
             style={{ color: settings.titleColor || 'inherit' }}
             data-section-title
           >
             {title || ''}
           </h2>
           <p 
-            className={`text-sm md:text-base ${!subtitle ? 'hidden' : ''}`}
+            className={`${!isNumericSubtitleSize ? 'text-sm md:text-base' : ''} ${!subtitle ? 'hidden' : ''}`}
             style={{ color: settings.subtitleColor || '#4b5563' }}
             data-section-subtitle
           >
@@ -115,10 +140,12 @@ export function FAQSection({
         </div>
 
         {/* FAQ Items - Using native <details> for zero JS! */}
-        <div className={`space-y-${style === 'cards' ? '4' : '0'}`}>
-          {items.map((item) => (
-            <details 
+        <div className={`space-y-${style === 'cards' ? '4' : '0'}`} data-faq-items>
+          {items.map((item, index) => (
+            <details
               key={item.id}
+              data-faq-item-id={item.id}
+              data-faq-item-index={index}
               className={`
                 group
                 ${style === 'accordion' ? 'border-b border-gray-200' : ''}
@@ -138,6 +165,7 @@ export function FAQSection({
                 <span 
                   className="font-medium text-right pr-4"
                   style={{ color: settings.questionColor || '#111827' }}
+                  data-faq-question
                 >
                   {item.question}
                 </span>
@@ -158,6 +186,7 @@ export function FAQSection({
                   ${style === 'simple' ? 'pb-4 pr-4' : ''}
                 `}
                 style={{ color: settings.answerColor || '#4b5563' }}
+                data-faq-answer
               >
                 {item.answer}
               </div>

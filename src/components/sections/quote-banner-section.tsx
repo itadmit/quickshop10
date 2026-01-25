@@ -63,6 +63,7 @@ export function QuoteBannerSection({
     <section 
       className="w-full relative overflow-hidden"
       data-section-id={sectionId}
+      data-section-type="quote_banner"
       data-section-name="באנר ציטוט"
       data-media-type={mediaType}
     >

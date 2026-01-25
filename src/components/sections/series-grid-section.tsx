@@ -103,6 +103,7 @@ export function SeriesGridSection({
       className="w-full py-20 px-4 md:px-10"
       style={{ backgroundColor: sectionBg }}
       data-section-id={sectionId}
+      data-section-type="series_grid"
       data-section-name="גריד סדרות"
     >
       <div className="max-w-[1440px] mx-auto">

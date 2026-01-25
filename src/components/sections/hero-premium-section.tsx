@@ -104,6 +104,7 @@ export function HeroPremiumSection({
     <section 
       className="w-full relative overflow-hidden"
       data-section-id={sectionId}
+      data-section-type="hero_premium"
       data-section-name="הירו פרימיום"
       data-has-video={hasVideo ? 'true' : 'false'}
     >

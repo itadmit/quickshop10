@@ -18,6 +18,7 @@ interface GallerySectionProps {
   };
   settings: {
     columns?: number;
+    mobileColumns?: number;
     gap?: number;
     aspectRatio?: 'square' | '4:3' | '16:9' | 'auto';
     layout?: 'grid' | 'masonry';
@@ -36,17 +37,13 @@ export function GallerySection({
   sectionId 
 }: GallerySectionProps) {
   const columns = settings.columns || 4;
+  const mobileColumns = settings.mobileColumns || 2;
   const gap = settings.gap || 4;
   const aspectRatio = settings.aspectRatio || 'square';
   const images = content.images || [];
 
-  const gridCols = {
-    2: 'grid-cols-2',
-    3: 'grid-cols-2 md:grid-cols-3',
-    4: 'grid-cols-2 md:grid-cols-4',
-    5: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-5',
-    6: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
-  }[columns] || 'grid-cols-2 md:grid-cols-4';
+  // Dynamic grid classes
+  const gridCols = `grid-cols-${mobileColumns} md:grid-cols-${columns}`;
 
   const aspectClass = {
     'square': 'aspect-square',
@@ -76,28 +73,31 @@ export function GallerySection({
       className="py-12 px-4 md:px-8"
       style={{ backgroundColor: settings.backgroundColor || 'transparent' }}
       data-section-id={sectionId}
+      data-section-type="gallery"
       data-section-name="גלריה"
     >
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        {(title || subtitle) && (
-          <div className="text-center mb-10">
-            {title && (
-              <h2 className="text-2xl md:text-3xl font-display font-light tracking-wide mb-3">
-                {title}
-              </h2>
-            )}
-            {subtitle && (
-              <p className="text-gray-600 text-sm md:text-base">
-                {subtitle}
-              </p>
-            )}
-          </div>
-        )}
+        {/* Header - always render for live editor updates */}
+        <div className="text-center mb-10">
+          <h2 
+            className="text-2xl md:text-3xl font-display font-light tracking-wide mb-3"
+            style={{ display: title ? '' : 'none' }}
+            data-section-title
+          >
+            {title || ''}
+          </h2>
+          <p 
+            className="text-gray-600 text-sm md:text-base"
+            style={{ display: subtitle ? '' : 'none' }}
+            data-section-subtitle
+          >
+            {subtitle || ''}
+          </p>
+        </div>
 
         {/* Gallery Grid */}
-        <div className={`grid ${gridCols} ${gapClass}`}>
-          {displayImages.map((image) => {
+        <div className={`grid ${gridCols} ${gapClass}`} data-gallery-grid>
+          {displayImages.map((image, index) => {
             const ImageWrapper = image.link ? 'a' : 'div';
             const wrapperProps = image.link ? { 
               href: image.link.startsWith('/') ? `${basePath}${image.link}` : image.link 
@@ -112,15 +112,18 @@ export function GallerySection({
                   ${aspectClass}
                   ${image.link ? 'cursor-pointer' : ''}
                 `}
+                data-gallery-item-index={index}
+                data-gallery-item-id={image.id}
               >
                 {image.url ? (
                   <img 
                     src={image.url} 
                     alt={image.alt || ''} 
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    data-gallery-image
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
+                  <div className="w-full h-full flex items-center justify-center" data-gallery-placeholder>
                     <svg className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>

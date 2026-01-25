@@ -1,6 +1,12 @@
 /**
  * FeaturesSection - Server Component
- * יתרונות/אייקונים - אפס JS, מהיר כמו PHP!
+ * 
+ * 🚀 מהיר כמו PHP - אפס JS בפרודקשן!
+ * 
+ * במצב עריכה:
+ * - DOM manipulation מיידי לפידבק מהיר
+ * - Auto-save עם debounce מרפרש את האייפריים
+ * - תמיד רואים את התוצאה האמיתית
  */
 
 interface Feature {
@@ -19,25 +25,26 @@ interface FeaturesSectionProps {
   };
   settings: {
     columns?: number;
+    mobileColumns?: number;
     layout?: 'horizontal' | 'vertical' | 'grid';
     iconStyle?: 'emoji' | 'icon' | 'none';
     backgroundColor?: string;
     showDividers?: boolean;
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
+    titleSize?: 'sm' | 'md' | 'lg' | 'xl' | number;
+    titleSizeMobile?: number;
     titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
     // Typography - Subtitle
     subtitleColor?: string;
-    // Feature styling
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
     featureTitleColor?: string;
     featureDescColor?: string;
     iconColor?: string;
     iconBgColor?: string;
-    // Spacing
     marginTop?: number;
     marginBottom?: number;
-    // Custom
     customClass?: string;
     customId?: string;
     customCss?: string;
@@ -45,14 +52,14 @@ interface FeaturesSectionProps {
   sectionId?: string;
 }
 
-const TITLE_SIZES = {
+const TITLE_SIZES: Record<string, string> = {
   sm: 'text-xl md:text-2xl',
   md: 'text-2xl md:text-3xl',
   lg: 'text-3xl md:text-4xl',
   xl: 'text-4xl md:text-5xl',
 };
 
-const FONT_WEIGHTS = {
+const FONT_WEIGHTS: Record<string, string> = {
   light: 'font-light',
   normal: 'font-normal',
   medium: 'font-medium',
@@ -60,7 +67,7 @@ const FONT_WEIGHTS = {
   bold: 'font-bold',
 };
 
-// SVG icon paths for features
+// SVG icon paths
 const FEATURE_ICON_PATHS: Record<string, string> = {
   truck: 'M1 3h15v13H1zm15 5h4l3 3v5h-7m-13 0a2.5 2.5 0 105 0m8 0a2.5 2.5 0 105 0',
   refresh: 'M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16',
@@ -77,7 +84,6 @@ const FEATURE_ICON_PATHS: Record<string, string> = {
   zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
 };
 
-// Render SVG icon
 function FeatureIcon({ icon, color, bgColor, size = 32 }: { icon: string; color?: string; bgColor?: string; size?: number }) {
   const path = FEATURE_ICON_PATHS[icon];
   if (!path) return null;
@@ -103,6 +109,13 @@ function FeatureIcon({ icon, color, bgColor, size = 32 }: { icon: string; color?
   );
 }
 
+const DEFAULT_FEATURES: Feature[] = [
+  { id: '1', icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+  { id: '2', icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
+  { id: '3', icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
+  { id: '4', icon: 'sparkles', title: 'איכות מובטחת', description: '100% שביעות רצון' },
+];
+
 export function FeaturesSection({ 
   title, 
   subtitle, 
@@ -111,26 +124,24 @@ export function FeaturesSection({
   sectionId 
 }: FeaturesSectionProps) {
   const columns = settings.columns || 4;
-  const layout = settings.layout || 'horizontal';
+  const mobileColumns = settings.mobileColumns || 2;
   const showDividers = settings.showDividers !== false;
-  const titleSize = settings.titleSize || 'md';
+  
+  // Check for numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'md' : (titleSizeValue || 'md');
   const titleWeight = settings.titleWeight || 'light';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
 
-  // Default features for preview/empty state
-  const features = content.features?.length ? content.features : [
-    { id: '1', icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
-    { id: '2', icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
-    { id: '3', icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
-    { id: '4', icon: 'sparkles', title: 'איכות מובטחת', description: '100% שביעות רצון' },
-  ];
+  const features = content.features?.length ? content.features : DEFAULT_FEATURES;
 
-  const gridCols = {
-    2: 'grid-cols-2',
-    3: 'grid-cols-1 md:grid-cols-3',
-    4: 'grid-cols-2 md:grid-cols-4',
-    5: 'grid-cols-2 md:grid-cols-5',
-    6: 'grid-cols-2 md:grid-cols-3 lg:grid-cols-6',
-  }[columns] || 'grid-cols-2 md:grid-cols-4';
+  // Dynamic grid classes
+  const gridCols = `grid-cols-${mobileColumns} md:grid-cols-${columns}`;
+  
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
 
   return (
     <section 
@@ -142,22 +153,50 @@ export function FeaturesSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="features"
       data-section-name="חוזקות"
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
+      
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         {(title || subtitle) && (
           <div className="text-center mb-10">
             <h2 
-              className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-3 ${!title ? 'hidden' : ''}`}
+              className={`${!isNumericTitleSize ? (TITLE_SIZES[titleSize as string] || TITLE_SIZES.md) : ''} ${FONT_WEIGHTS[titleWeight] || FONT_WEIGHTS.light} tracking-wide mb-3 ${!title ? 'hidden' : ''}`}
               style={{ color: settings.titleColor || 'inherit' }}
               data-section-title
             >
               {title || ''}
             </h2>
             <p 
-              className={`text-sm md:text-base ${!subtitle ? 'hidden' : ''}`}
+              className={`${!isNumericSubtitleSize ? 'text-sm md:text-base' : ''} ${!subtitle ? 'hidden' : ''}`}
               style={{ color: settings.subtitleColor || '#4b5563' }}
               data-section-subtitle
             >
@@ -178,22 +217,23 @@ export function FeaturesSection({
               data-feature-id={feature.id || index}
             >
               {/* Icon */}
-              {feature.icon && FEATURE_ICON_PATHS[feature.icon] && (
-                <div className="mb-4 flex justify-center" data-feature-icon>
+              <div className="mb-4 flex justify-center" data-feature-icon>
+                {feature.icon && FEATURE_ICON_PATHS[feature.icon] ? (
                   <FeatureIcon 
                     icon={feature.icon} 
                     color={settings.iconColor || '#374151'}
                     bgColor={settings.iconBgColor}
                   />
-                </div>
-              )}
-              
-              {/* Legacy emoji support */}
-              {!feature.icon && feature.emoji && (
-                <div className="mb-4 flex justify-center">
-                  <span className="text-3xl">{feature.emoji}</span>
-                </div>
-              )}
+                ) : feature.emoji ? (
+                  <span className="text-3xl" data-feature-emoji>{feature.emoji}</span>
+                ) : (
+                  <FeatureIcon 
+                    icon="sparkles" 
+                    color={settings.iconColor || '#374151'}
+                    bgColor={settings.iconBgColor}
+                  />
+                )}
+              </div>
 
               {/* Title */}
               <h3 

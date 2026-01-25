@@ -1,9 +1,13 @@
 /**
  * SplitBannerSection - Server Component
  * באנר מפוצל - אפס JS, מהיר כמו PHP!
+ * 
+ * 🔧 Uses shared section-system constants
  */
 
 import Link from 'next/link';
+import { TITLE_SIZES, FONT_WEIGHTS_HERO as FONT_WEIGHTS } from '@/lib/section-system';
+import type { TitleSize, FontWeight } from '@/lib/section-system';
 
 interface SideContent {
   title?: string;
@@ -26,10 +30,11 @@ interface SplitBannerSectionProps {
   settings: {
     height?: string;
     overlay?: number;
-    // Typography
+    // Typography (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: TitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
     // Spacing
     marginTop?: number;
     marginBottom?: number;
@@ -42,21 +47,6 @@ interface SplitBannerSectionProps {
   sectionId?: string;
 }
 
-const TITLE_SIZES = {
-  sm: 'text-xl md:text-2xl',
-  md: 'text-2xl md:text-3xl',
-  lg: 'text-3xl md:text-4xl',
-  xl: 'text-4xl md:text-5xl',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-extralight',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
-
 export function SplitBannerSection({ 
   content, 
   settings, 
@@ -65,7 +55,11 @@ export function SplitBannerSection({
 }: SplitBannerSectionProps) {
   const height = settings.height || '70vh';
   const overlay = settings.overlay ?? 0.1;
-  const titleSize = settings.titleSize || 'lg';
+  
+  // Check for numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'lg' : (titleSizeValue || 'lg');
   const titleWeight = settings.titleWeight || 'light';
   
   // Support both new (right/left) and legacy (items) structure
@@ -95,9 +89,24 @@ export function SplitBannerSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="split_banner"
       data-section-name="באנר מפוצל"
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {isNumericTitleSize && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          [data-section-id="${sectionId}"] [data-side-title] {
+            font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+          }
+          @media (min-width: 768px) {
+            [data-section-id="${sectionId}"] [data-side-title] {
+              font-size: ${titleSizeValue}px !important;
+            }
+          }
+        `}} />
+      )}
       {sides.map((side, i) => (
         <Link 
           key={i}
@@ -112,6 +121,7 @@ export function SplitBannerSection({
               src={side.mobileImageUrl}
               alt={side.title || ''}
               className="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 md:hidden"
+              data-side-mobile-image
             />
           )}
           {/* Desktop Image (also fallback for mobile if no mobile image) */}
@@ -120,20 +130,21 @@ export function SplitBannerSection({
               src={side.imageUrl}
               alt={side.title || ''}
               className={`w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 ${side.mobileImageUrl ? 'hidden md:block' : ''}`}
+              data-side-image
             />
           ) : (
-            <div className={`w-full h-full bg-gradient-to-b from-gray-200 to-gray-300 ${side.mobileImageUrl ? 'hidden md:block' : ''}`} />
+            <div className={`w-full h-full bg-gradient-to-b from-gray-200 to-gray-300 ${side.mobileImageUrl ? 'hidden md:block' : ''}`} data-side-placeholder />
           )}
           <div 
             className="absolute inset-0 group-hover:bg-black/20 transition-colors"
             style={{ backgroundColor: `rgba(0,0,0,${overlay})` }}
-            data-overlay
+            data-side-overlay
           />
           <div className="absolute inset-0 flex items-end justify-center pb-16">
             <span 
-              className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-[0.3em] uppercase`}
+              className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} tracking-[0.3em] uppercase`}
               style={{ color: settings.titleColor || '#ffffff' }}
-              data-section-title
+              data-side-title
             >
               {side.title || ''}
             </span>

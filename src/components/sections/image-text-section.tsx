@@ -1,9 +1,18 @@
 /**
  * ImageTextSection - Server Component
  * תמונה + טקסט (ימין/שמאל) - אפס JS, מהיר כמו PHP!
+ * 
+ * 🔧 Uses shared section-system constants
  */
 
 import Link from 'next/link';
+import { 
+  TITLE_SIZES, 
+  SUBTITLE_SIZES, 
+  TEXT_SIZES, 
+  FONT_WEIGHTS 
+} from '@/lib/section-system';
+import type { TitleSize, SubtitleSize, TextSize, FontWeight } from '@/lib/section-system';
 
 interface ImageTextSectionProps {
   title: string | null;
@@ -20,17 +29,20 @@ interface ImageTextSectionProps {
     height?: string;
     backgroundColor?: string;
     overlay?: number;
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: TitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
     // Typography - Subtitle
     subtitleColor?: string;
-    subtitleSize?: 'sm' | 'md' | 'lg';
-    subtitleWeight?: 'light' | 'normal' | 'medium' | 'semibold';
+    subtitleSize?: SubtitleSize | number;
+    subtitleSizeMobile?: number;
+    subtitleWeight?: FontWeight;
     // Typography - Content
     textColor?: string;
-    textSize?: 'sm' | 'md' | 'lg';
+    textSize?: TextSize | number;
+    textSizeMobile?: number;
     // Button
     buttonTextColor?: string;
     buttonBackgroundColor?: string;
@@ -47,33 +59,6 @@ interface ImageTextSectionProps {
   sectionId?: string;
 }
 
-const TITLE_SIZES = {
-  sm: 'text-xl md:text-2xl',
-  md: 'text-2xl md:text-3xl',
-  lg: 'text-3xl md:text-4xl',
-  xl: 'text-4xl md:text-5xl',
-};
-
-const SUBTITLE_SIZES = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-lg',
-};
-
-const TEXT_SIZES = {
-  sm: 'prose-sm',
-  md: 'prose',
-  lg: 'prose-lg',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-light',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
-
 export function ImageTextSection({ 
   title, 
   subtitle, 
@@ -86,12 +71,20 @@ export function ImageTextSection({
   const imageWidth = settings.imageWidth || '50%';
   const height = settings.height || 'auto';
 
-  // Typography settings with defaults
-  const titleSize = settings.titleSize || 'lg';
+  // Check for numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'lg' : (titleSizeValue || 'lg');
   const titleWeight = settings.titleWeight || 'light';
-  const subtitleSize = settings.subtitleSize || 'lg';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
+  const subtitleSize = isNumericSubtitleSize ? 'lg' : (subtitleSizeValue || 'lg');
   const subtitleWeight = settings.subtitleWeight || 'normal';
-  const textSize = settings.textSize || 'sm';
+  
+  const textSizeValue = settings.textSize;
+  const isNumericTextSize = typeof textSizeValue === 'number';
+  const textSize = isNumericTextSize ? 'sm' : (textSizeValue || 'sm');
 
   // Determine flex direction based on image position (RTL aware)
   const flexDirection = imagePosition === 'right' ? 'flex-row' : 'flex-row-reverse';
@@ -103,6 +96,8 @@ export function ImageTextSection({
     borderColor: settings.buttonBorderColor || 'black',
   };
 
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize || isNumericTextSize;
+
   return (
     <section 
       className={`py-12 md:py-0 ${settings.customClass || ''}`}
@@ -113,9 +108,46 @@ export function ImageTextSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="image_text"
       data-section-name="תמונה + טקסט"
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericTextSize ? `
+            [data-section-id="${sectionId}"] [data-content-text] {
+              font-size: ${settings.textSizeMobile || (textSizeValue as number) * 0.9}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-content-text] {
+                font-size: ${textSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
       <div 
         className={`flex flex-col md:${flexDirection} min-h-[400px]`} 
         style={{ 
@@ -165,21 +197,21 @@ export function ImageTextSection({
         >
           <div className="max-w-lg mx-auto">
             <h2 
-              className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-4 ${!title ? 'hidden' : ''}`}
+              className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} tracking-wide mb-4 ${!title ? 'hidden' : ''}`}
               style={{ color: settings.titleColor || 'inherit' }}
               data-section-title
             >
               {title || ''}
             </h2>
             <p 
-              className={`${SUBTITLE_SIZES[subtitleSize]} ${FONT_WEIGHTS[subtitleWeight]} mb-4 ${!subtitle ? 'hidden' : ''}`}
+              className={`${!isNumericSubtitleSize ? SUBTITLE_SIZES[subtitleSize as SubtitleSize] : ''} ${FONT_WEIGHTS[subtitleWeight]} mb-4 ${!subtitle ? 'hidden' : ''}`}
               style={{ color: settings.subtitleColor || '#4b5563' }}
               data-section-subtitle
             >
               {subtitle || ''}
             </p>
             <div 
-              className={`leading-relaxed mb-6 prose ${TEXT_SIZES[textSize]} ${!content.text ? 'hidden' : ''}`}
+              className={`leading-relaxed mb-6 prose ${!isNumericTextSize ? TEXT_SIZES[textSize as TextSize] : ''} ${!content.text ? 'hidden' : ''}`}
               style={{ color: settings.textColor || '#4b5563' }}
               data-content-text
               dangerouslySetInnerHTML={{ __html: content.text || '' }}

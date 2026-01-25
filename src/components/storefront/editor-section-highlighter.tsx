@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { getHandler, hasHandler } from '@/components/sections/handlers';
 
 /**
  * Editor Section Highlighter
@@ -23,6 +24,37 @@ export function EditorSectionHighlighter() {
   const getSectionElements = useCallback(() => {
     return document.querySelectorAll('[data-section-id]');
   }, []);
+
+  // Helper: Get section type from element
+  const getSectionTypeFromElement = (element: Element): string | null => {
+    // Try data-section-type attribute
+    const typeAttr = element.getAttribute('data-section-type');
+    if (typeAttr) return typeAttr;
+    
+    // Try to infer from data-section-name (Hebrew names)
+    const nameAttr = element.getAttribute('data-section-name');
+    if (nameAttr) {
+      const nameToType: Record<string, string> = {
+        'בלוק טקסט': 'text_block',
+        'באנר ראשי': 'hero',
+        'ביקורות': 'reviews',
+        'ביקורות לקוחות': 'reviews',
+        'חוזקות': 'features',
+        'גלריה': 'gallery',
+        'לוגואים': 'logos',
+        'שאלות נפוצות': 'faq',
+        'ניוזלטר': 'newsletter',
+        'יצירת קשר': 'contact',
+        'תמונה + טקסט': 'image_text',
+        'באנר וידאו': 'video_banner',
+        'באנר מפוצל': 'split_banner',
+        'באנר קטן': 'banner_small',
+      };
+      return nameToType[nameAttr] || null;
+    }
+    
+    return null;
+  };
 
   // Scroll to section
   const scrollToSection = useCallback((sectionId: string) => {
@@ -115,6 +147,25 @@ export function EditorSectionHighlighter() {
           const allSections = document.querySelectorAll('[data-section-id]');
           return;
         }
+
+        // =====================================================
+        // NEW MODULAR ARCHITECTURE: Check for dedicated handler
+        // =====================================================
+        const currentSectionType = element.getAttribute('data-section-type') || 
+                                   (element as HTMLElement).dataset.sectionType ||
+                                   getSectionTypeFromElement(element);
+        
+        if (currentSectionType && hasHandler(currentSectionType)) {
+          const dedicatedHandler = getHandler(currentSectionType);
+          if (dedicatedHandler) {
+            dedicatedHandler(element, updates);
+            return; // Handler took care of everything
+          }
+        }
+
+        // =====================================================
+        // LEGACY: Fall back to inline handling for sections not yet migrated
+        // =====================================================
 
         // =====================================================
         // CLEANUP OLD PLACEHOLDER STRUCTURE
@@ -235,6 +286,263 @@ export function EditorSectionHighlighter() {
         if (updates.content?.placeholder !== undefined) {
           const el = element.querySelector('[data-content-placeholder]') as HTMLInputElement;
           if (el) el.placeholder = updates.content.placeholder;
+        }
+        
+        // =====================================================
+        // REVIEWS SECTION LIVE UPDATES
+        // =====================================================
+        if (updates.content?.reviews !== undefined) {
+          const reviews = updates.content.reviews as Array<{ 
+            id?: string;
+            author?: string;
+            text: string; 
+            rating: number; 
+            date?: string;
+            verified?: boolean;
+          }>;
+          const reviewsGrid = element.querySelector('[data-reviews-grid]') as HTMLElement;
+          let reviewElements = element.querySelectorAll('[data-review-index]');
+          
+          // If we need more review elements, create them
+          if (reviewsGrid && reviews.length > reviewElements.length) {
+            for (let i = reviewElements.length; i < reviews.length; i++) {
+              const newReviewEl = document.createElement('div');
+              newReviewEl.className = 'bg-white p-6 rounded-lg shadow-sm border border-gray-100';
+              newReviewEl.setAttribute('data-review-index', String(i));
+              newReviewEl.setAttribute('data-review-id', String(i));
+              newReviewEl.innerHTML = `
+                <div class="flex gap-0.5 mb-3" data-review-rating="5">
+                  ${[1,2,3,4,5].map(j => `
+                    <svg class="w-4 h-4 ${j <= 5 ? 'text-yellow-400' : 'text-gray-200'}" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  `).join('')}
+                </div>
+                <p class="text-gray-700 mb-4" data-review-text>"ביקורת חדשה"</p>
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium" data-review-avatar>ל</div>
+                  <div>
+                    <div class="font-medium text-gray-900 flex items-center gap-2" data-review-author>לקוח חדש</div>
+                    <div class="text-sm text-gray-500" data-review-date style="display: none"></div>
+                  </div>
+                </div>
+              `;
+              reviewsGrid.appendChild(newReviewEl);
+            }
+            // Refresh the list
+            reviewElements = element.querySelectorAll('[data-review-index]');
+          }
+          
+          reviews.forEach((review, index) => {
+            const reviewEl = reviewElements[index] as HTMLElement;
+            if (reviewEl) {
+              // Show the element
+              reviewEl.style.display = '';
+              
+              // Update text
+              const textEl = reviewEl.querySelector('[data-review-text]') as HTMLElement;
+              if (textEl) textEl.textContent = `"${review.text}"`;
+              
+              // Update author
+              const authorEl = reviewEl.querySelector('[data-review-author]') as HTMLElement;
+              const authorName = review.author || '';
+              if (authorEl) {
+                // Keep the verified badge if present
+                const verifiedBadge = authorEl.querySelector('svg');
+                if (verifiedBadge) {
+                  authorEl.childNodes[0].textContent = authorName;
+                } else {
+                  authorEl.textContent = authorName;
+                }
+              }
+              
+              // Update avatar (first letter of author)
+              const avatarEl = reviewEl.querySelector('[data-review-avatar]') as HTMLElement;
+              if (avatarEl && authorName) {
+                avatarEl.textContent = authorName.charAt(0);
+              }
+              
+              // Update rating stars
+              const ratingContainer = reviewEl.querySelector('[data-review-rating]') as HTMLElement;
+              if (ratingContainer && review.rating !== undefined) {
+                ratingContainer.dataset.reviewRating = String(review.rating);
+                const stars = ratingContainer.querySelectorAll('svg');
+                stars.forEach((star, i) => {
+                  star.classList.toggle('text-yellow-400', i < review.rating);
+                  star.classList.toggle('text-gray-200', i >= review.rating);
+                });
+              }
+              
+              // Update date
+              const dateEl = reviewEl.querySelector('[data-review-date]') as HTMLElement;
+              if (dateEl) {
+                dateEl.textContent = review.date || '';
+                dateEl.style.display = review.date ? '' : 'none';
+              }
+            }
+          });
+          
+          // Hide extra review elements
+          reviewElements.forEach((el, index) => {
+            (el as HTMLElement).style.display = index < reviews.length ? '' : 'none';
+          });
+        }
+        
+        // =====================================================
+        // GALLERY SECTION LIVE UPDATES
+        // =====================================================
+        if (updates.content?.images !== undefined) {
+          const images = updates.content.images as Array<{ 
+            id?: string;
+            url: string; 
+            alt?: string;
+          }>;
+          const galleryGrid = element.querySelector('[data-gallery-grid]') as HTMLElement;
+          let imageElements = element.querySelectorAll('[data-gallery-item-index]');
+          
+          // If we need more elements, create them
+          if (galleryGrid && images.length > imageElements.length) {
+            for (let i = imageElements.length; i < images.length; i++) {
+              const newItem = document.createElement('div');
+              newItem.className = 'relative aspect-square overflow-hidden rounded-lg group cursor-pointer';
+              newItem.setAttribute('data-gallery-item-index', String(i));
+              newItem.setAttribute('data-gallery-item-id', String(i));
+              newItem.innerHTML = `
+                <img src="" alt="" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-gallery-image />
+                <div class="w-full h-full flex items-center justify-center bg-gray-100" data-gallery-placeholder>
+                  <span class="text-gray-400">תמונה</span>
+                </div>
+              `;
+              galleryGrid.appendChild(newItem);
+            }
+            imageElements = element.querySelectorAll('[data-gallery-item-index]');
+          }
+          
+          images.forEach((image, index) => {
+            const itemEl = imageElements[index] as HTMLElement;
+            if (itemEl) {
+              itemEl.style.display = '';
+              const imgEl = itemEl.querySelector('[data-gallery-image]') as HTMLImageElement;
+              const placeholder = itemEl.querySelector('[data-gallery-placeholder]') as HTMLElement;
+              if (imgEl) {
+                imgEl.src = image.url || '';
+                imgEl.alt = image.alt || '';
+                imgEl.style.display = image.url ? '' : 'none';
+              }
+              if (placeholder) {
+                placeholder.style.display = image.url ? 'none' : '';
+              }
+            }
+          });
+          
+          // Hide extra elements
+          imageElements.forEach((el, index) => {
+            (el as HTMLElement).style.display = index < images.length ? '' : 'none';
+          });
+        }
+        
+        // =====================================================
+        // LOGOS SECTION LIVE UPDATES
+        // =====================================================
+        if (updates.content?.logos !== undefined) {
+          const logos = updates.content.logos as Array<{ 
+            id?: string;
+            url: string; 
+            name?: string;
+            link?: string;
+          }>;
+          const logosGrid = element.querySelector('[data-logos-grid]') as HTMLElement;
+          let logoElements = element.querySelectorAll('[data-logo-index]');
+          
+          // If we need more elements, create them
+          if (logosGrid && logos.length > logoElements.length) {
+            for (let i = logoElements.length; i < logos.length; i++) {
+              const newItem = document.createElement('div');
+              newItem.className = 'flex items-center justify-center p-4 bg-white rounded-lg';
+              newItem.setAttribute('data-logo-index', String(i));
+              newItem.setAttribute('data-logo-id', String(i));
+              newItem.innerHTML = `
+                <img src="" alt="" class="max-h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all" data-logo-image />
+                <div class="w-24 h-12 flex items-center justify-center" data-logo-placeholder>
+                  <span class="text-gray-400 text-xs">לוגו</span>
+                </div>
+              `;
+              logosGrid.appendChild(newItem);
+            }
+            logoElements = element.querySelectorAll('[data-logo-index]');
+          }
+          
+          logos.forEach((logo, index) => {
+            const itemEl = logoElements[index] as HTMLElement;
+            if (itemEl) {
+              itemEl.style.display = '';
+              const imgEl = itemEl.querySelector('[data-logo-image]') as HTMLImageElement;
+              const placeholder = itemEl.querySelector('[data-logo-placeholder]') as HTMLElement;
+              if (imgEl) {
+                imgEl.src = logo.url || '';
+                imgEl.alt = logo.name || '';
+                imgEl.style.display = logo.url ? '' : 'none';
+              }
+              if (placeholder) {
+                placeholder.style.display = logo.url ? 'none' : '';
+              }
+            }
+          });
+          
+          // Hide extra elements
+          logoElements.forEach((el, index) => {
+            (el as HTMLElement).style.display = index < logos.length ? '' : 'none';
+          });
+        }
+        
+        // =====================================================
+        // FAQ SECTION LIVE UPDATES
+        // =====================================================
+        if (updates.content?.items !== undefined && element.querySelector('[data-faq-items]')) {
+          const items = updates.content.items as Array<{ 
+            id?: string;
+            question: string; 
+            answer: string;
+          }>;
+          const faqContainer = element.querySelector('[data-faq-items]') as HTMLElement;
+          let faqElements = element.querySelectorAll('[data-faq-item-index]');
+          
+          // If we need more elements, create them
+          if (faqContainer && items.length > faqElements.length) {
+            for (let i = faqElements.length; i < items.length; i++) {
+              const newItem = document.createElement('div');
+              newItem.className = 'border border-gray-200 rounded-lg';
+              newItem.setAttribute('data-faq-item-index', String(i));
+              newItem.setAttribute('data-faq-item-id', String(i));
+              newItem.innerHTML = `
+                <button class="w-full px-4 py-4 flex items-center justify-between text-right hover:bg-gray-50">
+                  <span class="font-medium text-gray-900" data-faq-question>שאלה חדשה</span>
+                  <svg class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                <div class="px-4 pb-4 text-gray-600" data-faq-answer style="display: none;">תשובה חדשה</div>
+              `;
+              faqContainer.appendChild(newItem);
+            }
+            faqElements = element.querySelectorAll('[data-faq-item-index]');
+          }
+          
+          items.forEach((item, index) => {
+            const itemEl = faqElements[index] as HTMLElement;
+            if (itemEl) {
+              itemEl.style.display = '';
+              const questionEl = itemEl.querySelector('[data-faq-question]') as HTMLElement;
+              const answerEl = itemEl.querySelector('[data-faq-answer]') as HTMLElement;
+              if (questionEl) questionEl.textContent = item.question || '';
+              if (answerEl) answerEl.textContent = item.answer || '';
+            }
+          });
+          
+          // Hide extra elements
+          faqElements.forEach((el, index) => {
+            (el as HTMLElement).style.display = index < items.length ? '' : 'none';
+          });
         }
         
         // =====================================================
@@ -507,29 +815,36 @@ export function EditorSectionHighlighter() {
         
         // Text alignment for section content
         if (updates.settings?.textAlign !== undefined) {
+          const align = updates.settings.textAlign as string;
+          
+          // Find possible content containers
           const contentContainer = element.querySelector('[data-content-container]') as HTMLElement 
             || element.querySelector('.relative.z-10') as HTMLElement;
           if (contentContainer) {
             // Remove all alignment classes
             contentContainer.classList.remove('items-start', 'items-center', 'items-end', 'text-left', 'text-center', 'text-right');
             // Add new alignment
-            const align = updates.settings.textAlign as string;
+            // Note: stored value 'left' = user selected ימין (visual RIGHT)
+            //       stored value 'right' = user selected שמאל (visual LEFT)
             if (align === 'left') {
-              contentContainer.classList.add('items-start', 'text-left');
-            } else if (align === 'right') {
+              // visual RIGHT
               contentContainer.classList.add('items-end', 'text-right');
+            } else if (align === 'right') {
+              // visual LEFT
+              contentContainer.classList.add('items-start', 'text-left');
             } else {
               contentContainer.classList.add('items-center', 'text-center');
             }
             
             // If full width, update padding based on alignment
-            // Check if container has 'container' class or w-full to determine type
             const isFullWidth = contentContainer.classList.contains('w-full') || !contentContainer.classList.contains('container');
             if (isFullWidth) {
-              if (align === 'right') {
+              if (align === 'left') {
+                // visual RIGHT - more padding on right
                 contentContainer.style.paddingRight = '20px';
                 contentContainer.style.paddingLeft = '24px';
-              } else if (align === 'left') {
+              } else if (align === 'right') {
+                // visual LEFT - more padding on left
                 contentContainer.style.paddingLeft = '20px';
                 contentContainer.style.paddingRight = '24px';
               } else {
@@ -538,6 +853,39 @@ export function EditorSectionHighlighter() {
               }
             }
           }
+          
+          // Update alignment for grid items (reviews, features, etc.)
+          // Note: stored value 'left' = user selected ימין (visual RIGHT)
+          //       stored value 'right' = user selected שמאל (visual LEFT)
+          const gridItems = element.querySelectorAll('[data-review-index], [data-feature-id], [data-faq-item-index]');
+          gridItems.forEach(item => {
+            const el = item as HTMLElement;
+            el.classList.remove('text-left', 'text-center', 'text-right');
+            // 'left' stored = visual right = text-right
+            el.classList.add(align === 'left' ? 'text-right' : align === 'right' ? 'text-left' : 'text-center');
+            
+            // Update flex containers inside (ratings, author section)
+            // For RTL: justify-start = visual right, justify-end = visual left
+            const flexContainers = el.querySelectorAll('[data-review-rating], [data-review-author]');
+            flexContainers.forEach(container => {
+              const parent = container.parentElement;
+              if (parent && parent.classList.contains('flex')) {
+                parent.classList.remove('justify-start', 'justify-center', 'justify-end');
+                // 'left' stored = visual right = justify-start (RTL)
+                parent.classList.add(align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center');
+              }
+            });
+            
+            // Update rating container directly if it has flex
+            const ratingEl = el.querySelector('[data-review-rating]')?.parentElement as HTMLElement;
+            if (ratingEl && ratingEl.classList.contains('flex')) {
+              ratingEl.classList.remove('justify-start', 'justify-center', 'justify-end');
+              ratingEl.classList.add(align === 'left' ? 'justify-start' : align === 'right' ? 'justify-end' : 'justify-center');
+            }
+          });
+          
+          // Note: Section header (title/subtitle) stays centered, not affected by content alignment
+          // Only grid items inside the section are affected
         }
         
         // Text position (vertical alignment)
@@ -610,17 +958,83 @@ export function EditorSectionHighlighter() {
           (element as HTMLElement).style.backgroundColor = updates.settings.sectionBackground as string;
         }
         
-        // Columns settings - requires page refresh for proper grid update
-        if (updates.settings?.columns !== undefined || updates.settings?.mobileColumns !== undefined) {
-          const grid = element.querySelector('[data-items-grid]') as HTMLElement;
-          if (grid) {
-            const cols = (updates.settings?.columns as number) || 3;
-            const mobileCols = (updates.settings?.mobileColumns as number) || 1;
-            // Remove existing grid classes
-            grid.className = grid.className.replace(/grid-cols-\d+/g, '').replace(/md:grid-cols-\d+/g, '').replace(/lg:grid-cols-\d+/g, '').trim();
-            // Add new grid classes
-            grid.classList.add(`grid-cols-${mobileCols}`, `md:grid-cols-${cols}`, 'grid', 'gap-6');
+        // Layout setting (grid vs slider)
+        if (updates.settings?.layout !== undefined) {
+          const layout = updates.settings.layout as string;
+          const cols = (updates.settings?.columns as number) || 3;
+          const reviewsGrid = element.querySelector('[data-reviews-grid]') as HTMLElement;
+          
+          if (reviewsGrid) {
+            if (layout === 'slider') {
+              // Switch to slider mode
+              reviewsGrid.className = 'flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory';
+              reviewsGrid.style.setProperty('scrollbar-width', 'none');
+              reviewsGrid.setAttribute('data-layout', 'slider');
+              
+              // Update children to be slider items
+              const items = reviewsGrid.children;
+              for (let i = 0; i < items.length; i++) {
+                const item = items[i] as HTMLElement;
+                item.classList.add('flex-shrink-0', 'snap-start');
+                item.style.width = `calc((100% - ${(cols - 1) * 24}px) / ${cols})`;
+                item.style.minWidth = '280px';
+              }
+            } else {
+              // Switch to grid mode
+              const mobileCols = (updates.settings?.mobileColumns as number) || 1;
+              reviewsGrid.className = `grid grid-cols-${mobileCols} md:grid-cols-${cols} gap-6`;
+              reviewsGrid.style.removeProperty('scrollbar-width');
+              reviewsGrid.setAttribute('data-layout', 'grid');
+              
+              // Remove slider classes from children
+              const items = reviewsGrid.children;
+              for (let i = 0; i < items.length; i++) {
+                const item = items[i] as HTMLElement;
+                item.classList.remove('flex-shrink-0', 'snap-start');
+                item.style.width = '';
+                item.style.minWidth = '';
+              }
+            }
           }
+        }
+        
+        // Columns settings - update all grid types
+        if (updates.settings?.columns !== undefined || updates.settings?.mobileColumns !== undefined) {
+          const cols = (updates.settings?.columns as number) || 3;
+          const mobileCols = (updates.settings?.mobileColumns as number) || 1;
+          
+          // Find all possible grid containers
+          const grids = [
+            element.querySelector('[data-items-grid]'),
+            element.querySelector('[data-reviews-grid]'),
+            element.querySelector('[data-gallery-grid]'),
+            element.querySelector('[data-logos-grid]'),
+            element.querySelector('[data-features-grid]'),
+            element.querySelector('[data-faq-items]'),
+          ].filter(Boolean) as HTMLElement[];
+          
+          grids.forEach(grid => {
+            const gridEl = grid as HTMLElement;
+            const isSlider = gridEl.getAttribute('data-layout') === 'slider';
+            
+            if (isSlider) {
+              // Update slider item widths
+              const items = gridEl.children;
+              for (let i = 0; i < items.length; i++) {
+                const item = items[i] as HTMLElement;
+                item.style.width = `calc((100% - ${(cols - 1) * 24}px) / ${cols})`;
+              }
+            } else {
+              // Remove existing grid classes
+              gridEl.className = gridEl.className
+                .replace(/grid-cols-\d+/g, '')
+                .replace(/md:grid-cols-\d+/g, '')
+                .replace(/lg:grid-cols-\d+/g, '')
+                .trim();
+              // Add new grid classes
+              gridEl.classList.add(`grid-cols-${mobileCols}`, `md:grid-cols-${cols}`, 'grid', 'gap-6');
+            }
+          });
         }
         
         // Image aspect ratio for series_grid
@@ -813,27 +1227,49 @@ export function EditorSectionHighlighter() {
           }
         }
         
-        if (updates.settings?.titleSize !== undefined) {
+        if (updates.settings?.titleSize !== undefined || updates.settings?.titleSizeMobile !== undefined) {
           const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
           if (titleEl) {
-            // Remove existing size classes and add new one
-            titleEl.classList.remove('text-xl', 'text-2xl', 'text-3xl', 'text-4xl', 'text-5xl', 
-              'md:text-2xl', 'md:text-3xl', 'md:text-4xl', 'md:text-5xl');
-            const sizeMap: Record<string, string[]> = {
-              'sm': ['text-xl', 'md:text-2xl'],
-              'md': ['text-2xl', 'md:text-3xl'],
-              'lg': ['text-3xl', 'md:text-4xl'],
-              'xl': ['text-4xl', 'md:text-5xl'],
-            };
-            const classes = sizeMap[updates.settings.titleSize as string] || sizeMap['lg'];
-            titleEl.classList.add(...classes);
+            const desktopSize = updates.settings?.titleSize;
+            const mobileSize = updates.settings?.titleSizeMobile;
+            
+            // Handle numeric values (from typography popover)
+            if (typeof desktopSize === 'number' || typeof mobileSize === 'number') {
+              // Use CSS custom properties for responsive sizing
+              if (typeof desktopSize === 'number') {
+                titleEl.style.setProperty('--title-size-desktop', `${desktopSize}px`);
+              }
+              if (typeof mobileSize === 'number') {
+                titleEl.style.setProperty('--title-size-mobile', `${mobileSize}px`);
+              }
+              // Apply responsive font size using CSS variables
+              const currentDesktop = titleEl.style.getPropertyValue('--title-size-desktop') || `${desktopSize || 48}px`;
+              const currentMobile = titleEl.style.getPropertyValue('--title-size-mobile') || currentDesktop;
+              
+              // Check if viewport is mobile-sized (less than 768px)
+              const isMobile = window.innerWidth < 768;
+              titleEl.style.fontSize = isMobile ? currentMobile : currentDesktop;
+            } else if (typeof desktopSize === 'string') {
+              // Handle string size keys for backward compatibility
+              titleEl.style.fontSize = ''; // Clear inline style
+              titleEl.classList.remove('text-xl', 'text-2xl', 'text-3xl', 'text-4xl', 'text-5xl', 
+                'md:text-2xl', 'md:text-3xl', 'md:text-4xl', 'md:text-5xl');
+              const sizeMap: Record<string, string[]> = {
+                'sm': ['text-xl', 'md:text-2xl'],
+                'md': ['text-2xl', 'md:text-3xl'],
+                'lg': ['text-3xl', 'md:text-4xl'],
+                'xl': ['text-4xl', 'md:text-5xl'],
+              };
+              const classes = sizeMap[desktopSize] || sizeMap['lg'];
+              titleEl.classList.add(...classes);
+            }
           }
         }
         
         if (updates.settings?.titleWeight !== undefined) {
           const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
           if (titleEl) {
-            titleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold');
+            titleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold', 'font-extrabold');
             titleEl.classList.add(`font-${updates.settings.titleWeight}`);
           }
         }
@@ -846,19 +1282,39 @@ export function EditorSectionHighlighter() {
           }
         }
         
-        if (updates.settings?.subtitleSize !== undefined) {
+        if (updates.settings?.subtitleSize !== undefined || updates.settings?.subtitleSizeMobile !== undefined) {
           const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
           if (subtitleEl) {
-            subtitleEl.classList.remove('text-sm', 'text-base', 'text-lg');
-            const sizeMap: Record<string, string> = { 'sm': 'text-sm', 'md': 'text-base', 'lg': 'text-lg' };
-            subtitleEl.classList.add(sizeMap[updates.settings.subtitleSize as string] || 'text-lg');
+            const desktopSize = updates.settings?.subtitleSize;
+            const mobileSize = updates.settings?.subtitleSizeMobile;
+            
+            // Handle numeric values (from typography popover)
+            if (typeof desktopSize === 'number' || typeof mobileSize === 'number') {
+              if (typeof desktopSize === 'number') {
+                subtitleEl.style.setProperty('--subtitle-size-desktop', `${desktopSize}px`);
+              }
+              if (typeof mobileSize === 'number') {
+                subtitleEl.style.setProperty('--subtitle-size-mobile', `${mobileSize}px`);
+              }
+              const currentDesktop = subtitleEl.style.getPropertyValue('--subtitle-size-desktop') || `${desktopSize || 18}px`;
+              const currentMobile = subtitleEl.style.getPropertyValue('--subtitle-size-mobile') || currentDesktop;
+              
+              const isMobile = window.innerWidth < 768;
+              subtitleEl.style.fontSize = isMobile ? currentMobile : currentDesktop;
+            } else if (typeof desktopSize === 'string') {
+              // Handle string size keys for backward compatibility
+              subtitleEl.style.fontSize = ''; // Clear inline style
+              subtitleEl.classList.remove('text-sm', 'text-base', 'text-lg');
+              const sizeMap: Record<string, string> = { 'sm': 'text-sm', 'md': 'text-base', 'lg': 'text-lg' };
+              subtitleEl.classList.add(sizeMap[desktopSize] || 'text-lg');
+            }
           }
         }
         
         if (updates.settings?.subtitleWeight !== undefined) {
           const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
           if (subtitleEl) {
-            subtitleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold');
+            subtitleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold', 'font-extrabold');
             subtitleEl.classList.add(`font-${updates.settings.subtitleWeight}`);
           }
         }
@@ -871,12 +1327,32 @@ export function EditorSectionHighlighter() {
           }
         }
         
-        if (updates.settings?.textSize !== undefined) {
+        if (updates.settings?.textSize !== undefined || updates.settings?.textSizeMobile !== undefined) {
           const textEl = element.querySelector('[data-content-text]') as HTMLElement;
           if (textEl) {
-            textEl.classList.remove('prose-sm', 'prose', 'prose-lg');
-            const sizeMap: Record<string, string> = { 'sm': 'prose-sm', 'md': 'prose', 'lg': 'prose-lg' };
-            textEl.classList.add(sizeMap[updates.settings.textSize as string] || 'prose-sm');
+            const desktopSize = updates.settings?.textSize;
+            const mobileSize = updates.settings?.textSizeMobile;
+            
+            // Handle numeric values (from typography popover)
+            if (typeof desktopSize === 'number' || typeof mobileSize === 'number') {
+              if (typeof desktopSize === 'number') {
+                textEl.style.setProperty('--text-size-desktop', `${desktopSize}px`);
+              }
+              if (typeof mobileSize === 'number') {
+                textEl.style.setProperty('--text-size-mobile', `${mobileSize}px`);
+              }
+              const currentDesktop = textEl.style.getPropertyValue('--text-size-desktop') || `${desktopSize || 16}px`;
+              const currentMobile = textEl.style.getPropertyValue('--text-size-mobile') || currentDesktop;
+              
+              const isMobile = window.innerWidth < 768;
+              textEl.style.fontSize = isMobile ? currentMobile : currentDesktop;
+            } else if (typeof desktopSize === 'string') {
+              // Handle string size keys for backward compatibility
+              textEl.style.fontSize = ''; // Clear inline style
+              textEl.classList.remove('prose-sm', 'prose', 'prose-lg');
+              const sizeMap: Record<string, string> = { 'sm': 'prose-sm', 'md': 'prose', 'lg': 'prose-lg' };
+              textEl.classList.add(sizeMap[desktopSize] || 'prose-sm');
+            }
           }
         }
         
@@ -902,6 +1378,31 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // Button border radius
+        if (updates.settings?.buttonBorderRadius !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            btnEl.style.borderRadius = `${updates.settings.buttonBorderRadius}px`;
+          }
+        }
+        
+        // Button border width
+        if (updates.settings?.buttonBorderWidth !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            btnEl.style.borderWidth = `${updates.settings.buttonBorderWidth}px`;
+          }
+        }
+        
+        // Button BgColor alias (some panels use buttonBgColor instead of buttonBackgroundColor)
+        if (updates.settings?.buttonBgColor !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            const color = updates.settings.buttonBgColor as string;
+            btnEl.style.backgroundColor = color === 'transparent' ? 'transparent' : color;
+          }
+        }
+        
         // Overlay for image sections (image_text)
         if (updates.settings?.overlay !== undefined) {
           const overlayEl = element.querySelector('[data-overlay]') as HTMLElement;
@@ -918,6 +1419,243 @@ export function EditorSectionHighlighter() {
         
         if (updates.settings?.marginBottom !== undefined) {
           (element as HTMLElement).style.marginBottom = `${updates.settings.marginBottom}px`;
+        }
+        
+        // =====================================================
+        // FAQ SECTION - Question & Answer colors
+        // =====================================================
+        if (updates.settings?.questionColor !== undefined) {
+          const questionEls = element.querySelectorAll('[data-faq-question]');
+          questionEls.forEach((el) => {
+            (el as HTMLElement).style.color = updates.settings.questionColor as string;
+          });
+        }
+        
+        if (updates.settings?.answerColor !== undefined) {
+          const answerEls = element.querySelectorAll('[data-faq-answer]');
+          answerEls.forEach((el) => {
+            (el as HTMLElement).style.color = updates.settings.answerColor as string;
+          });
+        }
+        
+        // =====================================================
+        // LOGOS SECTION - Logo height & grayscale
+        // =====================================================
+        if (updates.settings?.logoHeight !== undefined) {
+          const logoImages = element.querySelectorAll('[data-logo-image]');
+          logoImages.forEach((img) => {
+            (img as HTMLElement).style.height = `${updates.settings.logoHeight}px`;
+          });
+          // Also update placeholder heights
+          const placeholders = element.querySelectorAll('[data-logo-placeholder]');
+          placeholders.forEach((el) => {
+            (el as HTMLElement).style.height = `${updates.settings.logoHeight}px`;
+            (el as HTMLElement).style.width = `${(updates.settings.logoHeight as number) * 2}px`;
+          });
+        }
+        
+        if (updates.settings?.grayscale !== undefined) {
+          const logoWrappers = element.querySelectorAll('[data-logo-id]');
+          const isGrayscale = updates.settings.grayscale as boolean;
+          logoWrappers.forEach((wrapper) => {
+            const el = wrapper as HTMLElement;
+            const img = el.querySelector('[data-logo-image]') as HTMLElement;
+            if (img) {
+              if (isGrayscale) {
+                el.classList.add('opacity-60');
+                img.classList.add('grayscale');
+              } else {
+                el.classList.remove('opacity-60');
+                img.classList.remove('grayscale');
+              }
+            }
+          });
+        }
+        
+        // =====================================================
+        // NEWSLETTER SECTION - Input border color
+        // =====================================================
+        if (updates.settings?.inputBorderColor !== undefined) {
+          const inputEl = element.querySelector('[data-content-placeholder]') as HTMLElement;
+          if (inputEl) {
+            inputEl.style.borderColor = updates.settings.inputBorderColor as string;
+          }
+        }
+        
+        // =====================================================
+        // FEATURES SECTION - Feature title/description styling
+        // =====================================================
+        if (updates.settings?.featureTitleColor !== undefined) {
+          const featureTitles = element.querySelectorAll('[data-feature-title]');
+          featureTitles.forEach((el) => {
+            (el as HTMLElement).style.color = updates.settings.featureTitleColor as string;
+          });
+        }
+        
+        if (updates.settings?.featureTitleSize !== undefined) {
+          const featureTitles = element.querySelectorAll('[data-feature-title]');
+          const sizeMap: Record<string, string[]> = {
+            'sm': ['text-base'],
+            'md': ['text-lg'],
+            'lg': ['text-xl'],
+          };
+          featureTitles.forEach((el) => {
+            const titleEl = el as HTMLElement;
+            titleEl.classList.remove('text-base', 'text-lg', 'text-xl');
+            const classes = sizeMap[updates.settings.featureTitleSize as string] || sizeMap['lg'];
+            titleEl.classList.add(...classes);
+          });
+        }
+        
+        if (updates.settings?.featureTitleWeight !== undefined) {
+          const featureTitles = element.querySelectorAll('[data-feature-title]');
+          featureTitles.forEach((el) => {
+            const titleEl = el as HTMLElement;
+            titleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold');
+            titleEl.classList.add(`font-${updates.settings.featureTitleWeight}`);
+          });
+        }
+        
+        if (updates.settings?.featureDescColor !== undefined) {
+          const featureDescs = element.querySelectorAll('[data-feature-description]');
+          featureDescs.forEach((el) => {
+            (el as HTMLElement).style.color = updates.settings.featureDescColor as string;
+          });
+        }
+        
+        // =====================================================
+        // REVIEWS SECTION - Card style
+        // =====================================================
+        if (updates.settings?.cardStyle !== undefined) {
+          const reviewCards = element.querySelectorAll('[data-review-id]');
+          const newStyle = updates.settings.cardStyle as string;
+          reviewCards.forEach((card) => {
+            const el = card as HTMLElement;
+            // Remove all style classes
+            el.classList.remove('bg-white', 'p-6', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-100', 
+              'p-4', 'border-b', 'text-center');
+            // Add new style classes
+            if (newStyle === 'cards') {
+              el.classList.add('bg-white', 'p-6', 'rounded-lg', 'shadow-sm', 'border', 'border-gray-100');
+            } else if (newStyle === 'minimal') {
+              el.classList.add('p-4', 'border-b', 'border-gray-100');
+            } else if (newStyle === 'quotes') {
+              el.classList.add('p-6', 'text-center');
+            }
+          });
+        }
+        
+        // =====================================================
+        // BANNER_SMALL SECTION - Size & Button style
+        // =====================================================
+        if (updates.settings?.size !== undefined) {
+          const el = element as HTMLElement;
+          el.classList.remove('py-3', 'py-5', 'py-8');
+          const sizeMap = { 'small': 'py-3', 'medium': 'py-5', 'large': 'py-8' };
+          el.classList.add(sizeMap[updates.settings.size as keyof typeof sizeMap] || 'py-5');
+        }
+        
+        if (updates.settings?.buttonStyle !== undefined) {
+          const btnEl = element.querySelector('[data-section-button]') as HTMLElement;
+          if (btnEl) {
+            const style = updates.settings.buttonStyle as string;
+            if (style === 'none') {
+              btnEl.style.display = 'none';
+            } else {
+              btnEl.style.display = '';
+              if (style === 'filled') {
+                btnEl.style.backgroundColor = updates.settings?.buttonBackgroundColor as string || '#ffffff';
+              } else {
+                btnEl.style.backgroundColor = 'transparent';
+              }
+            }
+          }
+        }
+        
+        // =====================================================
+        // QUOTE_BANNER SECTION - Text style & Parallax
+        // =====================================================
+        if (updates.settings?.textStyle !== undefined) {
+          const quoteEl = element.querySelector('[data-section-quote]') as HTMLElement;
+          if (quoteEl) {
+            const style = updates.settings.textStyle as string;
+            quoteEl.classList.remove('font-serif', 'font-sans', 'italic');
+            if (style === 'serif') {
+              quoteEl.classList.add('font-serif');
+            } else if (style === 'italic') {
+              quoteEl.classList.add('font-serif', 'italic');
+            } else {
+              quoteEl.classList.add('font-sans');
+            }
+          }
+        }
+        
+        if (updates.settings?.parallax !== undefined) {
+          const bgDesktop = element.querySelector('[data-bg-desktop]') as HTMLElement;
+          const bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
+          const useParallax = updates.settings.parallax as boolean;
+          if (bgDesktop) {
+            bgDesktop.style.backgroundAttachment = useParallax ? 'fixed' : 'scroll';
+          }
+          // Mobile usually doesn't support parallax, keep it scroll
+          if (bgMobile) {
+            bgMobile.style.backgroundAttachment = 'scroll';
+          }
+        }
+        
+        // =====================================================
+        // TEXT_BLOCK / FAQ SECTION - Max width & Padding Y
+        // =====================================================
+        if (updates.settings?.maxWidth !== undefined) {
+          const el = element as HTMLElement;
+          const inner = el.querySelector('.mx-auto') as HTMLElement;
+          if (inner) {
+            inner.classList.remove('max-w-sm', 'max-w-md', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-7xl');
+            const maxWidthMap: Record<string, string> = {
+              'sm': 'max-w-sm',
+              'md': 'max-w-md',
+              'lg': 'max-w-2xl',
+              'xl': 'max-w-4xl',
+              'full': 'max-w-7xl',
+            };
+            inner.classList.add(maxWidthMap[updates.settings.maxWidth as string] || 'max-w-2xl');
+          }
+        }
+        
+        if (updates.settings?.paddingY !== undefined) {
+          const el = element as HTMLElement;
+          el.classList.remove('py-8', 'py-16', 'py-24');
+          const paddingMap: Record<string, string> = {
+            'small': 'py-8',
+            'medium': 'py-16',
+            'large': 'py-24',
+          };
+          el.classList.add(paddingMap[updates.settings.paddingY as string] || 'py-16');
+        }
+        
+        // =====================================================
+        // GALLERY SECTION - Columns & Gap
+        // =====================================================
+        if (updates.settings?.gap !== undefined) {
+          const grid = element.querySelector('[data-gallery-grid]') as HTMLElement;
+          if (grid) {
+            const gap = updates.settings.gap as number;
+            const gapClasses = { 0: 'gap-0', 2: 'gap-2', 4: 'gap-4', 6: 'gap-6', 8: 'gap-8' };
+            grid.classList.remove('gap-0', 'gap-2', 'gap-4', 'gap-6', 'gap-8');
+            grid.classList.add(gapClasses[gap as keyof typeof gapClasses] || 'gap-4');
+          }
+        }
+        
+        if (updates.settings?.aspectRatio !== undefined) {
+          const galleryItems = element.querySelectorAll('[data-gallery-item-id]');
+          const aspectRatio = updates.settings.aspectRatio as string;
+          galleryItems.forEach((item) => {
+            const el = item as HTMLElement;
+            el.classList.remove('aspect-square', 'aspect-[4/3]', 'aspect-video');
+            if (aspectRatio === 'square') el.classList.add('aspect-square');
+            else if (aspectRatio === '4:3') el.classList.add('aspect-[4/3]');
+            else if (aspectRatio === '16:9') el.classList.add('aspect-video');
+          });
         }
         
         // Card height (series grid overlay style)
@@ -1089,13 +1827,54 @@ export function EditorSectionHighlighter() {
             description?: string;
           }>;
           
-          const featuresGrid = element.querySelector('[data-features-grid]');
+          // Icon paths map
+          const iconPaths: Record<string, string> = {
+            truck: 'M1 3h15v13H1zm15 5h4l3 3v5h-7m-13 0a2.5 2.5 0 105 0m8 0a2.5 2.5 0 105 0',
+            refresh: 'M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16',
+            shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+            check: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
+            message: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
+            sparkles: 'M12 3l-1.9 5.8a2 2 0 01-1.3 1.3L3 12l5.8 1.9a2 2 0 011.3 1.3L12 21l1.9-5.8a2 2 0 011.3-1.3L21 12l-5.8-1.9a2 2 0 01-1.3-1.3L12 3zM5 3v4M19 17v4M3 5h4M17 19h4',
+            heart: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z',
+            star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+            gift: 'M20 12v10H4V12m16-5H4v5h16V7zm-8 15V7m0 0H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z',
+            clock: 'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2',
+            percent: 'M19 5L5 19M9 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20 17.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
+            award: 'M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12',
+            zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+          };
+          
+          const featuresGrid = element.querySelector('[data-features-grid]') as HTMLElement;
           if (featuresGrid) {
-            const featureEls = featuresGrid.querySelectorAll('[data-feature-id]');
+            let featureEls = featuresGrid.querySelectorAll('[data-feature-id]');
+            
+            // If we need more elements, create them
+            if (features.length > featureEls.length) {
+              for (let i = featureEls.length; i < features.length; i++) {
+                const newFeature = document.createElement('div');
+                newFeature.className = 'flex flex-col items-center text-center space-y-3';
+                newFeature.setAttribute('data-feature-id', String(i));
+                newFeature.innerHTML = `
+                  <div data-feature-icon>
+                    <div class="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center" style="background-color: rgba(0,0,0,0.05)">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="${iconPaths['truck']}" />
+                      </svg>
+                    </div>
+                  </div>
+                  <h3 class="font-medium text-sm md:text-base" data-feature-title>פיצ'ר חדש</h3>
+                  <p class="text-xs md:text-sm text-gray-500" data-feature-description>תיאור</p>
+                `;
+                featuresGrid.appendChild(newFeature);
+              }
+              featureEls = featuresGrid.querySelectorAll('[data-feature-id]');
+            }
             
             features.forEach((feature, index) => {
               const featureEl = featureEls[index] as HTMLElement;
               if (featureEl) {
+                featureEl.style.display = '';
+                
                 // Update title
                 const titleEl = featureEl.querySelector('[data-feature-title]') as HTMLElement;
                 if (titleEl && feature.title !== undefined) {
@@ -1115,30 +1894,29 @@ export function EditorSectionHighlighter() {
                   if (iconContainer) {
                     const svgEl = iconContainer.querySelector('svg');
                     if (svgEl) {
-                      // Icon paths map
-                      const iconPaths: Record<string, string> = {
-                        truck: 'M1 3h15v13H1zm15 5h4l3 3v5h-7m-13 0a2.5 2.5 0 105 0m8 0a2.5 2.5 0 105 0',
-                        refresh: 'M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16',
-                        shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
-                        check: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
-                        message: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
-                        sparkles: 'M12 3l-1.9 5.8a2 2 0 01-1.3 1.3L3 12l5.8 1.9a2 2 0 011.3 1.3L12 21l1.9-5.8a2 2 0 011.3-1.3L21 12l-5.8-1.9a2 2 0 01-1.3-1.3L12 3zM5 3v4M19 17v4M3 5h4M17 19h4',
-                        heart: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z',
-                        star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
-                        gift: 'M20 12v10H4V12m16-5H4v5h16V7zm-8 15V7m0 0H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z',
-                        clock: 'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2',
-                        percent: 'M19 5L5 19M9 6.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM20 17.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z',
-                        award: 'M12 15a7 7 0 100-14 7 7 0 000 14zM8.21 13.89L7 23l5-3 5 3-1.21-9.12',
-                        zap: 'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
-                      };
+                      // Update existing SVG path
                       const pathEl = svgEl.querySelector('path');
                       if (pathEl && iconPaths[feature.icon]) {
                         pathEl.setAttribute('d', iconPaths[feature.icon]);
                       }
+                    } else if (iconPaths[feature.icon]) {
+                      // Replace emoji/content with new SVG icon
+                      iconContainer.innerHTML = `
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center" style="background-color: rgba(0,0,0,0.05)">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="${iconPaths[feature.icon]}" />
+                          </svg>
+                        </div>
+                      `;
                     }
                   }
                 }
               }
+            });
+            
+            // Hide extra elements
+            featureEls.forEach((el, index) => {
+              (el as HTMLElement).style.display = index < features.length ? '' : 'none';
             });
           }
         }
@@ -1782,33 +2560,47 @@ export function EditorSectionHighlighter() {
           
           case 'features':
             placeholder.className = 'py-12 px-4';
+            placeholder.dataset.sectionName = 'חוזקות';
+            // Use content features if provided, otherwise defaults
+            const featuresData = content?.features || [
+              { icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+              { icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
+              { icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
+              { icon: 'sparkles', title: 'איכות מובטחת', description: '100% שביעות רצון' }
+            ];
+            // SVG icon paths
+            const featureIconPaths: Record<string, string> = {
+              truck: 'M1 3h15v13H1zm15 5h4l3 3v5h-7m-13 0a2.5 2.5 0 105 0m8 0a2.5 2.5 0 105 0',
+              refresh: 'M21 2v6h-6M3 12a9 9 0 0115-6.7L21 8M3 22v-6h6M21 12a9 9 0 01-15 6.7L3 16',
+              shield: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z',
+              check: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3',
+              message: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
+              sparkles: 'M12 3l-1.9 5.8a2 2 0 01-1.3 1.3L3 12l5.8 1.9a2 2 0 011.3 1.3L12 21l1.9-5.8a2 2 0 011.3-1.3L21 12l-5.8-1.9a2 2 0 01-1.3-1.3L12 3zM5 3v4M19 17v4M3 5h4M17 19h4',
+              heart: 'M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0016.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 002 8.5c0 2.3 1.5 4.05 3 5.5l7 7z',
+              star: 'M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z',
+              gift: 'M20 12v10H4V12m16-5H4v5h16V7zm-8 15V7m0 0H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z',
+              clock: 'M12 22a10 10 0 100-20 10 10 0 000 20zM12 6v6l4 2',
+            };
             html = `
               <div class="max-w-7xl mx-auto">
                 <div class="text-center mb-10">
                   <h2 class="text-2xl md:text-3xl font-light tracking-wide mb-3 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
                   <p class="text-sm md:text-base ${subtitle ? '' : 'hidden'}" style="color: #4b5563;" data-section-subtitle>${subtitle || ''}</p>
                 </div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-                  <div class="py-6 px-4 text-center md:border-l md:border-gray-100">
-                    <div class="mb-4 flex justify-center"><span class="text-3xl">🚚</span></div>
-                    <h3 class="font-medium mb-1" style="color: #111827;">משלוח מהיר</h3>
-                    <p class="text-sm" style="color: #6b7280;">עד 3 ימי עסקים</p>
-                  </div>
-                  <div class="py-6 px-4 text-center md:border-l md:border-gray-100">
-                    <div class="mb-4 flex justify-center"><span class="text-3xl">🔄</span></div>
-                    <h3 class="font-medium mb-1" style="color: #111827;">החזרות חינם</h3>
-                    <p class="text-sm" style="color: #6b7280;">עד 30 יום</p>
-                  </div>
-                  <div class="py-6 px-4 text-center md:border-l md:border-gray-100">
-                    <div class="mb-4 flex justify-center"><span class="text-3xl">💬</span></div>
-                    <h3 class="font-medium mb-1" style="color: #111827;">תמיכה 24/7</h3>
-                    <p class="text-sm" style="color: #6b7280;">בכל שאלה</p>
-                  </div>
-                  <div class="py-6 px-4 text-center">
-                    <div class="mb-4 flex justify-center"><span class="text-3xl">✨</span></div>
-                    <h3 class="font-medium mb-1" style="color: #111827;">איכות מובטחת</h3>
-                    <p class="text-sm" style="color: #6b7280;">100% שביעות רצון</p>
-                  </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8" data-features-grid>
+                  ${featuresData.map((f: { icon?: string; title: string; description?: string }, i: number) => `
+                    <div class="py-6 px-4 text-center ${i < featuresData.length - 1 ? 'md:border-l md:border-gray-100' : ''}" data-feature-id="${i}">
+                      <div class="mb-4 flex justify-center" data-feature-icon>
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center" style="background-color: rgba(0,0,0,0.05)">
+                          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="${featureIconPaths[f.icon || 'sparkles'] || featureIconPaths.sparkles}" />
+                          </svg>
+                        </div>
+                      </div>
+                      <h3 class="font-medium mb-1" style="color: #111827;" data-feature-title>${f.title}</h3>
+                      <p class="text-sm" style="color: #6b7280;" data-feature-description>${f.description || ''}</p>
+                    </div>
+                  `).join('')}
                 </div>
               </div>
             `;
@@ -1853,16 +2645,26 @@ export function EditorSectionHighlighter() {
             break;
           
           case 'gallery':
+            const galleryImages = (content?.images as Array<{ id?: string; url: string; alt?: string }>) || [];
+            const galleryCols = (event.data.settings?.columns as number) || 4;
+            const galleryMobileCols = (event.data.settings?.mobileColumns as number) || 2;
             placeholder.className = 'py-16 bg-white';
+            placeholder.dataset.sectionName = 'גלריה';
             html = `
-              <div class="container mx-auto px-4">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'גלריה'}</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  ${[1,2,3,4].map(() => `
-                    <div class="aspect-square bg-gray-100 rounded flex items-center justify-center">
-                      <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
+              <div class="max-w-7xl mx-auto px-4">
+                <div class="text-center mb-12">
+                  <h2 class="text-2xl md:text-3xl font-display font-light tracking-wide mb-3" data-section-title style="display: ${title ? '' : 'none'}">${title || ''}</h2>
+                  <p class="text-gray-600 text-sm md:text-base max-w-2xl mx-auto" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
+                </div>
+                <div class="grid grid-cols-${galleryMobileCols} md:grid-cols-${galleryCols} gap-4" data-gallery-grid>
+                  ${(galleryImages.length > 0 ? galleryImages : [{id:'1',url:'',alt:''},{id:'2',url:'',alt:''},{id:'3',url:'',alt:''},{id:'4',url:'',alt:''}]).map((image, index) => `
+                    <div class="relative aspect-square overflow-hidden rounded-lg group cursor-pointer" data-gallery-item-index="${index}" data-gallery-item-id="${image.id || index}">
+                      <img src="${image.url || ''}" alt="${image.alt || ''}" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-gallery-image style="display: ${image.url ? '' : 'none'}" />
+                      <div class="w-full h-full flex items-center justify-center bg-gray-100" data-gallery-placeholder style="display: ${image.url ? 'none' : ''}">
+                        <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
                     </div>
                   `).join('')}
                 </div>
@@ -1905,19 +2707,28 @@ export function EditorSectionHighlighter() {
             break;
 
           case 'faq':
+            const faqItems = (content?.items as Array<{ id?: string; question: string; answer: string }>) || [
+              { id: '1', question: 'מהם זמני המשלוח?', answer: 'משלוחים מגיעים תוך 3-5 ימי עסקים.' },
+              { id: '2', question: 'מהי מדיניות ההחזרות?', answer: 'ניתן להחזיר מוצרים תוך 14 יום מרגע הקבלה.' },
+            ];
             placeholder.className = 'py-16 bg-white';
+            placeholder.dataset.sectionName = 'שאלות נפוצות';
             html = `
-              <div class="container mx-auto px-4 max-w-3xl">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'שאלות נפוצות'}</h2>
-                <div class="space-y-4">
-                  ${[1,2,3].map(i => `
-                    <div class="border border-gray-200 rounded-lg p-4">
-                      <div class="flex justify-between items-center">
-                        <span class="font-medium">שאלה ${i}</span>
-                        <svg class="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <div class="max-w-3xl mx-auto px-4">
+                <div class="text-center mb-12">
+                  <h2 class="text-2xl md:text-3xl font-display font-light tracking-wide mb-3" data-section-title style="display: ${title ? '' : 'none'}">${title || 'שאלות נפוצות'}</h2>
+                  <p class="text-gray-600 text-sm md:text-base max-w-2xl mx-auto" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
+                </div>
+                <div class="space-y-4" data-faq-items>
+                  ${faqItems.map((item, index) => `
+                    <div class="border border-gray-200 rounded-lg" data-faq-item-index="${index}" data-faq-item-id="${item.id || index}">
+                      <button class="w-full px-4 py-4 flex items-center justify-between text-right hover:bg-gray-50">
+                        <span class="font-medium text-gray-900" data-faq-question>${item.question}</span>
+                        <svg class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
-                      </div>
+                      </button>
+                      <div class="px-4 pb-4 text-gray-600" data-faq-answer style="display: none;">${item.answer}</div>
                     </div>
                   `).join('')}
                 </div>
@@ -1926,16 +2737,48 @@ export function EditorSectionHighlighter() {
             break;
 
           case 'reviews':
+            const reviewsContent = (content?.reviews as Array<{ 
+              author?: string;
+              text: string; 
+              rating: number;
+              date?: string;
+              verified?: boolean;
+            }>) || [
+              { author: 'שרה כ.', text: 'מוצר מעולה, ממליצה בחום!', rating: 5 },
+              { author: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
+              { author: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
+            ];
             placeholder.className = 'py-16 bg-gray-50';
+            placeholder.dataset.sectionName = 'ביקורות';
             html = `
-              <div class="container mx-auto px-4">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'ביקורות לקוחות'}</h2>
-                <div class="grid md:grid-cols-3 gap-6">
-                  ${[1,2,3].map(() => `
-                    <div class="bg-white p-6 rounded-lg shadow-sm">
-                      <div class="flex gap-1 mb-3">${'★'.repeat(5)}</div>
-                      <p class="text-gray-600 mb-4">"ביקורת לדוגמה..."</p>
-                      <p class="font-medium">לקוח מרוצה</p>
+              <div class="max-w-7xl mx-auto px-4">
+                <div class="text-center mb-12">
+                  <h2 class="text-2xl md:text-3xl font-display font-light tracking-wide mb-3 ${title ? '' : 'hidden'}" data-section-title style="display: ${title ? '' : 'none'}">${title || ''}</h2>
+                  <p class="text-gray-600 text-sm md:text-base max-w-2xl mx-auto ${subtitle ? '' : 'hidden'}" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
+                </div>
+                <div class="grid md:grid-cols-3 gap-6" data-reviews-grid>
+                  ${reviewsContent.map((review, index) => `
+                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100" data-review-index="${index}" data-review-id="${index}">
+                      <div class="flex gap-0.5 mb-3" data-review-rating="${review.rating}">
+                        ${[1,2,3,4,5].map(i => `
+                          <svg class="w-4 h-4 ${i <= review.rating ? 'text-yellow-400' : 'text-gray-200'}" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                        `).join('')}
+                      </div>
+                      <p class="text-gray-700 mb-4" data-review-text>"${review.text}"</p>
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium" data-review-avatar>
+                          ${(review.author || '').charAt(0)}
+                        </div>
+                        <div>
+                          <div class="font-medium text-gray-900 flex items-center gap-2" data-review-author>
+                            ${review.author || 'לקוח'}
+                            ${review.verified ? '<svg class="w-4 h-4 text-green-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" /></svg>' : ''}
+                          </div>
+                          ${review.date ? `<div class="text-sm text-gray-500" data-review-date>${review.date}</div>` : '<div class="text-sm text-gray-500" data-review-date style="display: none"></div>'}
+                        </div>
+                      </div>
                     </div>
                   `).join('')}
                 </div>
@@ -1944,14 +2787,24 @@ export function EditorSectionHighlighter() {
             break;
 
           case 'logos':
+            const logosList = (content?.logos as Array<{ id?: string; url: string; name?: string; link?: string }>) || [];
+            const logosCols = (event.data.settings?.columns as number) || 5;
+            const logosMobileCols = (event.data.settings?.mobileColumns as number) || 3;
             placeholder.className = 'py-12 bg-white';
+            placeholder.dataset.sectionName = 'לוגואים';
             html = `
-              <div class="container mx-auto px-4">
-                <h2 class="text-xl font-light tracking-wide text-center mb-8 text-gray-500 ${title ? '' : 'hidden'}" data-section-title>${title || 'הם בחרו בנו'}</h2>
-                <div class="flex flex-wrap justify-center items-center gap-8">
-                  ${[1,2,3,4,5].map(() => `
-                    <div class="w-24 h-12 bg-gray-100 rounded flex items-center justify-center">
-                      <span class="text-gray-400 text-xs">לוגו</span>
+              <div class="max-w-7xl mx-auto px-4">
+                <div class="text-center mb-8">
+                  <h2 class="text-xl font-light tracking-wide text-gray-500" data-section-title style="display: ${title ? '' : 'none'}">${title || 'הם בחרו בנו'}</h2>
+                  <p class="text-gray-500 text-sm mt-2" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
+                </div>
+                <div class="flex flex-wrap justify-center items-center gap-8" data-logos-grid>
+                  ${(logosList.length > 0 ? logosList : [{id:'1',url:'',name:''},{id:'2',url:'',name:''},{id:'3',url:'',name:''},{id:'4',url:'',name:''},{id:'5',url:'',name:''}]).map((logo, index) => `
+                    <div class="flex items-center justify-center p-4 bg-white rounded-lg" data-logo-index="${index}" data-logo-id="${logo.id || index}">
+                      <img src="${logo.url || ''}" alt="${logo.name || ''}" class="max-h-12 w-auto object-contain grayscale hover:grayscale-0 transition-all" data-logo-image style="display: ${logo.url ? '' : 'none'}" />
+                      <div class="w-24 h-12 flex items-center justify-center bg-gray-100 rounded" data-logo-placeholder style="display: ${logo.url ? 'none' : ''}">
+                        <span class="text-gray-400 text-xs">לוגו</span>
+                      </div>
                     </div>
                   `).join('')}
                 </div>

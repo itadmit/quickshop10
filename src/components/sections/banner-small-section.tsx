@@ -1,9 +1,13 @@
 /**
  * BannerSmallSection - Server Component
  * באנר קטן/הודעה - אפס JS, מהיר כמו PHP!
+ * 
+ * 🔧 Uses shared section-system constants
  */
 
 import Link from 'next/link';
+import { SUBTITLE_SIZES as TITLE_SIZES, FONT_WEIGHTS } from '@/lib/section-system';
+import type { SubtitleSize, FontWeight } from '@/lib/section-system';
 
 interface BannerSmallSectionProps {
   title: string | null;
@@ -16,13 +20,16 @@ interface BannerSmallSectionProps {
   settings: {
     backgroundColor?: string;
     size?: 'small' | 'medium' | 'large';
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: SubtitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
     // Typography - Subtitle
     subtitleColor?: string;
-    subtitleWeight?: 'light' | 'normal' | 'medium' | 'semibold';
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
+    subtitleWeight?: FontWeight;
     // Button
     buttonTextColor?: string;
     buttonBackgroundColor?: string;
@@ -40,20 +47,6 @@ interface BannerSmallSectionProps {
   sectionId?: string;
 }
 
-const TITLE_SIZES = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-lg',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-light',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
-
 export function BannerSmallSection({ 
   title, 
   subtitle, 
@@ -65,8 +58,15 @@ export function BannerSmallSection({
   const backgroundColor = settings.backgroundColor || '#000000';
   const buttonStyle = settings.buttonStyle || 'outline';
   const size = settings.size || 'medium';
-  const titleSize = settings.titleSize || 'md';
+  
+  // Check for numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'md' : (titleSizeValue || 'md');
   const titleWeight = settings.titleWeight || 'medium';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
   const subtitleWeight = settings.subtitleWeight || 'normal';
 
   const paddingY = {
@@ -82,6 +82,8 @@ export function BannerSmallSection({
     borderColor: settings.buttonBorderColor || '#ffffff',
   };
 
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+
   return (
     <section 
       className={`${paddingY} px-4 ${settings.customClass || ''}`}
@@ -92,9 +94,37 @@ export function BannerSmallSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="banner_small"
       data-section-name="באנר קטן"
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
+      
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-center gap-4 text-center sm:text-right">
         {/* Icon */}
         {content.icon && (
@@ -104,14 +134,14 @@ export function BannerSmallSection({
         {/* Text */}
         <div className="flex flex-col sm:flex-row items-center gap-2">
           <span 
-            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} ${!title ? 'hidden' : ''}`}
+            className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as SubtitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} ${!title ? 'hidden' : ''}`}
             style={{ color: settings.titleColor || '#ffffff' }}
             data-section-title
           >
             {title || ''}
           </span>
           <span 
-            className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[subtitleWeight]} opacity-80 ${!subtitle ? 'hidden' : ''}`}
+            className={`${!isNumericSubtitleSize ? TITLE_SIZES[titleSize as SubtitleSize] : ''} ${FONT_WEIGHTS[subtitleWeight]} opacity-80 ${!subtitle ? 'hidden' : ''}`}
             style={{ color: settings.subtitleColor || '#ffffff' }}
             data-section-subtitle
           >

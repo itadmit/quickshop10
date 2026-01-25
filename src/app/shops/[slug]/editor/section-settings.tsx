@@ -12,6 +12,25 @@ import {
   type AspectRatio
 } from '@/lib/category-page-settings';
 
+// Modular Settings Components
+import {
+  SettingsGroup,
+  CollapsibleGroup,
+  TextField,
+  TextAreaField,
+  SelectField,
+  ToggleField,
+  SwitchField,
+  SliderField,
+  ColorField,
+} from '@/components/editor/settings/common';
+
+// New Modern Panels (Figma style)
+import { TextBlockPanel } from '@/components/editor/panels';
+
+// Feature flag for new editor UI
+const USE_NEW_EDITOR_UI = true;
+
 // ============================================
 // Section Settings - Right Panel (Shopify Style) - עברית
 // ============================================
@@ -591,7 +610,9 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 
   // Handle NEW product page sections V2 (product_* prefix and content sections)
   // NOTE: image_text is handled separately in the regular section settings (has ImageTextContentSettings)
-  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video', 'features', 'text_block'].includes(section.type)) {
+  // NOTE: features is handled in regular section settings for home page (has FeaturesContentSettings with title support)
+  // NOTE: text_block is handled in regular section settings (has TextBlockContentSettings)
+  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video'].includes(section.type)) {
     return (
       <ProductPageSectionSettingsV2 
         section={section}
@@ -609,6 +630,16 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
         sectionType={section.type}
         settings={settings as Record<string, unknown>} 
         updateSettings={updateSettings as (settings: Record<string, unknown>) => void} 
+      />
+    );
+  }
+
+  // 🆕 NEW: Modern Figma-style panel for text_block
+  if (USE_NEW_EDITOR_UI && section.type === 'text_block') {
+    return (
+      <TextBlockPanel
+        section={section}
+        onUpdate={onUpdate}
       />
     );
   }
@@ -719,8 +750,9 @@ function ContentSettings({
           multiline
           placeholder="הזן תת-כותרת"
         />
-        {/* Hide text alignment for series_grid - not relevant */}
-        {section.type !== 'series_grid' && (
+        {/* Text alignment moved to Design tab for most sections */}
+        {/* Keep here only for sections that don't have dedicated Design settings */}
+        {!['reviews', 'gallery', 'logos', 'features', 'faq', 'series_grid'].includes(section.type) && (
           <ToggleField
             label="יישור טקסט"
             options={['ימין', 'מרכז', 'שמאל']}
@@ -807,6 +839,13 @@ function DesignSettings({
       settings: { ...section.settings, [key]: value }
     });
   };
+  
+  // Update multiple settings at once to avoid batching issues
+  const updateMultipleSettings = (updates: Record<string, unknown>) => {
+    onUpdate({
+      settings: { ...section.settings, ...updates }
+    });
+  };
 
   // Hero-specific design settings
   if (section.type === 'hero') {
@@ -818,12 +857,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#ffffff',
               fontSize: sizeToPx(section.settings.titleSize, 48),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'bold'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#ffffff"
           />
@@ -832,12 +875,16 @@ function DesignSettings({
             value={{
               color: (section.settings.subtitleColor as string) || 'rgba(255,255,255,0.9)',
               fontSize: sizeToPx(section.settings.subtitleSize, 18),
+              fontSizeMobile: section.settings.subtitleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
             }}
             onChange={(typography) => {
-              updateSettings('subtitleColor', typography.color);
-              updateSettings('subtitleSize', typography.fontSize);
-              updateSettings('subtitleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                subtitleColor: typography.color,
+                subtitleSize: typography.fontSize,
+                subtitleSizeMobile: typography.fontSizeMobile,
+                subtitleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="rgba(255,255,255,0.9)"
           />
@@ -985,12 +1032,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#000000',
               fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'light'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#000000"
           />
@@ -999,12 +1050,16 @@ function DesignSettings({
             value={{
               color: (section.settings.subtitleColor as string) || '#4b5563',
               fontSize: sizeToPx(section.settings.subtitleSize, 18),
+              fontSizeMobile: section.settings.subtitleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
             }}
             onChange={(typography) => {
-              updateSettings('subtitleColor', typography.color);
-              updateSettings('subtitleSize', typography.fontSize);
-              updateSettings('subtitleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                subtitleColor: typography.color,
+                subtitleSize: typography.fontSize,
+                subtitleSizeMobile: typography.fontSizeMobile,
+                subtitleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#4b5563"
           />
@@ -1013,10 +1068,14 @@ function DesignSettings({
             value={{
               color: (section.settings.textColor as string) || '#4b5563',
               fontSize: sizeToPx(section.settings.textSize, 14),
+              fontSizeMobile: section.settings.textSizeMobile as number | undefined,
             }}
             onChange={(typography) => {
-              updateSettings('textColor', typography.color);
-              updateSettings('textSize', typography.fontSize);
+              updateMultipleSettings({
+                textColor: typography.color,
+                textSize: typography.fontSize,
+                textSizeMobile: typography.fontSizeMobile,
+              });
             }}
             defaultColor="#4b5563"
           />
@@ -1180,12 +1239,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#ffffff',
               fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'light'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#ffffff"
           />
@@ -1194,12 +1257,16 @@ function DesignSettings({
             value={{
               color: (section.settings.subtitleColor as string) || 'rgba(255,255,255,0.8)',
               fontSize: sizeToPx(section.settings.subtitleSize, 14),
+              fontSizeMobile: section.settings.subtitleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
             }}
             onChange={(typography) => {
-              updateSettings('subtitleColor', typography.color);
-              updateSettings('subtitleSize', typography.fontSize);
-              updateSettings('subtitleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                subtitleColor: typography.color,
+                subtitleSize: typography.fontSize,
+                subtitleSizeMobile: typography.fontSizeMobile,
+                subtitleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="rgba(255,255,255,0.8)"
           />
@@ -1296,12 +1363,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#ffffff',
               fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'light'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#ffffff"
           />
@@ -1551,12 +1622,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#111827',
               fontSize: sizeToPx(section.settings.titleSize, 36),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'light'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#111827"
           />
@@ -1854,6 +1929,8 @@ function DesignSettings({
 
   // Reviews design settings
   if (section.type === 'reviews') {
+    const isSlider = (section.settings.layout as string) === 'slider';
+    
     return (
       <div className="p-4 space-y-6">
         <SettingsGroup title="פריסה">
@@ -1867,21 +1944,100 @@ function DesignSettings({
             onChange={(v) => updateSettings('layout', v)}
           />
           <SelectField
-            label="עמודות"
+            label={isSlider ? 'פריטים בתצוגה (מחשב)' : 'עמודות מחשב'}
             value={String((section.settings.columns as number) || 3)}
             options={[
+              { value: '1', label: '1' },
               { value: '2', label: '2' },
               { value: '3', label: '3' },
               { value: '4', label: '4' },
             ]}
             onChange={(v) => updateSettings('columns', parseInt(v))}
           />
+          <SelectField
+            label={isSlider ? 'פריטים בתצוגה (מובייל)' : 'עמודות מובייל'}
+            value={String((section.settings.mobileColumns as number) || 1)}
+            options={[
+              { value: '1', label: '1' },
+              { value: '2', label: '2' },
+            ]}
+            onChange={(v) => updateSettings('mobileColumns', parseInt(v))}
+          />
           <ColorField
             label="צבע רקע"
             value={(section.settings.backgroundColor as string) || '#f9fafb'}
             onChange={(v) => updateSettings('backgroundColor', v)}
           />
+          <ToggleField
+            label="יישור תוכן"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
+          />
         </SettingsGroup>
+
+        {/* Slider-specific settings */}
+        {isSlider && (
+          <SettingsGroup title="הגדרות סליידר">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">הצג חצים</span>
+              <input
+                type="checkbox"
+                checked={(section.settings.showArrows as boolean) !== false}
+                onChange={(e) => updateSettings('showArrows', e.target.checked)}
+                className="h-4 w-4"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">הצג נקודות</span>
+              <input
+                type="checkbox"
+                checked={(section.settings.showDots as boolean) !== false}
+                onChange={(e) => updateSettings('showDots', e.target.checked)}
+                className="h-4 w-4"
+              />
+            </div>
+            <SelectField
+              label="סגנון חצים"
+              value={(section.settings.arrowStyle as string) || 'circle'}
+              options={[
+                { value: 'circle', label: 'עיגול' },
+                { value: 'square', label: 'ריבוע' },
+                { value: 'minimal', label: 'מינימלי' },
+              ]}
+              onChange={(v) => updateSettings('arrowStyle', v)}
+            />
+            <SelectField
+              label="סגנון נקודות"
+              value={(section.settings.dotsStyle as string) || 'dots'}
+              options={[
+                { value: 'dots', label: 'נקודות' },
+                { value: 'lines', label: 'קווים' },
+                { value: 'numbers', label: 'מספרים' },
+              ]}
+              onChange={(v) => updateSettings('dotsStyle', v)}
+            />
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-700">הפעלה אוטומטית</span>
+              <input
+                type="checkbox"
+                checked={(section.settings.autoplay as boolean) || false}
+                onChange={(e) => updateSettings('autoplay', e.target.checked)}
+                className="h-4 w-4"
+              />
+            </div>
+            {(section.settings.autoplay as boolean) && (
+              <SliderField
+                label="מהירות (שניות)"
+                value={((section.settings.autoplayInterval as number) || 5000) / 1000}
+                min={1}
+                max={10}
+                suffix="s"
+                onChange={(v) => updateSettings('autoplayInterval', v * 1000)}
+              />
+            )}
+          </SettingsGroup>
+        )}
 
         <SettingsGroup title="עיצוב כותרת">
           <ColorField
@@ -1934,7 +2090,7 @@ function DesignSettings({
       <div className="p-4 space-y-6">
         <SettingsGroup title="פריסה">
           <SelectField
-            label="עמודות"
+            label="עמודות מחשב"
             value={String((section.settings.columns as number) || 4)}
             options={[
               { value: '2', label: '2' },
@@ -1945,10 +2101,26 @@ function DesignSettings({
             ]}
             onChange={(v) => updateSettings('columns', parseInt(v))}
           />
+          <SelectField
+            label="עמודות מובייל"
+            value={String((section.settings.mobileColumns as number) || 2)}
+            options={[
+              { value: '1', label: '1' },
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+            ]}
+            onChange={(v) => updateSettings('mobileColumns', parseInt(v))}
+          />
           <ColorField
             label="צבע רקע"
             value={(section.settings.backgroundColor as string) || 'transparent'}
             onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+          <ToggleField
+            label="יישור תוכן"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
         </SettingsGroup>
 
@@ -2003,7 +2175,7 @@ function DesignSettings({
       <div className="p-4 space-y-6">
         <SettingsGroup title="פריסה">
           <SelectField
-            label="עמודות"
+            label="עמודות מחשב"
             value={String((section.settings.columns as number) || 5)}
             options={[
               { value: '3', label: '3' },
@@ -2013,10 +2185,26 @@ function DesignSettings({
             ]}
             onChange={(v) => updateSettings('columns', parseInt(v))}
           />
+          <SelectField
+            label="עמודות מובייל"
+            value={String((section.settings.mobileColumns as number) || 3)}
+            options={[
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+              { value: '4', label: '4' },
+            ]}
+            onChange={(v) => updateSettings('mobileColumns', parseInt(v))}
+          />
           <ColorField
             label="צבע רקע"
             value={(section.settings.backgroundColor as string) || 'transparent'}
             onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+          <ToggleField
+            label="יישור תוכן"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
         </SettingsGroup>
 
@@ -2139,12 +2327,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#000000',
               fontSize: sizeToPx(section.settings.titleSize, 16),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'light'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#000000"
           />
@@ -2152,9 +2344,13 @@ function DesignSettings({
             label="תת-כותרת"
             value={{
               color: (section.settings.subtitleColor as string) || '#6b7280',
+              fontSizeMobile: section.settings.subtitleSizeMobile as number | undefined,
             }}
             onChange={(typography) => {
-              updateSettings('subtitleColor', typography.color);
+              updateMultipleSettings({
+                subtitleColor: typography.color,
+                subtitleSizeMobile: typography.fontSizeMobile,
+              });
             }}
             defaultColor="#6b7280"
           />
@@ -2231,7 +2427,7 @@ function DesignSettings({
       <div className="p-4 space-y-6">
         <SettingsGroup title="פריסה">
           <SelectField
-            label="עמודות"
+            label="עמודות מחשב"
             value={String((section.settings.columns as number) || 4)}
             options={[
               { value: '2', label: '2' },
@@ -2241,6 +2437,16 @@ function DesignSettings({
               { value: '6', label: '6' },
             ]}
             onChange={(v) => updateSettings('columns', parseInt(v))}
+          />
+          <SelectField
+            label="עמודות מובייל"
+            value={String((section.settings.mobileColumns as number) || 2)}
+            options={[
+              { value: '1', label: '1' },
+              { value: '2', label: '2' },
+              { value: '3', label: '3' },
+            ]}
+            onChange={(v) => updateSettings('mobileColumns', parseInt(v))}
           />
           <SelectField
             label="סגנון אייקון"
@@ -2265,6 +2471,12 @@ function DesignSettings({
             label="צבע רקע"
             value={(section.settings.backgroundColor as string) || 'transparent'}
             onChange={(v) => updateSettings('backgroundColor', v)}
+          />
+          <ToggleField
+            label="יישור תוכן"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
         </SettingsGroup>
 
@@ -2407,12 +2619,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#ffffff',
               fontSize: sizeToPx(section.settings.titleSize, 16),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'medium'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#ffffff"
           />
@@ -2420,11 +2636,15 @@ function DesignSettings({
             label="תת-כותרת"
             value={{
               color: (section.settings.subtitleColor as string) || '#ffffff',
+              fontSizeMobile: section.settings.subtitleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
             }}
             onChange={(typography) => {
-              updateSettings('subtitleColor', typography.color);
-              updateSettings('subtitleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                subtitleColor: typography.color,
+                subtitleSizeMobile: typography.fontSizeMobile,
+                subtitleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#ffffff"
           />
@@ -2537,12 +2757,16 @@ function DesignSettings({
             value={{
               color: (section.settings.titleColor as string) || '#000000',
               fontSize: sizeToPx(section.settings.titleSize, 18),
+              fontSizeMobile: section.settings.titleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.titleWeight, 'light'),
             }}
             onChange={(typography) => {
-              updateSettings('titleColor', typography.color);
-              updateSettings('titleSize', typography.fontSize);
-              updateSettings('titleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                titleColor: typography.color,
+                titleSize: typography.fontSize,
+                titleSizeMobile: typography.fontSizeMobile,
+                titleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#000000"
           />
@@ -2551,12 +2775,16 @@ function DesignSettings({
             value={{
               color: (section.settings.subtitleColor as string) || '#6b7280',
               fontSize: sizeToPx(section.settings.subtitleSize, 18),
+              fontSizeMobile: section.settings.subtitleSizeMobile as number | undefined,
               fontWeight: mapWeight(section.settings.subtitleWeight, 'normal'),
             }}
             onChange={(typography) => {
-              updateSettings('subtitleColor', typography.color);
-              updateSettings('subtitleSize', typography.fontSize);
-              updateSettings('subtitleWeight', typography.fontWeight);
+              updateMultipleSettings({
+                subtitleColor: typography.color,
+                subtitleSize: typography.fontSize,
+                subtitleSizeMobile: typography.fontSizeMobile,
+                subtitleWeight: typography.fontWeight,
+              });
             }}
             defaultColor="#6b7280"
           />
@@ -2565,10 +2793,14 @@ function DesignSettings({
             value={{
               color: (section.settings.textColor as string) || '#374151',
               fontSize: sizeToPx(section.settings.textSize, 16),
+              fontSizeMobile: section.settings.textSizeMobile as number | undefined,
             }}
             onChange={(typography) => {
-              updateSettings('textColor', typography.color);
-              updateSettings('textSize', typography.fontSize);
+              updateMultipleSettings({
+                textColor: typography.color,
+                textSize: typography.fontSize,
+                textSizeMobile: typography.fontSizeMobile,
+              });
             }}
             defaultColor="#374151"
           />
@@ -3433,28 +3665,33 @@ function VideoBannerContentSettings({ section, onUpdate, storeInfo }: { section:
 
 // Reviews Content Settings
 function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
-  const reviews = (section.content.reviews as Array<{ name: string; text: string; rating: number; date?: string }>) || [
-    { name: 'שרה כ.', text: 'מוצר מעולה, ממליצה בחום!', rating: 5 },
-    { name: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
-    { name: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
+  // Support both 'author' (new) and 'name' (legacy) fields
+  const reviews = (section.content.reviews as Array<{ author?: string; name?: string; text: string; rating: number; date?: string }>) || [
+    { author: 'שרה כ.', text: 'מוצר מעולה, ממליצה בחום!', rating: 5 },
+    { author: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
+    { author: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
   ];
 
-  const updateReviews = (newReviews: Array<{ name: string; text: string; rating: number; date?: string }>) => {
+  const updateReviews = (newReviews: Array<{ author: string; text: string; rating: number; date?: string }>) => {
     onUpdate({ content: { ...section.content, reviews: newReviews } });
   };
 
-  const updateReview = (index: number, field: 'name' | 'text' | 'rating' | 'date', value: string | number) => {
-    const newReviews = [...reviews];
-    newReviews[index] = { ...newReviews[index], [field]: value };
+  const updateReview = (index: number, field: 'author' | 'text' | 'rating' | 'date', value: string | number) => {
+    const newReviews = reviews.map((r, i) => {
+      if (i !== index) return { author: r.author || r.name || '', text: r.text, rating: r.rating, date: r.date };
+      return { author: r.author || r.name || '', text: r.text, rating: r.rating, date: r.date, [field]: value };
+    });
     updateReviews(newReviews);
   };
 
   const addReview = () => {
-    updateReviews([...reviews, { name: 'לקוח חדש', text: 'ביקורת', rating: 5 }]);
+    const normalized = reviews.map(r => ({ author: r.author || r.name || '', text: r.text, rating: r.rating, date: r.date }));
+    updateReviews([...normalized, { author: 'לקוח חדש', text: 'ביקורת', rating: 5 }]);
   };
 
   const removeReview = (index: number) => {
-    const newReviews = reviews.filter((_, i) => i !== index);
+    const normalized = reviews.map(r => ({ author: r.author || r.name || '', text: r.text, rating: r.rating, date: r.date }));
+    const newReviews = normalized.filter((_, i) => i !== index);
     updateReviews(newReviews);
   };
 
@@ -3476,8 +3713,8 @@ function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpd
               </div>
               <input
                 type="text"
-                value={review.name}
-                onChange={(e) => updateReview(index, 'name', e.target.value)}
+                value={review.author || review.name || ''}
+                onChange={(e) => updateReview(index, 'author', e.target.value)}
                 className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
                 placeholder="שם"
               />
@@ -3575,12 +3812,20 @@ const FEATURE_ICONS = [
 ] as const;
 
 function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUpdate: (updates: Partial<Section>) => void }) {
-  const features = (section.content.features as Array<{ icon: string; title: string; description: string }>) || [
+  // Support both old (emoji) and new (icon) formats
+  const rawFeatures = (section.content.features as Array<{ icon?: string; emoji?: string; title: string; description: string }>) || [
     { icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
     { icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
     { icon: 'shield', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
     { icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
   ];
+  
+  // Convert legacy emoji format to icon format
+  const features = rawFeatures.map(f => ({
+    icon: f.icon || 'sparkles', // Default to sparkles if no icon (was emoji only)
+    title: f.title,
+    description: f.description || '',
+  }));
 
   const updateFeatures = (newFeatures: Array<{ icon: string; title: string; description: string }>) => {
     onUpdate({ content: { ...section.content, features: newFeatures } });
@@ -3865,6 +4110,21 @@ function TextBlockContentSettings({ section, onUpdate, metafields = [] }: { sect
 
   return (
     <>
+      <SettingsGroup title="כותרת">
+        <TextField
+          label="כותרת"
+          value={(section.title as string) || ''}
+          onChange={(v) => onUpdate({ title: v })}
+          placeholder="הזן כותרת"
+        />
+        <TextField
+          label="תת-כותרת"
+          value={(section.subtitle as string) || ''}
+          onChange={(v) => onUpdate({ subtitle: v })}
+          placeholder="הזן תת-כותרת"
+        />
+      </SettingsGroup>
+      
       <SettingsGroup title="תוכן">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -3891,6 +4151,7 @@ function TextBlockContentSettings({ section, onUpdate, metafields = [] }: { sect
           )}
         </div>
       </SettingsGroup>
+      
       <SettingsGroup title="כפתור">
         <TextField
           label="טקסט כפתור"
@@ -4871,301 +5132,9 @@ function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { sectio
 }
 
 // =====================================================
-// UI Components
+// UI Components (imported from modular settings)
+// Local components that need MediaPicker or special handling
 // =====================================================
-
-// UI Components
-function SettingsGroup({ title, children, defaultOpen = true }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-  
-  return (
-    <div className="space-y-3">
-      <button 
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700"
-      >
-        {title}
-        <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
-      </button>
-      {isOpen && children}
-    </div>
-  );
-}
-
-function CollapsibleGroup({ 
-  title, 
-  children, 
-  defaultOpen = false 
-}: { 
-  title: string; 
-  children: React.ReactNode; 
-  defaultOpen?: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
-
-  return (
-    <div className="border-t border-gray-100 pt-4">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-1"
-      >
-        <h4 className="text-sm font-medium text-gray-900">{title}</h4>
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
-      </button>
-      {isOpen && <div className="mt-3 space-y-3">{children}</div>}
-    </div>
-  );
-}
-
-function TextField({
-  label,
-  value,
-  onChange,
-  multiline,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  multiline?: boolean;
-  placeholder?: string;
-}) {
-  return (
-    <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
-      {multiline ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-blue-500"
-        />
-      ) : (
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
-        />
-      )}
-    </div>
-  );
-}
-
-function TextAreaField({
-  label,
-  value,
-  onChange,
-  placeholder,
-  hint,
-  rows = 3,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  hint?: string;
-  rows?: number;
-}) {
-  return (
-    <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={rows}
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
-      />
-      {hint && (
-        <p className="text-xs text-gray-400 mt-1">{hint}</p>
-      )}
-    </div>
-  );
-}
-
-function SelectField({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
-      >
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
-function ToggleField({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: string[];
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
-      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
-        {options.map((opt) => (
-          <button
-            key={opt}
-            onClick={() => onChange(opt)}
-            className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-              value === opt 
-                ? 'bg-gray-900 text-white' 
-                : 'bg-white text-gray-600 hover:bg-gray-50'
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SwitchField({
-  label,
-  description,
-  value,
-  onChange,
-}: {
-  label: string;
-  description?: string;
-  value: boolean;
-  onChange: (value: boolean) => void;
-}) {
-  return (
-    <div className="flex items-start justify-between">
-      <div>
-        <label className="text-sm text-gray-700">{label}</label>
-        {description && (
-          <p className="text-xs text-gray-400 mt-0.5">{description}</p>
-        )}
-      </div>
-      <button
-        onClick={() => onChange(!value)}
-        className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-          value ? 'bg-blue-500' : 'bg-gray-200'
-        }`}
-      >
-        <div
-          className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
-            value ? 'right-1' : 'left-1'
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
-function SliderField({
-  label,
-  value,
-  min,
-  max,
-  suffix,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  suffix?: string;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <label className="text-sm text-gray-700 shrink-0">{label}</label>
-      <div className="flex items-center gap-3 flex-1">
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="flex-1 h-1 bg-gray-200 rounded-full appearance-none cursor-pointer accent-blue-500"
-          dir="ltr"
-        />
-        <div className="flex items-center gap-1 w-16">
-          <input
-            type="number"
-            min={min}
-            max={max}
-            value={value}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="w-12 px-2 py-1 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-blue-500"
-            dir="ltr"
-          />
-          {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  // Handle empty, undefined, or 'transparent' values - input type="color" requires valid hex
-  const displayValue = (!value || value === '' || value === 'transparent') ? '#000000' : value;
-  const labelValue = (!value || value === '' || value === 'transparent') ? 'לא נבחר' : value;
-  
-  return (
-    <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
-      <div className="flex items-center gap-2">
-        <input
-          type="color"
-          value={displayValue}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
-        />
-        <span className="text-xs text-gray-500">
-          {labelValue}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 function ImageField({
   label,

@@ -1,0 +1,565 @@
+{
+  "backupDate": "2026-01-23T13:18:37.314Z",
+  "storeId": "968fee7a-8456-4fea-8923-4a5fdd3358d3",
+  "storeName": "Argania",
+  "storeSlug": "argania",
+  "homeSections": [
+    {
+      "id": "d36d657c-9e59-48cf-bb07-e1e71d9ccfca",
+      "type": "hero_premium",
+      "title": null,
+      "content": {
+        "eyebrow": "",
+        "headline": "",
+        "imageUrl": "",
+        "videoUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1768305156/quickshop/stores/argania/lmzgtz00sq5flvldjqbr.mp4",
+        "description": "",
+        "headlineAccent": "",
+        "mobileVideoUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1768306777/quickshop/stores/argania/zrqrhfzbtbar0175dll4.mp4",
+        "primaryButtonLink": "",
+        "primaryButtonText": "",
+        "secondaryButtonLink": "",
+        "secondaryButtonText": ""
+      },
+      "isActive": true,
+      "settings": {
+        "height": "800px",
+        "accentColor": "#000000",
+        "showGradient": false,
+        "overlayOpacity": 0.07,
+        "gradientDirection": "left"
+      },
+      "subtitle": null,
+      "sortOrder": 0
+    },
+    {
+      "id": "fcbef066-7ecb-4610-8eda-66f7506dc6eb",
+      "type": "products",
+      "title": "מוצרים",
+      "content": {
+        "type": "specific",
+        "limit": 8,
+        "categoryId": "",
+        "productIds": [
+          "987a923f-ce60-4dec-aa38-5df969998070",
+          "1bf0e4b9-c0ec-40da-86f5-220cdba8e372",
+          "316ce1ba-9c37-42ff-a66d-14c6850e8547",
+          "d2c6f731-ea95-4d10-942c-40b1e35ab454"
+        ],
+        "selectedProducts": [
+          {
+            "id": "987a923f-ce60-4dec-aa38-5df969998070",
+            "name": "סט שמפו טיפולי (450 מ\"ל) + מסיכה טיפולית (500 מ\"ל)",
+            "slug": "סט-שמפו-טיפולי-450-מ-ל-מסיכה-טיפולית-500-מ-ל",
+            "price": "85.00",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1768280669/quickshop/stores/argania/qjhjved9vxy3kaabdigu.webp",
+            "comparePrice": null
+          },
+          {
+            "id": "1bf0e4b9-c0ec-40da-86f5-220cdba8e372",
+            "name": "סט שמפו קיק (450 מ\"ל) + מסיכה קיק (500 מ\"ל)",
+            "slug": "סט-שמפו-קיק-450-מ-ל-מסיכה-קיק-500-מ-ל",
+            "price": "85.00",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1768280729/quickshop/stores/argania/kl8o6wswwxehsf6aoq6m.webp",
+            "comparePrice": null
+          },
+          {
+            "id": "316ce1ba-9c37-42ff-a66d-14c6850e8547",
+            "name": "שמפו ללא שטיפה חומצה היאלורונית וקרטין ( 200 מ\"ל)",
+            "slug": "שמפו-ללא-שטיפה-חומצה-היאלורונית-וקרטין-200-מ-ל",
+            "price": "49.90",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1768122812/quickshop/stores/argania/drwzpzziukmd0vdsvog6.webp",
+            "comparePrice": null
+          },
+          {
+            "id": "d2c6f731-ea95-4d10-942c-40b1e35ab454",
+            "name": "שמפו ללא שטיפה שמן קיק ( 200 מ\"ל)",
+            "slug": "שמפו-ללא-שטיפה-שמן-קיק-200-מ-ל",
+            "price": "49.90",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1768121446/quickshop/stores/argania/rnsxygxf3k0llshd4wdr.webp",
+            "comparePrice": null
+          }
+        ]
+      },
+      "isActive": true,
+      "settings": {
+        "gap": 8,
+        "columns": 4,
+        "showCount": false,
+        "titleSize": "lg",
+        "hoverEffect": "none",
+        "showAddToCart": true
+      },
+      "subtitle": null,
+      "sortOrder": 1
+    },
+    {
+      "id": "fb7c4f09-b650-4a4b-949f-c1fedc5876d1",
+      "type": "series_grid",
+      "title": "סדרות טיפוח לשיער",
+      "content": {
+        "items": [
+          {
+            "id": "castor",
+            "link": "https://argania-oil.co.il/category/%D7%A1%D7%93%D7%A8%D7%AA-%D7%A7%D7%99%D7%A7",
+            "title": "סדרת קיק",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767866698/quickshop/stores/argania/qwq740gwyyrpvnqy6f63.webp",
+            "description": "מוצרי הסדרה מכילים שמן קיק טהור בכבישה קרה, התורם לשיפור זרימת הדם ומעודד את צמיחת השיער מבלי להותיר תחושת שמנוניות. "
+          },
+          {
+            "id": "argan",
+            "link": "https://argania-oil.co.il/category/%D7%A1%D7%93%D7%A8%D7%AA-%D7%90%D7%A8%D7%92%D7%9F",
+            "title": "סדרת ארגן",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767867723/quickshop/stores/argania/nt5mt3d6anwh8tmcco8d.webp",
+            "description": "שמן הארגן מקל על תופעות של יובש וגרד בקרקפת, משפר את הזנת העור ותורם למראה שיער בריא ומבריק מבלי להותיר תחושת שמנוניות. מתאים לכל סוגי השיער,"
+          },
+          {
+            "id": "hyaluronic-keratin",
+            "link": "https://argania-oil.co.il/category/%D7%A1%D7%93%D7%A8%D7%AA-%D7%97%D7%95%D7%9E%D7%A6%D7%94-%D7%94%D7%99%D7%90%D7%9C%D7%95%D7%A8%D7%95%D7%A0%D7%99%D7%AA-%D7%A7%D7%A8%D7%98%D7%99%D7%9F",
+            "title": "חומצה היאלורונית וקרטין",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767867754/quickshop/stores/argania/wtakbv4bj2snovwtrcam.webp",
+            "description": "סדרת מוצרי הטיפוח לשיער ולקרקפת מכילה רכיבים חיוניים לטיפול ולשיקום שיער יבש ופגום ולשיער שעבר החלקה."
+          },
+          {
+            "id": "hyaluronic-shea",
+            "link": "https://argania-oil.co.il/category/%D7%A1%D7%93%D7%A8%D7%AA-%D7%97%D7%95%D7%9E%D7%A6%D7%94-%D7%94%D7%99%D7%90%D7%9C%D7%95%D7%A8%D7%95%D7%A0%D7%99%D7%AA-%D7%95%D7%97%D7%9E%D7%90%D7%AA-%D7%A9%D7%99%D7%90%D7%94",
+            "title": "חומצה היאלורונית וחמאת שיאה",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767867783/quickshop/stores/argania/clivcsuvvmpunoppuxr4.webp",
+            "description": "מוצרי הסדרה מכילים חומצה היאלורונית אשר תורמת לשמירה על לחות עור הקרקפת ולמניעת יובש."
+          },
+          {
+            "id": "silver-acai",
+            "icon": "💎",
+            "link": "https://argania-oil.co.il/category/%D7%A1%D7%93%D7%A8%D7%AA-%D7%A1%D7%99%D7%9C%D7%91%D7%A8-%D7%90%D7%A1%D7%90%D7%99",
+            "title": "סילבר אסאי",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767867803/quickshop/stores/argania/o7tkcqenyicxscd3ryie.webp",
+            "gradientTo": "#2a2a4a",
+            "description": "הסדרה מסייעת בנטרול גוונים הצהבהבים , תוך שמירה על גוון השיער הייחודי.",
+            "gradientFrom": "#5e5e8b"
+          },
+          {
+            "id": "buckthorn-carrot",
+            "icon": "☀️",
+            "link": "https://argania-oil.co.il/category/%D7%A1%D7%93%D7%A8%D7%AA-%D7%92%D7%96%D7%A8-%D7%90%D7%95%D7%91%D7%9C%D7%99%D7%A4%D7%99%D7%97%D7%94",
+            "title": "אובליפיחה וגזר",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767867820/quickshop/stores/argania/kcmltj6oisdwjzjppnbh.webp",
+            "gradientTo": "#ff4500",
+            "description": " לטיפוח עדין של השיער ותורם לשיקום שיער יבש הנוטה להישבר.",
+            "gradientFrom": "#ff8c00"
+          }
+        ]
+      },
+      "isActive": true,
+      "settings": {
+        "columns": 3,
+        "buttonText": "גלי את הסדרה",
+        "cardHeight": "400px",
+        "accentColor": "#d4af37",
+        "containerType": "container",
+        "sectionBackground": "#ffffff"
+      },
+      "subtitle": "המומחיות שלנו",
+      "sortOrder": 2
+    },
+    {
+      "id": "29036b57-1905-4a26-8d62-08d512e1e82a",
+      "type": "quote_banner",
+      "title": null,
+      "content": {
+        "quote": "היופי שלך מתחיל בבחירה טבעית",
+        "imageUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1767799282/quickshop/stores/argania/xz3wzdixptxmudyvtjbi.mp4",
+        "videoUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1767799282/quickshop/stores/argania/xz3wzdixptxmudyvtjbi.mp4",
+        "mediaType": "video",
+        "attribution": "ללא מלחים • ללא פראבנים • לא נוסה על בעלי חיים",
+        "mobileVideoUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1767799282/quickshop/stores/argania/xz3wzdixptxmudyvtjbi.mp4"
+      },
+      "isActive": true,
+      "settings": {
+        "height": "400px",
+        "overlay": 0.4,
+        "parallax": true,
+        "textStyle": "italic"
+      },
+      "subtitle": null,
+      "sortOrder": 3
+    },
+    {
+      "id": "da27145f-31ff-4ba7-957c-5e145edd148b",
+      "type": "series_grid",
+      "title": "סדרות טיפוח לפנים",
+      "content": {
+        "items": [
+          {
+            "id": "lips",
+            "link": "https://argania-oil.co.il/category/%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%A9%D7%A4%D7%AA%D7%99%D7%99%D7%9D",
+            "title": "סדרת השפתיים",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767867999/quickshop/stores/argania/ki6sfvgbgghfccbnugcv.webp",
+            "subtitle": "טיפוח שפתיים",
+            "description": "באלמים, שמנים ומסיכות לשפתיים רכות, מלאות וחושניות. מועשר בחמאת שיאה וויטמין E."
+          },
+          {
+            "id": "item-1768215907769",
+            "link": "https://argania-oil.co.il/category/%D7%9E%D7%95%D7%A6%D7%A8%D7%99-%D7%92%D7%91%D7%95%D7%AA",
+            "title": "מוצרי גבות",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1768215960/quickshop/stores/argania/nlny6r9o9nfz9kddioml.webp",
+            "subtitle": "",
+            "description": "לטיפוח ועיצוב הגבות"
+          }
+        ]
+      },
+      "isActive": true,
+      "settings": {
+        "style": "cards",
+        "layout": "featured",
+        "columns": 2,
+        "buttonText": "לצפייה במוצרים",
+        "accentColor": "#d4af37",
+        "cardBackground": "#ffffff",
+        "sectionBackground": "#fdfbf7"
+      },
+      "subtitle": "חדשנות בטיפוח",
+      "sortOrder": 4
+    },
+    {
+      "id": "d50c3cf4-82ee-4aa2-8d4d-1e395b1639e2",
+      "type": "featured_items",
+      "title": "השגרירות שלנו",
+      "content": {
+        "items": [
+          {
+            "id": "best2",
+            "link": "",
+            "name": "אנה ארונוב",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767868207/quickshop/stores/argania/jmnf2c1wb0e9ikouvyry.webp",
+            "videoUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1768305900/quickshop/stores/argania/kxtkp5xw66wercxsrwsm.mp4"
+          },
+          {
+            "id": "best3",
+            "link": "",
+            "name": "מירן בוזגלו",
+            "imageUrl": "https://res.cloudinary.com/dpbsspc1b/image/upload/f_auto,q_auto/v1767868233/quickshop/stores/argania/xye99dleug1lrf9bxezc.webp",
+            "videoUrl": "https://res.cloudinary.com/dpbsspc1b/video/upload/v1768303135/quickshop/stores/argania/dtzdyuarf2bq2z2rzxia.mp4"
+          }
+        ]
+      },
+      "isActive": true,
+      "settings": {
+        "columns": 2,
+        "textAlign": "center",
+        "imageStyle": "square",
+        "hoverEffect": "zoom",
+        "imageAspectRatio": "portrait",
+        "sectionBackground": "#ffffff"
+      },
+      "subtitle": null,
+      "sortOrder": 5
+    },
+    {
+      "id": "51529d3b-5525-4680-8eba-23d52b69ad0c",
+      "type": "text_block",
+      "title": null,
+      "content": {
+        "text": "<p>בהתאם להסדר הפשרה שאושר על ידי ביהמ\"ש השלום בבאר שבע במסגרת ת\"צ 53224-10-23\r</p><p>הנך זכאי להטבה בסך של 10 ₪ על כל רכישה בהזנת קוד קופון - OFF10.</p>",
+        "buttonText": ""
+      },
+      "isActive": true,
+      "settings": {},
+      "subtitle": null,
+      "sortOrder": 6
+    },
+    {
+      "id": "0b457823-dd9d-494b-9071-907e2acaeb42",
+      "type": "newsletter",
+      "title": "הצטרפי למועדון Argania ",
+      "content": {
+        "buttonText": "אני רוצה להצטרף",
+        "placeholder": "כתובת המייל שלך"
+      },
+      "isActive": true,
+      "settings": {
+        "maxWidth": "md",
+        "backgroundColor": "#f4e4d4"
+      },
+      "subtitle": "קבלי 5% הנחה על כל קנייה, טיפים לטיפוח ועדכונים לפני כולם.",
+      "sortOrder": 7
+    }
+  ],
+  "settings": {
+    "gdpr": {
+      "enabled": true,
+      "textColor": "#000000",
+      "bannerStyle": "box-left",
+      "buttonColor": "#10b981",
+      "policyPageUrl": "",
+      "useCustomText": false,
+      "bannerPosition": "bottom",
+      "backgroundColor": "#ffffff",
+      "buttonTextColor": "#ffffff",
+      "acceptButtonText": "אני מסכים",
+      "customPolicyText": "אנו משתמשים בעוגיות כדי לשפר את חווית הגלישה שלך באתר. על ידי המשך הגלישה, אתה מסכים לשימוש שלנו בעוגיות.\n\nמהן עוגיות?\nעוגיות הן קבצי טקסט קטנים שמאוחסנים על המכשיר שלך בעת הגלישה באתר. העוגיות מאפשרות לאתר לזכור את העדפותיך ולספק לך חוויית משתמש מותאמת אישית.\n\nאיך אנחנו משתמשים בעוגיות?\n• עוגיות חיוניות - נדרשות לתפעול האתר\n• עוגיות ביצועים - עוזרות לנו להבין כיצד המבקרים משתמשים באתר\n• עוגיות פרסום - משמשות להתאמת פרסומות רלוונטיות",
+      "declineButtonText": "לא מסכים",
+      "showDeclineButton": true
+    },
+    "print": {
+      "showDiscount": false,
+      "showShipping": false,
+      "showSubtotal": false,
+      "showStoreLogo": true,
+      "showOrderNotes": true,
+      "showOrderTotal": false,
+      "showProductSku": false,
+      "showProductImage": false,
+      "showProductPrice": false,
+      "showStatusBadges": true,
+      "showCustomerPhone": true,
+      "showProductVariant": true,
+      "showCustomerDetails": true,
+      "showShippingAddress": true,
+      "showThankYouMessage": true
+    },
+    "checkout": {
+      "layout": "single-page",
+      "allowNotes": true,
+      "showZipCode": false,
+      "requirePhone": true,
+      "termsRequired": true,
+      "requireCompany": false
+    },
+    "giftCard": {
+      "amounts": [
+        50,
+        100,
+        200,
+        500
+      ],
+      "enabled": true,
+      "cardImage": null,
+      "maxAmount": 2000,
+      "minAmount": 50,
+      "pageTitle": "גיפט קארד",
+      "pageDescription": "הפתעה מושלמת לאנשים שאתם אוהבים",
+      "allowCustomAmount": true,
+      "defaultExpiryMonths": 12
+    },
+    "shipping": {
+      "rates": [
+        {
+          "id": "1",
+          "name": "משלוח רגיל",
+          "price": 25,
+          "freeAbove": 200,
+          "estimatedDays": "3 ימי עסקים"
+        }
+      ],
+      "enableFreeShipping": true,
+      "freeShippingThreshold": 249
+    },
+    "customCss": "h1.font-display.text-4xl.md\\:text-6xl.lg\\:text-7xl.text-white.font-extralight.tracking-\\[0\\.3em\\].uppercase {\n    display: none;\n}\n\np.text-white\\/70.text-sm.tracking-widest.uppercase.mb-2{\n    display: none;\n}",
+    "gtmEnabled": true,
+    "metafields": [],
+    "templateId": "argania-premium",
+    "facebookUrl": "https://www.facebook.com/arganisrael/",
+    "headerLayout": "logo-center",
+    "headerSticky": true,
+    "instagramUrl": "https://www.instagram.com/argania_group/",
+    "contact_email": "misheldonde@gmail.com",
+    "tiktokPixelId": "CAS2HARC77UAKBURNHO0",
+    "announcementBg": "#333333",
+    "customHeadCode": "<!-- Accessibility -->\n<script>\nwindow.args = {\n\tsitekey   : '85e9733c0d601920bcc6427ec9770fab',\n\tposition  : 'Left',\n\tlanguage  : 'HE',\n\tcontainer : '',\n\ticon : '',\n\taccess : 'https://vee-crm.com',\n\tstyles : {\n\t\tprimary_color: '#177fab',\n\t\tsecondary_color: '#b586ff',\n\t\tbackground_color: '#f6f6f6',\n\t\tprimary_text_color: '#636363',\n\t\theaders_text_color: '#105675',\n\t\tprimary_font_size: 14,\n\t\tslider_left_color:  '#b586ff',\n\t\tslider_right_color:  '#177fab',\n\t\ticon_vertical_position: 'bottom',\n\t\ticon_offset_top: 100,\n\t\ticon_offset_bottom: 0,\n\t\thighlight_focus_color: '#177fab',\n\t\ttoggler_icon_color: '#ffffff',\n\t},\n\tlinks : {\n\t\tacc_policy: '',\n\t\tadditional_link: 'https://vee.co.il/pricing/'\n\t},\n\toptions : {\n\t\topen: false,\n\t\taaa: false,\n\t\thide_tablet: false,\n\t\thide_mobile: false,\n\t\tbutton_size_tablet: 44,\n\t\tbutton_size_mobile: 34,\n\t\tposition_tablet: 'Right',\n\t\tposition_mobile: 'Right',\n\t\ticon_vertical_position_tablet: 'top',\n\t\ticon_vertical_position_mobile: 'top',\n\t\ticon_offset_top_tablet: 100,\n\t\ticon_offset_bottom_tablet: 0,\n\t\ticon_offset_top_mobile: 100,\n\t\ticon_offset_bottom_mobile: 0,\n\t\tkeyboard_shortcut: true,\n\t\thide_purchase_link: false,\n\t\tdisplay_checkmark_icon: false,\n\t\tactive_toggler_color: '#118f38'\n\t},\n\texclude : []\n};\n\n(function(doc, head, body){\n\tvar embed = doc.createElement('script');\n\tembed.src = window.args['access'] + '/js/';\n\tembed.defer = true;\n\tembed.crossOrigin = 'anonymous';\n\tembed.setAttribute('data-cfasync', true );\n\tbody? body.appendChild(embed) : head.appendChild(embed);\n})(document, document.head, document.body);\n</script>\n\n\n\n<script src=\"https://butterfly-button.web.app/cdn/butterfly-plugin.js\"></script> <img onclick=\"bf_ReporterPlugin.toggleButterflyReporter('ad2d91fd-3bdb-47ed-926d-d09b9e499288');\" src=\"https://butterfly-button.web.app/img/butterfly-logo-200.png\" style=\"width: 50px; cursor: pointer; position: fixed; bottom: 20px; left: 13px; z-index: 1000;\" alt=\"The Butterfly Button\" />",
+    "footerShowLogo": false,
+    "gtmContainerId": "GTM-PXKCQCL",
+    "facebookPixelId": "289786945574788",
+    "announcementText": "✨ משלוח חינם בהזמנה מעל ₪200 | לא נבדק על בעלי חיים",
+    "returnPolicyDays": 14,
+    "announcementColor": "#ffffff",
+    "customBodyEndCode": "",
+    "googleAnalyticsId": "G-L6N6VWS2WW",
+    "headerTransparent": false,
+    "lowStockThreshold": 100,
+    "showDecimalPrices": true,
+    "headerShowWishlist": false,
+    "tiktokPixelEnabled": true,
+    "customBodyStartCode": "",
+    "productPageSettings": {
+      "price": {
+        "showDiscount": true,
+        "discountStyle": "badge",
+        "showComparePrice": true
+      },
+      "gallery": {
+        "layout": "carousel",
+        "enableZoom": true,
+        "showArrows": true,
+        "aspectRatio": "3:4",
+        "showDotsOnMobile": false,
+        "thumbnailsPosition": "bottom",
+        "thumbnailsPositionMobile": "bottom"
+      },
+      "related": {
+        "count": 4,
+        "title": "אולי יעניין אותך",
+        "subtitle": "מוצרים נוספים שאהבו לקוחות",
+        "showIfEmpty": false
+      },
+      "reviews": {
+        "title": "ביקורות",
+        "showCount": true,
+        "showRating": true
+      },
+      "features": [
+        {
+          "id": "1",
+          "icon": "truck",
+          "text": "משלוח חינם מעל ₪250",
+          "isVisible": true
+        },
+        {
+          "id": "2",
+          "icon": "refresh",
+          "text": "14 יום להחזרה",
+          "isVisible": true
+        }
+      ],
+      "sections": [
+        {
+          "id": "breadcrumb",
+          "type": "breadcrumb",
+          "isVisible": true,
+          "sortOrder": 0
+        },
+        {
+          "id": "gallery",
+          "type": "gallery",
+          "isVisible": true,
+          "sortOrder": 1
+        },
+        {
+          "id": "info",
+          "type": "info",
+          "isVisible": true,
+          "sortOrder": 2
+        },
+        {
+          "id": "features",
+          "type": "features",
+          "isVisible": true,
+          "sortOrder": 3
+        },
+        {
+          "id": "description",
+          "type": "description",
+          "isVisible": true,
+          "sortOrder": 4
+        },
+        {
+          "id": "reviews",
+          "type": "reviews",
+          "isVisible": true,
+          "sortOrder": 5
+        },
+        {
+          "id": "related",
+          "type": "related",
+          "isVisible": true,
+          "sortOrder": 6
+        }
+      ],
+      "inventory": {
+        "displayStyle": "hidden",
+        "lowStockThreshold": 5
+      },
+      "typography": {
+        "price": {
+          "color": "#000000",
+          "fontSize": 24,
+          "fontWeight": "normal",
+          "fontSizeUnit": "px",
+          "fontSizeMobile": 20,
+          "fontSizeMobileUnit": "px"
+        },
+        "title": {
+          "color": "#000000",
+          "fontSize": 32,
+          "fontWeight": "light",
+          "fontSizeUnit": "px",
+          "fontSizeMobile": 24,
+          "fontSizeMobileUnit": "px"
+        },
+        "button": {
+          "color": "#FFFFFF",
+          "fontSize": 16,
+          "fontWeight": "medium",
+          "fontSizeUnit": "px",
+          "fontSizeMobile": 14,
+          "fontSizeMobileUnit": "px"
+        },
+        "inventory": {
+          "color": "#6B7280",
+          "fontSize": 14,
+          "fontWeight": "normal",
+          "fontSizeUnit": "px",
+          "fontSizeMobile": 12,
+          "fontSizeMobileUnit": "px"
+        },
+        "description": {
+          "color": "#4B5563",
+          "fontSize": 16,
+          "fontWeight": "normal",
+          "lineHeight": 1.6,
+          "fontSizeUnit": "px",
+          "fontSizeMobile": 14,
+          "fontSizeMobileUnit": "px"
+        },
+        "comparePrice": {
+          "color": "#9CA3AF",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "fontSizeUnit": "px",
+          "fontSizeMobile": 16,
+          "fontSizeMobileUnit": "px"
+        }
+      },
+      "description": {
+        "showAsAccordion": false
+      }
+    },
+    "abandonedCartMinutes": 60,
+    "categoryPageSettings": {
+      "banner": {
+        "show": true,
+        "height": "medium",
+        "showTitle": false,
+        "overlayOpacity": 23,
+        "useAspectRatio": true,
+        "showDescription": true,
+        "mobileAspectRatio": "21:9",
+        "desktopAspectRatio": "4:1",
+        "showParentCategory": true
+      },
+      "products": {
+        "showCount": true,
+        "mobileColumns": 2,
+        "showAddToCart": true,
+        "addToCartStyle": "outline",
+        "desktopColumns": 4
+      },
+      "breadcrumb": {
+        "show": true
+      },
+      "subcategories": {
+        "show": true,
+        "aspectRatio": "16:9",
+        "showOverlay": false,
+        "mobileColumns": 1,
+        "desktopColumns": 2,
+        "overlayOpacity": 0,
+        "mobileAspectRatio": "3:1",
+        "desktopAspectRatio": "3:1",
+        "useResponsiveRatio": true
+      }
+    },
+    "facebookPixelEnabled": true,
+    "headerNavigationMode": "categories",
+    "googleAnalyticsEnabled": true
+  }
+}

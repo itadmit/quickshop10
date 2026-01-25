@@ -64,6 +64,16 @@ export function TypographyPopover({
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  
+  // Local state for mobile font size to allow independent dragging
+  const [localMobileFontSize, setLocalMobileFontSize] = useState<number | undefined>(value.fontSizeMobile);
+  
+  // Sync local state when value prop changes from parent
+  useEffect(() => {
+    if (value.fontSizeMobile !== undefined) {
+      setLocalMobileFontSize(value.fontSizeMobile);
+    }
+  }, [value.fontSizeMobile]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -87,6 +97,11 @@ export function TypographyPopover({
     newValue: TypographySettings[K]
   ) => {
     onChange({ ...value, [key]: newValue });
+  };
+  
+  const updateMobileFontSize = (newSize: number) => {
+    setLocalMobileFontSize(newSize);
+    onChange({ ...value, fontSizeMobile: newSize });
   };
 
   const resetToDefaults = () => {
@@ -241,8 +256,8 @@ export function TypographyPopover({
                 <div className="flex items-center gap-1">
                   <input
                     type="number"
-                    value={value.fontSizeMobile || value.fontSize || 16}
-                    onChange={(e) => updateSetting('fontSizeMobile', parseFloat(e.target.value) || value.fontSize || 16)}
+                    value={localMobileFontSize ?? value.fontSize ?? 16}
+                    onChange={(e) => updateMobileFontSize(parseFloat(e.target.value) || 16)}
                     className="w-14 text-xs border border-gray-200 rounded px-1.5 py-0.5 text-center"
                     min="8"
                     max="200"
@@ -262,8 +277,8 @@ export function TypographyPopover({
                   type="range"
                   min="8"
                   max="200"
-                  value={value.fontSizeMobile || value.fontSize || 16}
-                  onChange={(e) => updateSetting('fontSizeMobile', parseFloat(e.target.value))}
+                  value={localMobileFontSize ?? value.fontSize ?? 16}
+                  onChange={(e) => updateMobileFontSize(parseFloat(e.target.value))}
                   className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer"
                 />
               </div>

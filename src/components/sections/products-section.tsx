@@ -71,6 +71,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
       id="products" 
       className="py-20 px-6 bg-white border-t border-gray-100"
       data-section-id={sectionId}
+      data-section-type="products"
       data-section-name="מוצרים נבחרים"
       data-display-limit={displayLimit || ''}
     >

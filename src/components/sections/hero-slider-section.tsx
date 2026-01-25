@@ -69,6 +69,7 @@ export function HeroSliderSection({
       className="relative w-full overflow-hidden bg-gray-100"
       style={{ height }}
       data-section-id={sectionId}
+      data-section-type="hero_slider"
       data-section-name="באנר סליידר"
     >
       {/* Slider Container - CSS Scroll Snap */}
@@ -93,6 +94,7 @@ export function HeroSliderSection({
               key={slide.id}
               className="flex-shrink-0 w-full h-full snap-center relative"
               data-slide-index={index}
+              data-slide-id={slide.id}
             >
               {/* Background Image */}
               {slide.imageUrl ? (
@@ -101,40 +103,44 @@ export function HeroSliderSection({
                   alt={slide.title || `Slide ${index + 1}`}
                   className="absolute inset-0 w-full h-full object-cover object-center"
                   loading={index === 0 ? 'eager' : 'lazy'}
+                  data-slide-image
                 />
               ) : (
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-amber-100 via-amber-50 to-orange-100" />
+                <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-amber-100 via-amber-50 to-orange-100" data-slide-placeholder />
               )}
               
               {/* Overlay */}
               <div 
                 className="absolute inset-0" 
-                style={{ backgroundColor: `rgba(0,0,0,${overlay})` }} 
+                style={{ backgroundColor: `rgba(0,0,0,${overlay})` }}
+                data-slide-overlay
               />
 
               {/* Content */}
               <div className={`relative z-10 h-full flex flex-col ${positionClasses} px-6 md:px-12`}>
                 <div className="max-w-4xl">
-                  {slide.title && (
-                    <h2 
-                      className={`${titleClasses} text-white mb-4 md:mb-6 drop-shadow-lg`}
-                    >
-                      {slide.title}
-                    </h2>
-                  )}
-                  {slide.subtitle && (
-                    <p className={`${subtitleClasses} text-white mb-6 md:mb-8 drop-shadow-md`}>
-                      {slide.subtitle}
-                    </p>
-                  )}
-                  {slide.buttonText && slide.buttonLink && (
-                    <Link 
-                      href={slide.buttonLink.startsWith('/') ? `${basePath}${slide.buttonLink}` : slide.buttonLink}
-                      className="inline-block px-8 py-3.5 bg-white/95 text-gray-900 text-sm font-medium tracking-wider uppercase hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
-                    >
-                      {slide.buttonText}
-                    </Link>
-                  )}
+                  <h2 
+                    className={`${titleClasses} text-white mb-4 md:mb-6 drop-shadow-lg`}
+                    style={{ display: slide.title ? '' : 'none' }}
+                    data-slide-title
+                  >
+                    {slide.title || ''}
+                  </h2>
+                  <p 
+                    className={`${subtitleClasses} text-white mb-6 md:mb-8 drop-shadow-md`}
+                    style={{ display: slide.subtitle ? '' : 'none' }}
+                    data-slide-subtitle
+                  >
+                    {slide.subtitle || ''}
+                  </p>
+                  <Link 
+                    href={slide.buttonLink?.startsWith('/') ? `${basePath}${slide.buttonLink}` : (slide.buttonLink || '#')}
+                    className="inline-block px-8 py-3.5 bg-white/95 text-gray-900 text-sm font-medium tracking-wider uppercase hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5"
+                    style={{ display: (slide.buttonText && slide.buttonLink) ? '' : 'none' }}
+                    data-slide-button
+                  >
+                    {slide.buttonText || ''}
+                  </Link>
                 </div>
               </div>
             </div>

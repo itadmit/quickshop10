@@ -38,6 +38,7 @@ export function CategoriesSection({ title, subtitle, categories, settings, baseP
     <section 
       className="py-20 px-6 bg-white"
       data-section-id={sectionId}
+      data-section-type="categories"
       data-section-name="רשימת קטגוריות"
       data-selected-categories={selectedCategoryIds?.join(',') || ''}
     >

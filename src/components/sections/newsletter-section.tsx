@@ -4,9 +4,13 @@
  * 
  * PERFORMANCE: Main section is Server Component (no JS)
  * Only the form itself is a small client component
+ * 
+ * 🔧 Uses shared section-system constants
  */
 
 import { NewsletterForm } from '@/components/storefront/newsletter-form';
+import { TITLE_SIZES, FONT_WEIGHTS } from '@/lib/section-system';
+import type { TitleSize, FontWeight } from '@/lib/section-system';
 
 interface NewsletterSectionProps {
   title: string | null;
@@ -18,12 +22,15 @@ interface NewsletterSectionProps {
   settings: {
     maxWidth?: string;
     backgroundColor?: string;
-    // Typography - Title
+    // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
-    titleSize?: 'sm' | 'md' | 'lg' | 'xl';
-    titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+    titleSize?: TitleSize | number;
+    titleSizeMobile?: number;
+    titleWeight?: FontWeight;
     // Typography - Subtitle
     subtitleColor?: string;
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
     // Button
     buttonTextColor?: string;
     buttonBackgroundColor?: string;
@@ -41,21 +48,6 @@ interface NewsletterSectionProps {
   storeSlug?: string; // Required for form submission
 }
 
-const TITLE_SIZES = {
-  sm: 'text-xl md:text-2xl',
-  md: 'text-2xl md:text-3xl',
-  lg: 'text-3xl md:text-4xl',
-  xl: 'text-4xl md:text-5xl',
-};
-
-const FONT_WEIGHTS = {
-  light: 'font-light',
-  normal: 'font-normal',
-  medium: 'font-medium',
-  semibold: 'font-semibold',
-  bold: 'font-bold',
-};
-
 export function NewsletterSection({ 
   title, 
   subtitle, 
@@ -65,8 +57,17 @@ export function NewsletterSection({
   storeSlug,
 }: NewsletterSectionProps) {
   const bgColor = settings?.backgroundColor || '#f9fafb';
-  const titleSize = settings.titleSize || 'md';
+  
+  // Check if numeric font sizes
+  const titleSizeValue = settings.titleSize;
+  const isNumericTitleSize = typeof titleSizeValue === 'number';
+  const titleSize = isNumericTitleSize ? 'md' : (titleSizeValue || 'md');
   const titleWeight = settings.titleWeight || 'light';
+  
+  const subtitleSizeValue = settings.subtitleSize;
+  const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
+
+  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
 
   return (
     <section 
@@ -78,12 +79,40 @@ export function NewsletterSection({
       }}
       id={settings.customId || undefined}
       data-section-id={sectionId}
+      data-section-type="newsletter"
       data-section-name="הצטרפו למועדון"
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Scoped responsive styles for numeric font sizes */}
+      {hasCustomSizes && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          ${isNumericTitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-title] {
+              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-title] {
+                font-size: ${titleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+          ${isNumericSubtitleSize ? `
+            [data-section-id="${sectionId}"] [data-section-subtitle] {
+              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+            }
+            @media (min-width: 768px) {
+              [data-section-id="${sectionId}"] [data-section-subtitle] {
+                font-size: ${subtitleSizeValue}px !important;
+              }
+            }
+          ` : ''}
+        `}} />
+      )}
+      
       <div className="max-w-xl mx-auto text-center">
         <h2 
-          className={`${TITLE_SIZES[titleSize]} ${FONT_WEIGHTS[titleWeight]} tracking-[0.15em] uppercase mb-4 ${!title ? 'hidden' : ''}`}
+          className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} tracking-[0.15em] uppercase mb-4 ${!title ? 'hidden' : ''}`}
           style={{ color: settings.titleColor || 'inherit' }}
           data-section-title
         >
@@ -91,7 +120,7 @@ export function NewsletterSection({
         </h2>
         
         <p 
-          className={`text-sm mb-10 opacity-70 ${!subtitle ? 'hidden' : ''}`}
+          className={`${!isNumericSubtitleSize ? 'text-sm' : ''} mb-10 opacity-70 ${!subtitle ? 'hidden' : ''}`}
           style={{ color: settings.subtitleColor || 'inherit' }}
           data-section-subtitle
         >
