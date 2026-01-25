@@ -14,6 +14,12 @@ import {
 
 import { LandingHeader } from "@/components/landing/LandingHeader"
 import { LandingFooter } from "@/components/landing/LandingFooter"
+import { CheckoutAnimation } from "@/components/landing/CheckoutAnimation"
+import { AdditionalCostsAccordion } from "@/components/landing/AdditionalCostsAccordion"
+import { PaymentsExitPopup } from "@/components/landing/PaymentsExitPopup"
+import { PaymentsWhatsAppButton } from "@/components/landing/PaymentsWhatsAppButton"
+import { ScrollToHash } from "@/components/landing/ScrollToHash"
+import { ScrollToPricingButton } from "@/components/landing/ScrollToPricingButton"
 import type { Metadata } from 'next'
 
 // ISR for performance
@@ -42,50 +48,56 @@ const benefits = [
   }
 ]
 
-const pricingTiers = [
+// המסלול העיקרי - מוצג בראש
+const mainPlan = {
+  name: "המסלול המומלץ",
+  desc: "הפתרון המלא לעסקים - הכי משתלם בישראל",
+  monthlyPrice: 69,
+  setupFee: 249,
+  launchSetupFee: 99, // מבצע השקה
+  fee: "1.0%",
+  signupUrl: "https://quickshop.payme.io/system/kyc/signup/696d06d27620a8003ef28ef5",
+  features: [
+    "הקמת מסוף חדש",
+    "סליקת כל כרטיסי האשראי",
+    "תשלום ב-Bit, Apple Pay, Google Pay",
+    "הקמה מיידית 24-48 שעות!",
+    "החזרים כספיים בקליק",
+    "דוחות וניהול במקום אחד"
+  ]
+}
+
+// מסלולים אלטרנטיביים - מוצגים למטה
+const alternativePlans = [
   {
     name: "לא סלקת לא שילמת",
     desc: "ללא התחייבות חודשית",
     monthlyPrice: 0,
-    setupFee: 299,
     fee: "3.4%",
-    feeDesc: "עמלת סליקה",
+    signupUrl: "https://quickshop.payme.io/system/kyc/signup/696cfac27620a8003ef22784",
     features: [
       "לא סלקת - לא שילמת",
-      "הקמה מיידית 24-48 שעות !",
+      "הקמה מיידית 24-48 שעות!",
       "סליקת כל כרטיסי האשראי",
       "תשלום ב-Bit, Apple Pay, Google Pay"
-    ],
-    recommended: false
+    ]
   },
   {
-    name: "רק סליקה",
-    desc: "ללקוחות עם מסוף קיים",
-    monthlyPrice: 129,
-    setupFee: 249,
-    fee: "לפי המסוף שלך",
-    feeDesc: "עמלת סליקה",
+    name: "נשאר עם ספק האשראי שלך",
+    desc: "משלם רק על השימוש בפלטפורמה",
+    monthlyPrice: 125,
+    fee: "לפי הספק שלך",
+    providers: [
+      { name: "ישראכרט", signupUrl: "https://quickshop.payme.io/system/kyc/signup/696d04d17620a8003ef28036" },
+      { name: "כאל", signupUrl: "https://quickshop.payme.io/system/kyc/signup/696d04e47620a8003ef280c6" },
+    ],
     features: [
       "חיבור למסוף קיים",
       "סליקת כל כרטיסי האשראי",
-      "תשלום ב-Bit, Apple Pay, Google Pay"
-    ],
-    recommended: false
-  },
-  {
-    name: "הכל כלול PRO",
-    desc: "הפתרון המלא לעסקים",
-    monthlyPrice: 59,
-    setupFee: 199,
-    fee: "1.0%",
-    feeDesc: "הכי משתלם בישראל",
-    features: [
-      "הקמת מסוף חדש",
-      "סליקת כל כרטיסי האשראי",
       "תשלום ב-Bit, Apple Pay, Google Pay",
-      "הקמה מיידית 24-48 שעות !"
-    ],
-    recommended: true
+      "החזרים כספיים בקליק",
+      "דוחות וניהול במקום אחד"
+    ]
   }
 ]
 
@@ -101,6 +113,7 @@ function ShieldIcon({ className = '' }: { className?: string }) {
 export default function QuickShopPaymentsPage() {
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900" dir="rtl">
+      <ScrollToHash />
       <LandingHeader />
 
       {/* Hero Section */}
@@ -122,10 +135,7 @@ export default function QuickShopPaymentsPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <Button href="/register?service=payments" variant="primary" size="lg" className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
-                  אני רוצה להצטרף
-                  <ArrowLeftIcon className="mr-2 h-5 w-5" />
-                </Button>
+                <ScrollToPricingButton />
               </div>
 
               <div className="mt-10 flex items-center gap-6 justify-center lg:justify-start text-sm font-medium text-gray-500 flex-wrap">
@@ -134,79 +144,26 @@ export default function QuickShopPaymentsPage() {
                   PCI DSS Level 1
                 </div>
                 <div className="flex items-center gap-2">
-                  <CreditCardIcon className="h-5 w-5 text-green-500" />
-                  כל סוגי הכרטיסים
+                  <img src="https://propsender.com/wp-content/uploads/2020/04/Mastercard-visa-card-logo.png" alt="Visa & Mastercard" className="h-5 object-contain" />
                 </div>
                 <div className="flex items-center gap-2">
-                  <GlobeIcon className="h-5 w-5 text-green-500" />
-                  Bit, Apple Pay & Google Pay
+                  <img src="https://upload.wikimedia.org/wikipedia/he/thumb/e/eb/Bit_logo_2024.svg/1200px-Bit_logo_2024.svg.png" alt="Bit" className="h-5 object-contain" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <img src="https://cdn2.downdetector.com/static/uploads/logo/apple-pay.png" alt="Apple Pay" className="h-5 object-contain" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <img src="https://storage.googleapis.com/gweb-uniblog-publish-prod/images/GooglePayLogo.width-500.format-webp.webp" alt="Google Pay" className="h-5 object-contain" />
                 </div>
               </div>
             </div>
 
-            {/* Hero Visual */}
+            {/* Hero Visual - Animated Checkout Demo */}
             <div className="relative hidden lg:flex items-center justify-center">
               <div className="absolute top-0 right-0 w-72 h-72 bg-yellow-100 rounded-full filter blur-3xl opacity-40 animate-pulse" />
               <div className="absolute bottom-0 left-0 w-72 h-72 bg-green-200 rounded-full filter blur-3xl opacity-40 animate-pulse" style={{ animationDelay: '700ms' }} />
               
-              <div className="relative bg-white rounded-3xl shadow-2xl border border-gray-100 p-8 max-w-md w-full transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="text-gray-900 font-bold text-xl">תשלום מאובטח</div>
-                  <div className="flex gap-2">
-                    <div className="h-8 px-3 bg-white rounded border border-gray-100 flex items-center justify-center">
-                      <span className="text-xs font-bold">VISA</span>
-                    </div>
-                    <div className="h-8 px-3 bg-white rounded border border-gray-100 flex items-center justify-center">
-                      <span className="text-xs font-bold">Mastercard</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4 mb-8">
-                  <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-4 border border-green-100">
-                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                      <ZapIcon className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-900">Bit</div>
-                      <div className="text-xs text-green-600">תשלום מהיר</div>
-                    </div>
-                    <div className="mr-auto">
-                      <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-4 border border-green-100">
-                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                      <GlobeIcon className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-900">Apple Pay</div>
-                      <div className="text-xs text-green-600">מופעל אוטומטית</div>
-                    </div>
-                    <div className="mr-auto">
-                      <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-4 border border-green-100">
-                    <div className="bg-white p-2 rounded-lg shadow-sm">
-                      <GlobeIcon className="w-6 h-6 text-green-600" />
-                    </div>
-                    <div>
-                      <div className="font-bold text-gray-900">Google Pay</div>
-                      <div className="text-xs text-green-600">מופעל אוטומטית</div>
-                    </div>
-                    <div className="mr-auto">
-                      <CheckCircleIcon className="w-5 h-5 text-green-500" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-green-600 rounded-xl p-4 text-white text-center font-bold shadow-lg shadow-green-200">
-                  שילם ₪249.00 בהצלחה
-                </div>
-              </div>
+              <CheckoutAnimation />
             </div>
           </div>
         </div>
@@ -248,94 +205,181 @@ export default function QuickShopPaymentsPage() {
       </section>
 
       {/* Pricing Section */}
-      <section className="py-24 bg-slate-900 text-white relative overflow-hidden">
+      <section id="pricing" className="py-24 bg-slate-900 text-white relative overflow-hidden scroll-mt-20">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0 pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-green-500/5 rounded-full blur-[100px]" />
           <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/5 rounded-full blur-[100px]" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="text-center max-w-3xl mx-auto mb-20">
+          <div className="text-center max-w-3xl mx-auto mb-16">
             <Badge className="mb-6 bg-green-500/10 text-green-400 border border-green-500/20 px-4 py-1.5">
-              המסלולים שלנו
+              המסלול שלנו
             </Badge>
             <h2 className="text-4xl md:text-5xl font-bold mb-6 tracking-tight">
               שקיפות מלאה. <span className="text-green-400">בלי הפתעות.</span>
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              בחרו את המסלול שמתאים לגודל העסק שלכם.
-              <br/>
-              העמלות מחליפות את חברת האשראי והמסוף.
+              מסלול אחד פשוט וברור - העמלות מחליפות את חברת האשראי והמסוף.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto items-start">
-            {pricingTiers.map((tier, idx) => (
-              <div 
-                key={idx} 
-                className={`rounded-3xl p-8 flex flex-col transition-all duration-300 ${
-                  tier.recommended 
-                    ? 'bg-slate-800/30 border border-green-500/50 transform md:-translate-y-6 shadow-2xl shadow-green-500/10 relative' 
-                    : 'bg-slate-800/20 border border-slate-700/30 hover:bg-slate-800/30'
-                }`}
-              >
-                {tier.recommended && (
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                      <ZapIcon className="w-3 h-3" /> מומלץ
-                    </span>
+          {/* Main Plan - Highlighted */}
+          <div className="max-w-2xl mx-auto mb-20">
+            <div className="rounded-3xl p-10 bg-gradient-to-b from-slate-800/50 to-slate-800/30 border-2 border-green-500/60 shadow-2xl shadow-green-500/20 relative">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <span className="bg-green-500 text-white text-sm font-bold px-6 py-2 rounded-full flex items-center gap-2 shadow-lg">
+                  <ZapIcon className="w-4 h-4" /> המסלול המומלץ
+                </span>
+              </div>
+              
+              <div className="text-center mb-8 pt-4">
+                <h3 className="text-3xl font-bold mb-2">{mainPlan.name}</h3>
+                <p className="text-green-200/80">{mainPlan.desc}</p>
+              </div>
+              
+              <div className="grid md:grid-cols-2 gap-8 mb-8">
+                {/* Monthly Price */}
+                <div className="bg-slate-900/50 rounded-2xl p-6 text-center border border-slate-700/50">
+                  <span className="block text-sm text-slate-400 mb-2">תשלום חודשי</span>
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-5xl font-bold text-white">₪{mainPlan.monthlyPrice}</span>
+                    <span className="text-slate-400 mr-2">+ מע״מ</span>
                   </div>
-                )}
-                
-                <div className={`mb-6 ${tier.recommended ? 'pt-2' : ''}`}>
-                  <h3 className={`text-xl font-bold mb-2 ${tier.recommended ? 'text-2xl' : ''}`}>{tier.name}</h3>
-                  <p className={tier.recommended ? 'text-green-200/80 text-sm' : 'text-slate-400 text-sm'}>{tier.desc}</p>
                 </div>
                 
-                <div className="mb-8 pb-8 border-b border-slate-700/50">
-                  <div className="flex items-baseline mb-3">
-                    <span className="text-5xl font-bold tracking-tight">₪{tier.monthlyPrice}</span>
-                    <span className="text-slate-400 mr-2 font-medium">/ חודש + מע״מ</span>
+                {/* Fee */}
+                <div className="bg-gradient-to-b from-green-900/40 to-green-950/40 rounded-2xl p-6 text-center border border-green-500/30">
+                  <span className="block text-sm text-green-300/80 mb-2">עמלת סליקה</span>
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-5xl font-bold text-white">{mainPlan.fee}</span>
+                    <span className="text-slate-400 mr-2">+ מע״מ</span>
                   </div>
-                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${tier.recommended ? 'bg-green-500/10 border-green-500/20' : 'bg-slate-700/20 border-slate-600/20'}`}>
-                    <span className={tier.recommended ? 'text-green-300 font-bold' : 'text-white font-bold'}>₪{tier.setupFee}</span>
-                    <span className={tier.recommended ? 'text-green-200/60 text-sm' : 'text-slate-400 text-sm'}>דמי הקמה חד פעמיים + מע״מ</span>
+                </div>
+              </div>
+              
+              {/* Setup Fee with Launch Offer */}
+              <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-2xl p-6 text-center mb-8">
+                <div className="flex items-center justify-center gap-6 flex-wrap">
+                  <div>
+                    <span className="text-4xl font-bold text-yellow-300">₪{mainPlan.launchSetupFee}</span>
+                    <span className="text-yellow-200/80 mr-1">+ מע״מ</span>
+                    <span className="block text-xs text-yellow-300 font-bold">🎉 מבצע חודש ההשקה!</span>
                   </div>
-                  {tier.recommended && (
-                    <div className="bg-yellow-500/20 border border-yellow-500/40 rounded-xl p-3 text-center mt-3">
-                      <p className="text-yellow-300 text-xs font-bold leading-tight">
-                        ⚡ מחיר השקה בלעדי ל-50 הנרשמים הראשונים
-                      </p>
+                  <div className="text-4xl text-yellow-400">←</div>
+                  <div className="text-slate-400">
+                    <span className="line-through text-lg">₪{mainPlan.setupFee}</span>
+                    <span className="block text-xs">דמי הקמה רגילים</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Features Grid */}
+              <div className="grid sm:grid-cols-2 gap-4 mb-6">
+                {mainPlan.features.map((feature, i) => (
+                  <div key={i} className="flex items-center gap-3 text-slate-200">
+                    <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center shrink-0">
+                      <CheckCircleIcon className="w-4 h-4 text-slate-900" />
                     </div>
-                  )}
+                    {feature}
+                  </div>
+                ))}
+              </div>
+              
+              {/* Additional Costs Accordion with Signup Button */}
+              <AdditionalCostsAccordion signupUrl={mainPlan.signupUrl} />
+            </div>
+          </div>
+
+          {/* Alternative Plans */}
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <h3 className="text-2xl font-bold text-slate-300 mb-2">לא מתאים לך? יש עוד אפשרויות:</h3>
+              <p className="text-slate-500">בחר את המסלול שמתאים לך</p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* מסלול לא סלקת לא שילמת */}
+              <div className="rounded-2xl p-6 bg-slate-800/40 border-2 border-slate-600/50 hover:bg-slate-800/60 hover:border-slate-500/70 transition-all">
+                <div className="mb-4">
+                  <h4 className="text-xl font-bold text-white mb-1">{alternativePlans[0].name}</h4>
+                  <p className="text-slate-400 text-sm">{alternativePlans[0].desc}</p>
                 </div>
                 
-                <div className={`mb-8 p-4 rounded-2xl text-center ${tier.recommended ? 'bg-gradient-to-b from-green-900/30 to-green-950/30 border border-green-500/30' : 'bg-slate-900/30 border border-slate-700/30'}`}>
-                  <span className="block text-xs text-slate-400 mb-1 uppercase tracking-wider font-medium">{tier.feeDesc}</span>
-                  <span className={`text-3xl font-bold ${tier.recommended ? 'text-white' : ''}`}>{tier.fee} {tier.fee.includes('%') && <span className="text-sm">+ מע״מ</span>}</span>
+                <div className="flex items-center gap-6 mb-6">
+                  <div>
+                    <span className="text-3xl font-bold text-white">₪{alternativePlans[0].monthlyPrice}</span>
+                    <span className="text-slate-400 text-sm mr-1">/ חודש + מע״מ</span>
+                  </div>
+                  <div className="h-10 w-px bg-slate-600" />
+                  <div className="bg-slate-900/70 px-4 py-2 rounded-lg border border-slate-700">
+                    <span className="text-lg font-bold text-green-400">{alternativePlans[0].fee}</span>
+                    <span className="text-slate-400 text-sm mr-1">+ מע״מ</span>
+                  </div>
                 </div>
                 
-                <ul className="space-y-4 text-sm text-slate-300 flex-grow">
-                  {tier.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${tier.recommended ? 'bg-green-500' : 'bg-green-500/10'}`}>
-                        <CheckCircleIcon className={`w-4 h-4 ${tier.recommended ? 'text-slate-900' : 'text-green-400'}`} />
-                      </div>
+                <ul className="space-y-2 text-sm text-slate-300 mb-6">
+                  {alternativePlans[0].features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <CheckCircleIcon className="w-4 h-4 text-green-500 shrink-0" />
                       {feature}
                     </li>
                   ))}
                 </ul>
                 
                 <Button 
-                  href="/register?service=payments"
-                  variant={tier.recommended ? 'primary' : 'outline'}
+                  href={alternativePlans[0].signupUrl}
+                  variant="outline"
                   size="lg"
-                  className={`w-full mt-6 rounded-xl ${tier.recommended ? 'bg-green-500 hover:bg-green-400 shadow-lg shadow-green-500/25' : 'bg-transparent hover:bg-slate-700/50 border border-slate-600 text-white'}`}
+                  className="w-full rounded-xl !bg-slate-700/50 hover:!bg-slate-600/70 !border-2 !border-slate-500 !text-white font-bold"
                 >
-                  {tier.recommended ? 'אני רוצה את המסלול הזה' : 'בחר מסלול זה'}
+                  בחר מסלול זה
                 </Button>
               </div>
-            ))}
+              
+              {/* מסלול נשאר עם ספק האשראי שלך */}
+              <div className="rounded-2xl p-6 bg-slate-800/40 border-2 border-slate-600/50 hover:bg-slate-800/60 hover:border-slate-500/70 transition-all">
+                <div className="mb-4">
+                  <h4 className="text-xl font-bold text-white mb-1">{alternativePlans[1].name}</h4>
+                  <p className="text-slate-400 text-sm">{alternativePlans[1].desc}</p>
+                </div>
+                
+                <div className="flex items-center gap-6 mb-6">
+                  <div>
+                    <span className="text-3xl font-bold text-white">₪{alternativePlans[1].monthlyPrice}</span>
+                    <span className="text-slate-400 text-sm mr-1">/ חודש + מע״מ</span>
+                  </div>
+                  <div className="h-10 w-px bg-slate-600" />
+                  <div className="bg-slate-900/70 px-4 py-2 rounded-lg border border-slate-700">
+                    <span className="text-lg font-bold text-green-400">{alternativePlans[1].fee}</span>
+                  </div>
+                </div>
+                
+                <ul className="space-y-2 text-sm text-slate-300 mb-6">
+                  {alternativePlans[1].features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <CheckCircleIcon className="w-4 h-4 text-green-500 shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+                
+                <div className="text-xs text-slate-400 mb-3 text-center">בחר את הספק שלך:</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {alternativePlans[1].providers?.map((provider, i) => (
+                    <Button 
+                      key={i}
+                      href={provider.signupUrl}
+                      variant="outline"
+                      size="md"
+                      className="rounded-xl !bg-slate-700/50 hover:!bg-slate-600/70 !border-2 !border-slate-500 !text-white font-bold"
+                    >
+                      {provider.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -350,7 +394,7 @@ export default function QuickShopPaymentsPage() {
             הצטרפו לאלפי עסקים שכבר חוסכים אלפי שקלים בחודש עם Quick Shop Payments.
           </p>
           <div className="flex justify-center gap-4 flex-wrap">
-            <Button href="/register?service=payments" variant="primary" size="lg" className="px-10 py-6 text-xl bg-green-600 hover:bg-green-700">
+            <Button href={mainPlan.signupUrl} variant="primary" size="lg" className="px-10 py-6 text-xl bg-green-600 hover:bg-green-700">
               פתחו חשבון סליקה
             </Button>
             <Button href="mailto:payments@quick-shop.co.il" variant="outline" size="lg" className="px-10 py-6 text-xl">
@@ -361,6 +405,12 @@ export default function QuickShopPaymentsPage() {
       </section>
 
       <LandingFooter />
+      
+      {/* Floating WhatsApp Button */}
+      <PaymentsWhatsAppButton />
+      
+      {/* Exit Intent Popup */}
+      <PaymentsExitPopup />
     </div>
   )
 }

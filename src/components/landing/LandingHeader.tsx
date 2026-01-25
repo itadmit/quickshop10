@@ -17,6 +17,7 @@ export function LandingHeader() {
             <Link href="/#features" className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">פיצ'רים</Link>
             <Link href="/#comparison" className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">למה אנחנו?</Link>
             <Link href="/#pricing" className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">מחירים</Link>
+            <Link href="/quickshop-payments" className="text-emerald-600 hover:text-emerald-700 font-bold transition-colors">Quick Payments</Link>
             <Link href="/for-marketers" className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">למשווקים</Link>
             <Link href="/for-developers" className="text-gray-600 hover:text-emerald-600 font-medium transition-colors">למפתחים</Link>
           </nav>

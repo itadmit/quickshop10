@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 
-// WhatsApp Icon SVG - Simple inline, no external dependencies
+// WhatsApp Icon SVG
 function WhatsAppIcon({ className = '' }: { className?: string }) {
   return (
     <svg className={className} fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -12,31 +12,30 @@ function WhatsAppIcon({ className = '' }: { className?: string }) {
   );
 }
 
-export function LeadCaptureModal() {
+// Credit Card Icon
+function CreditCardIcon({ className = '' }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+      <line x1="1" y1="10" x2="23" y2="10"/>
+    </svg>
+  );
+}
+
+export function PaymentsExitPopup() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasOpened, setHasOpened] = useState(false);
 
   useEffect(() => {
     // Check local storage to see if already dismissed/seen recently
-    const lastSeen = localStorage.getItem('lead_modal_seen');
+    const lastSeen = localStorage.getItem('payments_exit_popup_seen');
     if (lastSeen) {
       const hoursSince = (Date.now() - parseInt(lastSeen)) / 1000 / 60 / 60;
       if (hoursSince < 24) return; // Don't show if seen in last 24 hours
     }
 
-    // Show after 15 seconds
-    const timer = setTimeout(() => {
-      if (!hasOpened) {
-        setIsOpen(true);
-        setHasOpened(true);
-      }
-    }, 15000);
-
     // Exit intent logic - only trigger when mouse actually leaves the browser window toward the top
     const handleMouseOut = (e: MouseEvent) => {
-      // Check if mouse is exiting the window (relatedTarget is null or not an element in the document)
-      // AND mouse is moving toward the top of the screen (clientY <= 0)
-      // AND the target leaving is the html/document body
       const from = e.relatedTarget as Node | null;
       
       // If relatedTarget is null, mouse left the window entirely
@@ -49,21 +48,20 @@ export function LeadCaptureModal() {
     document.addEventListener('mouseout', handleMouseOut);
 
     return () => {
-      clearTimeout(timer);
       document.removeEventListener('mouseout', handleMouseOut);
     };
   }, [hasOpened]);
 
   const handleClose = () => {
     setIsOpen(false);
-    localStorage.setItem('lead_modal_seen', Date.now().toString());
+    localStorage.setItem('payments_exit_popup_seen', Date.now().toString());
   };
 
   if (!isOpen) return null;
 
   return (
     <div 
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300 cursor-pointer"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300 cursor-pointer"
       onClick={handleClose}
     >
       <div 
@@ -72,50 +70,56 @@ export function LeadCaptureModal() {
       >
         <button 
           onClick={handleClose}
-          className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all"
+          className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <div className="p-8 text-center">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <WhatsAppIcon className="w-8 h-8 text-emerald-600" />
+        {/* Green Header */}
+        <div className="bg-gradient-to-br from-green-500 to-green-600 p-6 text-white text-center">
+          <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CreditCardIcon className="w-8 h-8" />
           </div>
-          
-          <h3 className="text-2xl font-bold text-gray-900 mb-3">
-            רגע לפני שאתם הולכים... 👋
+          <h3 className="text-2xl font-bold mb-2">
+            רגע לפני שעוזבים... 💳
           </h3>
-          
-          <p className="text-gray-600 mb-8 leading-relaxed">
-            יש לכם רעיון לחנות? אנחנו יכולים לעזור לכם להפוך אותו למציאות תוך דקות.
-            בואו נדבר בוואטסאפ, נבין מה אתם צריכים, ונציע לכם את הפתרון המושלם.
+          <p className="text-green-100 text-sm">
+            יש לכם שאלות על הסליקה?
+          </p>
+        </div>
+
+        <div className="p-6 text-center">
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            נשמח לעזור לכם להבין מה המסלול המתאים לעסק שלכם.
+            <br />
+            שיחה קצרה יכולה לחסוך לכם אלפי שקלים בשנה!
           </p>
 
           <div className="space-y-3">
             <a 
-              href="https://wa.me/972552554432?text=%D7%94%D7%99%2C%20%D7%90%D7%A0%D7%99%20%D7%91%D7%90%D7%AA%D7%A8%20%D7%95%D7%A8%D7%A6%D7%99%D7%AA%D7%99%20%D7%9C%D7%94%D7%AA%D7%99%D7%99%D7%A2%D7%A5%20%D7%9C%D7%92%D7%91%D7%99%20%D7%94%D7%A7%D7%9E%D7%AA%20%D7%97%D7%A0%D7%95%D7%AA"
+              href="https://wa.me/972552554432?text=%D7%94%D7%99%2C%20%D7%90%D7%A0%D7%99%20%D7%9E%D7%AA%D7%A2%D7%A0%D7%99%D7%99%D7%9F%20%D7%91%D7%A9%D7%99%D7%A8%D7%95%D7%AA%20%D7%94%D7%A1%D7%9C%D7%99%D7%A7%D7%94%20Quick%20Payments"
               target="_blank"
               rel="noopener noreferrer"
               onClick={handleClose}
               className="flex items-center justify-center gap-2 w-full py-4 bg-[#25D366] text-white font-bold rounded-xl hover:bg-[#20bd5a] transition-all shadow-lg shadow-green-200 hover:shadow-xl hover:-translate-y-0.5"
             >
               <WhatsAppIcon className="w-5 h-5" />
-              דברו איתנו בוואטסאפ
+              שאלות על סליקה? דברו איתנו
             </a>
             
             <button 
               onClick={handleClose}
               className="text-sm text-gray-400 font-medium hover:text-gray-600 transition-colors"
             >
-              לא תודה, אני רק מסתכל/ת
+              לא תודה, אני ממשיך לקרוא
             </button>
           </div>
         </div>
         
         <div className="bg-gray-50 p-4 text-center border-t border-gray-100">
-           <p className="text-xs text-gray-400">
-             * ייעוץ חינם ללא התחייבות
-           </p>
+          <p className="text-xs text-gray-400">
+            * ייעוץ חינם ללא התחייבות • עמלות הכי נמוכות בישראל
+          </p>
         </div>
       </div>
     </div>
