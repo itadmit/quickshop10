@@ -17,3 +17,4 @@ WHERE "discount_ids" = '[]' OR "discount_ids" IS NULL;
 
 
 
+

@@ -9,3 +9,4 @@ CREATE INDEX IF NOT EXISTS idx_orders_utm_source ON orders(store_id, utm_source)
 
 
 
+

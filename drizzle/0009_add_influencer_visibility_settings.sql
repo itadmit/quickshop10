@@ -12,3 +12,4 @@ ALTER TABLE "influencers" ADD COLUMN "show_order_details" boolean DEFAULT true N
 
 
 
+

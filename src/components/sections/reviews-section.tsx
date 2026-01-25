@@ -240,9 +240,9 @@ export function ReviewsSection({
                   {showAvatar && (
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium" data-review-avatar>
                       {review.avatar ? (
-                        <img src={review.avatar} alt={review.author} className="w-full h-full rounded-full object-cover" />
+                        <img src={review.avatar} alt={review.author || ''} className="w-full h-full rounded-full object-cover" />
                       ) : (
-                        review.author.charAt(0)
+                        review.author?.charAt(0) || '?'
                       )}
                     </div>
                   )}

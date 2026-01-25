@@ -114,26 +114,17 @@ export async function searchProducts(storeId: string, query: string): Promise<Pr
 }
 
 /**
- * Generate a unique order number
+ * Generate a unique order number - ATOMIC to prevent race conditions
  */
 async function generateOrderNumber(storeId: string): Promise<string> {
-  // Get the last order number for this store
-  const [lastOrder] = await db
-    .select({ orderNumber: orders.orderNumber })
-    .from(orders)
-    .where(eq(orders.storeId, storeId))
-    .orderBy(desc(orders.createdAt))
-    .limit(1);
+  // 🔒 ATOMIC: Update and return in one operation to prevent duplicates
+  const [updatedStore] = await db
+    .update(stores)
+    .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
+    .where(eq(stores.id, storeId))
+    .returning({ orderCounter: stores.orderCounter });
 
-  let nextNumber = 1001;
-  if (lastOrder?.orderNumber) {
-    const match = lastOrder.orderNumber.match(/\d+/);
-    if (match) {
-      nextNumber = parseInt(match[0], 10) + 1;
-    }
-  }
-
-  return `#${nextNumber}`;
+  return String(updatedStore?.orderCounter ?? 1001);
 }
 
 /**

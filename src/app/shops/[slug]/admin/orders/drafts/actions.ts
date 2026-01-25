@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { draftOrders, orders, orderItems, stores, products, productImages, productVariants } from '@/lib/db/schema';
-import { eq, and, ilike, or } from 'drizzle-orm';
+import { eq, and, ilike, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
@@ -78,20 +78,19 @@ export async function completeDraft(draftId: string, slug: string) {
 
     const items = draft.items as DraftItem[];
 
-    // Get store for order counter
-    const [store] = await db.select().from(stores).where(eq(stores.id, draft.storeId)).limit(1);
-    if (!store) {
+    // 🔒 ATOMIC: Generate order number and increment counter in one operation
+    // This prevents race conditions when multiple orders are created simultaneously
+    const [updatedStore] = await db
+      .update(stores)
+      .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
+      .where(eq(stores.id, draft.storeId))
+      .returning({ orderCounter: stores.orderCounter, id: stores.id });
+    
+    if (!updatedStore) {
       return { success: false, error: 'חנות לא נמצאה' };
     }
     
-    // Generate numeric order number from store counter (starts at 1000)
-    const currentCounter = store.orderCounter ?? 1000;
-    const orderNumber = String(currentCounter);
-    
-    // Increment the store's order counter
-    await db.update(stores)
-      .set({ orderCounter: currentCounter + 1 })
-      .where(eq(stores.id, store.id));
+    const orderNumber = String(updatedStore.orderCounter ?? 1001);
 
     // Create the order
     const [order] = await db
@@ -154,7 +153,7 @@ export async function completeDraft(draftId: string, slug: string) {
       .where(eq(draftOrders.id, draftId));
 
     // Auto-send shipment if store has auto-send enabled (non-blocking)
-    autoSendShipmentOnPayment(store.id, order.id)
+    autoSendShipmentOnPayment(updatedStore.id, order.id)
       .then(result => {
         if (result.success) {
           console.log(`[DraftOrder] Auto-sent shipment for order ${order.orderNumber}, tracking: ${result.trackingNumber}`);

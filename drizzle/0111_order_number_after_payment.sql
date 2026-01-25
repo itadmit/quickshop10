@@ -21,3 +21,4 @@ ALTER TABLE orders ALTER COLUMN order_number DROP NOT NULL;
 
 
 
+

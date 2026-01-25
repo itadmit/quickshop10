@@ -450,6 +450,17 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           
           order = updatedOrder;
           console.log(`Thank you page: Updated order ${order.orderNumber} to PAID (no pending payment)`);
+          
+          // 🔧 FIX: Auto-send shipment even when no pending payment found
+          autoSendShipmentOnPayment(store.id, updatedOrder.id)
+            .then(result => {
+              if (result.success) {
+                console.log(`Thank you page: Auto-sent shipment for order ${updatedOrder.orderNumber}, tracking: ${result.trackingNumber}`);
+              } else if (result.error !== 'Auto-send is disabled' && result.error !== 'No default shipping provider') {
+                console.error(`Thank you page: Failed to auto-send shipment: ${result.error}`);
+              }
+            })
+            .catch(err => console.error('Thank you page: Auto-send error:', err));
         }
       } else if (existingOrder.financialStatus === 'paid') {
         // Order already paid - just show it

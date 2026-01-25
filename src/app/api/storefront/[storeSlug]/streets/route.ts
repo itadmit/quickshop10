@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchStreets } from "@/lib/israel-cities-cache";
+import { searchStreets, getAllStreets } from "@/lib/israel-cities-cache";
 
-// GET - חיפוש רחובות לפי עיר
+// GET - חיפוש רחובות לפי עיר או קבלת כל הרחובות
 // 🚀 מהיר מאוד - חיפוש בזיכרון, ללא DB
 export async function GET(
   req: NextRequest,
@@ -11,8 +11,20 @@ export async function GET(
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
     const city = searchParams.get("city") || "";
+    const all = searchParams.get("all") === "true";
 
-    if (!query || query.length < 2 || !city) {
+    if (!city) {
+      return NextResponse.json({ streets: [] });
+    }
+
+    // אם מבקשים את כל הרחובות של העיר
+    if (all) {
+      const streets = getAllStreets(city);
+      return NextResponse.json({ streets });
+    }
+
+    // חיפוש רגיל - מינימום 2 תווים
+    if (!query || query.length < 2) {
       return NextResponse.json({ streets: [] });
     }
 

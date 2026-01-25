@@ -7,7 +7,7 @@ interface AutocompleteOption {
   label: string;
 }
 
-interface AutocompleteProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onSelect'> {
+interface AutocompleteProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onSelect' | 'onFocus'> {
   options?: AutocompleteOption[];
   loading?: boolean;
   onSelect?: (option: AutocompleteOption) => void;
@@ -23,6 +23,18 @@ interface AutocompleteProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 
   defaultOptions?: AutocompleteOption[];
   /** הודעה להציג כשהשדה מושבת */
   disabledMessage?: string;
+  /** callback כשמוחקים את הבחירה */
+  onClear?: () => void;
+  /** האם להציג כפתור X למחיקה */
+  clearable?: boolean;
+  /** האם יש עוד פריטים לטעון */
+  hasMore?: boolean;
+  /** callback כשמגיעים לסוף הרשימה */
+  onLoadMore?: () => void;
+  /** callback כשלוחצים על השדה (לטעינת נתונים) */
+  onFocus?: () => void;
+  /** האם הערך הנוכחי כבר נבחר/תקין (לכתובות שמורות) */
+  initiallyValid?: boolean;
 }
 
 /**
@@ -42,11 +54,17 @@ export function Autocomplete({
   errorMessage,
   defaultOptions = [],
   disabledMessage,
+  onClear,
+  clearable = false,
+  hasMore = false,
+  onLoadMore,
+  onFocus: externalOnFocus, // Extract onFocus to prevent override
+  initiallyValid = false,
   ...props
 }: AutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [isSelected, setIsSelected] = useState(false); // האם הערך נבחר מהרשימה
+  const [isSelected, setIsSelected] = useState(initiallyValid); // האם הערך נבחר מהרשימה - אם יש ערך ראשוני תקין, מתחילים כ-true
   const [showError, setShowError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -88,6 +106,14 @@ export function Autocomplete({
     }
   }, [value, onValidationChange]);
 
+  // Sync isSelected when initiallyValid changes (for pre-filled values)
+  useEffect(() => {
+    if (initiallyValid && value) {
+      setIsSelected(true);
+      setShowError(false);
+    }
+  }, [initiallyValid, value]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     onChange?.(newValue);
@@ -109,6 +135,17 @@ export function Autocomplete({
     setShowError(false);
     onValidationChange?.(true);
     inputRef.current?.blur();
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onChange?.('');
+    setIsSelected(false);
+    setShowError(false);
+    onValidationChange?.(true);
+    onClear?.();
+    inputRef.current?.focus();
   };
 
   const handleBlur = () => {
@@ -149,7 +186,8 @@ export function Autocomplete({
   };
 
   // הצג defaultOptions כשאין ערך או שאין options מהחיפוש
-  const filteredOptions = (options || []).slice(0, 20);
+  // לא מגבילים פה כי ה-hook מנהל את הפגינציה
+  const filteredOptions = options || [];
   const displayOptions = filteredOptions.length > 0 ? filteredOptions : (value ? [] : defaultOptions.slice(0, 15));
   const hasError = selectOnly && showError && value && !isSelected;
   const isDisabled = props.disabled;
@@ -162,7 +200,12 @@ export function Autocomplete({
           type="text"
           value={value}
           onChange={handleInputChange}
-          onFocus={() => !isDisabled && setIsOpen(true)}
+          onFocus={() => {
+            if (!isDisabled) {
+              setIsOpen(true);
+              externalOnFocus?.();
+            }
+          }}
           onBlur={handleBlur}
           onKeyDown={handleKeyDown}
           className={`
@@ -187,12 +230,28 @@ export function Autocomplete({
           </div>
         )}
         
-        {/* V ירוק כשנבחר בהצלחה */}
+        {/* V ירוק + X למחיקה כשנבחר בהצלחה */}
         {selectOnly && isSelected && value && !loading && !isDisabled && (
-          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-green-500">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+          <div className="absolute left-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+            <span className="text-green-500">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </span>
+            {clearable && (
+              <button
+                type="button"
+                onClick={handleClear}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-0.5 -mr-1"
+                tabIndex={-1}
+                aria-label="נקה בחירה"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            )}
           </div>
         )}
         
@@ -226,19 +285,37 @@ export function Autocomplete({
         <p className="text-xs text-gray-400 mt-1">{disabledMessage}</p>
       )}
       
-      {isOpen && !isDisabled && (displayOptions.length > 0 || loading) && (
+      {isOpen && !isDisabled && (
         <div
           ref={dropdownRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto"
           dir="rtl"
+          onScroll={(e) => {
+            // Lazy loading - טוען עוד כשמגיעים קרוב לסוף (100px לפני)
+            if (!hasMore || !onLoadMore || loading) return;
+            const target = e.currentTarget;
+            const nearBottom = target.scrollHeight - target.scrollTop - target.clientHeight < 100;
+            if (nearBottom) {
+              onLoadMore();
+            }
+          }}
         >
-          {loading && displayOptions.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-gray-500 flex items-center gap-2">
-              <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-black"></div>
-              טוען...
+          {displayOptions.length === 0 ? (
+            <div className="px-4 py-3 text-sm text-gray-500 flex items-center justify-center gap-2">
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-black"></div>
+                  טוען...
+                </>
+              ) : value ? (
+                'לא נמצאו תוצאות'
+              ) : (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-black"></div>
+                  טוען רשימה...
+                </>
+              )}
             </div>
-          ) : displayOptions.length === 0 ? (
-            <div className="px-4 py-3 text-sm text-gray-500">לא נמצאו תוצאות</div>
           ) : (
             <>
               {/* כותרת לאפשרויות ברירת מחדל */}
@@ -260,6 +337,37 @@ export function Autocomplete({
                   {option.label}
                 </div>
               ))}
+              {/* Loading more indicator - clickable */}
+              {hasMore && (
+                <button
+                  type="button"
+                  className={`w-full px-4 py-3 text-xs text-center border-t border-gray-100 ${
+                    loading ? 'text-gray-400' : 'text-blue-600 hover:bg-blue-50 cursor-pointer'
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!loading && onLoadMore) {
+                      onLoadMore();
+                    }
+                  }}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-3 w-3 border border-gray-300 border-t-gray-500"></div>
+                      טוען עוד...
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                      </svg>
+                      לחץ לטעינת עוד תוצאות
+                    </span>
+                  )}
+                </button>
+              )}
             </>
           )}
         </div>

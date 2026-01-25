@@ -458,16 +458,21 @@ export function CheckoutForm({
     return address;
   };
 
-  // 🏙️ Sync selectedCity when formData.city changes (e.g., from saved address)
+  // 🏙️ Track if address was loaded from saved customer (not typed by user)
+  const [addressLoadedFromSaved, setAddressLoadedFromSaved] = useState(false);
+  
+  // Sync selectedCity ONLY when loading from saved address (logged-in customer)
+  // This runs once when customer data is loaded, not on every keystroke
   useEffect(() => {
-    if (formData.city && formData.city !== selectedCity) {
+    // Only sync if address was loaded from saved customer AND values match initial load
+    if (addressLoadedFromSaved && formData.city && formData.city !== selectedCity) {
       setSelectedCity(formData.city);
       setIsCityValid(true); // כתובת שמורה = עיר תקינה
     }
-    if (formData.street && formData.city) {
+    if (addressLoadedFromSaved && formData.street && formData.city) {
       setIsStreetValid(true); // כתובת שמורה = רחוב תקין
     }
-  }, [formData.city, formData.street, selectedCity]);
+  }, [formData.city, formData.street, selectedCity, addressLoadedFromSaved]);
 
   // 🚚 Fetch shipping options when entering shipping step (or immediately for single-page)
   useEffect(() => {
@@ -660,6 +665,10 @@ export function CheckoutForm({
             city: data.customer.defaultAddress?.city || prev.city,
             zipCode: data.customer.defaultAddress?.zipCode || prev.zipCode,
           }));
+          // Mark as loaded from saved address for validation bypass
+          if (data.customer.defaultAddress?.city) {
+            setAddressLoadedFromSaved(true);
+          }
         }
       } catch {
         // Not logged in, that's okay
@@ -687,6 +696,10 @@ export function CheckoutForm({
       city: customer.defaultAddress?.city || prev.city,
       zipCode: customer.defaultAddress?.zipCode || prev.zipCode,
     }));
+    // Mark as loaded from saved address for validation bypass
+    if (customer.defaultAddress?.city) {
+      setAddressLoadedFromSaved(true);
+    }
   };
 
   // Handle logout
@@ -828,6 +841,18 @@ export function CheckoutForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setOrderError(null);
+    
+    // 🏙️ Validate city and street selection (only for physical products, not virtual cart)
+    if (!isVirtualCartOnly && !selectedMethod?.isPickup) {
+      if (!isCityValid || !selectedCity) {
+        setOrderError(t.errors?.selectCity || 'יש לבחור עיר מהרשימה');
+        return;
+      }
+      if (!isStreetValid || !formData.street) {
+        setOrderError(t.errors?.selectStreet || 'יש לבחור רחוב מהרשימה');
+        return;
+      }
+    }
     
     // Prepare cart data for tracking
     const cartData = {
@@ -1931,9 +1956,15 @@ export function CheckoutForm({
                       <Autocomplete
                         value={formData.city}
                         name="city"
+                        onFocus={() => citySearch.loadAllCities()}
                         onChange={(value) => {
-                          setFormData({...formData, city: value});
+                          setFormData({...formData, city: value, street: ''}); // Reset street when city changes
                           citySearch.setQuery(value);
+                          // Reset validation when user types (not selects)
+                          setAddressLoadedFromSaved(false);
+                          setSelectedCity(''); // Disable street field until city is selected
+                          setIsCityValid(false);
+                          setIsStreetValid(false);
                         }}
                         onSelect={(option) => {
                           setFormData({...formData, city: option.value, street: ''});
@@ -1943,16 +1974,28 @@ export function CheckoutForm({
                           streetSearch.setQuery(''); // Reset street search
                         }}
                         onValidationChange={(isValid) => setIsCityValid(isValid)}
+                        onClear={() => {
+                          setFormData({...formData, city: '', street: ''});
+                          setSelectedCity('');
+                          setIsCityValid(false);
+                          setIsStreetValid(false);
+                          citySearch.setQuery('');
+                          streetSearch.setQuery('');
+                        }}
                         options={citySearch.cities.map((city) => ({
                           value: city.cityName,
                           label: city.cityName,
                         }))}
                         loading={citySearch.loading}
+                        hasMore={citySearch.hasMore}
+                        onLoadMore={citySearch.loadMore}
                         placeholder={t.shipping.cityPlaceholder}
                         inputClassName="border-gray-200 focus:border-black"
                         selectOnly
+                        clearable
                         errorMessage={t.errors.selectCity}
                         required
+                        initiallyValid={addressLoadedFromSaved && !!formData.city}
                       />
                     </div>
                     
@@ -1965,27 +2008,39 @@ export function CheckoutForm({
                         <Autocomplete
                           value={formData.street}
                           name="street"
+                          onFocus={() => streetSearch.loadAllStreets()}
                           onChange={(value) => {
                             setFormData({...formData, street: value});
                             streetSearch.setQuery(value);
+                            // Reset validation when user types (not selects)
+                            setIsStreetValid(false);
                           }}
                           onSelect={(option) => {
                             setFormData({...formData, street: option.value});
                             setIsStreetValid(true);
                           }}
                           onValidationChange={(isValid) => setIsStreetValid(isValid)}
+                          onClear={() => {
+                            setFormData({...formData, street: ''});
+                            setIsStreetValid(false);
+                            streetSearch.setQuery('');
+                          }}
                           options={streetSearch.streets.map((street) => ({
                             value: street.streetName,
                             label: street.streetName,
                           }))}
                           loading={streetSearch.loading}
+                          hasMore={streetSearch.hasMore}
+                          onLoadMore={streetSearch.loadMore}
                           placeholder={selectedCity ? t.shipping.streetPlaceholder : t.shipping.selectCityFirst}
                           inputClassName="border-gray-200 focus:border-black"
                           disabled={!selectedCity}
                           disabledMessage={t.shipping.selectCityFirst}
                           selectOnly
+                          clearable
                           errorMessage={t.errors.selectStreet}
                           required
+                          initiallyValid={addressLoadedFromSaved && !!formData.street}
                         />
                       </div>
                       <div>

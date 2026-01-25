@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchCities } from "@/lib/israel-cities-cache";
+import { searchCities, getAllCities } from "@/lib/israel-cities-cache";
 
-// GET - חיפוש ערים בישראל
+// GET - חיפוש ערים בישראל או קבלת כל הערים
 // 🚀 מהיר מאוד - חיפוש בזיכרון, ללא DB
 export async function GET(
   req: NextRequest,
@@ -10,7 +10,15 @@ export async function GET(
   try {
     const { searchParams } = new URL(req.url);
     const query = searchParams.get("q") || "";
+    const all = searchParams.get("all") === "true";
 
+    // אם מבקשים את כל הערים
+    if (all) {
+      const cities = getAllCities();
+      return NextResponse.json({ cities });
+    }
+
+    // חיפוש רגיל - מינימום 2 תווים
     if (!query || query.length < 2) {
       return NextResponse.json({ cities: [] });
     }

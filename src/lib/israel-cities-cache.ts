@@ -128,3 +128,45 @@ export function getCityStreets(cityName: string): string[] {
   return streetsData[cityName] || [];
 }
 
+/**
+ * קבלת כל הערים (ממוינות לפי א-ב)
+ */
+export function getAllCities(): CityData[] {
+  loadCitiesData();
+  
+  if (!citiesData || citiesData.length === 0) {
+    return [];
+  }
+
+  return citiesData
+    .map((city) => ({
+      cityName: city.name,
+      cityCode: city.code,
+    }))
+    .sort((a, b) => a.cityName.localeCompare(b.cityName, 'he'));
+}
+
+/**
+ * קבלת כל הרחובות של עיר (ממוינים לפי א-ב)
+ */
+export function getAllStreets(cityName: string): StreetData[] {
+  loadStreetsData();
+  
+  if (!streetsData || !cityName) {
+    return [];
+  }
+
+  const cityStreets = streetsData[cityName];
+  
+  if (!cityStreets || cityStreets.length === 0) {
+    return [];
+  }
+
+  return cityStreets
+    .map((street) => ({
+      streetName: street,
+      cityName: cityName,
+    }))
+    .sort((a, b) => a.streetName.localeCompare(b.streetName, 'he'));
+}
+

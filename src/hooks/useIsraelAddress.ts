@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface City {
   cityName: string;
@@ -29,121 +29,192 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 /**
  * Hook לחיפוש ערים בישראל
- * 🚀 כולל debounce למניעת קריאות מיותרות
+ * 🚀 טוען בצורה מדורגת (lazy loading) - 20 פריטים בכל פעם
  */
 export function useCitySearch(storeSlug: string) {
   const [query, setQuery] = useState("");
+  const [allCities, setAllCities] = useState<City[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   
-  const debouncedQuery = useDebounce(query, 300); // המתנה של 300ms
+  const debouncedQuery = useDebounce(query, 150);
 
+  // טעינת כל הערים פעם אחת (ברקע)
+  const loadAllCities = useCallback(async () => {
+    if (loaded || loading) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/storefront/${storeSlug}/cities?all=true`);
+      if (response.ok) {
+        const data = await response.json();
+        setAllCities(data.cities || []);
+        // מציג רק את ה-20 הראשונים בהתחלה
+        setCities((data.cities || []).slice(0, ITEMS_PER_PAGE));
+        setLoaded(true);
+        setDisplayCount(ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error("Error loading cities:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [storeSlug, loaded, loading]);
+
+  // טעינת עוד פריטים (lazy loading)
+  const loadMore = useCallback(() => {
+    if (loading || !loaded) return;
+    
+    const searchTerm = debouncedQuery?.toLowerCase().trim();
+    const filtered = searchTerm 
+      ? allCities.filter(city => city.cityName.includes(searchTerm))
+      : allCities;
+    
+    const newCount = Math.min(displayCount + ITEMS_PER_PAGE, filtered.length);
+    setDisplayCount(newCount);
+    setCities(filtered.slice(0, newCount));
+  }, [allCities, displayCount, debouncedQuery, loaded, loading]);
+
+  // סינון מקומי לפי ההקלדה
   useEffect(() => {
-    if (!debouncedQuery || debouncedQuery.length < 2) {
-      setCities([]);
+    if (!loaded) return;
+    
+    setDisplayCount(ITEMS_PER_PAGE); // Reset pagination on new search
+    
+    if (!debouncedQuery) {
+      setCities(allCities.slice(0, ITEMS_PER_PAGE));
       return;
     }
 
-    const controller = new AbortController();
-    
-    const searchCities = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `/api/storefront/${storeSlug}/cities?q=${encodeURIComponent(debouncedQuery)}`,
-          { signal: controller.signal }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          setCities(data.cities || []);
-        } else {
-          setCities([]);
-        }
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error("Error searching cities:", error);
-          setCities([]);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
+    const searchTerm = debouncedQuery.toLowerCase().trim();
+    const filtered = allCities
+      .filter(city => city.cityName.includes(searchTerm))
+      .slice(0, ITEMS_PER_PAGE);
+    setCities(filtered);
+  }, [debouncedQuery, allCities, loaded]);
 
-    searchCities();
-    
-    return () => controller.abort();
-  }, [debouncedQuery, storeSlug]);
+  // חישוב האם יש עוד פריטים לטעון
+  const hasMore = loaded && (() => {
+    const searchTerm = debouncedQuery?.toLowerCase().trim();
+    const total = searchTerm 
+      ? allCities.filter(city => city.cityName.includes(searchTerm)).length
+      : allCities.length;
+    return displayCount < total;
+  })();
 
   return {
     query,
     setQuery,
     cities,
     loading,
+    loadAllCities,
+    loadMore,
+    hasMore,
   };
 }
 
 /**
  * Hook לחיפוש רחובות בישראל
- * 🚀 כולל debounce + תלוי בעיר שנבחרה
+ * 🚀 טוען בצורה מדורגת (lazy loading) - 20 פריטים בכל פעם
  */
 export function useStreetSearch(storeSlug: string, cityName: string) {
   const [query, setQuery] = useState("");
+  const [allStreets, setAllStreets] = useState<Street[]>([]);
   const [streets, setStreets] = useState<Street[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadedCity, setLoadedCity] = useState("");
+  const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE);
   
-  const debouncedQuery = useDebounce(query, 300);
+  const debouncedQuery = useDebounce(query, 150);
 
+  // טעינת כל הרחובות של העיר פעם אחת (ברקע)
+  const loadAllStreets = useCallback(async () => {
+    if (!cityName || loadedCity === cityName || loading) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `/api/storefront/${storeSlug}/streets?all=true&city=${encodeURIComponent(cityName)}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setAllStreets(data.streets || []);
+        // מציג רק את ה-20 הראשונים בהתחלה
+        setStreets((data.streets || []).slice(0, ITEMS_PER_PAGE));
+        setLoadedCity(cityName);
+        setDisplayCount(ITEMS_PER_PAGE);
+      }
+    } catch (error) {
+      console.error("Error loading streets:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [storeSlug, cityName, loadedCity, loading]);
+
+  // טעינת עוד פריטים (lazy loading)
+  const loadMore = useCallback(() => {
+    if (loading || loadedCity !== cityName) return;
+    
+    const searchTerm = debouncedQuery?.toLowerCase().trim();
+    const filtered = searchTerm 
+      ? allStreets.filter(street => street.streetName.includes(searchTerm))
+      : allStreets;
+    
+    const newCount = Math.min(displayCount + ITEMS_PER_PAGE, filtered.length);
+    setDisplayCount(newCount);
+    setStreets(filtered.slice(0, newCount));
+  }, [allStreets, displayCount, debouncedQuery, cityName, loadedCity, loading]);
+
+  // סינון מקומי לפי ההקלדה
   useEffect(() => {
-    if (!debouncedQuery || debouncedQuery.length < 2 || !cityName) {
-      setStreets([]);
+    if (loadedCity !== cityName) return;
+    
+    setDisplayCount(ITEMS_PER_PAGE); // Reset pagination on new search
+    
+    if (!debouncedQuery) {
+      setStreets(allStreets.slice(0, ITEMS_PER_PAGE));
       return;
     }
 
-    const controller = new AbortController();
+    const searchTerm = debouncedQuery.toLowerCase().trim();
+    const filtered = allStreets
+      .filter(street => street.streetName.includes(searchTerm))
+      .slice(0, ITEMS_PER_PAGE);
+    setStreets(filtered);
+  }, [debouncedQuery, allStreets, cityName, loadedCity]);
 
-    const searchStreets = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch(
-          `/api/storefront/${storeSlug}/streets?q=${encodeURIComponent(debouncedQuery)}&city=${encodeURIComponent(cityName)}`,
-          { signal: controller.signal }
-        );
-        
-        if (response.ok) {
-          const data = await response.json();
-          setStreets(data.streets || []);
-        } else {
-          setStreets([]);
-        }
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          console.error("Error searching streets:", error);
-          setStreets([]);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    searchStreets();
-    
-    return () => controller.abort();
-  }, [debouncedQuery, cityName, storeSlug]);
-
-  // Reset streets when city changes
+  // Reset when city changes
   useEffect(() => {
     setStreets([]);
+    setAllStreets([]);
     setQuery("");
+    setLoadedCity("");
+    setDisplayCount(ITEMS_PER_PAGE);
   }, [cityName]);
+
+  // חישוב האם יש עוד פריטים לטעון
+  const hasMore = loadedCity === cityName && (() => {
+    const searchTerm = debouncedQuery?.toLowerCase().trim();
+    const total = searchTerm 
+      ? allStreets.filter(street => street.streetName.includes(searchTerm)).length
+      : allStreets.length;
+    return displayCount < total;
+  })();
 
   return {
     query,
     setQuery,
     streets,
     loading,
+    loadAllStreets,
+    loadMore,
+    hasMore,
   };
 }
 
