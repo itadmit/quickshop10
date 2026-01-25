@@ -529,12 +529,23 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h3 className="text-lg font-bold text-gray-900">פרטים לחשבונית מס</h3>
-            <button
-              onClick={() => setShowBillingForm(!showBillingForm)}
-              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              {showBillingForm ? 'סגור' : 'עריכה'}
-            </button>
+            <div className="flex items-center gap-3">
+              {showBillingForm && (
+                <button
+                  onClick={handleSaveBillingDetails}
+                  disabled={isSavingBilling || (billingDetails.useCustomName && !billingDetails.billingName.trim())}
+                  className="px-4 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isSavingBilling ? 'שומר...' : 'שמור'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowBillingForm(!showBillingForm)}
+                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                {showBillingForm ? 'ביטול' : 'עריכה'}
+              </button>
+            </div>
           </div>
           
           {showBillingForm ? (
