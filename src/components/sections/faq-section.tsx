@@ -143,8 +143,8 @@ export function FAQSection({
         <div className={`space-y-${style === 'cards' ? '4' : '0'}`} data-faq-items>
           {items.map((item, index) => (
             <details
-              key={item.id}
-              data-faq-item-id={item.id}
+              key={item.id || `faq-${index}`}
+              data-faq-item-id={item.id || `faq-${index}`}
               data-faq-item-index={index}
               className={`
                 group

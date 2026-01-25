@@ -93,7 +93,7 @@ function AccordionSection({
 
   return (
     <div className="product-accordion my-6" data-section-id={section.id}>
-      {items.map((item) => {
+      {items.map((item, index) => {
         const resolvedContent = resolveDynamicContent(item.content, context);
         
         // Skip empty items
@@ -101,7 +101,7 @@ function AccordionSection({
         
         return (
           <details 
-            key={item.id} 
+            key={item.id || `accordion-${index}`} 
             className={`group ${borderClass}`}
             open={item.isOpen}
           >
@@ -198,13 +198,13 @@ function FeaturesSection({
 
   return (
     <div className={`product-features my-6 ${layoutClass}`} data-section-id={section.id}>
-      {visibleItems.map((item) => {
+      {visibleItems.map((item, index) => {
         const resolvedText = resolveDynamicContent(item.text, context);
         const iconSvg = featureIcons[item.icon] || featureIcons.check;
         
         return (
           <div 
-            key={item.id} 
+            key={item.id || `feature-${index}`} 
             className="flex items-center gap-2 text-sm text-gray-600"
           >
             <span 
