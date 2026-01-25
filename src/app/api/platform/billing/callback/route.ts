@@ -372,76 +372,108 @@ export async function POST(request: NextRequest) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px 16px 0 0; padding: 32px; text-align: center;">
-      <div style="width: 64px; height: 64px; background: white; border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;">
-        <span style="font-size: 32px;">🎉</span>
-      </div>
-      <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 700;">מנוי חדש!</h1>
-      <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 16px;">לקוח חדש הצטרף ל-QuickShop</p>
-    </div>
-    
-    <div style="background: white; border-radius: 0 0 16px 16px; padding: 32px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
-      <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-        <h2 style="margin: 0 0 16px; font-size: 18px; color: #1e293b;">פרטי החנות</h2>
-        <table style="width: 100%; border-collapse: collapse;">
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; direction: rtl;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5;">
+    <tr>
+      <td align="center" style="padding: 20px;">
+        <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px;">
+          <!-- Header -->
           <tr>
-            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">שם החנות:</td>
-            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600; text-align: left;">${store.name}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">כתובת:</td>
-            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; text-align: left;">
-              <a href="https://my-quickshop.com/shops/${store.slug}" style="color: #10b981; text-decoration: none;">my-quickshop.com/shops/${store.slug}</a>
+            <td align="center" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border-radius: 16px 16px 0 0; padding: 32px;">
+              <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                <tr>
+                  <td align="center" style="width: 64px; height: 64px; background: white; border-radius: 50%; text-align: center; vertical-align: middle; line-height: 64px; font-size: 32px;">🎉</td>
+                </tr>
+              </table>
+              <h1 style="color: white; margin: 16px 0 0 0; font-size: 24px; font-weight: 700; text-align: center;">מנוי חדש!</h1>
+              <p style="color: rgba(255,255,255,0.9); margin: 8px 0 0; font-size: 16px; text-align: center;">לקוח חדש הצטרף ל-QuickShop</p>
             </td>
           </tr>
+          
+          <!-- Content -->
           <tr>
-            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">בעל החנות:</td>
-            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; text-align: left;">${ownerName || '—'}</td>
+            <td style="background: white; border-radius: 0 0 16px 16px; padding: 32px;">
+              <!-- Store Details -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8fafc; border-radius: 12px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h2 style="margin: 0 0 16px; font-size: 18px; color: #1e293b; text-align: right;">פרטי החנות</h2>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 14px; text-align: right; width: 100px;">שם החנות:</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600; text-align: right;">${store.name}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 14px; text-align: right;">כתובת:</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; text-align: right;">
+                          <a href="https://my-quickshop.com/shops/${store.slug}" style="color: #10b981; text-decoration: none;">my-quickshop.com/shops/${store.slug}</a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 14px; text-align: right;">בעל החנות:</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; text-align: right;">${ownerName || '—'}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #64748b; font-size: 14px; text-align: right;">אימייל:</td>
+                        <td style="padding: 8px 0; color: #1e293b; font-size: 14px; text-align: right;">
+                          <a href="mailto:${ownerEmail}" style="color: #10b981; text-decoration: none;">${ownerEmail || '—'}</a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- Payment Details -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; margin-bottom: 24px;">
+                <tr>
+                  <td style="padding: 20px;">
+                    <h2 style="margin: 0 0 16px; font-size: 18px; color: #92400e; text-align: right;">פרטי התשלום</h2>
+                    <table width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td style="padding: 8px 0; color: #a16207; font-size: 14px; text-align: right; width: 120px;">מסלול:</td>
+                        <td style="padding: 8px 0; color: #92400e; font-size: 14px; font-weight: 600; text-align: right;">${planName}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #a16207; font-size: 14px; text-align: right;">סכום:</td>
+                        <td style="padding: 8px 0; color: #92400e; font-size: 14px; font-weight: 600; text-align: right;">₪${amount.toLocaleString()}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 8px 0; color: #a16207; font-size: 14px; text-align: right;">תאריך:</td>
+                        <td style="padding: 8px 0; color: #92400e; font-size: 14px; text-align: right;">${dateStr}</td>
+                      </tr>
+                      ${trialFeesAmount > 0 ? `
+                      <tr>
+                        <td style="padding: 8px 0; color: #a16207; font-size: 14px; text-align: right;">עמלות תקופת ניסיון:</td>
+                        <td style="padding: 8px 0; color: #92400e; font-size: 14px; font-weight: 600; text-align: right;">₪${trialFeesAmount.toLocaleString()}</td>
+                      </tr>
+                      ` : ''}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- CTA Button -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-top: 16px;">
+                    <a href="https://my-quickshop.com/admin/stores" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">צפה בכל החנויות</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
           </tr>
+          
+          <!-- Footer -->
           <tr>
-            <td style="padding: 8px 0; color: #64748b; font-size: 14px;">אימייל:</td>
-            <td style="padding: 8px 0; color: #1e293b; font-size: 14px; text-align: left;">
-              <a href="mailto:${ownerEmail}" style="color: #10b981; text-decoration: none;">${ownerEmail || '—'}</a>
+            <td style="text-align: center; padding: 24px; color: #94a3b8; font-size: 12px;">
+              <p style="margin: 0;">QuickShop Platform • התראה אוטומטית</p>
             </td>
           </tr>
         </table>
-      </div>
-      
-      <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 20px; margin-bottom: 24px;">
-        <h2 style="margin: 0 0 16px; font-size: 18px; color: #92400e;">פרטי התשלום</h2>
-        <table style="width: 100%; border-collapse: collapse;">
-          <tr>
-            <td style="padding: 8px 0; color: #a16207; font-size: 14px;">מסלול:</td>
-            <td style="padding: 8px 0; color: #92400e; font-size: 14px; font-weight: 600; text-align: left;">${planName}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #a16207; font-size: 14px;">סכום:</td>
-            <td style="padding: 8px 0; color: #92400e; font-size: 14px; font-weight: 600; text-align: left;">₪${amount.toLocaleString()}</td>
-          </tr>
-          <tr>
-            <td style="padding: 8px 0; color: #a16207; font-size: 14px;">תאריך:</td>
-            <td style="padding: 8px 0; color: #92400e; font-size: 14px; text-align: left;">${dateStr}</td>
-          </tr>
-          ${trialFeesAmount > 0 ? `
-          <tr>
-            <td style="padding: 8px 0; color: #a16207; font-size: 14px;">עמלות תקופת ניסיון:</td>
-            <td style="padding: 8px 0; color: #92400e; font-size: 14px; font-weight: 600; text-align: left;">₪${trialFeesAmount.toLocaleString()}</td>
-          </tr>
-          ` : ''}
-        </table>
-      </div>
-      
-      <div style="text-align: center; padding-top: 16px;">
-        <a href="https://my-quickshop.com/admin/stores" style="display: inline-block; background: #10b981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px;">צפה בכל החנויות</a>
-      </div>
-    </div>
-    
-    <div style="text-align: center; padding: 24px; color: #94a3b8; font-size: 12px;">
-      <p style="margin: 0;">QuickShop Platform • התראה אוטומטית</p>
-    </div>
-  </div>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>
 `;
