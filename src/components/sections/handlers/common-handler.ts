@@ -149,40 +149,45 @@ export function applyCommonUpdates(
   const marginUnit = (updates.settings?.marginUnit as string) || 'px';
   const paddingUnit = (updates.settings?.paddingUnit as string) || 'px';
 
+  // Helper to apply spacing - always apply the value
+  // All sections now use explicit values, not Tailwind classes
+  const applySpacing = (prop: 'marginTop' | 'marginRight' | 'marginBottom' | 'marginLeft' | 'paddingTop' | 'paddingRight' | 'paddingBottom' | 'paddingLeft', val: unknown, unit: string) => {
+    if (val === 'auto') {
+      el.style[prop] = 'auto';
+    } else if (val === '' || val === undefined || val === null) {
+      // If no value provided, don't change (keep existing)
+      return;
+    } else {
+      el.style[prop] = `${val}${unit}`;
+    }
+  };
+
   // Margin - all four sides
   if (updates.settings?.marginTop !== undefined) {
-    const val = updates.settings.marginTop;
-    el.style.marginTop = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+    applySpacing('marginTop', updates.settings.marginTop, marginUnit);
   }
   if (updates.settings?.marginRight !== undefined) {
-    const val = updates.settings.marginRight;
-    el.style.marginRight = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+    applySpacing('marginRight', updates.settings.marginRight, marginUnit);
   }
   if (updates.settings?.marginBottom !== undefined) {
-    const val = updates.settings.marginBottom;
-    el.style.marginBottom = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+    applySpacing('marginBottom', updates.settings.marginBottom, marginUnit);
   }
   if (updates.settings?.marginLeft !== undefined) {
-    const val = updates.settings.marginLeft;
-    el.style.marginLeft = val === '' || val === 'auto' ? 'auto' : `${val}${marginUnit}`;
+    applySpacing('marginLeft', updates.settings.marginLeft, marginUnit);
   }
 
   // Padding - all four sides
   if (updates.settings?.paddingTop !== undefined) {
-    const val = updates.settings.paddingTop;
-    el.style.paddingTop = val === '' ? '' : `${val}${paddingUnit}`;
+    applySpacing('paddingTop', updates.settings.paddingTop, paddingUnit);
   }
   if (updates.settings?.paddingRight !== undefined) {
-    const val = updates.settings.paddingRight;
-    el.style.paddingRight = val === '' ? '' : `${val}${paddingUnit}`;
+    applySpacing('paddingRight', updates.settings.paddingRight, paddingUnit);
   }
   if (updates.settings?.paddingBottom !== undefined) {
-    const val = updates.settings.paddingBottom;
-    el.style.paddingBottom = val === '' ? '' : `${val}${paddingUnit}`;
+    applySpacing('paddingBottom', updates.settings.paddingBottom, paddingUnit);
   }
   if (updates.settings?.paddingLeft !== undefined) {
-    const val = updates.settings.paddingLeft;
-    el.style.paddingLeft = val === '' ? '' : `${val}${paddingUnit}`;
+    applySpacing('paddingLeft', updates.settings.paddingLeft, paddingUnit);
   }
 
   // Z-Index
@@ -221,12 +226,273 @@ export function applyCommonUpdates(
   }
 
   if (updates.settings?.textAlign !== undefined) {
+    const align = updates.settings.textAlign as string;
     el.classList.remove('text-left', 'text-center', 'text-right');
-    el.classList.add(`text-${updates.settings.textAlign}`);
+    el.classList.add(`text-${align}`);
+    
+    // Also update inner content wrapper if exists
+    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement;
+    if (contentWrapper) {
+      contentWrapper.classList.remove('text-left', 'text-center', 'text-right');
+      contentWrapper.classList.add(`text-${align}`);
+    }
   }
 
   if (updates.settings?.isVisible !== undefined) {
     el.style.display = updates.settings.isVisible ? '' : 'none';
+  }
+
+  // Hide on Mobile/Tablet or Desktop - in editor show with low opacity
+  // Handle both settings together to avoid race conditions
+  if (updates.settings?.hideOnMobile !== undefined || updates.settings?.hideOnDesktop !== undefined) {
+    // Get current values from data attributes or updates
+    const hideOnMobile = updates.settings?.hideOnMobile !== undefined 
+      ? (updates.settings.hideOnMobile as boolean)
+      : (el.dataset.hideOnMobile === 'true');
+    
+    const hideOnDesktop = updates.settings?.hideOnDesktop !== undefined 
+      ? (updates.settings.hideOnDesktop as boolean)
+      : (el.dataset.hideOnDesktop === 'true');
+    
+    // Update data attributes
+    el.dataset.hideOnMobile = String(hideOnMobile);
+    el.dataset.hideOnDesktop = String(hideOnDesktop);
+    
+    // In editor: show with low opacity if hidden on ANY device
+    // This makes it clear the section has visibility restrictions
+    const shouldShowHidden = hideOnMobile || hideOnDesktop;
+    
+    if (shouldShowHidden) {
+      el.style.opacity = '0.5';
+      el.style.outline = '2px dashed rgba(239, 68, 68, 0.6)';
+      el.style.outlineOffset = '-2px';
+      // Remove Tailwind hiding classes effect in real-time
+      el.classList.remove('max-md:hidden', 'md:hidden');
+      el.style.display = '';
+    } else {
+      el.style.opacity = '';
+      el.style.outline = '';
+      el.style.outlineOffset = '';
+    }
+  }
+
+  // =====================================================
+  // SECTION WIDTH SETTINGS (Elementor style)
+  // =====================================================
+  
+  if (updates.settings?.sectionWidth !== undefined) {
+    const sectionWidth = updates.settings.sectionWidth as string;
+    
+    // Find the content wrapper (usually has max-w-* class)
+    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement || el.firstElementChild as HTMLElement;
+    
+    if (sectionWidth === 'full') {
+      // Full width - remove container constraints
+      el.classList.remove('container', 'mx-auto');
+      el.style.maxWidth = '100%';
+      el.style.width = '100%';
+      if (contentWrapper) {
+        contentWrapper.classList.remove('container', 'mx-auto', 'max-w-sm', 'max-w-md', 'max-w-lg', 'max-w-xl', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl');
+        contentWrapper.style.maxWidth = '100%';
+      }
+    } else {
+      // Boxed - apply container
+      el.style.maxWidth = '';
+      el.style.width = '';
+    }
+  }
+  
+  if (updates.settings?.contentWidth !== undefined) {
+    const contentWidth = updates.settings.contentWidth as string;
+    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement || el.firstElementChild as HTMLElement;
+    
+    if (contentWrapper) {
+      // Remove all max-width classes
+      contentWrapper.classList.remove('max-w-sm', 'max-w-md', 'max-w-lg', 'max-w-xl', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl');
+      contentWrapper.style.maxWidth = '';
+      
+      // Apply new max-width
+      const widthMap: Record<string, string> = {
+        sm: '640px',
+        md: '768px',
+        lg: '1024px',
+        xl: '1280px',
+        '2xl': '1536px',
+      };
+      
+      if (widthMap[contentWidth]) {
+        contentWrapper.style.maxWidth = widthMap[contentWidth];
+        contentWrapper.style.marginLeft = 'auto';
+        contentWrapper.style.marginRight = 'auto';
+      }
+    }
+  }
+
+  // =====================================================
+  // ANIMATION
+  // =====================================================
+  
+  if (updates.settings?.animation !== undefined || updates.settings?.animationDuration !== undefined) {
+    const animation = (updates.settings?.animation as string) ?? el.dataset.animation ?? 'none';
+    const duration = (updates.settings?.animationDuration as number) ?? parseFloat(el.dataset.animationDuration || '0.6');
+    
+    // Store in data attributes
+    el.dataset.animation = animation;
+    el.dataset.animationDuration = String(duration);
+    
+    // Inject keyframes if not exists
+    if (!document.getElementById('section-animation-styles')) {
+      const style = document.createElement('style');
+      style.id = 'section-animation-styles';
+      style.textContent = `
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDown {
+          from { opacity: 0; transform: translateY(-30px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideLeft {
+          from { opacity: 0; transform: translateX(30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideRight {
+          from { opacity: 0; transform: translateX(-30px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Remove existing animation classes
+    el.classList.remove('animate-fadeIn', 'animate-slideUp', 'animate-slideDown', 'animate-slideLeft', 'animate-slideRight');
+    
+    if (animation !== 'none') {
+      // Apply animation using inline style for preview
+      const animationMap: Record<string, string> = {
+        fadeIn: `fadeIn ${duration}s ease-out forwards`,
+        slideUp: `slideUp ${duration}s ease-out forwards`,
+        slideDown: `slideDown ${duration}s ease-out forwards`,
+        slideLeft: `slideLeft ${duration}s ease-out forwards`,
+        slideRight: `slideRight ${duration}s ease-out forwards`,
+      };
+      
+      // Reset animation to trigger it fresh
+      el.style.animation = 'none';
+      // Force browser to acknowledge the change
+      void el.offsetWidth;
+      // Apply the animation
+      requestAnimationFrame(() => {
+        el.style.animation = animationMap[animation] || '';
+      });
+    } else {
+      // No animation - clear it
+      el.style.animation = '';
+    }
+  }
+
+  // =====================================================
+  // MIN HEIGHT & VERTICAL ALIGN
+  // =====================================================
+  
+  if (updates.settings?.minHeight !== undefined || updates.settings?.minHeightUnit !== undefined) {
+    const minHeightValue = updates.settings?.minHeight !== undefined 
+      ? Number(updates.settings.minHeight) 
+      : (el.dataset.minHeight ? Number(el.dataset.minHeight) : 0);
+    const minHeightUnit = (updates.settings?.minHeightUnit as string) ?? el.dataset.minHeightUnit ?? 'px';
+    
+    if (minHeightValue && minHeightValue > 0) {
+      el.style.minHeight = `${minHeightValue}${minHeightUnit}`;
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+      el.dataset.minHeight = String(minHeightValue);
+      el.dataset.minHeightUnit = minHeightUnit;
+    } else {
+      el.style.minHeight = '';
+      el.style.display = '';
+      el.style.flexDirection = '';
+      delete el.dataset.minHeight;
+      delete el.dataset.minHeightUnit;
+    }
+  }
+
+  // Vertical Alignment (requires flex)
+  if (updates.settings?.verticalAlign !== undefined) {
+    const verticalAlign = updates.settings.verticalAlign as string;
+    const alignMap: Record<string, string> = {
+      start: 'flex-start',
+      center: 'center',
+      end: 'flex-end',
+    };
+    // Ensure flex is enabled for vertical alignment to work
+    if (!el.style.display || el.style.display === 'block') {
+      el.style.display = 'flex';
+      el.style.flexDirection = 'column';
+    }
+    el.style.justifyContent = alignMap[verticalAlign] || 'center';
+    el.dataset.verticalAlign = verticalAlign;
+  }
+
+  // =====================================================
+  // BACKGROUND IMAGE/VIDEO (settings level)
+  // =====================================================
+  
+  if (updates.settings?.backgroundImage !== undefined) {
+    const bgImage = updates.settings.backgroundImage as string;
+    if (bgImage) {
+      el.style.backgroundImage = `url(${bgImage})`;
+      el.style.backgroundSize = el.style.backgroundSize || 'cover';
+      el.style.backgroundPosition = el.style.backgroundPosition || 'center';
+      el.style.backgroundRepeat = 'no-repeat';
+      // Remove background video if exists
+      const videoEl = el.querySelector('[data-bg-video]') as HTMLVideoElement;
+      if (videoEl) videoEl.style.display = 'none';
+    } else {
+      el.style.backgroundImage = '';
+      el.style.backgroundSize = '';
+      el.style.backgroundPosition = '';
+      el.style.backgroundRepeat = '';
+    }
+  }
+
+  if (updates.settings?.backgroundVideo !== undefined) {
+    const bgVideo = updates.settings.backgroundVideo as string;
+    let videoEl = el.querySelector('[data-bg-video]') as HTMLVideoElement;
+    
+    if (bgVideo) {
+      // Create video element if doesn't exist
+      if (!videoEl) {
+        videoEl = document.createElement('video');
+        videoEl.setAttribute('data-bg-video', '');
+        videoEl.autoplay = true;
+        videoEl.loop = true;
+        videoEl.muted = true;
+        videoEl.playsInline = true;
+        videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
+        el.style.position = 'relative';
+        el.insertBefore(videoEl, el.firstChild);
+      }
+      videoEl.src = bgVideo;
+      videoEl.style.display = '';
+      // Remove background image
+      el.style.backgroundImage = '';
+    } else if (videoEl) {
+      videoEl.style.display = 'none';
+      videoEl.src = '';
+    }
+  }
+
+  if (updates.settings?.backgroundSize !== undefined) {
+    el.style.backgroundSize = updates.settings.backgroundSize as string;
+  }
+
+  if (updates.settings?.backgroundPosition !== undefined) {
+    el.style.backgroundPosition = updates.settings.backgroundPosition as string;
   }
 
   // =====================================================

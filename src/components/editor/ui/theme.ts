@@ -66,26 +66,26 @@ export const accent = {
   purple: '#a259ff',
 };
 
-// CSS Variables generator
-export function getThemeCssVars(mode: ThemeMode = 'dark'): string {
+// CSS Variables generator - returns object for React style prop
+export function getThemeCssVars(mode: ThemeMode = 'dark'): Record<string, string> {
   const t = themes[mode];
-  return `
-    --editor-bg-primary: ${t.bg.primary};
-    --editor-bg-secondary: ${t.bg.secondary};
-    --editor-bg-tertiary: ${t.bg.tertiary};
-    --editor-bg-hover: ${t.bg.hover};
-    --editor-bg-active: ${t.bg.active};
-    --editor-text-primary: ${t.text.primary};
-    --editor-text-secondary: ${t.text.secondary};
-    --editor-text-muted: ${t.text.muted};
-    --editor-text-placeholder: ${t.text.placeholder};
-    --editor-border-default: ${t.border.default};
-    --editor-border-hover: ${t.border.hover};
-    --editor-border-focus: ${t.border.focus};
-    --editor-accent-blue: ${accent.blue};
-    --editor-accent-green: ${accent.green};
-    --editor-accent-red: ${accent.red};
-  `;
+  return {
+    '--editor-bg-primary': t.bg.primary,
+    '--editor-bg-secondary': t.bg.secondary,
+    '--editor-bg-tertiary': t.bg.tertiary,
+    '--editor-bg-hover': t.bg.hover,
+    '--editor-bg-active': t.bg.active,
+    '--editor-text-primary': t.text.primary,
+    '--editor-text-secondary': t.text.secondary,
+    '--editor-text-muted': t.text.muted,
+    '--editor-text-placeholder': t.text.placeholder,
+    '--editor-border-default': t.border.default,
+    '--editor-border-hover': t.border.hover,
+    '--editor-border-focus': t.border.focus,
+    '--editor-accent-blue': accent.blue,
+    '--editor-accent-green': accent.green,
+    '--editor-accent-red': accent.red,
+  };
 }
 
 // Tailwind-compatible classes that use CSS variables

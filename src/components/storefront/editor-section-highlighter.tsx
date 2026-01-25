@@ -20,6 +20,38 @@ export function EditorSectionHighlighter() {
   const [hoveredSection, setHoveredSection] = useState<string | null>(null);
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
 
+  // Mark document as being in editor preview mode
+  useEffect(() => {
+    document.documentElement.setAttribute('data-editor-preview', 'true');
+    
+    // Add editor-specific styles for visibility
+    const style = document.createElement('style');
+    style.id = 'editor-visibility-styles';
+    style.textContent = `
+      /* In editor: show hidden sections with low opacity instead of hiding */
+      /* Note: inline styles from handler will override these base styles */
+      [data-editor-preview="true"] [data-hide-on-mobile="true"],
+      [data-editor-preview="true"] [data-hide-on-desktop="true"] {
+        opacity: 0.5;
+        display: block !important;
+        outline: 2px dashed rgba(239, 68, 68, 0.6);
+        outline-offset: -2px;
+      }
+      /* Remove the Tailwind hiding classes effect in editor */
+      [data-editor-preview="true"] .max-md\\:hidden,
+      [data-editor-preview="true"] .md\\:hidden {
+        display: block !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.documentElement.removeAttribute('data-editor-preview');
+      const existingStyle = document.getElementById('editor-visibility-styles');
+      if (existingStyle) existingStyle.remove();
+    };
+  }, []);
+
   // Find all sections with data-section-id
   const getSectionElements = useCallback(() => {
     return document.querySelectorAll('[data-section-id]');

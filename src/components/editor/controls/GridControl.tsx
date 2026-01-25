@@ -116,7 +116,7 @@ export function ColumnsControl({
   );
 }
 
-// Max width control
+// Max width control - simple version
 interface MaxWidthControlProps {
   settings: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
@@ -130,17 +130,96 @@ export function MaxWidthControl({
 
   return (
     <EditorSelect
-      label="רוחב מקסימלי"
+      label="רוחב תוכן"
       value={maxWidth}
       options={[
-        { value: 'sm', label: 'קטן' },
-        { value: 'md', label: 'בינוני' },
-        { value: 'lg', label: 'גדול' },
-        { value: 'xl', label: 'ענק' },
-        { value: 'full', label: 'מלא' },
+        { value: 'sm', label: 'קטן (640px)' },
+        { value: 'md', label: 'בינוני (768px)' },
+        { value: 'lg', label: 'גדול (1024px)' },
+        { value: 'xl', label: 'ענק (1280px)' },
+        { value: '2xl', label: 'מקסימום (1536px)' },
+        { value: 'full', label: 'מלא (100%)' },
       ]}
       onChange={(v) => onChange('maxWidth', v)}
     />
+  );
+}
+
+// Section Width Control - Elementor style with visual icons
+interface SectionWidthControlProps {
+  settings: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+}
+
+export function SectionWidthControl({
+  settings,
+  onChange,
+}: SectionWidthControlProps) {
+  const sectionWidth = (settings.sectionWidth as string) || 'boxed';
+  const contentWidth = (settings.contentWidth as string) || 'lg';
+
+  return (
+    <div className="space-y-3">
+      {/* Section Width - Full or Boxed */}
+      <div className="py-2">
+        <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">רוחב סקשן</label>
+        <div className="flex gap-2">
+          {/* Boxed */}
+          <button
+            onClick={() => onChange('sectionWidth', 'boxed')}
+            className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+              sectionWidth === 'boxed'
+                ? 'border-[var(--editor-accent-blue)] bg-[var(--editor-accent-blue)]/5'
+                : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
+            }`}
+          >
+            {/* Icon - Boxed layout */}
+            <div className="w-10 h-6 flex items-center justify-center">
+              <div className="w-6 h-4 border-2 border-current rounded-sm" 
+                   style={{ borderColor: sectionWidth === 'boxed' ? 'var(--editor-accent-blue)' : 'var(--editor-text-muted)' }} />
+            </div>
+            <span className={`text-[10px] ${sectionWidth === 'boxed' ? 'text-[var(--editor-accent-blue)]' : 'text-[var(--editor-text-muted)]'}`}>
+              קונטיינר
+            </span>
+          </button>
+
+          {/* Full Width */}
+          <button
+            onClick={() => onChange('sectionWidth', 'full')}
+            className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
+              sectionWidth === 'full'
+                ? 'border-[var(--editor-accent-blue)] bg-[var(--editor-accent-blue)]/5'
+                : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
+            }`}
+          >
+            {/* Icon - Full width */}
+            <div className="w-10 h-6 flex items-center justify-center">
+              <div className="w-10 h-4 border-2 border-current rounded-sm"
+                   style={{ borderColor: sectionWidth === 'full' ? 'var(--editor-accent-blue)' : 'var(--editor-text-muted)' }} />
+            </div>
+            <span className={`text-[10px] ${sectionWidth === 'full' ? 'text-[var(--editor-accent-blue)]' : 'text-[var(--editor-text-muted)]'}`}>
+              מלא
+            </span>
+          </button>
+        </div>
+      </div>
+
+      {/* Content Width - only show if boxed */}
+      {sectionWidth === 'boxed' && (
+        <EditorSelect
+          label="רוחב תוכן"
+          value={contentWidth}
+          options={[
+            { value: 'sm', label: 'קטן (640px)' },
+            { value: 'md', label: 'בינוני (768px)' },
+            { value: 'lg', label: 'גדול (1024px)' },
+            { value: 'xl', label: 'ענק (1280px)' },
+            { value: '2xl', label: 'מקסימום (1536px)' },
+          ]}
+          onChange={(v) => onChange('contentWidth', v)}
+        />
+      )}
+    </div>
   );
 }
 
@@ -194,6 +273,56 @@ export function AlignmentControl({
         },
       ]}
       onChange={(v) => onChange(settingKey, v)}
+    />
+  );
+}
+
+// Vertical Alignment (for sections with min-height)
+interface VerticalAlignControlProps {
+  settings: Record<string, unknown>;
+  onChange: (key: string, value: unknown) => void;
+}
+
+export function VerticalAlignControl({
+  settings,
+  onChange,
+}: VerticalAlignControlProps) {
+  const verticalAlign = (settings.verticalAlign as string) || 'center';
+
+  return (
+    <EditorIconGroup
+      label="יישור אנכי"
+      value={verticalAlign}
+      options={[
+        { 
+          value: 'start', 
+          title: 'למעלה',
+          icon: (
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 4h16M12 8v12M8 12l4-4 4 4" />
+            </svg>
+          )
+        },
+        { 
+          value: 'center', 
+          title: 'מרכז',
+          icon: (
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 12h16M12 6v12" />
+            </svg>
+          )
+        },
+        { 
+          value: 'end', 
+          title: 'למטה',
+          icon: (
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 20h16M12 4v12M8 12l4 4 4-4" />
+            </svg>
+          )
+        },
+      ]}
+      onChange={(v) => onChange('verticalAlign', v)}
     />
   );
 }

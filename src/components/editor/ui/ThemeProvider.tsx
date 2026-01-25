@@ -61,7 +61,7 @@ export function EditorThemeProvider({
   return (
     <ThemeContext.Provider value={{ mode, setMode, toggle, theme }}>
       <div 
-        style={{ cssText: cssVars } as React.CSSProperties}
+        style={cssVars as React.CSSProperties}
         className="h-full"
       >
         {children}

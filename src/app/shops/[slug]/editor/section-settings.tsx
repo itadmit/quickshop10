@@ -640,6 +640,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
       <TextBlockPanel
         section={section}
         onUpdate={onUpdate}
+        onDelete={onRemove}
       />
     );
   }

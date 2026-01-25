@@ -6,6 +6,7 @@
  */
 
 import { Section } from '../types';
+import { applyCommonUpdates } from '../handlers/common-handler';
 
 /**
  * Handle all real-time updates for text_block section
@@ -15,6 +16,11 @@ export function handleTextBlockUpdate(
   updates: Partial<Section>
 ): void {
   const el = element as HTMLElement;
+
+  // =====================================================
+  // COMMON SETTINGS (background, visibility, spacing, animation, etc.)
+  // =====================================================
+  applyCommonUpdates(el, updates);
 
   // =====================================================
   // TITLE UPDATES
@@ -270,8 +276,8 @@ export function handleTextBlockUpdate(
     el.classList.remove('text-left', 'text-center', 'text-right');
     el.classList.add(`text-${align}`);
     
-    // Also update inner content wrapper if exists
-    const contentWrapper = el.querySelector('.max-w-2xl, .max-w-3xl, .max-w-4xl') as HTMLElement;
+    // Also update inner content wrapper if exists (use data attribute)
+    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement;
     if (contentWrapper) {
       contentWrapper.classList.remove('text-left', 'text-center', 'text-right');
       contentWrapper.classList.add(`text-${align}`);

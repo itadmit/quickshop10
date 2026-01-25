@@ -35,6 +35,11 @@ interface Section {
   subtitle: string | null;
   isActive: boolean;
   sortOrder: number;
+  settings?: {
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
+    [key: string]: unknown;
+  };
 }
 
 interface SectionTreeProps {
@@ -355,6 +360,8 @@ export function SectionTree({
                           isSelected={selectedSectionId === section.id}
                           onClick={() => onSelectSection(section.id)}
                           isDisabled={!section.isActive}
+                          hideOnMobile={section.settings?.hideOnMobile}
+                          hideOnDesktop={section.settings?.hideOnDesktop}
                         />
                       </div>
                     );
@@ -396,6 +403,8 @@ export function SectionTree({
                           isSelected={selectedSectionId === section.id}
                           onClick={() => onSelectSection(section.id)}
                           isDisabled={!section.isActive}
+                          hideOnMobile={section.settings?.hideOnMobile}
+                          hideOnDesktop={section.settings?.hideOnDesktop}
                         />
                       </div>
                     );
@@ -437,6 +446,8 @@ export function SectionTree({
                           isSelected={selectedSectionId === section.id}
                           onClick={() => onSelectSection(section.id)}
                           isDisabled={!section.isActive}
+                          hideOnMobile={section.settings?.hideOnMobile}
+                          hideOnDesktop={section.settings?.hideOnDesktop}
                         />
                       </div>
                     );
@@ -484,6 +495,8 @@ export function SectionTree({
                           isSelected={selectedSectionId === section.id}
                           onClick={() => onSelectSection(section.id)}
                           isDisabled={!section.isActive}
+                          hideOnMobile={section.settings?.hideOnMobile}
+                          hideOnDesktop={section.settings?.hideOnDesktop}
                         />
                       </div>
                     );
@@ -733,6 +746,8 @@ export function SectionTree({
                 onToggle={() => toggleExpand(section.id)}
                 hasChildren={section.type === 'categories' || section.type === 'products'}
                 isDisabled={!section.isActive}
+                hideOnMobile={section.settings?.hideOnMobile}
+                hideOnDesktop={section.settings?.hideOnDesktop}
               />
               
               {/* Expanded children */}
@@ -804,6 +819,8 @@ function SectionItem({
   onToggle,
   hasChildren,
   isDisabled,
+  hideOnMobile,
+  hideOnDesktop,
 }: {
   icon: string;
   label: string;
@@ -813,16 +830,30 @@ function SectionItem({
   onToggle?: () => void;
   hasChildren?: boolean;
   isDisabled?: boolean;
+  hideOnMobile?: boolean;
+  hideOnDesktop?: boolean;
 }) {
   return (
     <div
       className={`
-        flex items-center gap-2 px-3 py-2 cursor-pointer transition-colors
+        flex items-center gap-1.5 px-2 py-2 cursor-pointer transition-colors group
         ${isSelected ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-50'}
         ${isDisabled ? 'opacity-50' : ''}
       `}
       onClick={onClick}
     >
+      {/* Drag Handle - always visible, on the left (end in RTL) */}
+      <div className="order-last cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 mr-auto">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="8" cy="6" r="2"/>
+          <circle cx="16" cy="6" r="2"/>
+          <circle cx="8" cy="12" r="2"/>
+          <circle cx="16" cy="12" r="2"/>
+          <circle cx="8" cy="18" r="2"/>
+          <circle cx="16" cy="18" r="2"/>
+        </svg>
+      </div>
+
       {/* Expand Toggle */}
       {hasChildren ? (
         <button
@@ -845,16 +876,30 @@ function SectionItem({
           </svg>
         </button>
       ) : (
-        <div className="w-[16px]" />
+        <div className="w-[14px]" />
       )}
 
       {/* Icon */}
       <SectionIcon type={icon} />
 
       {/* Label */}
-      <span className={`text-sm flex-1 ${isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
+      <span className={`text-sm flex-1 truncate ${isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
         {label}
       </span>
+
+      {/* Visibility badges */}
+      <div className="flex items-center gap-1">
+        {hideOnMobile && (
+          <span className="px-1 py-0.5 text-[9px] bg-orange-100 text-orange-700 rounded" title="מוסתר במובייל">
+            📱
+          </span>
+        )}
+        {hideOnDesktop && (
+          <span className="px-1 py-0.5 text-[9px] bg-purple-100 text-purple-700 rounded" title="מוסתר במחשב">
+            🖥️
+          </span>
+        )}
+      </div>
 
       {/* Disabled indicator */}
       {isDisabled && (

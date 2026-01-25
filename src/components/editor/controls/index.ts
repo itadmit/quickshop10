@@ -24,16 +24,23 @@ export {
 export { 
   BackgroundControl, 
   BackgroundColorControl, 
-  CardBackgroundControl 
+  CardBackgroundControl,
+  FullBackgroundControl,
+  MinHeightControl,
 } from './BackgroundControl';
 
 // Grid/Layout settings
 export { 
   GridControl, 
   ColumnsControl, 
-  MaxWidthControl, 
-  AlignmentControl 
+  MaxWidthControl,
+  SectionWidthControl,
+  AlignmentControl,
+  VerticalAlignControl,
 } from './GridControl';
 
 // Advanced settings (margin, padding, z-index, CSS ID/Classes)
 export { AdvancedControl } from './AdvancedControl';
+
+// Visibility settings (hide on mobile/desktop)
+export { VisibilityControl } from './VisibilityControl';
