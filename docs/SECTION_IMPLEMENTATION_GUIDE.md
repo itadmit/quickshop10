@@ -553,5 +553,27 @@ if (updates.settings?.titleColor !== undefined) {
 
 ---
 
+---
+
+## 11. סטטוס הסקשנים הקיימים
+
+| סקשן | Handler | applyCommonUpdates | data-section-type | סטטוס |
+|------|---------|-------------------|-------------------|-------|
+| text_block | ✅ | ✅ | ✅ | ✅ מלא |
+| hero | ✅ | ✅ | ✅ | ✅ מלא |
+| reviews | ✅ | ✅ | ✅ | ✅ מלא |
+| features | ✅ | ✅ | ✅ | ✅ מלא |
+| faq | ✅ | ✅ | ✅ | ✅ מלא |
+| newsletter | ✅ | ✅ | ✅ | ✅ מלא |
+| contact | ✅ | ✅ | ✅ | ✅ מלא |
+| logos | ✅ | ✅ | ✅ | ✅ מלא |
+| gallery | ✅ | ✅ | ✅ | ✅ מלא |
+| image_text | ✅ | ✅ | ✅ | ✅ מלא |
+| banner_small | ✅ | ✅ | ✅ | ✅ מלא |
+| video_banner | ✅ | ✅ | ✅ | ✅ מלא |
+| split_banner | ✅ | ✅ | ✅ | ✅ מלא |
+
+---
+
 *עודכן לאחרונה: ינואר 2026*
 

@@ -4,6 +4,7 @@
  */
 
 import { Section } from '../types';
+import { applyCommonUpdates } from '../handlers/common-handler';
 
 /**
  * Handle all real-time updates for hero section
@@ -13,6 +14,11 @@ export function handleHeroUpdate(
   updates: Partial<Section>
 ): void {
   const el = element as HTMLElement;
+
+  // =====================================================
+  // COMMON SETTINGS (background, visibility, spacing, animation, etc.)
+  // =====================================================
+  applyCommonUpdates(el, updates);
 
   // =====================================================
   // TITLE UPDATES

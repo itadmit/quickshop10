@@ -4,6 +4,7 @@
  */
 
 import { Section } from '../types';
+import { applyCommonUpdates } from '../handlers/common-handler';
 
 interface Review {
   id?: string;
@@ -22,6 +23,11 @@ export function handleReviewsUpdate(
   updates: Partial<Section>
 ): void {
   const el = element as HTMLElement;
+
+  // =====================================================
+  // COMMON SETTINGS (background, visibility, spacing, animation, etc.)
+  // =====================================================
+  applyCommonUpdates(el, updates);
 
   // =====================================================
   // TITLE & SUBTITLE UPDATES

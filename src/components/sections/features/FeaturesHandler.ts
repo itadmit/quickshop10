@@ -4,6 +4,7 @@
  */
 
 import { Section } from '../types';
+import { applyCommonUpdates } from '../handlers/common-handler';
 
 // Feature icon paths (SVG path data)
 const ICON_PATHS: Record<string, string> = {
@@ -34,6 +35,11 @@ export function handleFeaturesUpdate(
   updates: Partial<Section>
 ): void {
   const el = element as HTMLElement;
+
+  // =====================================================
+  // COMMON SETTINGS (background, visibility, spacing, animation, etc.)
+  // =====================================================
+  applyCommonUpdates(el, updates);
 
   // =====================================================
   // TITLE & SUBTITLE UPDATES
