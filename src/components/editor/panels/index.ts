@@ -4,4 +4,4 @@
  */
 
 export { TextBlockPanel } from './TextBlockPanel';
-
+export { HeroPanel } from './HeroPanel';

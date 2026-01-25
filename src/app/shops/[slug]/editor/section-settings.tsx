@@ -26,7 +26,7 @@ import {
 } from '@/components/editor/settings/common';
 
 // New Modern Panels (Figma style)
-import { TextBlockPanel } from '@/components/editor/panels';
+import { TextBlockPanel, HeroPanel } from '@/components/editor/panels';
 
 // Feature flag for new editor UI
 const USE_NEW_EDITOR_UI = true;
@@ -634,10 +634,20 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     );
   }
 
-  // 🆕 NEW: Modern Figma-style panel for text_block
+  // 🆕 NEW: Modern Figma-style panels
   if (USE_NEW_EDITOR_UI && section.type === 'text_block') {
     return (
       <TextBlockPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'hero') {
+    return (
+      <HeroPanel
         section={section}
         onUpdate={onUpdate}
         onDelete={onRemove}
