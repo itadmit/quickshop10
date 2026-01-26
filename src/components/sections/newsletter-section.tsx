@@ -43,6 +43,9 @@ interface NewsletterSectionProps {
     customClass?: string;
     customId?: string;
     customCss?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   sectionId?: string;
   storeSlug?: string; // Required for form submission
@@ -68,10 +71,14 @@ export function NewsletterSection({
   const isNumericSubtitleSize = typeof subtitleSizeValue === 'number';
 
   const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+  
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   return (
     <section 
-      className={`py-24 px-6 ${settings.customClass || ''}`}
+      className={`py-24 px-6 ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{ 
         backgroundColor: bgColor,
         marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
@@ -81,6 +88,8 @@ export function NewsletterSection({
       data-section-id={sectionId}
       data-section-type="newsletter"
       data-section-name="הצטרפו למועדון"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
       

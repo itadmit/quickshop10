@@ -48,6 +48,9 @@ interface FeaturesSectionProps {
     customClass?: string;
     customId?: string;
     customCss?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   sectionId?: string;
 }
@@ -142,10 +145,14 @@ export function FeaturesSection({
   const gridCols = `grid-cols-${mobileColumns} md:grid-cols-${columns}`;
   
   const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+  
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   return (
     <section 
-      className={`py-12 px-4 ${settings.customClass || ''}`}
+      className={`py-12 px-4 ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{ 
         backgroundColor: settings.backgroundColor || 'transparent',
         marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
@@ -155,6 +162,8 @@ export function FeaturesSection({
       data-section-id={sectionId}
       data-section-type="features"
       data-section-name="חוזקות"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
       

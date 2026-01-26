@@ -242,8 +242,8 @@ export function applyCommonUpdates(
     el.style.display = updates.settings.isVisible ? '' : 'none';
   }
 
-  // Hide on Mobile/Tablet or Desktop - in editor show with low opacity
-  // Handle both settings together to avoid race conditions
+  // Hide on Mobile/Tablet or Desktop - update data attributes for CSS to handle
+  // The CSS uses media queries to show opacity only when the view matches
   if (updates.settings?.hideOnMobile !== undefined || updates.settings?.hideOnDesktop !== undefined) {
     // Get current values from data attributes or updates
     const hideOnMobile = updates.settings?.hideOnMobile !== undefined 
@@ -254,26 +254,27 @@ export function applyCommonUpdates(
       ? (updates.settings.hideOnDesktop as boolean)
       : (el.dataset.hideOnDesktop === 'true');
     
-    // Update data attributes
-    el.dataset.hideOnMobile = String(hideOnMobile);
-    el.dataset.hideOnDesktop = String(hideOnDesktop);
-    
-    // In editor: show with low opacity if hidden on ANY device
-    // This makes it clear the section has visibility restrictions
-    const shouldShowHidden = hideOnMobile || hideOnDesktop;
-    
-    if (shouldShowHidden) {
-      el.style.opacity = '0.5';
-      el.style.outline = '2px dashed rgba(239, 68, 68, 0.6)';
-      el.style.outlineOffset = '-2px';
-      // Remove Tailwind hiding classes effect in real-time
-      el.classList.remove('max-md:hidden', 'md:hidden');
-      el.style.display = '';
+    // Update data attributes - CSS will apply opacity via media queries
+    if (hideOnMobile) {
+      el.setAttribute('data-hide-on-mobile', 'true');
     } else {
-      el.style.opacity = '';
-      el.style.outline = '';
-      el.style.outlineOffset = '';
+      el.removeAttribute('data-hide-on-mobile');
     }
+    
+    if (hideOnDesktop) {
+      el.setAttribute('data-hide-on-desktop', 'true');
+    } else {
+      el.removeAttribute('data-hide-on-desktop');
+    }
+    
+    // Clear any inline opacity/outline (let CSS handle it)
+    el.style.opacity = '';
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+    
+    // Always remove Tailwind hiding classes in editor for real-time preview
+    el.classList.remove('max-md:hidden', 'md:hidden');
+    el.style.display = '';
   }
 
   // =====================================================
@@ -283,47 +284,70 @@ export function applyCommonUpdates(
   if (updates.settings?.sectionWidth !== undefined) {
     const sectionWidth = updates.settings.sectionWidth as string;
     
-    // Find the content wrapper (usually has max-w-* class)
-    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement || el.firstElementChild as HTMLElement;
+    // Find the content wrapper
+    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement;
     
-    if (sectionWidth === 'full') {
-      // Full width - remove container constraints
-      el.classList.remove('container', 'mx-auto');
-      el.style.maxWidth = '100%';
-      el.style.width = '100%';
-      if (contentWrapper) {
+    // Section (background) always stays full width
+    // Only the content wrapper changes based on sectionWidth
+    if (contentWrapper) {
+      if (sectionWidth === 'full') {
+        // Full width content - explicitly reset ALL constraints
         contentWrapper.classList.remove('container', 'mx-auto', 'max-w-sm', 'max-w-md', 'max-w-lg', 'max-w-xl', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl');
-        contentWrapper.style.maxWidth = '100%';
+        contentWrapper.classList.add('w-full');
+        // Clear inline styles first, then set new ones
+        contentWrapper.style.removeProperty('width');
+        contentWrapper.style.removeProperty('max-width');
+        contentWrapper.style.removeProperty('margin-left');
+        contentWrapper.style.removeProperty('margin-right');
+        // Use setProperty with 'important' to ensure styles are applied
+        contentWrapper.style.setProperty('max-width', 'none', 'important');
+        contentWrapper.style.setProperty('width', '100%', 'important');
+        contentWrapper.style.setProperty('margin-left', '0', 'important');
+        contentWrapper.style.setProperty('margin-right', '0', 'important');
+      } else {
+        // Boxed content - apply default width if contentWidth not set
+        contentWrapper.classList.remove('w-full');
+        const currentContentWidth = updates.settings?.contentWidth || 
+          parseInt(contentWrapper.style.maxWidth) || 1200;
+        contentWrapper.style.setProperty('width', `${currentContentWidth}px`, 'important');
+        contentWrapper.style.setProperty('max-width', `${currentContentWidth}px`, 'important');
+        contentWrapper.style.setProperty('margin-left', 'auto');
+        contentWrapper.style.setProperty('margin-right', 'auto');
+        contentWrapper.classList.add('mx-auto');
       }
-    } else {
-      // Boxed - apply container
-      el.style.maxWidth = '';
-      el.style.width = '';
     }
   }
   
   if (updates.settings?.contentWidth !== undefined) {
-    const contentWidth = updates.settings.contentWidth as string;
-    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement || el.firstElementChild as HTMLElement;
+    const contentWidth = updates.settings.contentWidth;
+    const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement;
     
     if (contentWrapper) {
-      // Remove all max-width classes
-      contentWrapper.classList.remove('max-w-sm', 'max-w-md', 'max-w-lg', 'max-w-xl', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl');
-      contentWrapper.style.maxWidth = '';
+      // Remove all max-width classes and w-full
+      contentWrapper.classList.remove('w-full', 'max-w-sm', 'max-w-md', 'max-w-lg', 'max-w-xl', 'max-w-2xl', 'max-w-3xl', 'max-w-4xl', 'max-w-5xl', 'max-w-6xl', 'max-w-7xl');
       
-      // Apply new max-width
-      const widthMap: Record<string, string> = {
-        sm: '640px',
-        md: '768px',
-        lg: '1024px',
-        xl: '1280px',
-        '2xl': '1536px',
-      };
-      
-      if (widthMap[contentWidth]) {
-        contentWrapper.style.maxWidth = widthMap[contentWidth];
-        contentWrapper.style.marginLeft = 'auto';
-        contentWrapper.style.marginRight = 'auto';
+      // Apply width directly (not just max-width) to force the size
+      if (typeof contentWidth === 'number') {
+        // Numeric value - apply directly in pixels
+        contentWrapper.style.setProperty('width', `${contentWidth}px`, 'important');
+        contentWrapper.style.setProperty('max-width', `${contentWidth}px`, 'important');
+        contentWrapper.style.setProperty('margin-left', 'auto');
+        contentWrapper.style.setProperty('margin-right', 'auto');
+      } else if (typeof contentWidth === 'string') {
+        const widthMap: Record<string, string> = {
+          sm: '640px',
+          md: '768px',
+          lg: '1024px',
+          xl: '1280px',
+          '2xl': '1536px',
+        };
+        
+        if (widthMap[contentWidth]) {
+          contentWrapper.style.setProperty('width', widthMap[contentWidth], 'important');
+          contentWrapper.style.setProperty('max-width', widthMap[contentWidth], 'important');
+          contentWrapper.style.setProperty('margin-left', 'auto');
+          contentWrapper.style.setProperty('margin-right', 'auto');
+        }
       }
     }
   }

@@ -42,6 +42,9 @@ interface BannerSmallSectionProps {
     customClass?: string;
     customId?: string;
     customCss?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath?: string;
   sectionId?: string;
@@ -83,10 +86,14 @@ export function BannerSmallSection({
   };
 
   const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+  
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   return (
     <section 
-      className={`${paddingY} px-4 ${settings.customClass || ''}`}
+      className={`${paddingY} px-4 ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{ 
         backgroundColor,
         marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
@@ -96,6 +103,8 @@ export function BannerSmallSection({
       data-section-id={sectionId}
       data-section-type="banner_small"
       data-section-name="באנר קטן"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
       

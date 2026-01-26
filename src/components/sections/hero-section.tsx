@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ScrollArrow } from './hero/ScrollArrow';
 
 interface HeroSectionProps {
   title: string | null;
@@ -17,7 +18,14 @@ interface HeroSectionProps {
     backgroundColor?: string;
     buttonBackground?: string;
     buttonTextColor?: string;
+    buttonBorderColor?: string;
+    buttonBorderWidth?: number;
+    buttonBorderRadius?: number;
+    buttonTextDecoration?: string;
+    buttonStyle?: 'filled' | 'outline' | 'underline';
     containerType?: 'container' | 'full';
+    sectionWidth?: 'full' | 'boxed';
+    contentWidth?: number;
     paddingTop?: number;
     paddingBottom?: number;
     customClass?: string;
@@ -33,6 +41,11 @@ interface HeroSectionProps {
     subtitleSize?: number;
     subtitleSizeMobile?: number;
     subtitleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold';
+    // Scroll Arrow
+    showScrollArrow?: boolean;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath: string;
 }
@@ -45,7 +58,13 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   const backgroundColor = settings.backgroundColor || '#6B7280'; // Gray as fallback
   const buttonBg = settings.buttonBackground || '#FFFFFF'; // White default
   const buttonText = settings.buttonTextColor || '#000000'; // Black default
+  const buttonBorderColor = settings.buttonBorderColor || buttonBg; // Default to same as background
+  const buttonBorderWidth = settings.buttonBorderWidth ?? 1;
+  const buttonBorderRadius = settings.buttonBorderRadius ?? 0;
+  const buttonTextDecoration = settings.buttonTextDecoration || 'none';
   const containerType = settings.containerType || 'container';
+  const sectionWidth = settings.sectionWidth || 'full';
+  const contentWidth = settings.contentWidth || 1200;
   const paddingTop = settings.paddingTop || 0;
   const paddingBottom = settings.paddingBottom || 0;
   
@@ -63,15 +82,20 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
   const hasImage = !!(content.imageUrl || content.mobileImageUrl);
   
   // Text alignment classes (horizontal)
-  const alignmentClass = textAlign === 'right' ? 'items-end text-right' : textAlign === 'left' ? 'items-start text-left' : 'items-center text-center';
+  // In RTL: items-start = visual right, items-end = visual left
+  const alignmentClass = textAlign === 'right' ? 'items-start text-right' : textAlign === 'left' ? 'items-end text-left' : 'items-center text-center';
   
   // Text position classes (vertical)
   const positionClass = textPosition === 'top' ? 'justify-start pt-20' : textPosition === 'bottom' ? 'justify-end pb-20' : 'justify-center';
+  
+  // Visibility classes (for production - will be overridden in editor)
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   return (
     <section 
       id={settings.customId || undefined}
-      className={`relative overflow-hidden ${settings.customClass || ''}`}
+      className={`relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{ 
         height,
         backgroundColor: hasImage ? undefined : backgroundColor, // Only apply background if no image
@@ -83,6 +107,8 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
       data-section-type="hero"
       data-section-name="באנר ראשי"
       data-has-image={hasImage ? 'true' : 'false'}
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       <div className="absolute inset-0">
         {/* Desktop Image */}
@@ -106,15 +132,22 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
       </div>
       
       <div 
-        className={`relative z-10 h-full flex flex-col ${positionClass} ${alignmentClass} ${
-          containerType === 'container' ? 'container mx-auto px-6' : 'w-full'
-        }`}
-        style={containerType === 'full' ? {
+        className={`relative z-10 h-full flex flex-col ${positionClass} ${alignmentClass} w-full`}
+        style={{
           paddingRight: textAlign === 'right' ? '20px' : '24px',
           paddingLeft: textAlign === 'left' ? '20px' : '24px',
-        } : undefined}
+        }}
         data-content-container
       >
+        {/* Content wrapper - this is what gets constrained by sectionWidth/contentWidth */}
+        <div 
+          className="w-full"
+          style={sectionWidth === 'boxed' 
+            ? { maxWidth: `${contentWidth}px`, marginLeft: 'auto', marginRight: 'auto' } 
+            : { maxWidth: 'none', width: '100%' }
+          }
+          data-content-wrapper
+        >
         {/* Scoped responsive styles */}
         {(titleSize || subtitleSize) && (
           <style dangerouslySetInnerHTML={{ __html: `
@@ -174,21 +207,22 @@ export function HeroSection({ title, subtitle, content, settings, basePath, sect
             display: (content.buttonText && content.buttonLink) ? '' : 'none',
             backgroundColor: buttonBg,
             color: buttonText,
-            border: `1px solid ${buttonBg}`
+            border: `${buttonBorderWidth}px solid ${buttonBorderColor}`,
+            borderRadius: `${buttonBorderRadius}px`,
+            textDecoration: buttonTextDecoration
           }}
           data-section-button
           data-section-button-link
         >
           {content.buttonText || ''}
         </Link>
+        </div>
       </div>
       
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1">
-          <path d="M12 5v14M19 12l-7 7-7-7"/>
-        </svg>
-      </div>
+      {/* Scroll indicator - clickable to scroll to next section */}
+      {(settings.showScrollArrow !== false) && (
+        <ScrollArrow sectionId={sectionId} />
+      )}
     </section>
   );
 }

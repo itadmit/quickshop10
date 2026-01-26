@@ -23,6 +23,9 @@ interface GallerySectionProps {
     aspectRatio?: 'square' | '4:3' | '16:9' | 'auto';
     layout?: 'grid' | 'masonry';
     backgroundColor?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath?: string;
   sectionId?: string;
@@ -68,13 +71,19 @@ export function GallerySection({
     { id: '4', url: '', alt: 'תמונה 4' },
   ];
 
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+
   return (
     <section 
-      className="py-12 px-4 md:px-8"
+      className={`py-12 px-4 md:px-8 ${hideOnMobileClass} ${hideOnDesktopClass}`.trim()}
       style={{ backgroundColor: settings.backgroundColor || 'transparent' }}
       data-section-id={sectionId}
       data-section-type="gallery"
       data-section-name="גלריה"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       <div className="max-w-7xl mx-auto">
         {/* Header - always render for live editor updates */}

@@ -12,6 +12,7 @@ interface ContactFormData {
   phone?: string;
   message: string;
   sectionId?: string;
+  tag?: string; // תגית מותאמת אישית
 }
 
 // POST /api/shops/[slug]/contact
@@ -39,7 +40,7 @@ export async function POST(
       };
     }
 
-    const { name, email, message, phone, sectionId } = formData;
+    const { name, email, message, phone, sectionId, tag } = formData;
 
     // Validation
     if (!name || !email || !message) {
@@ -107,6 +108,7 @@ export async function POST(
       metadata: {
         message,
         sectionId: sectionId || null,
+        tag: tag || null, // תגית מותאמת אישית
       },
       source: 'contact_page',
       sourceUrl: sourceUrl || null,

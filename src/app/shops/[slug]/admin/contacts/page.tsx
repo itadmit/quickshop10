@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
 import { ContactsDataTable } from './contacts-data-table';
 import { ContactForm } from './contact-form';
+import { ExportButton } from './export-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -139,7 +140,10 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
             title="אנשי קשר"
             description={`${totalCount[0].count} אנשי קשר • ${customersCount[0].count} לקוחות${unreadCount[0].count > 0 ? ` (${unreadCount[0].count} חדשים)` : ''}`}
           />
-          <ContactForm storeId={store.id} storeSlug={slug} defaultType="club_member" />
+          <div className="flex items-center gap-3">
+            <ExportButton storeSlug={slug} currentType="customer" />
+            <ContactForm storeId={store.id} storeSlug={slug} defaultType="club_member" />
+          </div>
         </div>
 
         {/* Stats */}
@@ -274,7 +278,10 @@ export default async function ContactsPage({ params, searchParams }: ContactsPag
           title="אנשי קשר"
           description={`${totalCount[0].count} אנשי קשר • ${customersCount[0].count} לקוחות${unreadCount[0].count > 0 ? ` (${unreadCount[0].count} חדשים)` : ''}`}
         />
-        <ContactForm storeId={store.id} storeSlug={slug} defaultType={type === 'club_member' ? 'club_member' : type === 'newsletter' ? 'newsletter' : type === 'contact_form' ? 'contact_form' : type === 'popup_form' ? 'popup_form' : 'club_member'} />
+        <div className="flex items-center gap-3">
+          <ExportButton storeSlug={slug} currentType={type || 'all'} />
+          <ContactForm storeId={store.id} storeSlug={slug} defaultType={type === 'club_member' ? 'club_member' : type === 'newsletter' ? 'newsletter' : type === 'contact_form' ? 'contact_form' : type === 'popup_form' ? 'popup_form' : 'club_member'} />
+        </div>
       </div>
 
       {/* Stats */}

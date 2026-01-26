@@ -155,8 +155,8 @@ export function SectionWidthControl({
   settings,
   onChange,
 }: SectionWidthControlProps) {
-  const sectionWidth = (settings.sectionWidth as string) || 'boxed';
-  const contentWidth = (settings.contentWidth as string) || 'lg';
+  const sectionWidth = (settings.sectionWidth as string) || 'full';
+  const contentWidth = (settings.contentWidth as number) || 1200;
 
   return (
     <div className="space-y-3">
@@ -164,7 +164,7 @@ export function SectionWidthControl({
       <div className="py-2">
         <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">רוחב סקשן</label>
         <div className="flex gap-2">
-          {/* Boxed */}
+          {/* Boxed/Container */}
           <button
             onClick={() => onChange('sectionWidth', 'boxed')}
             className={`flex-1 flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all ${
@@ -173,9 +173,9 @@ export function SectionWidthControl({
                 : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
             }`}
           >
-            {/* Icon - Boxed layout */}
+            {/* Icon - Boxed layout (outline) */}
             <div className="w-10 h-6 flex items-center justify-center">
-              <div className="w-6 h-4 border-2 border-current rounded-sm" 
+              <div className="w-6 h-4 border-2 rounded-sm" 
                    style={{ borderColor: sectionWidth === 'boxed' ? 'var(--editor-accent-blue)' : 'var(--editor-text-muted)' }} />
             </div>
             <span className={`text-[10px] ${sectionWidth === 'boxed' ? 'text-[var(--editor-accent-blue)]' : 'text-[var(--editor-text-muted)]'}`}>
@@ -192,9 +192,9 @@ export function SectionWidthControl({
                 : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
             }`}
           >
-            {/* Icon - Full width */}
+            {/* Icon - Full width (outline) */}
             <div className="w-10 h-6 flex items-center justify-center">
-              <div className="w-10 h-4 border-2 border-current rounded-sm"
+              <div className="w-10 h-4 border-2 rounded-sm"
                    style={{ borderColor: sectionWidth === 'full' ? 'var(--editor-accent-blue)' : 'var(--editor-text-muted)' }} />
             </div>
             <span className={`text-[10px] ${sectionWidth === 'full' ? 'text-[var(--editor-accent-blue)]' : 'text-[var(--editor-text-muted)]'}`}>
@@ -204,19 +204,15 @@ export function SectionWidthControl({
         </div>
       </div>
 
-      {/* Content Width - only show if boxed */}
+      {/* Content Width Slider - only show if boxed */}
       {sectionWidth === 'boxed' && (
-        <EditorSelect
-          label="רוחב תוכן"
+        <EditorSlider
+          label="רוחב קונטיינר"
           value={contentWidth}
-          options={[
-            { value: 'sm', label: 'קטן (640px)' },
-            { value: 'md', label: 'בינוני (768px)' },
-            { value: 'lg', label: 'גדול (1024px)' },
-            { value: 'xl', label: 'ענק (1280px)' },
-            { value: '2xl', label: 'מקסימום (1536px)' },
-          ]}
           onChange={(v) => onChange('contentWidth', v)}
+          min={600}
+          max={1600}
+          suffix="px"
         />
       )}
     </div>
@@ -247,10 +243,10 @@ export function AlignmentControl({
         { 
           value: 'right', 
           title: 'ימין',
-          // Icon shows lines aligned to right (RTL context)
+          // Icon shows lines aligned to right
           icon: (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 5h18v2H3V5zm0 9h18v2H3v-2zm0 4h12v2H3v-2zm0-8h12v2H3V9z"/>
+              <path d="M3 5h18v2H3V5zm6 4h12v2H9V9zm-6 4h18v2H3v-2zm6 4h12v2H9v-2z"/>
             </svg>
           )
         },
@@ -266,10 +262,10 @@ export function AlignmentControl({
         { 
           value: 'left', 
           title: 'שמאל',
-          // Icon shows lines aligned to left (RTL context)
+          // Icon shows lines aligned to left
           icon: (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 5h18v2H3V5zm6 4h12v2H9V9zm-6 4h18v2H3v-2zm6 4h12v2H9v-2z"/>
+              <path d="M3 5h18v2H3V5zm0 9h18v2H3v-2zm0 4h12v2H3v-2zm0-8h12v2H3V9z"/>
             </svg>
           )
         },

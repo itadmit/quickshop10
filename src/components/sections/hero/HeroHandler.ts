@@ -143,11 +143,18 @@ export function handleHeroUpdate(
     }
   }
 
-  if (updates.settings?.buttonBackgroundColor !== undefined || updates.settings?.buttonBgColor !== undefined) {
+  // Handle all variations of button background color key
+  if (updates.settings?.buttonBackgroundColor !== undefined || 
+      updates.settings?.buttonBgColor !== undefined || 
+      updates.settings?.buttonBackground !== undefined) {
     const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
     if (btnEl) {
-      const color = (updates.settings.buttonBackgroundColor || updates.settings.buttonBgColor) as string;
+      const color = (updates.settings.buttonBackgroundColor || updates.settings.buttonBgColor || updates.settings.buttonBackground) as string;
       btnEl.style.backgroundColor = color === 'transparent' ? 'transparent' : color;
+      // Also update border to match if it was using background color
+      if (btnEl.style.borderColor === btnEl.style.backgroundColor || !btnEl.style.borderColor) {
+        btnEl.style.borderColor = color === 'transparent' ? 'transparent' : color;
+      }
     }
   }
 
@@ -173,24 +180,21 @@ export function handleHeroUpdate(
     }
   }
 
-  // Button style preset
+  // Button text decoration (underline style)
+  if (updates.settings?.buttonTextDecoration !== undefined) {
+    const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
+    if (btnEl) {
+      btnEl.style.textDecoration = updates.settings.buttonTextDecoration as string;
+    }
+  }
+
+  // Button style preset - apply the colors that come with it
+  // The colors are already sent separately by ButtonControl, so we just need
+  // to make sure borderStyle is set
   if (updates.settings?.buttonStyle !== undefined) {
     const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
     if (btnEl) {
-      const style = updates.settings.buttonStyle as string;
-      if (style === 'filled') {
-        btnEl.style.backgroundColor = '#000000';
-        btnEl.style.color = '#ffffff';
-        btnEl.style.borderColor = '#000000';
-      } else if (style === 'outline') {
-        btnEl.style.backgroundColor = 'transparent';
-        btnEl.style.color = '#000000';
-        btnEl.style.borderColor = '#000000';
-      } else if (style === 'ghost') {
-        btnEl.style.backgroundColor = 'transparent';
-        btnEl.style.color = '#000000';
-        btnEl.style.borderColor = 'transparent';
-      }
+      btnEl.style.borderStyle = 'solid';
     }
   }
 
@@ -255,10 +259,13 @@ export function handleHeroUpdate(
     if (container) {
       container.classList.remove('text-left', 'text-center', 'text-right', 'items-start', 'items-center', 'items-end');
       container.classList.add(`text-${updates.settings.textAlign}`);
+      // In RTL (Hebrew), we need to flip the items alignment:
+      // - 'right' text alignment should use 'items-start' (RTL start = visual right)
+      // - 'left' text alignment should use 'items-end' (RTL end = visual left)
       const alignMap: Record<string, string> = {
-        'left': 'items-start',
+        'left': 'items-end',     // RTL: left = end
         'center': 'items-center',
-        'right': 'items-end',
+        'right': 'items-start',  // RTL: right = start
       };
       container.classList.add(alignMap[updates.settings.textAlign as string] || 'items-center');
     }
@@ -280,12 +287,39 @@ export function handleHeroUpdate(
     }
   }
 
-  if (updates.settings?.minHeight !== undefined) {
-    el.style.minHeight = `${updates.settings.minHeight}px`;
+  if (updates.settings?.minHeight !== undefined || updates.settings?.minHeightUnit !== undefined) {
+    const minHeightValue = updates.settings?.minHeight !== undefined 
+      ? Number(updates.settings.minHeight) 
+      : (el.dataset.minHeight ? Number(el.dataset.minHeight) : 0);
+    const minHeightUnit = (updates.settings?.minHeightUnit as string) ?? el.dataset.minHeightUnit ?? 'px';
+    
+    if (minHeightValue && minHeightValue > 0) {
+      // For hero, use height instead of minHeight since it already has inline height
+      el.style.height = `${minHeightValue}${minHeightUnit}`;
+      el.style.minHeight = `${minHeightValue}${minHeightUnit}`;
+      el.dataset.minHeight = String(minHeightValue);
+      el.dataset.minHeightUnit = minHeightUnit;
+    } else {
+      // Reset to default
+      el.style.height = '90vh';
+      el.style.minHeight = '';
+      delete el.dataset.minHeight;
+      delete el.dataset.minHeightUnit;
+    }
   }
 
   if (updates.settings?.isVisible !== undefined) {
     el.style.display = updates.settings.isVisible ? '' : 'none';
+  }
+
+  // Scroll Arrow visibility
+  if (updates.settings?.showScrollArrow !== undefined) {
+    const arrowEl = el.querySelector('[data-scroll-arrow]') as HTMLElement;
+    if (arrowEl) {
+      // showScrollArrow: false means hide, anything else (true, undefined) means show
+      const shouldHide = updates.settings.showScrollArrow === false;
+      arrowEl.style.display = shouldHide ? 'none' : '';
+    }
   }
 }
 
@@ -306,14 +340,19 @@ export const defaultSettings = {
   subtitleColor: '#ffffff',
   subtitleWeight: 'normal',
   buttonTextColor: '#000000',
-  buttonBgColor: '#ffffff',
+  buttonBackground: '#ffffff',  // Primary key used by hero-section
+  buttonBgColor: '#ffffff',     // Alternative key
   buttonBorderColor: '#ffffff',
   buttonBorderRadius: 0,
+  buttonBorderWidth: 1,
+  buttonTextDecoration: 'none',
+  buttonStyle: 'filled',
   overlay: 0.3,
   backgroundColor: '#1f2937',
   textAlign: 'center',
   contentPosition: 'center',
   minHeight: 500,
   isVisible: true,
+  showScrollArrow: true,
 };
 

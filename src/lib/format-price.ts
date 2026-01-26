@@ -126,8 +126,17 @@ export function decodeHtmlEntities(text: string | null | undefined): string {
   };
   
   // Single regex pass for all entities - O(n) complexity
-  return sanitized.replace(/&(?:nbsp|amp|lt|gt|quot|#39|apos|ndash|mdash|lsquo|rsquo|ldquo|rdquo|bull|hellip|copy|reg|trade);/gi, 
+  let result = sanitized.replace(/&(?:nbsp|amp|lt|gt|quot|#39|apos|ndash|mdash|lsquo|rsquo|ldquo|rdquo|bull|hellip|copy|reg|trade);/gi, 
     (match) => entities[match.toLowerCase()] || match
   );
+  
+  // Convert literal "\n" strings (escaped newlines from DB) to <br> tags
+  // This handles cases where \n was stored as text rather than actual newline
+  result = result.replace(/\\n/g, '<br>');
+  
+  // Also convert actual newlines to <br> tags for consistency
+  result = result.replace(/\n/g, '<br>');
+  
+  return result;
 }
 

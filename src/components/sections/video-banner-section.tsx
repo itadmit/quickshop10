@@ -56,6 +56,9 @@ interface VideoBannerSectionProps {
     customClass?: string;
     customId?: string;
     customCss?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath: string;
   sectionId?: string;
@@ -112,10 +115,14 @@ export function VideoBannerSection({
   };
 
   const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize;
+  
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   return (
     <section 
-      className={`relative overflow-hidden ${settings.customClass || ''}`}
+      className={`relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{ 
         height,
         backgroundColor: hasAnyMedia ? 'black' : (settings.backgroundColor || '#000000'),
@@ -127,6 +134,8 @@ export function VideoBannerSection({
       data-section-type="video_banner"
       data-section-name="באנר וידאו"
       data-has-media={hasAnyMedia ? 'true' : 'false'}
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
       

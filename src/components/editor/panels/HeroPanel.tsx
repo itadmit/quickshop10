@@ -21,6 +21,8 @@ import {
   VerticalAlignControl,
   AdvancedControl,
   VisibilityControl,
+  SectionWidthControl,
+  MinHeightControl,
 } from '../controls';
 
 // ============================================
@@ -258,6 +260,30 @@ export function HeroPanel({ section, onUpdate, onClose, onDelete }: HeroPanelPro
                     />
                   </div>
                 </MiniAccordion>
+
+                {/* חץ גלילה */}
+                <MiniAccordion title="חץ גלילה" defaultOpen={false}>
+                  <div className="flex items-center justify-between py-2">
+                    <label className="text-xs text-[var(--editor-text-secondary)]">
+                      הצג חץ גלילה למטה
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => updateSettings('showScrollArrow', section.settings.showScrollArrow === false ? true : false)}
+                      className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
+                        section.settings.showScrollArrow !== false
+                          ? 'bg-[var(--editor-accent-blue)]' 
+                          : 'bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)]'
+                      }`}
+                    >
+                      <span 
+                        className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${
+                          section.settings.showScrollArrow !== false ? 'right-0.5' : 'left-0.5'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </MiniAccordion>
               </div>
             )}
 
@@ -308,52 +334,23 @@ export function HeroPanel({ section, onUpdate, onClose, onDelete }: HeroPanelPro
                   <ButtonControl
                     settings={section.settings}
                     onChange={updateSettings}
+                    onMultipleChange={updateMultipleSettings}
                   />
                 </MiniAccordion>
 
-                {/* מיכל ופריסה */}
-                <MiniAccordion title="מיכל ופריסה" defaultOpen={false}>
+                {/* פריסה */}
+                <MiniAccordion title="פריסה" defaultOpen={false}>
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="text-xs font-medium text-[var(--editor-text-secondary)]">רוחב תוכן</label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => updateSettings('sectionWidth', 'full')}
-                          className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
-                            (section.settings.sectionWidth || 'full') === 'full'
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
-                          }`}
-                        >
-                          מלא
-                        </button>
-                        <button
-                          onClick={() => updateSettings('sectionWidth', 'boxed')}
-                          className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
-                            section.settings.sectionWidth === 'boxed'
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
-                              : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
-                          }`}
-                        >
-                          קונטיינר
-                        </button>
-                      </div>
-                    </div>
-
-                    <EditorSlider
-                      label="ריווח עליון"
-                      value={(section.settings.paddingTop as number) || 0}
-                      onChange={(v) => updateSettings('paddingTop', v)}
-                      min={0}
-                      max={200}
+                    {/* רוחב סקשן */}
+                    <SectionWidthControl
+                      settings={section.settings}
+                      onChange={updateSettings}
                     />
                     
-                    <EditorSlider
-                      label="ריווח תחתון"
-                      value={(section.settings.paddingBottom as number) || 0}
-                      onChange={(v) => updateSettings('paddingBottom', v)}
-                      min={0}
-                      max={200}
+                    {/* גובה מינימום */}
+                    <MinHeightControl
+                      settings={section.settings}
+                      onChange={updateSettings}
                     />
                   </div>
                 </MiniAccordion>

@@ -28,15 +28,32 @@ export function EditorSectionHighlighter() {
     const style = document.createElement('style');
     style.id = 'editor-visibility-styles';
     style.textContent = `
-      /* In editor: show hidden sections with low opacity instead of hiding */
-      /* Note: inline styles from handler will override these base styles */
+      /* In editor: show hidden sections with low opacity - only when view matches */
+      
+      /* Hide on Mobile/Tablet: show opacity only in mobile/tablet view (< 1024px) */
+      @media (max-width: 1023px) {
+        [data-editor-preview="true"] [data-hide-on-mobile="true"] {
+          opacity: 0.5;
+          outline: 2px dashed rgba(239, 68, 68, 0.6);
+          outline-offset: -2px;
+        }
+      }
+      
+      /* Hide on Desktop: show opacity only in desktop view (>= 1024px) */
+      @media (min-width: 1024px) {
+        [data-editor-preview="true"] [data-hide-on-desktop="true"] {
+          opacity: 0.5;
+          outline: 2px dashed rgba(239, 68, 68, 0.6);
+          outline-offset: -2px;
+        }
+      }
+      
+      /* Always show hidden sections in editor (don't actually hide) */
       [data-editor-preview="true"] [data-hide-on-mobile="true"],
       [data-editor-preview="true"] [data-hide-on-desktop="true"] {
-        opacity: 0.5;
         display: block !important;
-        outline: 2px dashed rgba(239, 68, 68, 0.6);
-        outline-offset: -2px;
       }
+      
       /* Remove the Tailwind hiding classes effect in editor */
       [data-editor-preview="true"] .max-md\\:hidden,
       [data-editor-preview="true"] .md\\:hidden {
@@ -2981,6 +2998,45 @@ export function EditorSectionHighlighter() {
             `;
             break;
           
+          case 'contact':
+            placeholder.className = 'py-16 px-4';
+            placeholder.style.backgroundColor = '#f9fafb';
+            const contactEmail = content?.email || 'info@example.com';
+            const contactPhone = content?.phone || '03-1234567';
+            const contactAddress = content?.address || '';
+            const contactHours = content?.hours || '';
+            html = `
+              <div class="max-w-4xl mx-auto" data-content-wrapper>
+                <h2 class="text-2xl md:text-3xl font-bold tracking-wide mb-4 text-center" data-section-title style="${title ? '' : 'display:none'}">${title || 'צור קשר'}</h2>
+                <p class="text-lg opacity-80 mb-8 text-center" data-section-subtitle style="${subtitle ? '' : 'display:none'}">${subtitle || ''}</p>
+                
+                <div class="space-y-8 text-center" data-contact-info>
+                  <div class="space-y-6" data-contact-details>
+                    <div style="${contactEmail ? '' : 'display:none'}" data-contact-email-wrapper>
+                      <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">אימייל</p>
+                      <a href="mailto:${contactEmail}" class="text-sm hover:underline" dir="ltr" data-contact-email>${contactEmail}</a>
+                    </div>
+                    
+                    <div style="${contactPhone ? '' : 'display:none'}" data-contact-phone-wrapper>
+                      <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">טלפון</p>
+                      <a href="tel:${contactPhone}" class="text-sm hover:underline" dir="ltr" data-contact-phone>${contactPhone}</a>
+                    </div>
+                    
+                    <div style="${contactAddress ? '' : 'display:none'}" data-contact-address-wrapper>
+                      <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">כתובת</p>
+                      <span class="text-sm" data-contact-address>${contactAddress}</span>
+                    </div>
+                    
+                    <div style="${contactHours ? '' : 'display:none'}" data-contact-hours-wrapper>
+                      <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">שעות פעילות</p>
+                      <span class="text-sm" data-contact-hours>${contactHours}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+            break;
+
           case 'custom':
             placeholder.className = 'py-16 bg-gradient-to-b from-blue-50 to-white border-2 border-dashed border-blue-300';
             html = `

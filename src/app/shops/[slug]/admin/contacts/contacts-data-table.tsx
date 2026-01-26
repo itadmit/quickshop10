@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useTransition, useCallback, useRef } from 'react';
 import { DataTable, Badge, EmptyState } from '@/components/admin/ui';
 import type { Column, Tab, BulkAction } from '@/components/admin/ui';
 import { markContactAsRead, updateContactStatus, deleteContact, markAllAsRead } from './actions';
@@ -24,9 +24,10 @@ function MessageModal({
 }) {
   if (!isOpen || !contact) return null;
   
-  const metadata = (contact.metadata || {}) as { subject?: string; message?: string };
+  const metadata = (contact.metadata || {}) as { subject?: string; message?: string; tag?: string };
   const message = metadata.message || '';
   const subject = metadata.subject;
+  const tag = metadata.tag;
   const name = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.email;
   
   return (
@@ -46,7 +47,14 @@ function MessageModal({
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">הודעה מ{name}</h3>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-gray-900">הודעה מ{name}</h3>
+                {tag && (
+                  <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                    {tag}
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-500">
                 {new Date(contact.createdAt).toLocaleDateString('he-IL', {
                   day: 'numeric',
@@ -277,39 +285,50 @@ export function ContactsDataTable({
     {
       key: 'contact',
       header: 'איש קשר',
-      width: '180px',
-      render: (contact) => (
-        <div 
-          className={`flex items-center gap-3 cursor-pointer ${!contact.isRead ? 'font-medium' : ''}`}
-          onClick={() => {
-            if (!contact.isRead) {
-              handleMarkAsRead(contact.id);
-            }
-            setExpandedId(expandedId === contact.id ? null : contact.id);
-          }}
-        >
-          {/* Unread indicator */}
-          {!contact.isRead && (
-            <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
-          )}
-          
-          {/* Avatar */}
-          <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-            <span className="text-gray-600 font-medium text-sm">
-              {(contact.firstName?.[0] || contact.email[0]).toUpperCase()}
-            </span>
+      width: '200px',
+      render: (contact) => {
+        const metadata = (contact.metadata || {}) as { tag?: string };
+        const tag = metadata.tag;
+        return (
+          <div 
+            className={`flex items-center gap-3 cursor-pointer ${!contact.isRead ? 'font-medium' : ''}`}
+            onClick={() => {
+              if (!contact.isRead) {
+                handleMarkAsRead(contact.id);
+              }
+              setExpandedId(expandedId === contact.id ? null : contact.id);
+            }}
+          >
+            {/* Unread indicator */}
+            {!contact.isRead && (
+              <span className="w-2 h-2 bg-blue-500 rounded-full shrink-0" />
+            )}
+            
+            {/* Avatar */}
+            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
+              <span className="text-gray-600 font-medium text-sm">
+                {(contact.firstName?.[0] || contact.email[0]).toUpperCase()}
+              </span>
+            </div>
+            
+            {/* Name + Tag */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <p className={`text-gray-900 truncate ${!contact.isRead ? 'font-semibold' : ''}`}>
+                  {contact.firstName || contact.lastName 
+                    ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
+                    : '-'}
+                </p>
+                {tag && (
+                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[10px] font-medium rounded-full whitespace-nowrap">
+                    {tag}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          
-          {/* Name */}
-          <div className="min-w-0">
-            <p className={`text-gray-900 truncate ${!contact.isRead ? 'font-semibold' : ''}`}>
-              {contact.firstName || contact.lastName 
-                ? `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
-                : '-'}
-            </p>
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'email',
@@ -425,10 +444,11 @@ export function ContactsDataTable({
   const renderExpandedRow = (contact: ContactWithCustomer) => {
     if (expandedId !== contact.id) return null;
     
-    const metadata = (contact.metadata || {}) as { subject?: string; message?: string; [key: string]: unknown };
+    const metadata = (contact.metadata || {}) as { subject?: string; message?: string; tag?: string; [key: string]: unknown };
     const hasMetadata = Object.keys(metadata).length > 0;
     const subject = metadata.subject;
     const message = metadata.message;
+    const tag = metadata.tag;
     
     return (
       <tr className="bg-gray-50">
@@ -462,6 +482,16 @@ export function ContactsDataTable({
               <div>
                 <h4 className="font-medium text-gray-900 mb-2">מידע נוסף</h4>
                 <dl className="space-y-1">
+                  {tag && (
+                    <div className="flex gap-2 items-center">
+                      <dt className="text-gray-500">תגית:</dt>
+                      <dd>
+                        <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                          {tag}
+                        </span>
+                      </dd>
+                    </div>
+                  )}
                   {subject && (
                     <div className="flex gap-2">
                       <dt className="text-gray-500">נושא:</dt>
@@ -478,7 +508,7 @@ export function ContactsDataTable({
                   )}
                   {/* Other metadata fields */}
                   {Object.entries(metadata).map(([key, value]) => {
-                    if (key === 'subject' || key === 'message') return null;
+                    if (key === 'subject' || key === 'message' || key === 'tag' || key === 'sectionId') return null;
                     return (
                       <div key={key} className="flex gap-2">
                         <dt className="text-gray-500">{key}:</dt>
@@ -554,10 +584,23 @@ function ContactActions({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   // בדיקה אם יש הודעה
   const metadata = (contact.metadata || {}) as { message?: string };
   const hasMessage = !!metadata.message;
+
+  const handleToggle = () => {
+    if (!isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 4,
+        left: rect.left - 110, // Adjust for dropdown width
+      });
+    }
+    setIsOpen(!isOpen);
+  };
 
   const handleStatusChange = (status: 'active' | 'unsubscribed' | 'spam') => {
     startTransition(async () => {
@@ -579,7 +622,8 @@ function ContactActions({
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
         disabled={isPending}
       >
@@ -590,8 +634,11 @@ function ContactActions({
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setIsOpen(false)} />
-          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg py-1 min-w-[150px]">
+          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+          <div 
+            className="fixed z-[101] bg-white border border-gray-200 rounded-xl shadow-xl py-2 min-w-[180px]"
+            style={{ top: dropdownPosition.top, left: dropdownPosition.left }}
+          >
             {/* 📧 צפיה בהודעה - רק אם יש הודעה */}
             {hasMessage && (
               <>
@@ -600,47 +647,59 @@ function ContactActions({
                     setIsOpen(false);
                     onViewMessage();
                   }}
-                  className="w-full px-4 py-2 text-sm text-right text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                  className="w-full px-4 py-2.5 text-sm text-right text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
                     <path d="M22 6l-10 7L2 6"/>
                   </svg>
                   צפיה בהודעה
                 </button>
-                <hr className="my-1" />
+                <div className="mx-3 border-t border-gray-100" />
               </>
             )}
             
             {contact.status !== 'active' && (
               <button
                 onClick={() => handleStatusChange('active')}
-                className="w-full px-4 py-2 text-sm text-right text-gray-700 hover:bg-gray-50"
+                className="w-full px-4 py-2.5 text-sm text-right text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
               >
+                <svg className="w-4 h-4 text-green-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M5 12l5 5L20 7" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 סמן כפעיל
               </button>
             )}
             {contact.status !== 'unsubscribed' && (
               <button
                 onClick={() => handleStatusChange('unsubscribed')}
-                className="w-full px-4 py-2 text-sm text-right text-gray-700 hover:bg-gray-50"
+                className="w-full px-4 py-2.5 text-sm text-right text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
               >
+                <svg className="w-4 h-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 הסר מרשימה
               </button>
             )}
             {contact.status !== 'spam' && (
               <button
                 onClick={() => handleStatusChange('spam')}
-                className="w-full px-4 py-2 text-sm text-right text-gray-700 hover:bg-gray-50"
+                className="w-full px-4 py-2.5 text-sm text-right text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
               >
+                <svg className="w-4 h-4 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
                 סמן כספאם
               </button>
             )}
-            <hr className="my-1" />
+            <div className="mx-3 border-t border-gray-100 my-1" />
             <button
               onClick={handleDelete}
-              className="w-full px-4 py-2 text-sm text-right text-red-600 hover:bg-red-50"
+              className="w-full px-4 py-2.5 text-sm text-right text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
             >
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
               מחק
             </button>
           </div>

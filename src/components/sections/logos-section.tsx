@@ -22,6 +22,9 @@ interface LogosSectionProps {
     logoHeight?: number;
     grayscale?: boolean;
     backgroundColor?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   sectionId?: string;
 }
@@ -52,13 +55,19 @@ export function LogosSection({
     { id: '6', url: '', alt: 'לוגו 6' },
   ];
 
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+
   return (
     <section 
-      className="py-12 px-4"
+      className={`py-12 px-4 ${hideOnMobileClass} ${hideOnDesktopClass}`.trim()}
       style={{ backgroundColor: settings.backgroundColor || 'transparent' }}
       data-section-id={sectionId}
       data-section-type="logos"
       data-section-name="לוגואים"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       <div className="max-w-7xl mx-auto">
         {/* Header - always render for live editor updates */}

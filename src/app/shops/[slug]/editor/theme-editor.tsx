@@ -2072,7 +2072,22 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
     newsletter: { maxWidth: '600px' },
     video_banner: { height: '80vh', overlay: 0.4 },
     split_banner: { height: '60vh' },
-    contact: { layout: 'split', maxWidth: 'xl', textAlign: 'right', paddingY: 'large' },
+    contact: { 
+      layout: 'simple', 
+      maxWidth: 'lg', 
+      textAlign: 'center', 
+      paddingTop: 64, 
+      paddingBottom: 64,
+      backgroundColor: '#f9fafb',
+      titleSize: 30,
+      titleSizeMobile: 24,
+      titleColor: '#000000',
+      titleWeight: 'bold',
+      buttonBackgroundColor: '#000000',
+      buttonTextColor: '#ffffff',
+      sectionWidth: 'full',
+      contentWidth: 1200,
+    },
     // Product page sections (V2)
     product_gallery: {
       layout: 'carousel',

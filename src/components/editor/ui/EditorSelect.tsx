@@ -169,15 +169,16 @@ export function EditorToggleGroup({
       <label className="block text-xs text-[var(--editor-text-secondary)] group-hover:text-[var(--editor-text-primary)] transition-colors mb-2">
         {label}
       </label>
-      <div className="flex bg-[var(--editor-bg-tertiary)] rounded p-0.5 border border-[var(--editor-border-default)]">
+      <div className="flex gap-1 bg-[var(--editor-bg-tertiary)] rounded p-1 border border-[var(--editor-border-default)]">
         {options.map((option) => (
           <button
             key={option.value}
+            type="button"
             onClick={() => onChange(option.value)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs
+            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded text-xs cursor-pointer
                        transition-all
                        ${value === option.value 
-                         ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' 
+                         ? 'bg-[var(--editor-bg-primary)] text-[var(--editor-text-primary)] shadow-sm' 
                          : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)]'}`}
           >
             {option.icon}
@@ -210,13 +211,14 @@ export function EditorIconGroup({
       <label className="text-xs text-[var(--editor-text-secondary)] group-hover:text-[var(--editor-text-primary)] transition-colors">
         {label}
       </label>
-      <div className="flex bg-[var(--editor-bg-tertiary)] rounded p-0.5 border border-[var(--editor-border-default)]">
+      <div className="flex gap-0.5 bg-[var(--editor-bg-tertiary)] rounded p-0.5 border border-[var(--editor-border-default)]">
         {options.map((option) => (
           <button
             key={option.value}
+            type="button"
             onClick={() => onChange(option.value)}
             title={option.title}
-            className={`p-1.5 rounded transition-all
+            className={`p-1.5 rounded transition-all cursor-pointer
                        ${value === option.value 
                          ? 'bg-[var(--editor-accent-blue)] text-white' 
                          : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)]'}`}

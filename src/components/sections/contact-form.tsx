@@ -8,16 +8,48 @@ interface ContactFormProps {
   storeSlug: string;
   sectionId?: string;
   submitButtonText?: string;
+  formTag?: string; // תגית שתישמר עם הפנייה
+  // Button styling
   buttonBackgroundColor?: string;
   buttonTextColor?: string;
+  buttonBorderRadius?: number;
+  buttonPadding?: number;
+  buttonSize?: number;
+  buttonWeight?: string;
+  // Input styling
+  inputBackgroundColor?: string;
+  inputBorderColor?: string;
+  inputBorderRadius?: number;
+  inputSize?: number;
+  inputColor?: string;
+  // Label styling
+  labelSize?: number;
+  labelColor?: string;
+  labelWeight?: string;
 }
 
 export function ContactForm({
   storeSlug,
   sectionId,
   submitButtonText = 'שליחה',
+  formTag,
+  // Button defaults
   buttonBackgroundColor = '#000',
   buttonTextColor = '#fff',
+  buttonBorderRadius = 4,
+  buttonPadding = 12,
+  buttonSize = 14,
+  buttonWeight = 'medium',
+  // Input defaults
+  inputBackgroundColor = '#ffffff',
+  inputBorderColor = '#d1d5db',
+  inputBorderRadius = 4,
+  inputSize = 14,
+  inputColor = '#111827',
+  // Label defaults
+  labelSize = 12,
+  labelColor = '#6b7280',
+  labelWeight = 'normal',
 }: ContactFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -35,6 +67,7 @@ export function ContactForm({
       phone: formData.get('phone') as string,
       message: formData.get('message') as string,
       sectionId,
+      tag: formTag, // תגית מותאמת אישית
     };
     
     try {
@@ -62,6 +95,32 @@ export function ContactForm({
       setIsSubmitting(false);
     }
   };
+
+  // Input styles
+  const inputStyle = {
+    backgroundColor: inputBackgroundColor,
+    borderColor: inputBorderColor,
+    borderRadius: `${inputBorderRadius}px`,
+    fontSize: `${inputSize}px`,
+    color: inputColor,
+  };
+
+  // Label styles
+  const labelStyle = {
+    fontSize: `${labelSize}px`,
+    color: labelColor,
+    fontWeight: labelWeight,
+  };
+
+  // Button styles
+  const buttonStyle = {
+    backgroundColor: buttonBackgroundColor,
+    color: buttonTextColor,
+    borderRadius: `${buttonBorderRadius}px`,
+    padding: `${buttonPadding}px ${buttonPadding * 2}px`,
+    fontSize: `${buttonSize}px`,
+    fontWeight: buttonWeight,
+  };
   
   if (isSuccess) {
     return (
@@ -83,9 +142,14 @@ export function ContactForm({
   }
   
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6" data-contact-form>
       <div>
-        <label htmlFor="contact-name" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
+        <label 
+          htmlFor="contact-name" 
+          className="block uppercase tracking-widest mb-2"
+          style={labelStyle}
+          data-contact-label
+        >
           שם מלא *
         </label>
         <input
@@ -93,13 +157,20 @@ export function ContactForm({
           id="contact-name"
           name="name"
           required
-          className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm"
+          className="w-full px-3 py-3 border focus:outline-none focus:ring-2 focus:ring-black/20 transition-colors"
+          style={inputStyle}
           placeholder=""
+          data-contact-input
         />
       </div>
       
       <div>
-        <label htmlFor="contact-email" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
+        <label 
+          htmlFor="contact-email" 
+          className="block uppercase tracking-widest mb-2"
+          style={labelStyle}
+          data-contact-label
+        >
           אימייל *
         </label>
         <input
@@ -107,28 +178,42 @@ export function ContactForm({
           id="contact-email"
           name="email"
           required
-          className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm"
+          className="w-full px-3 py-3 border focus:outline-none focus:ring-2 focus:ring-black/20 transition-colors"
+          style={inputStyle}
           placeholder=""
           dir="ltr"
+          data-contact-input
         />
       </div>
       
       <div>
-        <label htmlFor="contact-phone" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
+        <label 
+          htmlFor="contact-phone" 
+          className="block uppercase tracking-widest mb-2"
+          style={labelStyle}
+          data-contact-label
+        >
           טלפון
         </label>
         <input
           type="tel"
           id="contact-phone"
           name="phone"
-          className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm"
+          className="w-full px-3 py-3 border focus:outline-none focus:ring-2 focus:ring-black/20 transition-colors"
+          style={inputStyle}
           placeholder=""
           dir="ltr"
+          data-contact-input
         />
       </div>
       
       <div>
-        <label htmlFor="contact-message" className="block text-xs uppercase tracking-widest text-gray-500 mb-2">
+        <label 
+          htmlFor="contact-message" 
+          className="block uppercase tracking-widest mb-2"
+          style={labelStyle}
+          data-contact-label
+        >
           הודעה *
         </label>
         <textarea
@@ -136,8 +221,10 @@ export function ContactForm({
           name="message"
           required
           rows={4}
-          className="w-full px-0 py-3 bg-transparent border-0 border-b border-gray-300 focus:outline-none focus:border-black transition-colors text-sm resize-none"
+          className="w-full px-3 py-3 border focus:outline-none focus:ring-2 focus:ring-black/20 transition-colors resize-none"
+          style={inputStyle}
           placeholder=""
+          data-contact-input
         />
       </div>
       
@@ -150,11 +237,9 @@ export function ContactForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full py-4 px-8 text-xs font-normal tracking-[0.2em] uppercase transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        style={{
-          backgroundColor: buttonBackgroundColor,
-          color: buttonTextColor,
-        }}
+        className="w-full uppercase tracking-[0.1em] transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        style={buttonStyle}
+        data-contact-button
       >
         {isSubmitting ? (
           <>
@@ -171,4 +256,3 @@ export function ContactForm({
     </form>
   );
 }
-

@@ -42,6 +42,9 @@ interface SplitBannerSectionProps {
     customClass?: string;
     customId?: string;
     customCss?: string;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath: string;
   sectionId?: string;
@@ -79,10 +82,14 @@ export function SplitBannerSection({
       { title: 'גברים', imageUrl: '', link: '/category/men' },
     ];
   }
+  
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   return (
     <section 
-      className={`grid md:grid-cols-2 ${settings.customClass || ''}`}
+      className={`grid md:grid-cols-2 ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{
         marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
         marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
@@ -91,6 +98,8 @@ export function SplitBannerSection({
       data-section-id={sectionId}
       data-section-type="split_banner"
       data-section-name="באנר מפוצל"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
       

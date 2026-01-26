@@ -9,18 +9,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Settings2, X } from 'lucide-react';
 import { EditorColorInline } from '../ui/EditorColorPicker';
 import { EditorSlider } from '../ui/EditorSlider';
-import { EditorToggleGroup } from '../ui/EditorSelect';
-
-// Button styles presets
-const BUTTON_STYLES = [
-  { value: 'filled', label: 'מלא' },
-  { value: 'outline', label: 'מסגרת' },
-  { value: 'ghost', label: 'שקוף' },
-];
 
 interface ButtonControlProps {
   settings: Record<string, unknown>;
   onChange: (key: string, value: unknown) => void;
+  onMultipleChange?: (updates: Record<string, unknown>) => void;  // For batch updates
   prefix?: string;  // Default: 'button'
   showAdvanced?: boolean;
 }
@@ -28,6 +21,7 @@ interface ButtonControlProps {
 export function ButtonControl({
   settings,
   onChange,
+  onMultipleChange,
   prefix = 'button',
   showAdvanced = true,
 }: ButtonControlProps) {
@@ -35,15 +29,16 @@ export function ButtonControl({
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Get current values
-  const bgColor = (settings[`${prefix}BgColor`] as string) || 
+  // Get current values - check buttonBackground FIRST since that's what hero uses
+  const bgColor = (settings[`${prefix}Background`] as string) || 
+                  (settings[`${prefix}BgColor`] as string) || 
                   (settings[`${prefix}BackgroundColor`] as string) || 
-                  'transparent';
+                  '#ffffff';
   const textColor = (settings[`${prefix}TextColor`] as string) || '#000000';
-  const borderColor = (settings[`${prefix}BorderColor`] as string) || '#000000';
-  const borderRadius = (settings[`${prefix}BorderRadius`] as number) || 0;
-  const borderWidth = (settings[`${prefix}BorderWidth`] as number) || 1;
-  const buttonStyle = (settings[`${prefix}Style`] as string) || 'outline';
+  const borderColor = (settings[`${prefix}BorderColor`] as string) || bgColor;
+  const borderRadius = (settings[`${prefix}BorderRadius`] as number) ?? 0;
+  const borderWidth = (settings[`${prefix}BorderWidth`] as number) ?? 1;
+  const buttonStyle = (settings[`${prefix}Style`] as string) || 'filled';
 
   // Close on outside click
   useEffect(() => {
@@ -61,6 +56,65 @@ export function ButtonControl({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Handle style change with all color updates - use batch update to prevent race conditions
+  const handleStyleChange = (style: string) => {
+    let updates: Record<string, unknown> = {
+      [`${prefix}Style`]: style,
+    };
+    
+    // Update colors based on style - save with both key formats for compatibility
+    if (style === 'filled') {
+      // Default filled: white button with black text (common in hero sections)
+      updates = {
+        ...updates,
+        [`${prefix}Background`]: '#ffffff',
+        [`${prefix}BgColor`]: '#ffffff',
+        [`${prefix}TextColor`]: '#000000',
+        [`${prefix}BorderColor`]: '#ffffff',
+        [`${prefix}BorderWidth`]: 1,
+        [`${prefix}TextDecoration`]: 'none',
+      };
+    } else if (style === 'outline') {
+      // Outline: transparent background, white text and border
+      updates = {
+        ...updates,
+        [`${prefix}Background`]: 'transparent',
+        [`${prefix}BgColor`]: 'transparent',
+        [`${prefix}TextColor`]: '#ffffff',
+        [`${prefix}BorderColor`]: '#ffffff',
+        [`${prefix}BorderWidth`]: 2, // Make border more visible
+        [`${prefix}TextDecoration`]: 'none',
+      };
+    } else if (style === 'underline') {
+      // Underline: transparent background, text with underline
+      updates = {
+        ...updates,
+        [`${prefix}Background`]: 'transparent',
+        [`${prefix}BgColor`]: 'transparent',
+        [`${prefix}TextColor`]: '#ffffff',
+        [`${prefix}BorderColor`]: 'transparent',
+        [`${prefix}BorderWidth`]: 0,
+        [`${prefix}TextDecoration`]: 'underline',
+      };
+    }
+    
+    // Use batch update if available, otherwise fall back to sequential updates
+    if (onMultipleChange) {
+      onMultipleChange(updates);
+    } else {
+      // Fallback: apply updates one by one (may cause race conditions)
+      Object.entries(updates).forEach(([key, value]) => {
+        onChange(key, value);
+      });
+    }
+  };
+  
+  // Helper to save with both key formats
+  const handleBgColorChange = (value: string) => {
+    onChange(`${prefix}Background`, value);
+    onChange(`${prefix}BgColor`, value);
+  };
+
   return (
     <div className="relative py-2 group">
       <div className="flex items-center justify-between">
@@ -71,8 +125,9 @@ export function ButtonControl({
         {/* Button preview */}
         <button
           ref={buttonRef}
+          type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`flex items-center gap-2 px-2.5 py-1.5 rounded transition-colors
+          className={`flex items-center gap-2 px-2.5 py-1.5 rounded transition-colors cursor-pointer
                      ${isOpen 
                        ? 'bg-[var(--editor-accent-blue)] text-white' 
                        : 'bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)] border border-[var(--editor-border-default)]'}`}
@@ -90,57 +145,61 @@ export function ButtonControl({
                      border border-[var(--editor-border-default)] shadow-lg p-4 w-72"
         >
           {/* Header */}
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--editor-border-default)]">
+          <div className="flex items-center justify-between mb-3 pb-3 border-b border-[var(--editor-border-default)]">
             <span className="text-xs font-medium text-[var(--editor-text-primary)]">עיצוב כפתור</span>
             <button
+              type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1 rounded hover:bg-[var(--editor-bg-hover)] transition-colors"
+              className="p-1 rounded hover:bg-[var(--editor-bg-hover)] transition-colors cursor-pointer"
             >
               <X className="w-3.5 h-3.5 text-[var(--editor-text-muted)]" />
             </button>
           </div>
 
-          {/* Preview */}
-          <div className="mb-4 p-4 bg-[var(--editor-bg-primary)] rounded-lg flex items-center justify-center">
-            <span
-              className="px-4 py-2 text-sm transition-all"
-              style={{
-                backgroundColor: bgColor === 'transparent' ? 'transparent' : bgColor,
-                color: textColor,
-                border: `${borderWidth}px solid ${borderColor}`,
-                borderRadius: `${borderRadius}px`,
-              }}
-            >
-              כפתור לדוגמה
-            </span>
+          {/* Style preset - Custom implementation */}
+          <div className="py-2 mb-2">
+            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">
+              סגנון
+            </label>
+            <div className="flex gap-1 bg-[var(--editor-bg-tertiary)] rounded p-1 border border-[var(--editor-border-default)]">
+              <button
+                type="button"
+                onClick={() => handleStyleChange('filled')}
+                className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-all cursor-pointer
+                           ${buttonStyle === 'filled' 
+                             ? 'bg-[var(--editor-bg-primary)] text-[var(--editor-text-primary)] shadow-sm' 
+                             : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)]'}`}
+              >
+                מלא
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStyleChange('outline')}
+                className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-all cursor-pointer
+                           ${buttonStyle === 'outline' 
+                             ? 'bg-[var(--editor-bg-primary)] text-[var(--editor-text-primary)] shadow-sm' 
+                             : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)]'}`}
+              >
+                מסגרת
+              </button>
+              <button
+                type="button"
+                onClick={() => handleStyleChange('underline')}
+                className={`flex-1 py-1.5 px-2 rounded text-xs font-medium transition-all cursor-pointer
+                           ${buttonStyle === 'underline' 
+                             ? 'bg-[var(--editor-bg-primary)] text-[var(--editor-text-primary)] shadow-sm' 
+                             : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)]'}`}
+              >
+                קו תחתון
+              </button>
+            </div>
           </div>
-
-          {/* Style preset */}
-          <EditorToggleGroup
-            label="סגנון"
-            value={buttonStyle}
-            options={BUTTON_STYLES}
-            onChange={(v) => {
-              onChange(`${prefix}Style`, v);
-              // Auto-set colors based on style
-              if (v === 'filled') {
-                onChange(`${prefix}BgColor`, '#000000');
-                onChange(`${prefix}TextColor`, '#ffffff');
-              } else if (v === 'outline') {
-                onChange(`${prefix}BgColor`, 'transparent');
-                onChange(`${prefix}TextColor`, '#000000');
-              } else if (v === 'ghost') {
-                onChange(`${prefix}BgColor`, 'transparent');
-                onChange(`${prefix}BorderColor`, 'transparent');
-              }
-            }}
-          />
 
           {/* Colors */}
           <EditorColorInline
             label="צבע רקע"
             value={bgColor}
-            onChange={(v) => onChange(`${prefix}BgColor`, v)}
+            onChange={handleBgColorChange}
           />
           
           <EditorColorInline

@@ -47,6 +47,9 @@ interface ReviewsSectionProps {
     dotsStyle?: 'dots' | 'lines' | 'numbers';
     autoplay?: boolean;
     autoplayInterval?: number;
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   sectionId?: string;
 }
@@ -116,14 +119,20 @@ export function ReviewsSection({
   const hasCustomSubtitleSize = typeof settings.subtitleSize === 'number';
   const hasCustomSizes = hasCustomTitleSize || hasCustomSubtitleSize;
 
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+
   return (
     <section 
-      className="py-16 px-4 md:px-8"
+      className={`py-16 px-4 md:px-8 ${hideOnMobileClass} ${hideOnDesktopClass}`.trim()}
       style={{ backgroundColor: settings.backgroundColor || '#f9fafb' }}
       data-section-id={sectionId}
       data-section-type="reviews"
       data-section-name="ביקורות"
       data-layout={layout}
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {/* Scoped responsive styles for numeric font sizes */}
       {hasCustomSizes && (

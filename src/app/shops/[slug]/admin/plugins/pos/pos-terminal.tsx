@@ -419,6 +419,42 @@ export function POSTerminal({
     }
   };
 
+  // 🆕 Handle skip refund - create order without processing refund
+  const handleSkipRefund = async () => {
+    setRefundError(null);
+    setIsProcessingRefund(true);
+
+    try {
+      // Create the exchange order without refund - keep the difference as store credit/note
+      const result = await createPOSOrder(storeId, storeSlug, {
+        items: cart,
+        customer,
+        shippingMethod,
+        shippingAmount,
+        discountCode: appliedCoupons.length > 0 ? appliedCoupons.map(c => c.code).join(',') : undefined,
+        discountAmount,
+        notes: `${notes || ''}\nהפרש לטובת הלקוח (ללא זיכוי): ₪${Math.abs(total).toFixed(2)}`.trim(),
+        subtotal,
+        total, // Keep the negative total as-is
+        runPostCheckout,
+        isExchange: true,
+        markAsPaid: true, // Mark as completed
+      });
+
+      if (result.success) {
+        setShowRefundModal(false);
+        handleOrderSuccess(result.orderId!);
+      } else {
+        setRefundError(result.error || 'שגיאה ביצירת ההזמנה');
+      }
+    } catch (err) {
+      console.error('Skip refund error:', err);
+      setRefundError(err instanceof Error ? err.message : 'שגיאה ביצירת ההזמנה');
+    } finally {
+      setIsProcessingRefund(false);
+    }
+  };
+
   // 🆕 Calculate returns and purchases separately
   const returnItems = cart.filter(item => item.type === 'return');
   const purchaseItems = cart.filter(item => item.type !== 'return');
@@ -610,37 +646,52 @@ export function POSTerminal({
               </div>
 
               {/* Actions */}
-              <div className="p-4 border-t border-gray-200 flex gap-3">
+              <div className="p-4 border-t border-gray-200 space-y-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowRefundModal(false);
+                      setRefundError(null);
+                    }}
+                    disabled={isProcessingRefund}
+                    className="flex-1 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 cursor-pointer"
+                  >
+                    ביטול
+                  </button>
+                  <button
+                    onClick={handleExchangeRefund}
+                    disabled={isProcessingRefund || !originalOrderIdForRefund.trim()}
+                    className="flex-1 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    {isProcessingRefund ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>מעבד זיכוי...</span>
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                        </svg>
+                        <span>בצע זיכוי ₪{Math.abs(total).toFixed(2)}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                
+                {/* Skip refund button */}
                 <button
-                  onClick={() => {
-                    setShowRefundModal(false);
-                    setRefundError(null);
-                  }}
+                  onClick={handleSkipRefund}
                   disabled={isProcessingRefund}
-                  className="flex-1 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50 cursor-pointer"
-                >
-                  ביטול
-                </button>
-                <button
-                  onClick={handleExchangeRefund}
-                  disabled={isProcessingRefund || !originalOrderIdForRefund.trim()}
-                  className="flex-1 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {isProcessingRefund ? (
-                    <>
-                      <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span>מעבד זיכוי...</span>
-                    </>
+                    <span>מעבד...</span>
                   ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                      </svg>
-                      <span>בצע זיכוי ₪{Math.abs(total).toFixed(2)}</span>
-                    </>
+                    <span>המשך ללא זיכוי (ההפרש ישאר +₪{Math.abs(total).toFixed(2)})</span>
                   )}
                 </button>
               </div>

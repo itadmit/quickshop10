@@ -6,6 +6,7 @@ import {
   VideoBannerSection, 
   SplitBannerSection, 
   NewsletterSection,
+  ContactSection,
   // New sections - all Server Components!
   ReviewsSection,
   ImageTextSection,
@@ -400,6 +401,48 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             content={content as { items?: Array<{ id: string; question: string; answer: string }> }}
             settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl'; backgroundColor?: string; style?: 'accordion' | 'cards' | 'simple' }}
             sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'contact':
+        sectionElement = (
+          <ContactSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as {
+              email?: string;
+              phone?: string;
+              address?: string;
+              hours?: string;
+              showForm?: boolean;
+              formAction?: string;
+              submitButtonText?: string;
+              socialLinks?: Array<{ type: 'facebook' | 'instagram' | 'twitter' | 'whatsapp' | 'telegram'; url: string }>;
+              text?: string;
+            }}
+            settings={settings as {
+              layout?: 'simple' | 'split' | 'form-only' | 'info-only';
+              maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+              textAlign?: 'right' | 'center' | 'left';
+              backgroundColor?: string;
+              textColor?: string;
+              paddingY?: 'small' | 'medium' | 'large';
+              titleColor?: string;
+              titleSize?: number;
+              titleSizeMobile?: number;
+              titleWeight?: 'light' | 'normal' | 'medium' | 'semibold' | 'bold';
+              subtitleSize?: number;
+              subtitleSizeMobile?: number;
+              buttonTextColor?: string;
+              buttonBackgroundColor?: string;
+              customClass?: string;
+              customId?: string;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+            }}
+            sectionId={section.id}
+            storeSlug={store.slug}
           />
         );
         break;

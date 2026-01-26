@@ -7,16 +7,22 @@
 
 import { useState, useRef, useEffect } from 'react';
 
-// Popular colors palette
+// Popular colors palette - 8 per row
 const PRESET_COLORS = [
-  '#ffffff', '#f8fafc', '#f1f5f9', '#e2e8f0', '#cbd5e1', '#94a3b8',
-  '#64748b', '#475569', '#334155', '#1e293b', '#0f172a', '#000000',
-  '#fef2f2', '#fee2e2', '#fecaca', '#f87171', '#ef4444', '#dc2626',
-  '#fefce8', '#fef9c3', '#fef08a', '#facc15', '#eab308', '#ca8a04',
-  '#f0fdf4', '#dcfce7', '#bbf7d0', '#4ade80', '#22c55e', '#16a34a',
-  '#eff6ff', '#dbeafe', '#bfdbfe', '#60a5fa', '#3b82f6', '#2563eb',
-  '#faf5ff', '#f3e8ff', '#e9d5ff', '#c084fc', '#a855f7', '#9333ea',
-  '#fdf2f8', '#fce7f3', '#fbcfe8', '#f472b6', '#ec4899', '#db2777',
+  // Grays
+  '#94a3b8', '#64748b', '#475569', '#334155', '#1e293b', '#0f172a', '#000000', '#ffffff',
+  // Reds
+  '#dc2626', '#ef4444', '#f87171', '#fca5a5', '#fecaca', '#fee2e2', '#fef2f2', '#fff5f5',
+  // Oranges/Yellows  
+  '#ca8a04', '#eab308', '#facc15', '#fde047', '#fef08a', '#fef9c3', '#fefce8', '#fffbeb',
+  // Greens
+  '#16a34a', '#22c55e', '#4ade80', '#86efac', '#bbf7d0', '#dcfce7', '#f0fdf4', '#f0fff4',
+  // Blues
+  '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff', '#f0f9ff',
+  // Purples
+  '#9333ea', '#a855f7', '#c084fc', '#d8b4fe', '#e9d5ff', '#f3e8ff', '#faf5ff', '#fdf4ff',
+  // Pinks
+  '#db2777', '#ec4899', '#f472b6', '#f9a8d4', '#fbcfe8', '#fce7f3', '#fdf2f8', '#fff5f8',
 ];
 
 interface EditorColorPickerProps {
@@ -71,7 +77,7 @@ export function EditorColorPicker({
   const isTransparent = localValue === 'transparent' || !localValue;
 
   return (
-    <div className={`relative py-2 group ${className}`}>
+    <div className={`relative py-1.5 group ${className}`}>
       <div className="flex items-center justify-between">
         <label className="text-xs text-[var(--editor-text-secondary)] group-hover:text-[var(--editor-text-primary)] transition-colors">
           {label}
@@ -118,23 +124,23 @@ export function EditorColorPicker({
       {isOpen && (
         <div
           ref={popoverRef}
-          className="absolute left-0 top-full mt-2 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
-                     border border-[var(--editor-border-default)] shadow-lg p-3 w-64"
+          className="absolute left-0 top-full mt-1 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
+                     border border-[var(--editor-border-default)] shadow-lg p-2 w-56"
         >
           {/* Native color picker */}
-          <div className="mb-3">
+          <div className="mb-2">
             <input
               type="color"
               value={displayColor}
               onChange={(e) => handleColorChange(e.target.value)}
-              className="w-full h-32 cursor-pointer rounded border-0"
+              className="w-full h-20 cursor-pointer rounded border-0"
             />
           </div>
 
           {/* Transparent button */}
           <button
             onClick={() => handleColorChange('transparent')}
-            className={`w-full py-2 px-3 rounded text-xs mb-3 transition-colors
+            className={`w-full py-1.5 px-2 rounded text-xs mb-2 transition-colors
                        ${isTransparent 
                          ? 'bg-[var(--editor-accent-blue)] text-white' 
                          : 'bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)]'}`}
@@ -145,15 +151,15 @@ export function EditorColorPicker({
           {/* Presets */}
           {showPresets && (
             <>
-              <div className="text-xs text-[var(--editor-text-muted)] mb-2">צבעים מוכנים</div>
-              <div className="grid grid-cols-6 gap-1">
+              <div className="text-[10px] text-[var(--editor-text-muted)] mb-1">צבעים מוכנים</div>
+              <div className="grid grid-cols-8 gap-0.5">
                 {PRESET_COLORS.map((color) => (
                   <button
                     key={color}
                     onClick={() => handleColorChange(color)}
-                    className={`w-7 h-7 rounded border transition-all
+                    className={`w-6 h-6 rounded-sm border transition-all
                                ${localValue === color 
-                                 ? 'border-[var(--editor-accent-blue)] scale-110' 
+                                 ? 'border-[var(--editor-accent-blue)] ring-1 ring-[var(--editor-accent-blue)]' 
                                  : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'}`}
                     style={{ backgroundColor: color }}
                   />
