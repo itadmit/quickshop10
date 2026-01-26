@@ -557,21 +557,25 @@ if (updates.settings?.titleColor !== undefined) {
 
 ## 11. סטטוס הסקשנים הקיימים
 
-| סקשן | Handler | applyCommonUpdates | data-section-type | סטטוס |
-|------|---------|-------------------|-------------------|-------|
-| text_block | ✅ | ✅ | ✅ | ✅ מלא |
-| hero | ✅ | ✅ | ✅ | ✅ מלא |
-| reviews | ✅ | ✅ | ✅ | ✅ מלא |
-| features | ✅ | ✅ | ✅ | ✅ מלא |
-| faq | ✅ | ✅ | ✅ | ✅ מלא |
-| newsletter | ✅ | ✅ | ✅ | ✅ מלא |
-| contact | ✅ | ✅ | ✅ | ✅ מלא |
-| logos | ✅ | ✅ | ✅ | ✅ מלא |
-| gallery | ✅ | ✅ | ✅ | ✅ מלא |
-| image_text | ✅ | ✅ | ✅ | ✅ מלא |
-| banner_small | ✅ | ✅ | ✅ | ✅ מלא |
-| video_banner | ✅ | ✅ | ✅ | ✅ מלא |
-| split_banner | ✅ | ✅ | ✅ | ✅ מלא |
+| סקשן | Handler | Panel (Figma UI) | applyCommonUpdates | data-section-type | סטטוס |
+|------|---------|------------------|-------------------|-------------------|-------|
+| text_block | ✅ | ✅ TextBlockPanel | ✅ | ✅ | ✅ מלא |
+| hero | ✅ | ✅ HeroPanel | ✅ | ✅ | ✅ מלא |
+| reviews | ✅ | ✅ ReviewsPanel | ✅ | ✅ | ✅ מלא |
+| features | ✅ | ✅ FeaturesPanel | ✅ | ✅ | ✅ מלא |
+| faq | ✅ | ✅ FaqPanel | ✅ | ✅ | ✅ מלא |
+| newsletter | ✅ | ✅ NewsletterPanel | ✅ | ✅ | ✅ מלא |
+| contact | ✅ | ✅ ContactPanel | ✅ | ✅ | ✅ מלא |
+| logos | ✅ | ✅ LogosPanel | ✅ | ✅ | ✅ מלא |
+| gallery | ✅ | ✅ GalleryPanel | ✅ | ✅ | ✅ מלא |
+| image_text | ✅ | ✅ ImageTextPanel | ✅ | ✅ | ✅ מלא |
+| banner_small | ✅ | ✅ BannerSmallPanel | ✅ | ✅ | ✅ מלא |
+| video_banner | ✅ | ✅ VideoBannerPanel | ✅ | ✅ | ✅ מלא |
+| split_banner | ✅ | ✅ SplitBannerPanel | ✅ | ✅ | ✅ מלא |
+
+**סקשנים שעדיין משתמשים בממשק הישן:**
+- products, categories, series_grid, featured_items - אלו סקשנים דינמיים שתלויים בנתונים מה-DB
+- hero_premium, hero_slider, quote_banner - צריכים פאנלים חדשים
 
 ---
 
