@@ -9,7 +9,7 @@ import { stores, storePlugins } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { MessageCircle, Send, Settings, Users, ChevronLeft } from 'lucide-react';
+import { MessageCircle, Send, Settings, Users, ExternalLink, HelpCircle, AlertTriangle } from 'lucide-react';
 import { WhatsAppSettingsForm } from './settings-form';
 import { getWhatsAppStats } from './actions';
 
@@ -54,25 +54,20 @@ export default async function WhatsAppTrustoryPage({ params }: PageProps) {
   const stats = await getWhatsAppStats(store.id);
 
   return (
-    <div className="p-6 space-y-6" dir="rtl">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-            <MessageCircle className="w-6 h-6 text-green-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">WhatsApp דיוור</h1>
-            <p className="text-gray-500">שליחת הודעות WhatsApp דרך True Story API</p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 mb-1">WhatsApp דיוור</h1>
+          <p className="text-slate-500">שליחת הודעות WhatsApp דרך True Story API</p>
         </div>
 
         {isConfigured && (
           <Link
             href={`/shops/${slug}/admin/plugins/whatsapp-trustory/broadcast`}
-            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors font-medium"
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-4 h-4" />
             שלח דיוור
           </Link>
         )}
@@ -81,129 +76,147 @@ export default async function WhatsAppTrustoryPage({ params }: PageProps) {
       {/* Quick Stats */}
       {isConfigured && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Users className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <Users className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalCustomersWithPhone}</p>
-                <p className="text-sm text-gray-500">לקוחות (אישרו דיוור)</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.totalCustomersWithPhone}</p>
+                <p className="text-sm text-slate-500">לקוחות</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalContactsWithPhone}</p>
-                <p className="text-sm text-gray-500">אנשי קשר</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.totalContactsWithPhone}</p>
+                <p className="text-sm text-slate-500">אנשי קשר</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                <Send className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <Send className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.newsletterCount}</p>
-                <p className="text-sm text-gray-500">ניוזלטר</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.newsletterCount}</p>
+                <p className="text-sm text-slate-500">ניוזלטר</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                <Settings className="w-5 h-5 text-amber-600" />
+              <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                <Settings className="w-5 h-5 text-slate-600" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-gray-900">{stats.clubMemberCount}</p>
-                <p className="text-sm text-gray-500">חברי מועדון</p>
+                <p className="text-2xl font-bold text-slate-900">{stats.clubMemberCount}</p>
+                <p className="text-sm text-slate-500">חברי מועדון</p>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Settings Form */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Settings className="w-5 h-5 text-gray-500" />
-          הגדרות חיבור
-        </h2>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Settings Form - Main Column */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-slate-400" />
+              הגדרות חיבור
+            </h2>
 
-        <WhatsAppSettingsForm
-          storeId={store.id}
-          storeSlug={slug}
-          initialConfig={{
-            token: config.token || '',
-            instanceId: config.instanceId || '',
-            enabled: config.enabled ?? false,
-          }}
-        />
-      </div>
+            <WhatsAppSettingsForm
+              storeId={store.id}
+              storeSlug={slug}
+              initialConfig={{
+                token: config.token || '',
+                instanceId: config.instanceId || '',
+                enabled: config.enabled ?? false,
+              }}
+            />
+          </div>
 
-      {/* True Story Registration */}
-      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200 p-6">
-        <h3 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
-          <span>🚀</span>
-          עדיין אין לך חשבון True Story?
-        </h3>
-        <p className="text-sm text-green-800 mb-4">
-          True Story מספקת שירות שליחת הודעות WhatsApp באמצעות סריקת QR. 
-          התשלום מתבצע ישירות מולם לפי חבילת ההודעות שתבחר.
-        </p>
-        <a
-          href="https://true-story.net/user/login"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-        >
-          כניסה / הרשמה ל-True Story
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
-      </div>
+          {/* Legal Notice */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-slate-400" />
+              אחריות ותנאי שימוש
+            </h3>
+            <div className="text-sm text-slate-600 space-y-3">
+              <p>
+                <span className="font-medium text-slate-800">חוק הספאם:</span> על פי חוק התקשורת (בזק ושידורים), תיקון מס' 40, 
+                שליחת הודעות שיווקיות מותרת רק לאנשים שנתנו הסכמה מפורשת.
+              </p>
+              <p>
+                <span className="font-medium text-slate-800">הגבלת אחריות:</span> QuickShop ו-True Story אינן אחראיות לתוכן ההודעות הנשלחות. 
+                כל האחריות לתוכן ולעמידה בחוקי הספאם מוטלת על בעל החנות בלבד.
+              </p>
+              <p>
+                <span className="font-medium text-slate-800">מניעת ספאם:</span> QuickShop עושה את המירב למנוע שליחת ספאם - 
+                <span className="font-semibold text-slate-900"> לא ניתן לשלוח הודעות ללקוחות שלא אישרו קבלת דיוור.</span>
+              </p>
+            </div>
+          </div>
+        </div>
 
-      {/* Help */}
-      <div className="bg-blue-50 rounded-xl border border-blue-200 p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">איך מקבלים Token ו-Instance ID?</h3>
-        <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
-          <li>היכנס לחשבון שלך ב-<a href="https://true-story.net" target="_blank" rel="noopener" className="underline">True Story</a></li>
-          <li>עבור ל-Dashboard → API Access</li>
-          <li>צור Token חדש (או העתק קיים)</li>
-          <li>העתק את ה-Instance ID מעמוד ה-Instances</li>
-          <li>הדבק כאן ושמור</li>
-        </ol>
-      </div>
+        {/* Sidebar */}
+        <div className="space-y-6">
+          {/* True Story Link */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="font-semibold text-slate-900 mb-2">אין לך חשבון True Story?</h3>
+            <p className="text-sm text-slate-500 mb-4">
+              True Story מספקת שירות שליחת הודעות WhatsApp. התשלום מתבצע ישירות מולם.
+            </p>
+            <a
+              href="https://true-story.net/user/login"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors text-sm font-medium"
+            >
+              כניסה / הרשמה
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          </div>
 
-      {/* Legal Disclaimer */}
-      <div className="bg-amber-50 rounded-xl border border-amber-200 p-6">
-        <h3 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
-          <span>⚠️</span>
-          אחריות ותנאי שימוש
-        </h3>
-        <div className="text-sm text-amber-800 space-y-2">
-          <p>
-            <strong>חוק הספאם:</strong> על פי חוק התקשורת (בזק ושידורים), תיקון מס' 40, 
-            שליחת הודעות שיווקיות מותרת רק לאנשים שנתנו הסכמה מפורשת.
-          </p>
-          <p>
-            <strong>הגבלת אחריות:</strong> QuickShop ו-True Story אינן אחראיות לתוכן ההודעות הנשלחות. 
-            כל האחריות לתוכן ולעמידה בחוקי הספאם מוטלת על בעל החנות בלבד.
-          </p>
-          <p>
-            <strong>מניעת ספאם:</strong> QuickShop עושה את המירב למנוע שליחת ספאם - 
-            <span className="font-semibold"> לא ניתן לשלוח הודעות ללקוחות שלא אישרו קבלת דיוור.</span> 
-            המערכת מציגה רק אנשי קשר שנרשמו לניוזלטר, מועדון לקוחות, או סימנו "אישור קבלת עדכונים" בצ'קאאוט.
-          </p>
+          {/* Help */}
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+            <h3 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-slate-400" />
+              איך מקבלים Token ו-Instance ID?
+            </h3>
+            <ol className="text-sm text-slate-600 space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-xs font-medium text-slate-600 shrink-0 mt-0.5">1</span>
+                <span>היכנס לחשבון שלך ב-<a href="https://true-story.net" target="_blank" rel="noopener" className="text-slate-900 underline underline-offset-2">True Story</a></span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-xs font-medium text-slate-600 shrink-0 mt-0.5">2</span>
+                <span>עבור ל-Dashboard → API Access</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-xs font-medium text-slate-600 shrink-0 mt-0.5">3</span>
+                <span>צור Token חדש (או העתק קיים)</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-xs font-medium text-slate-600 shrink-0 mt-0.5">4</span>
+                <span>העתק את ה-Instance ID מעמוד ה-Instances</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="w-5 h-5 bg-slate-100 rounded-full flex items-center justify-center text-xs font-medium text-slate-600 shrink-0 mt-0.5">5</span>
+                <span>הדבק כאן ושמור</span>
+              </li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>
