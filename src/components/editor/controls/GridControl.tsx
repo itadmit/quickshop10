@@ -247,9 +247,10 @@ export function AlignmentControl({
         { 
           value: 'right', 
           title: 'ימין',
+          // Icon shows lines aligned to right (RTL context)
           icon: (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 5h18v2H3V5zm6 4h12v2H9V9zm-6 4h18v2H3v-2zm6 4h12v2H9v-2z"/>
+              <path d="M3 5h18v2H3V5zm0 9h18v2H3v-2zm0 4h12v2H3v-2zm0-8h12v2H3V9z"/>
             </svg>
           )
         },
@@ -265,9 +266,10 @@ export function AlignmentControl({
         { 
           value: 'left', 
           title: 'שמאל',
+          // Icon shows lines aligned to left (RTL context)
           icon: (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M3 5h18v2H3V5zm0 4h12v2H3V9zm0 4h18v2H3v-2zm0 4h12v2H3v-2z"/>
+              <path d="M3 5h18v2H3V5zm6 4h12v2H9V9zm-6 4h18v2H3v-2zm6 4h12v2H9v-2z"/>
             </svg>
           )
         },

@@ -78,13 +78,13 @@ export function EditorSlider({
       </div>
       
       {/* Slider container - LTR for correct slider behavior */}
-      <div className="relative" dir="ltr">
+      <div className="relative h-6 flex items-center" dir="ltr">
         {/* Track background */}
-        <div className="absolute inset-0 h-1 bg-[var(--editor-border-default)] rounded-full top-1/2 -translate-y-1/2" />
+        <div className="absolute w-full h-1.5 bg-[var(--editor-border-default)] rounded-full" />
         
         {/* Track fill - from left in LTR */}
         <div 
-          className="absolute h-1 bg-[var(--editor-accent-blue)] rounded-full top-1/2 -translate-y-1/2 left-0"
+          className="absolute h-1.5 bg-[var(--editor-accent-blue)] rounded-full left-0"
           style={{ width: `${percentage}%` }}
         />
         
@@ -96,10 +96,10 @@ export function EditorSlider({
           min={min}
           max={max}
           step={step}
-          className="relative w-full h-4 bg-transparent appearance-none cursor-pointer z-10
+          className="absolute w-full h-6 bg-transparent appearance-none cursor-pointer z-10
                      [&::-webkit-slider-thumb]:appearance-none
-                     [&::-webkit-slider-thumb]:w-3
-                     [&::-webkit-slider-thumb]:h-3
+                     [&::-webkit-slider-thumb]:w-4
+                     [&::-webkit-slider-thumb]:h-4
                      [&::-webkit-slider-thumb]:bg-white
                      [&::-webkit-slider-thumb]:rounded-full
                      [&::-webkit-slider-thumb]:shadow-md
@@ -108,8 +108,8 @@ export function EditorSlider({
                      [&::-webkit-slider-thumb]:hover:scale-110
                      [&::-webkit-slider-thumb]:border
                      [&::-webkit-slider-thumb]:border-gray-300
-                     [&::-moz-range-thumb]:w-3
-                     [&::-moz-range-thumb]:h-3
+                     [&::-moz-range-thumb]:w-4
+                     [&::-moz-range-thumb]:h-4
                      [&::-moz-range-thumb]:bg-white
                      [&::-moz-range-thumb]:rounded-full
                      [&::-moz-range-thumb]:border-0
@@ -215,10 +215,10 @@ export function EditorDualSlider({
               <span className="text-[var(--editor-text-muted)] text-xs">{suffix}</span>
             </div>
           </div>
-          <div className="relative" dir="ltr">
-            <div className="absolute inset-0 h-1 bg-[var(--editor-border-default)] rounded-full top-1/2 -translate-y-1/2" />
+          <div className="relative h-6 flex items-center" dir="ltr">
+            <div className="absolute w-full h-1.5 bg-[var(--editor-border-default)] rounded-full" />
             <div 
-              className="absolute h-1 bg-[var(--editor-accent-blue)] rounded-full top-1/2 -translate-y-1/2 left-0"
+              className="absolute h-1.5 bg-[var(--editor-accent-blue)] rounded-full left-0"
               style={{ width: `${desktopPercent}%` }}
             />
             <input
@@ -228,11 +228,11 @@ export function EditorDualSlider({
               min={min}
               max={max}
               step={step}
-              className="relative w-full h-4 bg-transparent appearance-none cursor-pointer z-10
-                         [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+              className="absolute w-full h-6 bg-transparent appearance-none cursor-pointer z-10
+                         [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
                          [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md
                          [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-gray-300
-                         [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-white
+                         [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white
                          [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0"
             />
           </div>
@@ -262,10 +262,10 @@ export function EditorDualSlider({
               <span className="text-[var(--editor-text-muted)] text-xs">{suffix}</span>
             </div>
           </div>
-          <div className="relative" dir="ltr">
-            <div className="absolute inset-0 h-1 bg-[var(--editor-border-default)] rounded-full top-1/2 -translate-y-1/2" />
+          <div className="relative h-6 flex items-center" dir="ltr">
+            <div className="absolute w-full h-1.5 bg-[var(--editor-border-default)] rounded-full" />
             <div 
-              className="absolute h-1 bg-[var(--editor-accent-blue)] rounded-full top-1/2 -translate-y-1/2 left-0"
+              className="absolute h-1.5 bg-[var(--editor-accent-blue)] rounded-full left-0"
               style={{ width: `${mobilePercent}%` }}
             />
             <input
@@ -275,11 +275,11 @@ export function EditorDualSlider({
               min={min}
               max={max}
               step={step}
-              className="relative w-full h-4 bg-transparent appearance-none cursor-pointer z-10
-                         [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3
+              className="absolute w-full h-6 bg-transparent appearance-none cursor-pointer z-10
+                         [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
                          [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-md
                          [&::-webkit-slider-thumb]:border [&::-webkit-slider-thumb]:border-gray-300
-                         [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:bg-white
+                         [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-white
                          [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0"
             />
           </div>

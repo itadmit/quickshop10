@@ -292,6 +292,7 @@ export function HeroPanel({ section, onUpdate, onClose, onDelete }: HeroPanelPro
                       min={0}
                       max={100}
                       step={5}
+                      suffix="%"
                     />
                     
                     <EditorColorPicker

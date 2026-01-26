@@ -165,6 +165,35 @@ export function handleHeroUpdate(
     }
   }
 
+  if (updates.settings?.buttonBorderWidth !== undefined) {
+    const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
+    if (btnEl) {
+      btnEl.style.borderWidth = `${updates.settings.buttonBorderWidth}px`;
+      btnEl.style.borderStyle = 'solid';
+    }
+  }
+
+  // Button style preset
+  if (updates.settings?.buttonStyle !== undefined) {
+    const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
+    if (btnEl) {
+      const style = updates.settings.buttonStyle as string;
+      if (style === 'filled') {
+        btnEl.style.backgroundColor = '#000000';
+        btnEl.style.color = '#ffffff';
+        btnEl.style.borderColor = '#000000';
+      } else if (style === 'outline') {
+        btnEl.style.backgroundColor = 'transparent';
+        btnEl.style.color = '#000000';
+        btnEl.style.borderColor = '#000000';
+      } else if (style === 'ghost') {
+        btnEl.style.backgroundColor = 'transparent';
+        btnEl.style.color = '#000000';
+        btnEl.style.borderColor = 'transparent';
+      }
+    }
+  }
+
   // =====================================================
   // IMAGE UPDATES
   // =====================================================
@@ -235,16 +264,19 @@ export function handleHeroUpdate(
     }
   }
 
-  if (updates.settings?.contentPosition !== undefined) {
+  if (updates.settings?.contentPosition !== undefined || updates.settings?.verticalAlign !== undefined) {
     const container = el.querySelector('[data-content-container]') as HTMLElement;
     if (container) {
-      container.classList.remove('justify-start', 'justify-center', 'justify-end');
+      container.classList.remove('justify-start', 'justify-center', 'justify-end', 'pt-20', 'pb-20');
+      const position = (updates.settings?.contentPosition || updates.settings?.verticalAlign) as string;
       const posMap: Record<string, string> = {
         'top': 'justify-start',
+        'start': 'justify-start',
         'center': 'justify-center',
         'bottom': 'justify-end',
+        'end': 'justify-end',
       };
-      container.classList.add(posMap[updates.settings.contentPosition as string] || 'justify-center');
+      container.classList.add(posMap[position] || 'justify-center');
     }
   }
 
