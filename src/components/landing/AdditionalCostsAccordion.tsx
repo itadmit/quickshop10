@@ -11,7 +11,7 @@ const additionalCosts = [
     { name: "כרטיסים שהונפקו בחו״ל", price: "3.5%", desc: "תוספת לעמלה הבסיסית" },
     { name: "כרטיסי פרמיום (אמק״ס/דיינרס)", price: "1.5%", desc: "תוספת לעמלה הבסיסית" },
     { name: "תשלום ב-Bit", price: "0.30%", desc: "תוספת לעמלה הבסיסית" },
-    { name: "Apple Pay / Google Pay", price: "0.80%", desc: "תוספת לעמלה הבסיסית" },
+    { name: "Apple Pay / Google Pay", price: "₪0.80", desc: "לטרנזקציה" },
     { name: "עסקה אינטרנטית", price: "פטור", desc: "ללא תוספת" },
   ]},
   // עמלות תשלומים (קרדיט)

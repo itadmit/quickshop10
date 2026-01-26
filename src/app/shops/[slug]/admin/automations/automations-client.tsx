@@ -26,6 +26,7 @@ const TRIGGER_LABELS: Record<string, { label: string; icon: string; color: strin
 // Action type labels
 const ACTION_LABELS: Record<string, { label: string; icon: string }> = {
   'send_email': { label: 'שלח אימייל', icon: '📧' },
+  'send_whatsapp': { label: 'שלח WhatsApp', icon: '💬' },
   'change_order_status': { label: 'שנה סטטוס הזמנה', icon: '📋' },
   'add_customer_tag': { label: 'הוסף תגית', icon: '🏷️' },
   'remove_customer_tag': { label: 'הסר תגית', icon: '🏷️' },
@@ -318,6 +319,7 @@ function NewAutomationForm({
   // Available actions - base actions for all stores
   const actions = [
     { value: 'send_email', label: 'שלח אימייל', requiresConfig: true },
+    { value: 'send_whatsapp', label: '💬 שלח WhatsApp', requiresConfig: true },
     { value: 'change_order_status', label: 'שנה סטטוס הזמנה', requiresConfig: true },
     { value: 'update_marketing_consent', label: 'עדכן הסכמת שיווק', requiresConfig: true },
     { value: 'webhook_call', label: 'קרא ל-Webhook', requiresConfig: true },
@@ -435,6 +437,53 @@ function NewAutomationForm({
                   <code className="bg-slate-200 px-1 rounded mr-1">{'{{order_id}}'}</code>, 
                   <code className="bg-slate-200 px-1 rounded mr-1">{'{{order_total}}'}</code>,
                   <code className="bg-slate-200 px-1 rounded mr-1">{'{{store_name}}'}</code>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {actionType === 'send_whatsapp' && (
+            <div className="space-y-4 p-4 bg-green-50 rounded-xl border border-green-200">
+              <div className="flex items-center gap-2 text-green-700 text-sm">
+                <span>💬</span>
+                <span>דורש תוסף WhatsApp דיוור מותקן ומוגדר</span>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  תבנית הודעה
+                </label>
+                <select
+                  value={actionConfig.templateId as string || ''}
+                  onChange={(e) => setActionConfig({ ...actionConfig, templateId: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl"
+                >
+                  <option value="">-- הודעה מותאמת --</option>
+                  <option value="order_created">הזמנה חדשה</option>
+                  <option value="order_paid">תשלום התקבל</option>
+                  <option value="order_shipped">הזמנה נשלחה</option>
+                  <option value="order_cancelled">הזמנה בוטלה</option>
+                  <option value="customer_welcome">ברוך הבא</option>
+                  <option value="cart_abandoned">עגלה נטושה</option>
+                  <option value="promotion_coupon">קופון הנחה</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  תוכן ההודעה
+                  <span className="text-xs text-slate-400 font-normal mr-2">(או השאר ריק לשימוש בתבנית)</span>
+                </label>
+                <textarea
+                  value={actionConfig.message as string || ''}
+                  onChange={(e) => setActionConfig({ ...actionConfig, message: e.target.value })}
+                  placeholder={`שלום {customerName} 👋\n\nתודה על ההזמנה שלך ב-{storeName}!\nמספר הזמנה: #{orderNumber}`}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl"
+                  rows={5}
+                />
+                <p className="text-xs text-slate-500 mt-1.5">
+                  משתנים: <code className="bg-slate-200 px-1 rounded">{'{customerName}'}</code>, 
+                  <code className="bg-slate-200 px-1 rounded mr-1">{'{orderNumber}'}</code>, 
+                  <code className="bg-slate-200 px-1 rounded mr-1">{'{total}'}</code>,
+                  <code className="bg-slate-200 px-1 rounded mr-1">{'{storeName}'}</code>
                 </p>
               </div>
             </div>

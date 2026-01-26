@@ -499,12 +499,20 @@ export function applyCommonUpdates(
         videoEl.playsInline = true;
         videoEl.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;';
         el.style.position = 'relative';
+        el.style.overflow = 'hidden';
         el.insertBefore(videoEl, el.firstChild);
       }
       videoEl.src = bgVideo;
       videoEl.style.display = '';
       // Remove background image
       el.style.backgroundImage = '';
+      
+      // Ensure content wrapper is above video
+      const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement;
+      if (contentWrapper) {
+        contentWrapper.style.position = 'relative';
+        contentWrapper.style.zIndex = '1';
+      }
     } else if (videoEl) {
       videoEl.style.display = 'none';
       videoEl.src = '';
@@ -568,10 +576,28 @@ export function applyCommonUpdates(
 
   // Overlay
   if (updates.settings?.overlay !== undefined) {
-    const overlayEl = el.querySelector('[data-overlay]') as HTMLElement;
-    if (overlayEl) {
-      const opacity = updates.settings.overlay as number;
+    let overlayEl = el.querySelector('[data-overlay]') as HTMLElement;
+    const opacity = updates.settings.overlay as number;
+    
+    if (opacity > 0) {
+      // Create overlay element if doesn't exist
+      if (!overlayEl) {
+        overlayEl = document.createElement('div');
+        overlayEl.setAttribute('data-overlay', '');
+        overlayEl.style.cssText = 'position:absolute;inset:0;z-index:0;';
+        el.style.position = 'relative';
+        // Insert after video if exists, otherwise at the beginning
+        const videoEl = el.querySelector('[data-bg-video]');
+        if (videoEl) {
+          videoEl.after(overlayEl);
+        } else {
+          el.insertBefore(overlayEl, el.firstChild);
+        }
+      }
       overlayEl.style.backgroundColor = `rgba(0,0,0,${opacity})`;
+      overlayEl.style.display = '';
+    } else if (overlayEl) {
+      overlayEl.style.display = 'none';
     }
   }
 }
@@ -705,6 +731,49 @@ function applyButtonStyles(
   if (settings.buttonBorderWidth !== undefined) {
     btnEl.style.borderWidth = `${settings.buttonBorderWidth}px`;
     btnEl.style.borderStyle = 'solid';
+  }
+
+  // Button style (filled, outline, underline/ghost)
+  if (settings.buttonStyle !== undefined) {
+    const style = settings.buttonStyle as string;
+    
+    // Reset text decoration first
+    btnEl.style.textDecoration = 'none';
+    
+    switch (style) {
+      case 'filled':
+        // Filled: background color, with border
+        const fillBg = (settings.buttonBackgroundColor as string) || 
+                       (settings.buttonBackground as string) || 
+                       (settings.buttonBgColor as string) || 
+                       '#000000';
+        btnEl.style.backgroundColor = fillBg;
+        btnEl.style.borderColor = (settings.buttonBorderColor as string) || fillBg;
+        btnEl.style.borderWidth = `${settings.buttonBorderWidth || 1}px`;
+        btnEl.style.borderStyle = 'solid';
+        break;
+      case 'ghost':
+      case 'underline':
+        // Underline: transparent, no border, underline text
+        btnEl.style.backgroundColor = 'transparent';
+        btnEl.style.borderColor = 'transparent';
+        btnEl.style.borderWidth = '0';
+        btnEl.style.textDecoration = 'underline';
+        break;
+      case 'outline':
+      default:
+        // Outline: transparent background, visible border
+        btnEl.style.backgroundColor = 'transparent';
+        btnEl.style.borderColor = (settings.buttonBorderColor as string) || 'currentColor';
+        btnEl.style.borderWidth = `${settings.buttonBorderWidth || 1}px`;
+        btnEl.style.borderStyle = 'solid';
+        break;
+    }
+  }
+
+  // Button text decoration
+  if (settings.buttonTextDecoration !== undefined) {
+    btnEl.style.textDecoration = settings.buttonTextDecoration as string;
   }
 }
 

@@ -318,6 +318,46 @@ export const pluginRegistry: PluginDefinition[] = [
   },
 
   // ============================================
+  // 💬 COMMUNICATION - תקשורת
+  // ============================================
+  {
+    slug: 'whatsapp-trustory',
+    name: 'WhatsApp דיוור',
+    description: 'שלח הודעות WhatsApp ללקוחות - דיוור המוני, עדכוני הזמנות ואוטומציות. מופעל דרך True Story API',
+    type: 'core',
+    category: 'communication',
+    version: '1.0.0',
+    icon: 'message-circle',
+    author: 'QuickShop',
+    isFree: true, // חינמי - התשלום ישירות לטרו סטורי
+    defaultConfig: {
+      enabled: false,
+      token: '',
+      instanceId: '',
+    },
+    metadata: {
+      menuItem: {
+        icon: 'MessageCircle',
+        label: 'WhatsApp דיוור',
+        href: '/plugins/whatsapp-trustory',
+        section: 'addons',
+        badge: 'חדש',
+      },
+      features: [
+        'שליחת הודעות טקסט',
+        'שליחת תמונות ווידאו',
+        'שליחת מסמכים',
+        'דיוור המוני לאנשי קשר',
+        'סינון לפי לקוחות/מועדון/יצירת קשר',
+        'אינטגרציה לאוטומציות',
+        'תבניות הודעות מוכנות',
+      ],
+      screenshots: [],
+      documentation: 'https://true-story.net/api/docs',
+    },
+  },
+
+  // ============================================
   // ⭐ REVIEWS - ביקורות
   // ============================================
   {

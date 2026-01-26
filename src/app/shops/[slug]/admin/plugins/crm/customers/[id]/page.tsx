@@ -6,6 +6,7 @@ import { customers, orders, crmNotes, crmTasks, users } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import Link from 'next/link';
 import { CustomerDetailView } from './customer-detail-view';
+import { getMessageTemplates } from '@/lib/whatsapp-trustory/templates';
 
 // ============================================
 // CRM Customer Detail Page
@@ -24,11 +25,18 @@ export default async function CRMCustomerDetailPage({ params }: CustomerDetailPa
     notFound();
   }
 
-  // Check if plugin is installed
+  // Check if CRM plugin is installed
   const plugin = await getStorePlugin(store.id, 'crm');
   if (!plugin || !plugin.isActive) {
     redirect(`/shops/${slug}/admin/plugins?install=crm`);
   }
+
+  // Check if WhatsApp plugin is installed
+  const whatsappPlugin = await getStorePlugin(store.id, 'whatsapp-trustory');
+  const isWhatsAppEnabled = !!(whatsappPlugin?.isActive && (whatsappPlugin.config as { enabled?: boolean })?.enabled);
+  
+  // Get WhatsApp templates if plugin is enabled
+  const whatsappTemplates = isWhatsAppEnabled ? getMessageTemplates() : [];
 
   // Get customer
   const [customer] = await db
@@ -155,6 +163,9 @@ export default async function CRMCustomerDetailPage({ params }: CustomerDetailPa
           ...t,
           createdAt: t.createdAt!,
         }))}
+        // WhatsApp integration
+        isWhatsAppEnabled={isWhatsAppEnabled}
+        whatsappTemplates={whatsappTemplates}
       />
     </div>
   );

@@ -573,8 +573,10 @@ if (updates.settings?.titleColor !== undefined) {
 | video_banner | ✅ | ✅ VideoBannerPanel | ✅ | ✅ | ✅ מלא |
 | split_banner | ✅ | ✅ SplitBannerPanel | ✅ | ✅ | ✅ מלא |
 
+| products | ✅ | ✅ ProductsPanel | ✅ | ✅ | ✅ מלא |
+
 **סקשנים שעדיין משתמשים בממשק הישן:**
-- products, categories, series_grid, featured_items - אלו סקשנים דינמיים שתלויים בנתונים מה-DB
+- categories, series_grid, featured_items - אלו סקשנים דינמיים שתלויים בנתונים מה-DB
 - hero_premium, hero_slider, quote_banner - צריכים פאנלים חדשים
 
 ---

@@ -44,21 +44,57 @@ interface ProductsSectionProps {
   products: Product[];
   settings: {
     columns?: number;
+    mobileColumns?: number;
     gap?: number;
     showCount?: boolean;
     textAlign?: 'right' | 'center' | 'left';
-    showAddToCart?: boolean; // 🆕 הצג כפתור הוספה לסל קבוע
-    addToCartStyle?: 'outline' | 'filled'; // סגנון הכפתור
+    showAddToCart?: boolean;
+    addToCartStyle?: 'outline' | 'filled';
+    // Typography
+    titleColor?: string;
+    titleSize?: number;
+    titleSizeMobile?: number;
+    titleWeight?: string;
+    subtitleColor?: string;
+    subtitleSize?: number;
+    subtitleSizeMobile?: number;
+    // Background
+    backgroundColor?: string;
+    // Spacing
+    paddingTop?: number;
+    paddingBottom?: number;
+    paddingLeft?: number;
+    paddingRight?: number;
+    marginTop?: number;
+    marginBottom?: number;
+    // Layout
+    containerType?: 'container' | 'full';
+    layout?: 'grid' | 'slider';
+    sectionWidth?: 'full' | 'boxed';
+    contentWidth?: number;
+    minHeight?: number;
+    minHeightUnit?: 'px' | 'vh';
+    verticalAlign?: 'start' | 'center' | 'end';
+    // Card styling
+    cardStyle?: 'standard' | 'minimal' | 'overlay';
+    hoverEffect?: 'none' | 'scale' | 'zoom';
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
+    // Custom
+    customClass?: string;
+    customId?: string;
+    zIndex?: number;
+    // Animation
+    animation?: string;
+    animationDuration?: number;
   };
   basePath: string;
   showDecimalPrices?: boolean;
-  displayLimit?: number; // For preview mode - hide products beyond limit
-  // הנחות אוטומטיות - Map של productId -> discount
+  displayLimit?: number;
   discountsMap?: Map<string, AutomaticDiscount>;
-  // מדבקות - Map של productId -> badges
   badgesMap?: Map<string, Badge[]>;
-  storeSlug?: string; // 🆕 Required for variants modal
-  // ❤️ Wishlist support
+  storeSlug?: string;
   showWishlist?: boolean;
 }
 
@@ -66,33 +102,88 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
   // Text alignment classes
   const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
   
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+  
+  // Grid columns
+  const columns = settings.columns || 4;
+  const mobileColumns = settings.mobileColumns || 2;
+  const gap = settings.gap || 32;
+  
+  // Spacing
+  const paddingTop = settings.paddingTop ?? 80;
+  const paddingBottom = settings.paddingBottom ?? 80;
+  const paddingLeft = settings.paddingLeft ?? 24;
+  const paddingRight = settings.paddingRight ?? 24;
+  
+  // Min height & vertical align
+  const hasMinHeight = settings.minHeight && settings.minHeight > 0;
+  const verticalAlignMap: Record<string, string> = {
+    start: 'flex-start',
+    center: 'center',
+    end: 'flex-end',
+  };
+  
   return (
     <section 
-      id="products" 
-      className="py-20 px-6 bg-white border-t border-gray-100"
+      id={settings.customId || 'products'} 
+      className={`${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
+      style={{
+        backgroundColor: settings.backgroundColor || '#ffffff',
+        paddingTop: `${paddingTop}px`,
+        paddingBottom: `${paddingBottom}px`,
+        paddingLeft: `${paddingLeft}px`,
+        paddingRight: `${paddingRight}px`,
+        marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
+        marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
+        zIndex: settings.zIndex ? Number(settings.zIndex) : undefined,
+        minHeight: hasMinHeight ? `${settings.minHeight}${settings.minHeightUnit || 'px'}` : undefined,
+        display: hasMinHeight ? 'flex' : undefined,
+        flexDirection: hasMinHeight ? 'column' : undefined,
+        justifyContent: hasMinHeight ? verticalAlignMap[settings.verticalAlign || 'center'] : undefined,
+      }}
       data-section-id={sectionId}
       data-section-type="products"
       data-section-name="מוצרים נבחרים"
       data-display-limit={displayLimit || ''}
+      data-hide-on-mobile={settings.hideOnMobile ? 'true' : undefined}
+      data-hide-on-desktop={settings.hideOnDesktop ? 'true' : undefined}
     >
-      <div className="max-w-7xl mx-auto">
-        {/* Always render title element for live editing */}
+      <div 
+        className={`${settings.containerType === 'full' ? 'w-full px-4' : 'max-w-7xl mx-auto'}`}
+        data-content-wrapper
+      >
+        {/* Title - always render for live editing */}
         <h2 
-          className={`font-display text-2xl md:text-3xl ${alignClass} mb-4 font-light tracking-[0.15em] uppercase ${!title ? 'hidden' : ''}`}
+          className={`font-display ${alignClass} mb-4 tracking-[0.15em] uppercase ${!title ? 'hidden' : ''}`}
           data-section-title
+          style={{
+            color: settings.titleColor || '#000000',
+            fontSize: settings.titleSize ? `${settings.titleSize}px` : undefined,
+            fontWeight: settings.titleWeight === 'bold' ? '700' : settings.titleWeight === 'semibold' ? '600' : settings.titleWeight === 'medium' ? '500' : settings.titleWeight === 'light' ? '300' : '400',
+          }}
         >
           {title || ''}
         </h2>
         
-        {/* Always render subtitle element for live editing */}
+        {/* Subtitle - always render for live editing */}
         <p 
-          className={`${alignClass} text-gray-400 text-xs tracking-[0.2em] uppercase mb-20 ${!subtitle ? 'hidden' : ''}`}
+          className={`${alignClass} tracking-[0.2em] uppercase mb-20 ${!subtitle ? 'hidden' : ''}`}
           data-section-subtitle
+          style={{
+            color: settings.subtitleColor || '#9ca3af',
+            fontSize: settings.subtitleSize ? `${settings.subtitleSize}px` : '12px',
+          }}
         >
           {subtitle || ''}
         </p>
         
-        <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-8 ${settings.showAddToCart ? 'items-stretch' : ''}`} data-products-grid>
+        <div 
+          className={`grid grid-cols-${mobileColumns} lg:grid-cols-${columns} ${settings.showAddToCart ? 'items-stretch' : ''}`} 
+          style={{ gap: `${gap}px` }}
+          data-products-grid
+        >
           {products.map((product, i) => (
             <div 
               key={product.id} 

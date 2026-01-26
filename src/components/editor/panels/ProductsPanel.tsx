@@ -1,26 +1,26 @@
 'use client';
 
 /**
- * TextBlockPanel - Modern settings panel for text_block section (Figma-style)
- * פאנל הגדרות מודרני לסקשן בלוק טקסט
+ * ProductsPanel - Modern settings panel for products section (Figma-style)
+ * פאנל הגדרות מודרני לסקשן מוצרים נבחרים
  * 
  * מבנה כמו Figma:
  * - 3 לשוניות למעלה: תוכן | עיצוב | מתקדם
  * - כל לשונית מכילה מיני-אקורדיונים
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   EditorInput,
+  EditorSlider,
+  EditorSelect,
+  EditorToggle,
   EditorThemeProvider,
   ThemeToggle,
 } from '../ui';
 
-import { RichTextEditor } from '@/components/admin/rich-text-editor';
-
 import {
   TypographyControl,
-  ButtonControl,
   FullBackgroundControl,
   MinHeightControl,
   SectionWidthControl,
@@ -81,11 +81,17 @@ interface Section {
   settings: Record<string, unknown>;
 }
 
-interface TextBlockPanelProps {
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface ProductsPanelProps {
   section: Section;
   onUpdate: (updates: Partial<Section>) => void;
   onClose?: () => void;
   onDelete?: () => void;
+  storeSlug?: string;
 }
 
 type TabType = 'content' | 'design' | 'advanced';
@@ -93,8 +99,31 @@ type TabType = 'content' | 'design' | 'advanced';
 // ============================================
 // Main Component
 // ============================================
-export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlockPanelProps) {
+export function ProductsPanel({ section, onUpdate, onClose, onDelete, storeSlug }: ProductsPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>('content');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Fetch categories for the dropdown
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch(`/api/shops/${storeSlug}/categories`);
+        if (res.ok) {
+          const data = await res.json();
+          setCategories(data.categories || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch categories:', error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    }
+    
+    if (storeSlug) {
+      fetchCategories();
+    }
+  }, [storeSlug]);
 
   // Update settings
   const updateSettings = (key: string, value: unknown) => {
@@ -117,6 +146,9 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
     { id: 'advanced', label: 'מתקדם' },
   ];
 
+  const settings = section.settings || {};
+  const content = section.content || {};
+
   return (
     <EditorThemeProvider defaultMode="light">
       <div className="flex flex-col h-full bg-[var(--editor-bg-primary)]" dir="rtl">
@@ -134,7 +166,7 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                   </svg>
                 </button>
               )}
-              <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">בלוק טקסט</h3>
+              <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">מוצרים נבחרים</h3>
             </div>
             <ThemeToggle />
           </div>
@@ -173,7 +205,7 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                       label="כותרת"
                       value={(section.title as string) || ''}
                       onChange={(v) => onUpdate({ title: v })}
-                      placeholder="הזן כותרת"
+                      placeholder="פריטים נבחרים"
                     />
                     
                     <EditorInput
@@ -185,32 +217,38 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                   </div>
                 </MiniAccordion>
 
-                {/* תוכן */}
-                <MiniAccordion title="תוכן" defaultOpen={true}>
-                  <RichTextEditor
-                    value={(section.content.text as string) || ''}
-                    onChange={(v) => updateContent('text', v)}
-                    placeholder="הזן תוכן עשיר..."
-                    minHeight={100}
-                    maxHeight={300}
-                  />
-                </MiniAccordion>
-
-                {/* כפתור */}
-                <MiniAccordion title="כפתור" defaultOpen={false}>
+                {/* מוצרים */}
+                <MiniAccordion title="מוצרים" defaultOpen={true}>
                   <div className="space-y-3">
-                    <EditorInput
-                      label="טקסט כפתור"
-                      value={(section.content.buttonText as string) || ''}
-                      onChange={(v) => updateContent('buttonText', v)}
-                      placeholder="קרא עוד"
+                    <EditorSelect
+                      label="הצג מוצרים"
+                      value={(content.displayBy as string) || 'category'}
+                      options={[
+                        { value: 'category', label: 'לפי קטגוריה' },
+                        { value: 'featured', label: 'מוצרים מומלצים' },
+                        { value: 'all', label: 'כל המוצרים' },
+                      ]}
+                      onChange={(v) => updateContent('displayBy', v)}
                     />
-                    
-                    <EditorInput
-                      label="קישור"
-                      value={(section.content.buttonLink as string) || ''}
-                      onChange={(v) => updateContent('buttonLink', v)}
-                      placeholder="/about"
+
+                    {(content.displayBy as string) === 'category' && (
+                      <EditorSelect
+                        label="בחר קטגוריה"
+                        value={(content.categoryId as string) || ''}
+                        options={[
+                          { value: '', label: loadingCategories ? 'טוען...' : 'בחר קטגוריה' },
+                          ...categories.map(cat => ({ value: cat.id, label: cat.name })),
+                        ]}
+                        onChange={(v) => updateContent('categoryId', v)}
+                      />
+                    )}
+
+                    <EditorSlider
+                      label="כמות להצגה"
+                      value={(content.displayLimit as number) || (settings.displayLimit as number) || 4}
+                      onChange={(v) => updateContent('displayLimit', v)}
+                      min={1}
+                      max={12}
                     />
                   </div>
                 </MiniAccordion>
@@ -237,7 +275,7 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                       onChange={updateSettings}
                     />
                     
-                    {/* יישור אנכי - רק כשיש גובה מינימום */}
+                    {/* יישור אנכי */}
                     <VerticalAlignControl
                       settings={section.settings}
                       onChange={updateSettings}
@@ -247,6 +285,46 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                       settings={section.settings}
                       onChange={updateSettings}
                       label="יישור טקסט"
+                    />
+                  </div>
+                </MiniAccordion>
+
+                {/* גריד */}
+                <MiniAccordion title="גריד" defaultOpen={true}>
+                  <div className="space-y-3">
+                    <EditorSelect
+                      label="פריסת מוצרים"
+                      value={(settings.layout as string) || 'grid'}
+                      options={[
+                        { value: 'grid', label: 'גריד' },
+                        { value: 'slider', label: 'סליידר' },
+                      ]}
+                      onChange={(v) => updateSettings('layout', v)}
+                    />
+                    
+                    <EditorSlider
+                      label="עמודות (מחשב)"
+                      value={(settings.columns as number) || 4}
+                      onChange={(v) => updateSettings('columns', v)}
+                      min={2}
+                      max={6}
+                    />
+                    
+                    <EditorSlider
+                      label="עמודות (מובייל)"
+                      value={(settings.mobileColumns as number) || 2}
+                      onChange={(v) => updateSettings('mobileColumns', v)}
+                      min={1}
+                      max={3}
+                    />
+                    
+                    <EditorSlider
+                      label="ריווח בין כרטיסים"
+                      value={(settings.gap as number) || 32}
+                      onChange={(v) => updateSettings('gap', v)}
+                      min={8}
+                      max={64}
+                      suffix="px"
                     />
                   </div>
                 </MiniAccordion>
@@ -267,12 +345,12 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                     prefix="title"
                     settings={section.settings}
                     onChange={updateSettings}
-                    defaultSize={36}
-                    defaultSizeMobile={28}
+                    defaultSize={28}
+                    defaultSizeMobile={22}
                     defaultColor="#000000"
-                    defaultWeight="bold"
+                    defaultWeight="light"
                     minSize={14}
-                    maxSize={80}
+                    maxSize={60}
                   />
                 </MiniAccordion>
                 
@@ -283,38 +361,59 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                     prefix="subtitle"
                     settings={section.settings}
                     onChange={updateSettings}
-                    defaultSize={18}
-                    defaultSizeMobile={16}
-                    defaultColor="#6b7280"
+                    defaultSize={12}
+                    defaultSizeMobile={10}
+                    defaultColor="#9ca3af"
                     defaultWeight="normal"
-                    minSize={12}
-                    maxSize={40}
-                  />
-                </MiniAccordion>
-                
-                {/* טיפוגרפיה - תוכן */}
-                <MiniAccordion title="תוכן" defaultOpen={false}>
-                  <TypographyControl
-                    label=""
-                    prefix="text"
-                    settings={section.settings}
-                    onChange={updateSettings}
-                    defaultSize={16}
-                    defaultSizeMobile={14}
-                    defaultColor="#374151"
-                    defaultWeight="normal"
-                    minSize={12}
+                    minSize={10}
                     maxSize={24}
                   />
                 </MiniAccordion>
-                
-                {/* כפתור - עיצוב */}
-                <MiniAccordion title="כפתור" defaultOpen={false}>
-                  <ButtonControl
-                    settings={section.settings}
-                    onChange={updateSettings}
-                    onMultipleChange={updateMultipleSettings}
-                  />
+
+                {/* עיצוב כרטיסים */}
+                <MiniAccordion title="כרטיסים" defaultOpen={false}>
+                  <div className="space-y-3">
+                    <EditorSelect
+                      label="סגנון כרטיס"
+                      value={(settings.cardStyle as string) || 'standard'}
+                      options={[
+                        { value: 'standard', label: 'סטנדרטי' },
+                        { value: 'minimal', label: 'מינימלי' },
+                        { value: 'overlay', label: 'עם שכבה' },
+                      ]}
+                      onChange={(v) => updateSettings('cardStyle', v)}
+                    />
+                    
+                    <EditorSelect
+                      label="אפקט ריחוף"
+                      value={(settings.hoverEffect as string) || 'scale'}
+                      options={[
+                        { value: 'none', label: 'ללא' },
+                        { value: 'scale', label: 'הגדלה' },
+                        { value: 'zoom', label: 'זום' },
+                      ]}
+                      onChange={(v) => updateSettings('hoverEffect', v)}
+                    />
+
+                    <EditorToggle
+                      label="הצג כפתור הוספה לסל"
+                      description="כפתור קבוע בכרטיס"
+                      value={(settings.showAddToCart as boolean) || false}
+                      onChange={(v) => updateSettings('showAddToCart', v)}
+                    />
+                    
+                    {(settings.showAddToCart as boolean) && (
+                      <EditorSelect
+                        label="סגנון כפתור"
+                        value={(settings.addToCartStyle as string) || 'outline'}
+                        options={[
+                          { value: 'outline', label: 'מסגרת' },
+                          { value: 'filled', label: 'מלא' },
+                        ]}
+                        onChange={(v) => updateSettings('addToCartStyle', v)}
+                      />
+                    )}
+                  </div>
                 </MiniAccordion>
               </div>
             )}
@@ -338,10 +437,10 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
                   onChange={updateSettings}
                   onChangeMultiple={updateMultipleSettings}
                   defaults={{
-                    paddingTop: 64,
-                    paddingBottom: 64,
-                    paddingRight: 16,
-                    paddingLeft: 16,
+                    paddingTop: 80,
+                    paddingBottom: 80,
+                    paddingRight: 24,
+                    paddingLeft: 24,
                     marginTop: 0,
                     marginBottom: 0,
                     marginRight: 0,

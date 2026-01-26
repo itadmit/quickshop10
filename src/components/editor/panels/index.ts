@@ -16,3 +16,5 @@ export { ImageTextPanel } from './ImageTextPanel';
 export { BannerSmallPanel } from './BannerSmallPanel';
 export { VideoBannerPanel } from './VideoBannerPanel';
 export { SplitBannerPanel } from './SplitBannerPanel';
+export { ProductsPanel } from './ProductsPanel';
+export { UniversalSectionPanel } from './UniversalSectionPanel';

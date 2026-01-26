@@ -237,7 +237,7 @@ export function ContactForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full uppercase tracking-[0.1em] transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        className="w-full uppercase tracking-[0.1em] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 hover:brightness-90 active:scale-[0.98] active:brightness-75"
         style={buttonStyle}
         data-contact-button
       >

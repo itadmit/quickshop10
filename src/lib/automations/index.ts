@@ -6,6 +6,7 @@
  * CORE ACTIONS - available to all stores:
  * - send_email: Send email to customer
  * - send_sms: Send SMS (future)
+ * - send_whatsapp: Send WhatsApp via True Story API (requires whatsapp-trustory plugin)
  * - change_order_status: Update order status
  * - add_customer_tag: Add tag to customer
  * - remove_customer_tag: Remove tag from customer
@@ -16,6 +17,9 @@
  * - crm.create_task: Create CRM task
  * - crm.add_note: Add note to customer
  * 
+ * WHATSAPP PLUGIN ACTIONS - require whatsapp-trustory plugin:
+ * - send_whatsapp: Send WhatsApp message
+ * 
  * Architecture:
  * 1. Events are emitted via emitEvent() from events.ts
  * 2. processAutomations() is called for each event
@@ -24,9 +28,11 @@
  */
 
 import { db } from '@/lib/db';
-import { automations, automationRuns, stores, customers, orders, crmTasks, crmNotes } from '@/lib/db/schema';
+import { automations, automationRuns, stores, customers, orders, crmTasks, crmNotes, storePlugins } from '@/lib/db/schema';
 import { eq, and, sql } from 'drizzle-orm';
 import { sendAbandonedCartEmail, sendEmail } from '@/lib/email';
+import { sendWhatsAppMessage } from '@/lib/whatsapp-trustory/send';
+import { getTemplateById, replaceTemplateVariables } from '@/lib/whatsapp-trustory/templates';
 
 // Map event types to automation trigger types
 const EVENT_TO_TRIGGER_MAP: Record<string, string> = {
@@ -45,6 +51,28 @@ const EVENT_TO_TRIGGER_MAP: Record<string, string> = {
 
 // CRM actions that require the CRM plugin
 const CRM_ACTIONS = ['crm.create_task', 'crm.add_note'];
+
+// WhatsApp actions that require the whatsapp-trustory plugin
+const WHATSAPP_ACTIONS = ['send_whatsapp'];
+
+/**
+ * Check if WhatsApp plugin is installed and active
+ */
+async function checkWhatsAppPluginInstalled(storeId: string): Promise<boolean> {
+  const [plugin] = await db
+    .select({ isActive: storePlugins.isActive })
+    .from(storePlugins)
+    .where(
+      and(
+        eq(storePlugins.storeId, storeId),
+        eq(storePlugins.pluginSlug, 'whatsapp-trustory'),
+        eq(storePlugins.isActive, true)
+      )
+    )
+    .limit(1);
+
+  return !!plugin?.isActive;
+}
 
 interface EventData {
   storeId: string;
@@ -106,6 +134,9 @@ async function processAutomationsInternal(event: EventData): Promise<void> {
     const storeSettings = store[0]?.settings as Record<string, unknown> || {};
     const storePlugins = Array.isArray(storeSettings.plugins) ? storeSettings.plugins : [];
     const hasCrmPlugin = storePlugins.includes('crm');
+    
+    // Check if WhatsApp plugin is installed via storePlugins table
+    const hasWhatsAppPlugin = await checkWhatsAppPluginInstalled(event.storeId);
 
     // Execute each automation
     for (const automation of matchingAutomations) {
@@ -113,6 +144,12 @@ async function processAutomationsInternal(event: EventData): Promise<void> {
         // Check if this is a CRM action and plugin is not enabled
         if (CRM_ACTIONS.includes(automation.actionType) && !hasCrmPlugin) {
           console.log(`[Automations] Skipping CRM action ${automation.actionType} - plugin not enabled`);
+          continue;
+        }
+        
+        // Check if this is a WhatsApp action and plugin is not enabled
+        if (WHATSAPP_ACTIONS.includes(automation.actionType) && !hasWhatsAppPlugin) {
+          console.log(`[Automations] Skipping WhatsApp action ${automation.actionType} - plugin not enabled`);
           continue;
         }
 
@@ -234,6 +271,10 @@ async function executeAutomationAction(
       
       case 'crm.add_note':
         result = await executeAddCrmNote(event, config);
+        break;
+      
+      case 'send_whatsapp':
+        result = await executeSendWhatsApp(event, config);
         break;
       
       default:
@@ -487,6 +528,89 @@ async function executeWebhookCall(
     url,
     statusCode: response.status,
     success: response.ok,
+  };
+}
+
+// ============ WHATSAPP PLUGIN ACTIONS ============
+
+async function executeSendWhatsApp(
+  event: EventData,
+  config: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const templateId = config.templateId as string;
+  const customMessage = config.message as string;
+  const customerPhone = event.data.customerPhone as string;
+  const customerName = event.data.customerName as string;
+  const orderNumber = event.data.orderNumber as string;
+
+  if (!customerPhone) {
+    throw new Error('No customer phone in event data');
+  }
+
+  // Get store info for template variables
+  const store = await db
+    .select({ name: stores.name, slug: stores.slug })
+    .from(stores)
+    .where(eq(stores.id, event.storeId))
+    .limit(1);
+
+  if (store.length === 0) {
+    throw new Error('Store not found');
+  }
+
+  // Build message from template or custom
+  let message = customMessage || '';
+  
+  if (templateId) {
+    const template = getTemplateById(templateId);
+    if (template && template.content) {
+      message = replaceTemplateVariables(template.content, {
+        customerName: customerName || 'לקוח יקר',
+        storeName: store[0].name,
+        orderNumber: orderNumber || '',
+        total: String(event.data.total || ''),
+        trackingNumber: event.data.trackingNumber as string || '',
+        trackingUrl: event.data.trackingUrl as string || '',
+        storeUrl: `https://my-quickshop.com/shops/${store[0].slug}`,
+        cartUrl: `https://my-quickshop.com/shops/${store[0].slug}/checkout`,
+      });
+    }
+  } else if (customMessage) {
+    // Replace variables in custom message
+    message = replaceTemplateVariables(customMessage, {
+      customerName: customerName || 'לקוח יקר',
+      storeName: store[0].name,
+      orderNumber: orderNumber || '',
+      total: String(event.data.total || ''),
+    });
+  }
+
+  if (!message) {
+    throw new Error('No message content');
+  }
+
+  // Send via WhatsApp
+  const result = await sendWhatsAppMessage({
+    storeId: event.storeId,
+    phone: customerPhone,
+    message,
+    templateId,
+    variables: {
+      customerName: customerName || 'לקוח יקר',
+      storeName: store[0].name,
+      orderNumber: orderNumber || '',
+      total: String(event.data.total || ''),
+    },
+  });
+
+  if (!result.success) {
+    throw new Error(result.message || 'WhatsApp send failed');
+  }
+
+  return { 
+    whatsappSent: true, 
+    to: customerPhone,
+    templateId: templateId || 'custom',
   };
 }
 

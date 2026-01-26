@@ -35,6 +35,12 @@ interface TextBlockSectionProps {
     // Legacy maxWidth support
     maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
     backgroundColor?: string;
+    // Background Image/Video
+    backgroundImage?: string;
+    backgroundVideo?: string;
+    backgroundSize?: string;
+    backgroundPosition?: string;
+    overlay?: number;
     // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
     titleSize?: TitleSize | number;
@@ -53,6 +59,10 @@ interface TextBlockSectionProps {
     buttonTextColor?: string;
     buttonBackgroundColor?: string;
     buttonBorderColor?: string;
+    buttonBorderWidth?: number;
+    buttonBorderRadius?: number;
+    buttonStyle?: 'filled' | 'outline' | 'ghost' | 'underline';
+    buttonTextDecoration?: string;
     // Spacing - explicit pixel values
     paddingY?: 'small' | 'medium' | 'large'; // Legacy support
     paddingTop?: number;
@@ -128,12 +138,45 @@ export function TextBlockSection({
   const paddingLeftValue = settings.paddingLeft ?? settings.paddingRight ?? 16; // px-4 = 16px
   const paddingRightValue = settings.paddingRight ?? settings.paddingLeft ?? 16;
 
-  // Button styles
-  const buttonStyle = {
-    color: settings.buttonTextColor || 'inherit',
-    backgroundColor: settings.buttonBackgroundColor || 'transparent',
-    borderColor: settings.buttonBorderColor || 'currentColor',
+  // Button styles based on buttonStyle type
+  const btnStyle = settings.buttonStyle || 'outline';
+  const getButtonStyles = () => {
+    const base: React.CSSProperties = {
+      color: settings.buttonTextColor || 'inherit',
+      borderRadius: settings.buttonBorderRadius ? `${settings.buttonBorderRadius}px` : undefined,
+      textDecoration: settings.buttonTextDecoration || 'none',
+    };
+    
+    switch (btnStyle) {
+      case 'filled':
+        return {
+          ...base,
+          backgroundColor: settings.buttonBackgroundColor || '#000000',
+          borderColor: settings.buttonBorderColor || settings.buttonBackgroundColor || '#000000',
+          borderWidth: settings.buttonBorderWidth ? `${settings.buttonBorderWidth}px` : '1px',
+          borderStyle: 'solid',
+        };
+      case 'ghost': // קו תחתון (legacy)
+      case 'underline':
+        return {
+          ...base,
+          backgroundColor: 'transparent',
+          borderColor: 'transparent',
+          borderWidth: '0',
+          textDecoration: 'underline',
+        };
+      case 'outline':
+      default:
+        return {
+          ...base,
+          backgroundColor: 'transparent',
+          borderColor: settings.buttonBorderColor || 'currentColor',
+          borderWidth: settings.buttonBorderWidth ? `${settings.buttonBorderWidth}px` : '1px',
+          borderStyle: 'solid',
+        };
+    }
   };
+  const buttonStyle = getButtonStyles();
 
   // Check if we need custom font sizes
   const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize || isNumericTextSize;
@@ -156,11 +199,21 @@ export function TextBlockSection({
     end: 'flex-end',
   };
 
+  // Background settings
+  const hasBackgroundVideo = !!settings.backgroundVideo;
+  const hasBackgroundImage = !!settings.backgroundImage;
+
   return (
     <section 
       className={`${hideOnMobileClass} ${hideOnDesktopClass} ${animationClass} ${settings.customClass || ''}`.trim()}
       style={{ 
         backgroundColor: settings.backgroundColor || 'transparent',
+        backgroundImage: !hasBackgroundVideo && hasBackgroundImage ? `url(${settings.backgroundImage})` : undefined,
+        backgroundSize: !hasBackgroundVideo && hasBackgroundImage ? (settings.backgroundSize || 'cover') : undefined,
+        backgroundPosition: !hasBackgroundVideo && hasBackgroundImage ? (settings.backgroundPosition || 'center') : undefined,
+        backgroundRepeat: !hasBackgroundVideo && hasBackgroundImage ? 'no-repeat' : undefined,
+        position: hasBackgroundVideo ? 'relative' : undefined,
+        overflow: hasBackgroundVideo ? 'hidden' : undefined,
         // Use explicit pixel values for spacing (no Tailwind)
         paddingTop: `${paddingTopValue}px`,
         paddingBottom: `${paddingBottomValue}px`,
@@ -192,6 +245,32 @@ export function TextBlockSection({
       data-hide-on-desktop={settings.hideOnDesktop ? 'true' : undefined}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
+      
+      {/* Background Video */}
+      {hasBackgroundVideo && (
+        <video
+          data-bg-video
+          autoPlay
+          loop
+          muted
+          playsInline
+          src={settings.backgroundVideo}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ zIndex: 0 }}
+        />
+      )}
+      
+      {/* Overlay for image/video */}
+      {(hasBackgroundVideo || hasBackgroundImage) && settings.overlay && (
+        <div 
+          data-overlay
+          className="absolute inset-0"
+          style={{ 
+            backgroundColor: `rgba(0,0,0,${settings.overlay})`,
+            zIndex: 0,
+          }}
+        />
+      )}
       
       {/* Scoped responsive styles for numeric font sizes */}
       {hasCustomSizes && (
@@ -232,6 +311,7 @@ export function TextBlockSection({
       <div 
         className={`${maxWidthClass} mx-auto text-center`}
         data-content-wrapper
+        style={{ position: 'relative', zIndex: 1 }}
       >
         {/* Title */}
         <h2 

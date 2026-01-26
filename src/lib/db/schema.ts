@@ -1299,6 +1299,7 @@ export const automationActionTypeEnum = pgEnum('automation_action_type', [
   // Core system actions (available to all)
   'send_email',
   'send_sms',
+  'send_whatsapp', // WhatsApp Trustory Plugin
   'change_order_status',
   'add_customer_tag',
   'remove_customer_tag',

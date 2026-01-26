@@ -40,6 +40,8 @@ import {
   BannerSmallPanel,
   VideoBannerPanel,
   SplitBannerPanel,
+  ProductsPanel,
+  UniversalSectionPanel,
 } from '@/components/editor/panels';
 
 // Feature flag for new editor UI
@@ -648,133 +650,22 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     );
   }
 
-  // 🆕 NEW: Modern Figma-style panels
-  if (USE_NEW_EDITOR_UI && section.type === 'text_block') {
+  // 🆕 NEW: Universal Panel for all section types
+  const UNIVERSAL_PANEL_SECTIONS = [
+    'text_block', 'hero', 'reviews', 'features', 'faq', 
+    'newsletter', 'contact', 'logos', 'gallery', 'image_text',
+    'banner_small', 'video_banner', 'split_banner', 'products', 
+    'categories', 'featured_items', 'series_grid'
+  ];
+  
+  if (USE_NEW_EDITOR_UI && UNIVERSAL_PANEL_SECTIONS.includes(section.type)) {
     return (
-      <TextBlockPanel
+      <UniversalSectionPanel
         section={section}
         onUpdate={onUpdate}
         onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'hero') {
-    return (
-      <HeroPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'reviews') {
-    return (
-      <ReviewsPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'features') {
-    return (
-      <FeaturesPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'faq') {
-    return (
-      <FaqPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'newsletter') {
-    return (
-      <NewsletterPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'contact') {
-    return (
-      <ContactPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'logos') {
-    return (
-      <LogosPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'gallery') {
-    return (
-      <GalleryPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'image_text') {
-    return (
-      <ImageTextPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'banner_small') {
-    return (
-      <BannerSmallPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'video_banner') {
-    return (
-      <VideoBannerPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
-      />
-    );
-  }
-
-  if (USE_NEW_EDITOR_UI && section.type === 'split_banner') {
-    return (
-      <SplitBannerPanel
-        section={section}
-        onUpdate={onUpdate}
-        onDelete={onRemove}
+        storeSlug={storeInfo?.slug || ''}
+        categories={categories}
       />
     );
   }

@@ -241,6 +241,55 @@ export function handleTextBlockUpdate(
     }
   }
 
+  // Button style (filled, outline, underline/ghost)
+  if (updates.settings?.buttonStyle !== undefined) {
+    const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
+    if (btnEl) {
+      const style = updates.settings.buttonStyle as string;
+      
+      // Reset styles first
+      btnEl.style.textDecoration = 'none';
+      
+      switch (style) {
+        case 'filled':
+          // Filled: background color, with border
+          const fillBg = (updates.settings.buttonBackgroundColor as string) || 
+                         (updates.settings.buttonBackground as string) || 
+                         (updates.settings.buttonBgColor as string) || 
+                         '#000000';
+          btnEl.style.backgroundColor = fillBg;
+          btnEl.style.borderColor = (updates.settings.buttonBorderColor as string) || fillBg;
+          btnEl.style.borderWidth = `${updates.settings.buttonBorderWidth || 1}px`;
+          btnEl.style.borderStyle = 'solid';
+          break;
+        case 'ghost':
+        case 'underline':
+          // Underline: transparent, no border, underline text
+          btnEl.style.backgroundColor = 'transparent';
+          btnEl.style.borderColor = 'transparent';
+          btnEl.style.borderWidth = '0';
+          btnEl.style.textDecoration = 'underline';
+          break;
+        case 'outline':
+        default:
+          // Outline: transparent background, visible border
+          btnEl.style.backgroundColor = 'transparent';
+          btnEl.style.borderColor = (updates.settings.buttonBorderColor as string) || 'currentColor';
+          btnEl.style.borderWidth = `${updates.settings.buttonBorderWidth || 1}px`;
+          btnEl.style.borderStyle = 'solid';
+          break;
+      }
+    }
+  }
+
+  // Button text decoration
+  if (updates.settings?.buttonTextDecoration !== undefined) {
+    const btnEl = el.querySelector('[data-section-button]') as HTMLElement;
+    if (btnEl) {
+      btnEl.style.textDecoration = updates.settings.buttonTextDecoration as string;
+    }
+  }
+
   // =====================================================
   // LAYOUT & SPACING UPDATES
   // =====================================================
@@ -338,11 +387,14 @@ export const defaultSettings = {
   textWeight: 'normal',
   
   // Button styling
+  buttonStyle: 'outline',
   buttonTextColor: '#000000',
+  buttonBackgroundColor: 'transparent',
   buttonBgColor: 'transparent',
   buttonBorderColor: '#000000',
   buttonBorderRadius: 0,
   buttonBorderWidth: 1,
+  buttonTextDecoration: 'none',
   
   // Layout
   textAlign: 'center',

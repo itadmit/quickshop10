@@ -19,6 +19,10 @@ import { handler as imageTextHandler } from '../image-text';
 import { handler as bannerSmallHandler } from '../banner-small';
 import { handler as videoBannerHandler } from '../video-banner';
 import { handler as splitBannerHandler } from '../split-banner';
+import { handler as productsHandler } from '../products';
+import { handler as categoriesHandler } from '../categories';
+import { handler as featuredItemsHandler } from '../featured-items';
+import { handler as seriesGridHandler } from '../series-grid';
 
 // Registry of all section handlers
 export const sectionHandlers: SectionHandlers = {
@@ -35,6 +39,10 @@ export const sectionHandlers: SectionHandlers = {
   banner_small: bannerSmallHandler,
   video_banner: videoBannerHandler,
   split_banner: splitBannerHandler,
+  products: productsHandler,
+  categories: categoriesHandler,
+  featured_items: featuredItemsHandler,
+  series_grid: seriesGridHandler,
 };
 
 /**
