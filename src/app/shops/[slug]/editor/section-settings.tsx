@@ -26,7 +26,21 @@ import {
 } from '@/components/editor/settings/common';
 
 // New Modern Panels (Figma style)
-import { TextBlockPanel, HeroPanel } from '@/components/editor/panels';
+import { 
+  TextBlockPanel, 
+  HeroPanel,
+  ReviewsPanel,
+  FeaturesPanel,
+  FaqPanel,
+  NewsletterPanel,
+  ContactPanel,
+  LogosPanel,
+  GalleryPanel,
+  ImageTextPanel,
+  BannerSmallPanel,
+  VideoBannerPanel,
+  SplitBannerPanel,
+} from '@/components/editor/panels';
 
 // Feature flag for new editor UI
 const USE_NEW_EDITOR_UI = true;
@@ -648,6 +662,116 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   if (USE_NEW_EDITOR_UI && section.type === 'hero') {
     return (
       <HeroPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'reviews') {
+    return (
+      <ReviewsPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'features') {
+    return (
+      <FeaturesPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'faq') {
+    return (
+      <FaqPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'newsletter') {
+    return (
+      <NewsletterPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'contact') {
+    return (
+      <ContactPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'logos') {
+    return (
+      <LogosPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'gallery') {
+    return (
+      <GalleryPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'image_text') {
+    return (
+      <ImageTextPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'banner_small') {
+    return (
+      <BannerSmallPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'video_banner') {
+    return (
+      <VideoBannerPanel
+        section={section}
+        onUpdate={onUpdate}
+        onDelete={onRemove}
+      />
+    );
+  }
+
+  if (USE_NEW_EDITOR_UI && section.type === 'split_banner') {
+    return (
+      <SplitBannerPanel
         section={section}
         onUpdate={onUpdate}
         onDelete={onRemove}
