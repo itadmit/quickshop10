@@ -68,6 +68,7 @@ export function Autocomplete({
   const [showError, setShowError] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const justSelectedRef = useRef(false); // Flag to prevent blur validation right after selection
 
   // סגירת הדרופדאון בלחיצה מחוץ לקומפוננטה
   useEffect(() => {
@@ -128,6 +129,7 @@ export function Autocomplete({
   };
 
   const handleSelect = (option: AutocompleteOption) => {
+    justSelectedRef.current = true; // Prevent blur validation
     onChange?.(option.value);
     onSelect?.(option);
     setIsOpen(false);
@@ -135,6 +137,10 @@ export function Autocomplete({
     setShowError(false);
     onValidationChange?.(true);
     inputRef.current?.blur();
+    // Reset flag after a short delay
+    setTimeout(() => {
+      justSelectedRef.current = false;
+    }, 300);
   };
 
   const handleClear = (e: React.MouseEvent) => {
@@ -151,6 +157,9 @@ export function Autocomplete({
   const handleBlur = () => {
     // Delay to allow click on dropdown option
     setTimeout(() => {
+      // Skip validation if user just selected from dropdown
+      if (justSelectedRef.current) return;
+      
       if (selectOnly && value && !isSelected) {
         setShowError(true);
         onValidationChange?.(false);
