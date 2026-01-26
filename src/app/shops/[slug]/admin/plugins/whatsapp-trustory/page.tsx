@@ -160,12 +160,12 @@ export default async function WhatsAppTrustoryPage({ params }: PageProps) {
           התשלום מתבצע ישירות מולם לפי חבילת ההודעות שתבחר.
         </p>
         <a
-          href="https://true-story.net/register"
+          href="https://true-story.net/user/login"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
         >
-          הרשמה ל-True Story
+          כניסה / הרשמה ל-True Story
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
