@@ -101,18 +101,39 @@ export async function POST(
     const vatAmount = Math.round(subtotal * VAT_RATE * 100) / 100;
     const totalAmount = subtotal + vatAmount;
 
-    // Charge with token
-    const chargeResult = await chargeWithToken({
-      tokenUid: storeSub.payplusTokenUid,
-      customerUid: storeSub.payplusCustomerUid,
-      amount: totalAmount,
-      description: `חבילת דיוור - ${pkg.name}`,
-      invoiceItems: [{
-        name: `חבילת דיוור: ${pkg.name} (${pkg.monthlyEmails} מיילים)`,
-        quantity: 1,
-        price: subtotal,
-      }],
-    });
+    const now = new Date();
+    const periodEnd = new Date(now);
+    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    const invoiceNumber = await generateInvoiceNumber();
+
+    // Check if in development mode - skip actual payment
+    const isDevelopment = process.env.NODE_ENV === 'development' || 
+                          process.env.PAYPLUS_API_URL?.includes('dev');
+
+    let chargeResult: { success: boolean; transactionUid?: string; invoiceNumber?: string; invoiceUrl?: string; error?: string };
+
+    if (isDevelopment) {
+      // In development, skip actual PayPlus charge
+      console.log('[Email Package] Development mode - skipping PayPlus charge');
+      chargeResult = {
+        success: true,
+        transactionUid: `dev-${Date.now()}`,
+        invoiceNumber: invoiceNumber,
+      };
+    } else {
+      // Production - charge with token
+      chargeResult = await chargeWithToken({
+        tokenUid: storeSub.payplusTokenUid,
+        customerUid: storeSub.payplusCustomerUid || '',
+        amount: totalAmount,
+        description: `חבילת דיוור - ${pkg.name}`,
+        invoiceItems: [{
+          name: `חבילת דיוור: ${pkg.name} (${pkg.monthlyEmails} מיילים)`,
+          quantity: 1,
+          price: subtotal,
+        }],
+      });
+    }
 
     if (!chargeResult.success) {
       return NextResponse.json(
@@ -122,11 +143,6 @@ export async function POST(
     }
 
     // Create invoice
-    const invoiceNumber = await generateInvoiceNumber();
-    const now = new Date();
-    const periodEnd = new Date(now);
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
-
     const [invoice] = await db
       .insert(platformInvoices)
       .values({
