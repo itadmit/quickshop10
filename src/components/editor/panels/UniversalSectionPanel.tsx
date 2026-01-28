@@ -822,11 +822,131 @@ function SectionContentEditor({
     // חוזקות / פיצ'רים
     // ==========================================
     case 'features':
+      const FEATURE_ICONS = [
+        { value: 'truck', label: 'משלוח' },
+        { value: 'refresh', label: 'החזרה' },
+        { value: 'shield', label: 'אבטחה' },
+        { value: 'message', label: 'הודעה' },
+        { value: 'star', label: 'כוכב' },
+        { value: 'heart', label: 'לב' },
+        { value: 'check', label: 'וי' },
+        { value: 'clock', label: 'שעון' },
+        { value: 'gift', label: 'מתנה' },
+        { value: 'sparkles', label: 'נצנוץ' },
+        { value: 'percent', label: 'הנחה' },
+        { value: 'award', label: 'פרס' },
+        { value: 'zap', label: 'מהירות' },
+      ];
+      
+      const rawFeatures = (content.features as Array<{ icon?: string; title: string; description?: string }>) || [
+        { icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+        { icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
+        { icon: 'shield', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
+      ];
+      
+      const featuresList = rawFeatures.map(f => ({
+        icon: f.icon || 'sparkles',
+        title: f.title,
+        description: f.description || '',
+      }));
+      
+      const updateFeaturesList = (newFeatures: Array<{ icon: string; title: string; description: string }>) => {
+        updateContent('features', newFeatures);
+      };
+      
+      const updateFeatureItem = (index: number, field: 'icon' | 'title' | 'description', value: string) => {
+        const newFeatures = [...featuresList];
+        newFeatures[index] = { ...newFeatures[index], [field]: value };
+        updateFeaturesList(newFeatures);
+      };
+      
+      const addFeatureItem = () => {
+        updateFeaturesList([...featuresList, { icon: 'star', title: 'יתרון חדש', description: 'תיאור היתרון' }]);
+      };
+      
+      const removeFeatureItem = (index: number) => {
+        const newFeatures = featuresList.filter((_, i) => i !== index);
+        updateFeaturesList(newFeatures);
+      };
+      
+      const moveFeatureItem = (index: number, direction: 'up' | 'down') => {
+        const newFeatures = [...featuresList];
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+        if (newIndex < 0 || newIndex >= featuresList.length) return;
+        [newFeatures[index], newFeatures[newIndex]] = [newFeatures[newIndex], newFeatures[index]];
+        updateFeaturesList(newFeatures);
+      };
+      
       return (
-        <MiniAccordion title="פיצ'רים" defaultOpen={true}>
-          <p className="text-xs text-[var(--editor-text-muted)]">
-            ערוך את הפיצ'רים ישירות על האלמנט באייפריים
-          </p>
+        <MiniAccordion title="חוזקות" defaultOpen={true}>
+          <div className="space-y-3">
+            {featuresList.map((feature, index) => (
+              <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => moveFeatureItem(index, 'up')}
+                      disabled={index === 0}
+                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      onClick={() => moveFeatureItem(index, 'down')}
+                      disabled={index === featuresList.length - 1}
+                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      onClick={() => removeFeatureItem(index)}
+                      className="p-1 hover:bg-red-100 text-red-600 rounded text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Icon Selector */}
+                <select
+                  value={feature.icon}
+                  onChange={(e) => updateFeatureItem(index, 'icon', e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 bg-white"
+                >
+                  {FEATURE_ICONS.map((icon) => (
+                    <option key={icon.value} value={icon.value}>
+                      {icon.label}
+                    </option>
+                  ))}
+                </select>
+                
+                {/* Title */}
+                <input
+                  type="text"
+                  value={feature.title}
+                  onChange={(e) => updateFeatureItem(index, 'title', e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5"
+                  placeholder="כותרת החוזקה"
+                />
+                
+                {/* Description */}
+                <input
+                  type="text"
+                  value={feature.description}
+                  onChange={(e) => updateFeatureItem(index, 'description', e.target.value)}
+                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5"
+                  placeholder="תיאור קצר"
+                />
+              </div>
+            ))}
+            <button
+              onClick={addFeatureItem}
+              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:border-gray-400 hover:text-gray-600"
+            >
+              + הוסף חוזקה
+            </button>
+          </div>
         </MiniAccordion>
       );
 
