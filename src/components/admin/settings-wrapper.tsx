@@ -27,6 +27,7 @@ const settingsTabs = [
   { id: 'print', label: 'הדפסה', path: '/print' },
   { id: 'tax', label: 'מיסים', path: '/tax' },
   { id: 'notifications', label: 'התראות', path: '/notifications' },
+  { id: 'email', label: 'דיוור', path: '/email' },
   { id: 'languages', label: 'שפות', path: '/languages' },
   { id: 'gdpr', label: 'עוגיות', path: '/gdpr' },
   { id: 'advanced', label: 'מתקדם', path: '/advanced' },

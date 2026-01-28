@@ -4,10 +4,11 @@
  */
 
 import { db } from '@/lib/db';
-import { stores, storeEmailSubscriptions, emailPackages } from '@/lib/db/schema';
+import { stores, storeEmailSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { getEmailQuotaStatus, getEmailPackages } from '@/lib/email-packages';
+import { SettingsWrapper } from '@/components/admin/settings-wrapper';
 import EmailSettingsClient from './email-settings-client';
 
 interface PageProps {
@@ -46,15 +47,7 @@ export default async function EmailSettingsPage({ params }: PageProps) {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">הגדרות דיוור</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          ניהול חבילת הדיוור שלך לשליחת מיילים אוטומטיים
-        </p>
-      </div>
-
+    <SettingsWrapper storeSlug={slug} activeTab="email">
       <EmailSettingsClient
         slug={slug}
         storeId={store[0].id}
@@ -62,7 +55,7 @@ export default async function EmailSettingsPage({ params }: PageProps) {
         packages={packages}
         subscription={subscription}
       />
-    </div>
+    </SettingsWrapper>
   );
 }
 
