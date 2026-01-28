@@ -73,6 +73,11 @@ interface Props {
     emailsUsedThisPeriod: number;
     emailsLimit: number;
   } | null;
+  paymentMethod: {
+    lastFour: string;
+    brand: string;
+    expiry: string;
+  } | null;
 }
 
 export default function EmailSettingsClient({
@@ -81,13 +86,30 @@ export default function EmailSettingsClient({
   quotaStatus,
   packages,
   subscription,
+  paymentMethod,
 }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [selectedPackage, setSelectedPackage] = useState<string | null>(null);
+  const [pendingPackage, setPendingPackage] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [selectedPurchasePackage, setSelectedPurchasePackage] = useState<string | null>(null);
+
+  const handlePurchaseClick = (packageSlug: string) => {
+    setSelectedPurchasePackage(packageSlug);
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmPurchase = () => {
+    if (selectedPurchasePackage) {
+      handlePurchase(selectedPurchasePackage);
+      setShowConfirmModal(false);
+      setSelectedPurchasePackage(null);
+    }
+  };
 
   const handlePurchase = async (packageSlug: string) => {
+    setPendingPackage(packageSlug);
     startTransition(async () => {
       try {
         const response = await fetch(`/api/shops/${slug}/email-package/subscribe`, {
@@ -106,10 +128,12 @@ export default function EmailSettingsClient({
           router.refresh();
         } else {
           alert(data.error || 'שגיאה ברכישת החבילה');
+          setPendingPackage(null);
         }
       } catch (error) {
         console.error('Error purchasing package:', error);
         alert('שגיאה ברכישת החבילה');
+        setPendingPackage(null);
       }
     });
   };
@@ -318,8 +342,8 @@ export default function EmailSettingsClient({
 
                   {/* Button */}
                   <button
-                    onClick={() => handlePurchase(pkg.slug)}
-                    disabled={isPending || isCurrentPackage}
+                    onClick={() => handlePurchaseClick(pkg.slug)}
+                    disabled={pendingPackage !== null || isCurrentPackage}
                     className={`w-full py-2.5 rounded-xl text-sm font-medium transition-colors ${
                       isCurrentPackage
                         ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
@@ -328,7 +352,7 @@ export default function EmailSettingsClient({
                         : 'bg-slate-900 text-white hover:bg-slate-800'
                     }`}
                   >
-                    {isPending ? (
+                    {pendingPackage === pkg.slug ? (
                       <span className="flex items-center justify-center gap-2">
                         <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -399,9 +423,8 @@ export default function EmailSettingsClient({
                   <button
                     key={pkg.slug}
                     onClick={() => {
-                      setSelectedPackage(pkg.slug);
-                      handlePurchase(pkg.slug);
                       setShowUpgradeModal(false);
+                      handlePurchaseClick(pkg.slug);
                     }}
                     className="w-full p-4 border-2 border-slate-200 rounded-xl hover:border-indigo-500 transition-colors text-right flex items-center justify-between"
                   >
@@ -425,6 +448,99 @@ export default function EmailSettingsClient({
             >
               ביטול
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Purchase Modal */}
+      {showConfirmModal && selectedPurchasePackage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-indigo-100 flex items-center justify-center">
+                <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-2">אישור רכישה</h3>
+              
+              {(() => {
+                const pkg = packages.find(p => p.slug === selectedPurchasePackage);
+                if (!pkg) return null;
+                return (
+                  <>
+                    <p className="text-slate-600 mb-4">
+                      האם אתה בטוח שברצונך לרכוש את חבילת <strong>{getPackageName(pkg.slug)}</strong>?
+                    </p>
+                    
+                    <div className="bg-slate-50 rounded-xl p-4 mb-4 text-right space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">חבילה:</span>
+                        <span className="font-medium">{getPackageName(pkg.slug)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">מיילים:</span>
+                        <span className="font-medium">{pkg.monthlyEmails.toLocaleString()} / חודש</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">מחיר:</span>
+                        <span className="font-medium">₪{pkg.monthlyPrice}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">מע״מ (18%):</span>
+                        <span className="font-medium">₪{(pkg.monthlyPrice * 0.18).toFixed(2)}</span>
+                      </div>
+                      <div className="border-t border-slate-200 pt-2 mt-2">
+                        <div className="flex justify-between text-lg">
+                          <span className="font-semibold text-slate-900">סה״כ:</span>
+                          <span className="font-bold text-indigo-600">₪{pkg.monthlyPriceWithVat.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {paymentMethod ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
+                        <div className="flex items-center justify-center gap-2 text-emerald-700">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
+                          </svg>
+                          <span className="font-medium">
+                            {paymentMethod.brand} •••• {paymentMethod.lastFour}
+                            {paymentMethod.expiry && ` (${paymentMethod.expiry})`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-emerald-600 mt-1">החיוב יבוצע מהכרטיס השמור</p>
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+                        <p className="text-sm text-amber-700">
+                          אין אמצעי תשלום שמור. יש להוסיף כרטיס אשראי תחילה.
+                        </p>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowConfirmModal(false);
+                  setSelectedPurchasePackage(null);
+                }}
+                className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50"
+              >
+                ביטול
+              </button>
+              <button
+                onClick={handleConfirmPurchase}
+                disabled={!paymentMethod || pendingPackage !== null}
+                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {pendingPackage ? 'מעבד...' : 'אישור ותשלום'}
+              </button>
+            </div>
           </div>
         </div>
       )}

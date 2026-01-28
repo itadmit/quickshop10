@@ -69,7 +69,7 @@ export async function POST(
       .limit(1);
 
     // Check if store has a saved payment method
-    if (!storeSub?.payplusTokenUid || !storeSub?.payplusCustomerUid) {
+    if (!storeSub?.payplusTokenUid) {
       // No saved payment method - redirect to payment page
       // For now, return error - in production, would redirect to PayPlus
       return NextResponse.json(

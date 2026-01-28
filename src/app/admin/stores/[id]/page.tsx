@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { stores, users, storeSubscriptions, orders, platformInvoices } from '@/lib/db/schema';
+import { stores, users, storeSubscriptions, orders, platformInvoices, storeEmailSubscriptions } from '@/lib/db/schema';
 import { eq, sql, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
@@ -8,6 +8,7 @@ import { StoreEditForm } from './store-edit-form';
 import { OwnerPasswordForm } from './owner-password-form';
 import { CustomPricingForm } from './custom-pricing-form';
 import { SubscriptionManagementForm } from './subscription-management-form';
+import { EmailQuotaForm } from './email-quota-form';
 import { getSetting } from '@/lib/billing/platform-settings';
 
 export const dynamic = 'force-dynamic';
@@ -70,6 +71,11 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
     .where(eq(platformInvoices.storeId, store.id))
     .orderBy(desc(platformInvoices.createdAt))
     .limit(5);
+
+  // Get email subscription
+  const emailSubscription = await db.query.storeEmailSubscriptions.findFirst({
+    where: eq(storeEmailSubscriptions.storeId, store.id),
+  });
 
   const formatCurrency = (amount: string | number) => {
     return new Intl.NumberFormat('he-IL', {
@@ -345,6 +351,19 @@ export default async function StoreDetailPage({ params }: StoreDetailPageProps) 
               currentPeriodEnd: subscription.currentPeriodEnd,
               hasPaymentMethod: !!subscription.payplusTokenUid,
               billingType: 'automatic', // Default to automatic billing
+            } : null}
+          />
+
+          {/* Email Quota Management */}
+          <EmailQuotaForm
+            storeId={store.id}
+            emailSubscription={emailSubscription ? {
+              id: emailSubscription.id,
+              packageSlug: emailSubscription.packageSlug,
+              status: emailSubscription.status,
+              emailsUsedThisPeriod: emailSubscription.emailsUsedThisPeriod,
+              emailsLimit: emailSubscription.emailsLimit,
+              currentPeriodEnd: emailSubscription.currentPeriodEnd,
             } : null}
           />
 

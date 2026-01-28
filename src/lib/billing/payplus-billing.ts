@@ -331,7 +331,7 @@ export async function chargeWithToken(
         // Use saved token
         use_token: true,
         token: params.tokenUid,
-        customer_uid: params.customerUid,
+        ...(params.customerUid && { customer_uid: params.customerUid }),
         
         // Generate invoice
         initial_invoice: true,

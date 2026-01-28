@@ -4,7 +4,7 @@
  */
 
 import { db } from '@/lib/db';
-import { stores, storeEmailSubscriptions } from '@/lib/db/schema';
+import { stores, storeEmailSubscriptions, storeSubscriptions } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { getEmailQuotaStatus, getEmailPackages } from '@/lib/email-packages';
@@ -46,6 +46,24 @@ export default async function EmailSettingsPage({ params }: PageProps) {
     subscription = sub;
   }
 
+  // Get payment method info
+  const [storeSub] = await db
+    .select({
+      cardLastFour: storeSubscriptions.cardLastFour,
+      cardBrand: storeSubscriptions.cardBrand,
+      cardExpiry: storeSubscriptions.cardExpiry,
+      hasToken: storeSubscriptions.payplusTokenUid,
+    })
+    .from(storeSubscriptions)
+    .where(eq(storeSubscriptions.storeId, store[0].id))
+    .limit(1);
+
+  const paymentMethod = storeSub?.hasToken ? {
+    lastFour: storeSub.cardLastFour || '****',
+    brand: storeSub.cardBrand || 'כרטיס',
+    expiry: storeSub.cardExpiry || '',
+  } : null;
+
   return (
     <SettingsWrapper storeSlug={slug} activeTab="email">
       <EmailSettingsClient
@@ -54,6 +72,7 @@ export default async function EmailSettingsPage({ params }: PageProps) {
         quotaStatus={quotaStatus}
         packages={packages}
         subscription={subscription}
+        paymentMethod={paymentMethod}
       />
     </SettingsWrapper>
   );
