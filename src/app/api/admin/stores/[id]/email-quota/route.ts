@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { storeEmailSubscriptions, emailPackages } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
@@ -12,7 +11,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     
     // Only super admins can modify quotas
     if (!session?.user?.email || session.user.email !== 'yogev@tadmit.co.il') {
