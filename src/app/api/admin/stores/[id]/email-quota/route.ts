@@ -124,6 +124,17 @@ export async function POST(
         updateData.emailsUsedThisPeriod = 0;
         break;
       
+      case 'delete':
+        // Delete subscription completely
+        await db
+          .delete(storeEmailSubscriptions)
+          .where(eq(storeEmailSubscriptions.id, subscription.id));
+        
+        return NextResponse.json({
+          success: true,
+          message: 'חבילת הדיוור נמחקה לחלוטין',
+        });
+      
       default:
         return NextResponse.json(
           { error: 'פעולה לא חוקית' },

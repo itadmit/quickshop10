@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Plus, Gift, RefreshCw, Sparkles } from 'lucide-react';
+import { Mail, Plus, Gift, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 
 interface Props {
   storeId: string;
@@ -28,11 +28,18 @@ export function EmailQuotaForm({ storeId, emailSubscription }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [adjustAmount, setAdjustAmount] = useState(100);
-  const [action, setAction] = useState<'add' | 'set' | 'reset' | 'activate'>('add');
+  const [action, setAction] = useState<'add' | 'set' | 'reset' | 'activate' | 'delete'>('add');
   const [selectedPackage, setSelectedPackage] = useState('growth');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Confirm before delete
+    if (action === 'delete') {
+      if (!confirm('האם אתה בטוח שברצונך למחוק את החבילה? הלקוח יצטרך לרכוש מחדש.')) {
+        return;
+      }
+    }
     
     startTransition(async () => {
       try {
@@ -176,6 +183,18 @@ export function EmailQuotaForm({ storeId, emailSubscription }: Props) {
                   <Sparkles className="w-3 h-3" />
                   החלף חבילה
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setAction('delete')}
+                  className={`p-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 col-span-2 ${
+                    action === 'delete' 
+                      ? 'bg-red-100 text-red-700 border-2 border-red-500' 
+                      : 'bg-gray-100 text-gray-600 border-2 border-transparent'
+                  }`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                  מחק חבילה (לבדיקות)
+                </button>
               </div>
             </div>
 
@@ -211,11 +230,12 @@ export function EmailQuotaForm({ storeId, emailSubscription }: Props) {
               </div>
             )}
 
-            <p className="text-xs text-gray-500">
+            <p className={`text-xs ${action === 'delete' ? 'text-red-500 font-medium' : 'text-gray-500'}`}>
               {action === 'add' && `יוסיפו ${adjustAmount} מיילים למכסה הנוכחית`}
               {action === 'set' && `המכסה תוגדר ל-${adjustAmount} מיילים`}
               {action === 'reset' && 'השימוש החודשי יתאפס ל-0'}
               {action === 'activate' && `החבילה תוחלף והמכסה תתאפס`}
+              {action === 'delete' && '⚠️ החבילה תימחק לחלוטין - הלקוח יצטרך לרכוש מחדש'}
             </p>
 
             <button
