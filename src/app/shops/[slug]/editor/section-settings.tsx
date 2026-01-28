@@ -665,7 +665,6 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
         section={section}
         onUpdate={onUpdate}
         onDelete={onRemove}
-        onRefresh={onRefresh}
         storeSlug={storeInfo?.slug || ''}
         categories={categories}
       />

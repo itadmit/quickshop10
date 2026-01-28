@@ -1414,7 +1414,6 @@ export function ThemeEditor({
               section={selectedSection}
               onUpdate={(updates) => updateSection(selectedSection.id, updates)}
               onRemove={() => removeSection(selectedSection.id)}
-              onRefresh={() => setPreviewRefreshKey(k => k + 1)}
               themeSettings={themeSettings}
               onThemeSettingsChange={handleThemeSettingsChange}
               categories={categories}
