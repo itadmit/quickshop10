@@ -224,13 +224,31 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         break;
 
       case 'categories':
-        // Filter categories if specific ones are selected
-        const categoryIds = content.categoryIds as string[] | undefined;
+        // Support selection mode and category IDs
+        const catContent = content as { 
+          selectionMode?: 'all' | 'manual'; 
+          categoryIds?: string[]; 
+          displayLimit?: number;
+        };
+        const catSelectionMode = catContent.selectionMode || 'all';
+        const catCategoryIds = catContent.categoryIds || [];
+        const catDisplayLimit = catContent.displayLimit || 6;
+        
+        let categoriesToShow = categories;
+        
         // In preview mode: show all categories (filtering done via CSS)
-        // In production: only show selected categories
-        const categoriesToShow = isPreviewMode 
-          ? categories 
-          : (categoryIds && categoryIds.length > 0 ? categories.filter(cat => categoryIds.includes(cat.id)) : categories);
+        // In production: filter based on selection mode
+        if (!isPreviewMode) {
+          if (catSelectionMode === 'manual' && catCategoryIds.length > 0) {
+            // Manual selection: order by selected IDs order
+            categoriesToShow = catCategoryIds
+              .map(id => categories.find(c => c.id === id))
+              .filter((c): c is typeof categories[0] => c !== undefined);
+          } else {
+            // All mode: apply display limit
+            categoriesToShow = categories.slice(0, catDisplayLimit);
+          }
+        }
         
         sectionElement = (
           <CategoriesSection
@@ -240,7 +258,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             settings={settings as { columns?: number; gap?: number; textAlign?: 'right' | 'center' | 'left' }}
             basePath={basePath}
             sectionId={section.id}
-            selectedCategoryIds={isPreviewMode ? categoryIds : undefined}
+            selectedCategoryIds={isPreviewMode ? catCategoryIds : undefined}
           />
         );
         break;
@@ -620,23 +638,60 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         break;
 
       case 'series_grid':
+        // Support both manual items and category-based selection
+        const seriesContent = content as { 
+          items?: Array<{ 
+            id: string; 
+            title: string; 
+            subtitle?: string;
+            description?: string; 
+            imageUrl?: string;
+            gradientFrom?: string;
+            gradientTo?: string;
+            icon?: string;
+            link: string;
+          }>;
+          selectionMode?: 'all' | 'manual';
+          categoryIds?: string[];
+          displayLimit?: number;
+        };
+        
+        // Convert categories to items format if using category-based selection
+        let seriesItems = seriesContent.items || [];
+        const seriesSelectionMode = seriesContent.selectionMode || 'all';
+        const seriesCategoryIds = seriesContent.categoryIds || [];
+        const seriesDisplayLimit = seriesContent.displayLimit || 6;
+        
+        // If we have categories and using category-based selection (all or manual), use categories
+        if (categories.length > 0 && (seriesSelectionMode === 'all' || seriesSelectionMode === 'manual')) {
+          let categoriesToUse = categories;
+          
+          // Filter and order by selected IDs if manual mode
+          if (seriesSelectionMode === 'manual' && seriesCategoryIds.length > 0) {
+            categoriesToUse = seriesCategoryIds
+              .map(id => categories.find(c => c.id === id))
+              .filter((c): c is typeof categories[0] => c !== undefined);
+          } else {
+            // Apply display limit for "all" mode
+            categoriesToUse = categories.slice(0, seriesDisplayLimit);
+          }
+          
+          // Convert categories to series items format
+          seriesItems = categoriesToUse.map(cat => ({
+            id: cat.id,
+            title: cat.name,
+            subtitle: '',
+            description: '',
+            imageUrl: cat.imageUrl || '',
+            link: `/category/${cat.slug}`,
+          }));
+        }
+        
         sectionElement = (
           <SeriesGridSection
             title={section.title}
             subtitle={section.subtitle}
-            content={content as { 
-              items: Array<{ 
-                id: string; 
-                title: string; 
-                subtitle?: string;
-                description?: string; 
-                imageUrl?: string;
-                gradientFrom?: string;
-                gradientTo?: string;
-                icon?: string;
-                link: string;
-              }>;
-            }}
+            content={{ items: seriesItems }}
             settings={settings as { 
               style?: 'overlay' | 'cards';
               columns?: 2 | 3 | 4; 

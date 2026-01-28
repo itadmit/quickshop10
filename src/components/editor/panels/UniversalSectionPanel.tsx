@@ -1110,30 +1110,157 @@ function SectionContentEditor({
     // קטגוריות
     // ==========================================
     case 'categories':
+      const categorySelectionMode = (content.selectionMode as string) || 'all';
+      const selectedCategoryIds = (content.categoryIds as string[]) || [];
+      
       return (
-        <MiniAccordion title="קטגוריות" defaultOpen={true}>
-          <div className="space-y-3">
-            <EditorSlider
-              label="כמות להצגה"
-              value={(content.displayLimit as number) || 6}
-              onChange={(v) => updateContent('displayLimit', v)}
-              min={1}
-              max={12}
-            />
-            
-            <EditorToggle
-              label="הצג תמונות"
-              value={(settings.showImages as boolean) !== false}
-              onChange={(v) => updateSettings('showImages', v)}
-            />
-            
-            <EditorToggle
-              label="הצג כמות מוצרים"
-              value={(settings.showCount as boolean) || false}
-              onChange={(v) => updateSettings('showCount', v)}
-            />
-          </div>
-        </MiniAccordion>
+        <>
+          <MiniAccordion title="קטגוריות" defaultOpen={true}>
+            <div className="space-y-3">
+              {/* Selection Mode */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--editor-text-secondary)' }}>
+                  מקור קטגוריות
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => updateContent('selectionMode', 'all')}
+                    className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
+                      categorySelectionMode === 'all'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    הכל
+                  </button>
+                  <button
+                    onClick={() => updateContent('selectionMode', 'manual')}
+                    className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
+                      categorySelectionMode === 'manual'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    בחירה ידנית
+                  </button>
+                </div>
+              </div>
+              
+              {/* Manual Selection */}
+              {categorySelectionMode === 'manual' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium" style={{ color: 'var(--editor-text-secondary)' }}>
+                    בחר קטגוריות (לפי סדר ההופעה)
+                  </label>
+                  
+                  {/* Selected Categories - Reorderable */}
+                  {selectedCategoryIds.length > 0 && (
+                    <div className="space-y-1 mb-2">
+                      {selectedCategoryIds.map((catId, index) => {
+                        const cat = categories.find(c => c.id === catId);
+                        if (!cat) return null;
+                        return (
+                          <div 
+                            key={catId}
+                            className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs"
+                          >
+                            <span className="text-gray-400 cursor-move">⋮⋮</span>
+                            <span className="flex-1">{cat.name}</span>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => {
+                                  if (index > 0) {
+                                    const newIds = [...selectedCategoryIds];
+                                    [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                                    updateContent('categoryIds', newIds);
+                                  }
+                                }}
+                                disabled={index === 0}
+                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (index < selectedCategoryIds.length - 1) {
+                                    const newIds = [...selectedCategoryIds];
+                                    [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
+                                    updateContent('categoryIds', newIds);
+                                  }
+                                }}
+                                disabled={index === selectedCategoryIds.length - 1}
+                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const newIds = selectedCategoryIds.filter(id => id !== catId);
+                                  updateContent('categoryIds', newIds);
+                                }}
+                                className="p-1 hover:bg-red-100 text-red-500 rounded"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Available Categories */}
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+                    {categories
+                      .filter(cat => !selectedCategoryIds.includes(cat.id))
+                      .map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            updateContent('categoryIds', [...selectedCategoryIds, cat.id]);
+                          }}
+                          className="w-full text-right px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          + {cat.name}
+                        </button>
+                      ))}
+                    {categories.filter(cat => !selectedCategoryIds.includes(cat.id)).length === 0 && (
+                      <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                        כל הקטגוריות נבחרו
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {categorySelectionMode === 'all' && (
+                <EditorSlider
+                  label="כמות להצגה"
+                  value={(content.displayLimit as number) || 6}
+                  onChange={(v) => updateContent('displayLimit', v)}
+                  min={1}
+                  max={12}
+                />
+              )}
+            </div>
+          </MiniAccordion>
+          
+          <MiniAccordion title="תצוגה">
+            <div className="space-y-3">
+              <EditorToggle
+                label="הצג תמונות"
+                value={(settings.showImages as boolean) !== false}
+                onChange={(v) => updateSettings('showImages', v)}
+              />
+              
+              <EditorToggle
+                label="הצג כמות מוצרים"
+                value={(settings.showCount as boolean) || false}
+                onChange={(v) => updateSettings('showCount', v)}
+              />
+            </div>
+          </MiniAccordion>
+        </>
       );
 
     // ==========================================
@@ -1164,18 +1291,141 @@ function SectionContentEditor({
     // סדרות
     // ==========================================
     case 'series_grid':
+      const seriesSelectionMode = (content.selectionMode as string) || 'all';
+      const selectedSeriesIds = (content.categoryIds as string[]) || [];
+      
       return (
-        <MiniAccordion title="סדרות" defaultOpen={true}>
-          <div className="space-y-3">
-            <EditorSlider
-              label="כמות להצגה"
-              value={(content.displayLimit as number) || 4}
-              onChange={(v) => updateContent('displayLimit', v)}
-              min={1}
-              max={12}
-            />
-          </div>
-        </MiniAccordion>
+        <>
+          <MiniAccordion title="סדרות" defaultOpen={true}>
+            <div className="space-y-3">
+              {/* Selection Mode */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--editor-text-secondary)' }}>
+                  מקור סדרות
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => updateContent('selectionMode', 'all')}
+                    className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
+                      seriesSelectionMode === 'all'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    הכל
+                  </button>
+                  <button
+                    onClick={() => updateContent('selectionMode', 'manual')}
+                    className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
+                      seriesSelectionMode === 'manual'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    בחירה ידנית
+                  </button>
+                </div>
+              </div>
+              
+              {/* Manual Selection */}
+              {seriesSelectionMode === 'manual' && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium" style={{ color: 'var(--editor-text-secondary)' }}>
+                    בחר קטגוריות (לפי סדר ההופעה)
+                  </label>
+                  
+                  {/* Selected Categories - Reorderable */}
+                  {selectedSeriesIds.length > 0 && (
+                    <div className="space-y-1 mb-2">
+                      {selectedSeriesIds.map((catId, index) => {
+                        const cat = categories.find(c => c.id === catId);
+                        if (!cat) return null;
+                        return (
+                          <div 
+                            key={catId}
+                            className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs"
+                          >
+                            <span className="text-gray-400 cursor-move">⋮⋮</span>
+                            <span className="flex-1">{cat.name}</span>
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => {
+                                  if (index > 0) {
+                                    const newIds = [...selectedSeriesIds];
+                                    [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                                    updateContent('categoryIds', newIds);
+                                  }
+                                }}
+                                disabled={index === 0}
+                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                              >
+                                ↑
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (index < selectedSeriesIds.length - 1) {
+                                    const newIds = [...selectedSeriesIds];
+                                    [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
+                                    updateContent('categoryIds', newIds);
+                                  }
+                                }}
+                                disabled={index === selectedSeriesIds.length - 1}
+                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                              >
+                                ↓
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const newIds = selectedSeriesIds.filter(id => id !== catId);
+                                  updateContent('categoryIds', newIds);
+                                }}
+                                className="p-1 hover:bg-red-100 text-red-500 rounded"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Available Categories */}
+                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+                    {categories
+                      .filter(cat => !selectedSeriesIds.includes(cat.id))
+                      .map(cat => (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            updateContent('categoryIds', [...selectedSeriesIds, cat.id]);
+                          }}
+                          className="w-full text-right px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                        >
+                          + {cat.name}
+                        </button>
+                      ))}
+                    {categories.filter(cat => !selectedSeriesIds.includes(cat.id)).length === 0 && (
+                      <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                        כל הקטגוריות נבחרו
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {seriesSelectionMode === 'all' && (
+                <EditorSlider
+                  label="כמות להצגה"
+                  value={(content.displayLimit as number) || 4}
+                  onChange={(v) => updateContent('displayLimit', v)}
+                  min={1}
+                  max={12}
+                />
+              )}
+            </div>
+          </MiniAccordion>
+        </>
       );
 
     // ==========================================
