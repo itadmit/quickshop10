@@ -84,33 +84,19 @@ export default async function AutomationsPage({ params }: PageProps) {
 
       {/* Email Quota Status Banner */}
       {emailQuotaStatus && (
-        <div className={`rounded-2xl border p-4 ${
-          !emailQuotaStatus.hasPackage
-            ? 'bg-amber-50 border-amber-200'
-            : emailQuotaStatus.percentUsed >= 90
-            ? 'bg-red-50 border-red-200'
-            : emailQuotaStatus.percentUsed >= 75
-            ? 'bg-amber-50 border-amber-200'
-            : 'bg-emerald-50 border-emerald-200'
-        }`}>
+        <div className="bg-white rounded-2xl border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
-                !emailQuotaStatus.hasPackage
-                  ? 'bg-amber-100'
-                  : emailQuotaStatus.percentUsed >= 90
-                  ? 'bg-red-100'
-                  : emailQuotaStatus.percentUsed >= 75
-                  ? 'bg-amber-100'
-                  : 'bg-emerald-100'
-              }`}>
-                {!emailQuotaStatus.hasPackage ? '📧' : emailQuotaStatus.percentUsed >= 90 ? '🚨' : '✉️'}
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+                <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                </svg>
               </div>
               <div>
                 {!emailQuotaStatus.hasPackage ? (
                   <>
-                    <h4 className="font-medium text-slate-900">אין חבילת דיוור פעילה</h4>
-                    <p className="text-sm text-slate-600">
+                    <h4 className="font-medium text-gray-900">אין חבילת דיוור פעילה</h4>
+                    <p className="text-sm text-gray-500">
                       {hasEmailAutomations 
                         ? 'יש לך אוטומציות שליחת מייל פעילות. רכוש חבילת דיוור כדי שהן יפעלו.'
                         : 'רכוש חבילת דיוור כדי להפעיל אוטומציות עם שליחת מיילים.'}
@@ -118,10 +104,10 @@ export default async function AutomationsPage({ params }: PageProps) {
                   </>
                 ) : (
                   <>
-                    <h4 className="font-medium text-slate-900">
+                    <h4 className="font-medium text-gray-900">
                       מכסת דיוור: {emailQuotaStatus.emailsRemaining.toLocaleString()} מיילים נותרו
                     </h4>
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-gray-500">
                       {emailQuotaStatus.packageName} • {emailQuotaStatus.emailsUsed.toLocaleString()} / {emailQuotaStatus.emailsLimit.toLocaleString()} ({emailQuotaStatus.percentUsed}%)
                     </p>
                   </>
@@ -130,11 +116,7 @@ export default async function AutomationsPage({ params }: PageProps) {
             </div>
             <Link
               href={`/shops/${slug}/admin/settings/email`}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-                !emailQuotaStatus.hasPackage || emailQuotaStatus.percentUsed >= 75
-                  ? 'bg-slate-900 text-white hover:bg-slate-800'
-                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
-              }`}
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-colors bg-gray-900 text-white hover:bg-gray-800"
             >
               {!emailQuotaStatus.hasPackage ? 'רכוש חבילה' : emailQuotaStatus.percentUsed >= 75 ? 'שדרג חבילה' : 'נהל חבילה'}
             </Link>
@@ -142,13 +124,9 @@ export default async function AutomationsPage({ params }: PageProps) {
           
           {/* Progress bar for active packages */}
           {emailQuotaStatus.hasPackage && (
-            <div className="mt-3 h-2 bg-white/50 rounded-full overflow-hidden">
+            <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  emailQuotaStatus.percentUsed >= 90 ? 'bg-red-500' :
-                  emailQuotaStatus.percentUsed >= 75 ? 'bg-amber-500' :
-                  'bg-emerald-500'
-                }`}
+                className="h-full rounded-full transition-all duration-500 bg-gray-900"
                 style={{ width: `${Math.min(100, emailQuotaStatus.percentUsed)}%` }}
               />
             </div>
