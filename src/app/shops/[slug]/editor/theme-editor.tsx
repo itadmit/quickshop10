@@ -757,6 +757,8 @@ export function ThemeEditor({
         type: 'SECTION_CONTENT_UPDATE',
         sectionId,
         updates,
+        // Pass categories for real-time updates (for categories/series_grid sections)
+        categories: categories.map(c => ({ id: c.id, name: c.name, slug: c.slug, imageUrl: c.imageUrl })),
       }, '*');
       
       // For product_gallery sections, also send PRODUCT_PAGE_SETTINGS_UPDATE for live preview
@@ -1023,6 +1025,8 @@ export function ThemeEditor({
         settings: newSection.settings,
         sortOrder: newSection.sortOrder,
         zone,
+        // Pass categories for real-time preview
+        categories: categories.map(c => ({ id: c.id, name: c.name, slug: c.slug, imageUrl: c.imageUrl })),
       }, '*');
 
       // Scroll to the new section after a short delay

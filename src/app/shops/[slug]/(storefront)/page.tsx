@@ -224,14 +224,16 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         break;
 
       case 'categories':
-        // Support selection mode and category IDs
+        // Support selection mode, category IDs, and custom images
         const catContent = content as { 
           selectionMode?: 'all' | 'manual'; 
           categoryIds?: string[]; 
+          categoryImages?: Record<string, string>;
           displayLimit?: number;
         };
         const catSelectionMode = catContent.selectionMode || 'all';
         const catCategoryIds = catContent.categoryIds || [];
+        const catCategoryImages = catContent.categoryImages || {};
         const catDisplayLimit = catContent.displayLimit || 6;
         
         let categoriesToShow = categories;
@@ -250,11 +252,18 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
           }
         }
         
+        // Apply custom images if provided, but keep original for live editing
+        const categoriesWithCustomImages = categoriesToShow.map(cat => ({
+          ...cat,
+          originalImageUrl: cat.imageUrl, // Keep original for restoration
+          imageUrl: catCategoryImages[cat.id] || cat.imageUrl,
+        }));
+        
         sectionElement = (
           <CategoriesSection
             title={section.title}
             subtitle={section.subtitle}
-            categories={categoriesToShow}
+            categories={categoriesWithCustomImages}
             settings={settings as { columns?: number; gap?: number; textAlign?: 'right' | 'center' | 'left' }}
             basePath={basePath}
             sectionId={section.id}
@@ -653,6 +662,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
           }>;
           selectionMode?: 'all' | 'manual';
           categoryIds?: string[];
+          categoryImages?: Record<string, string>;
           displayLimit?: number;
         };
         
@@ -660,6 +670,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         let seriesItems = seriesContent.items || [];
         const seriesSelectionMode = seriesContent.selectionMode || 'all';
         const seriesCategoryIds = seriesContent.categoryIds || [];
+        const seriesCategoryImages = seriesContent.categoryImages || {};
         const seriesDisplayLimit = seriesContent.displayLimit || 6;
         
         // If we have categories and using category-based selection (all or manual), use categories
@@ -676,13 +687,14 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             categoriesToUse = categories.slice(0, seriesDisplayLimit);
           }
           
-          // Convert categories to series items format
+          // Convert categories to series items format, using custom images if provided
           seriesItems = categoriesToUse.map(cat => ({
             id: cat.id,
             title: cat.name,
             subtitle: '',
             description: '',
-            imageUrl: cat.imageUrl || '',
+            originalImageUrl: cat.imageUrl || '', // Keep original for restoration
+            imageUrl: seriesCategoryImages[cat.id] || cat.imageUrl || '',
             link: `/category/${cat.slug}`,
           }));
         }

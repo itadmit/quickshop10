@@ -22,6 +22,7 @@ interface SeriesItem {
   subtitle?: string;      // Small eyebrow text above title
   description?: string;
   imageUrl?: string;      // Image for this card (uploaded by user)
+  originalImageUrl?: string; // Original image URL before custom override
   gradientFrom?: string;  // Fallback gradient if no image
   gradientTo?: string;
   icon?: string;          // Emoji/icon for gradient fallback
@@ -151,6 +152,7 @@ export function SeriesGridSection({
                       : `linear-gradient(to bottom right, ${item.gradientFrom || '#5e5e8b'}, ${item.gradientTo || '#2a2a4a'})`
                   }}
                   data-item-bg
+                  data-original-image={item.originalImageUrl || item.imageUrl || ''}
                 />
                 
                 {/* Icon (for gradient backgrounds) */}
@@ -245,6 +247,7 @@ export function SeriesGridSection({
                           : `linear-gradient(to bottom right, ${item.gradientFrom || '#5e5e8b'}, ${item.gradientTo || '#2a2a4a'})`
                       }}
                       data-item-bg
+                      data-original-image={item.originalImageUrl || item.imageUrl || ''}
                     >
                       {item.icon && !item.imageUrl && (
                         <div className="absolute inset-0 flex items-center justify-center">

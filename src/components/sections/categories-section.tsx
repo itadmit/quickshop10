@@ -5,6 +5,7 @@ interface Category {
   name: string;
   slug: string;
   imageUrl: string | null;
+  originalImageUrl?: string | null;
 }
 
 interface CategoriesSectionProps {
@@ -66,15 +67,16 @@ export function CategoriesSection({ title, subtitle, categories, settings, baseP
               style={{ animationDelay: `${i * 100}ms` }}
               data-category-id={category.id}
             >
-              <div className="aspect-[3/4] bg-gray-100 mb-6 overflow-hidden">
+              <div className="aspect-[3/4] bg-gray-100 mb-6 overflow-hidden" data-category-image-container data-original-image={category.originalImageUrl || category.imageUrl || ''}>
                 {category.imageUrl ? (
                   <img 
                     src={category.imageUrl} 
                     alt={category.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    data-category-image
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200 group-hover:scale-105 transition-transform duration-700" />
+                  <div className="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200 group-hover:scale-105 transition-transform duration-700" data-category-placeholder />
                 )}
               </div>
               <span className="text-xs tracking-[0.25em] uppercase text-gray-800 group-hover:text-black transition-colors">

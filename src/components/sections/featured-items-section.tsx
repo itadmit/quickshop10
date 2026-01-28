@@ -27,7 +27,9 @@ interface FeaturedItemsSectionProps {
     items: FeaturedItem[];
   };
   settings: {
-    columns?: 2 | 3 | 4;
+    columns?: number;
+    mobileColumns?: number;
+    gap?: number;
     imageAspectRatio?: 'square' | 'portrait' | 'landscape';
     textAlign?: 'right' | 'center' | 'left';
     sectionBackground?: string;
@@ -48,7 +50,9 @@ export function FeaturedItemsSection({
   basePath, 
   sectionId 
 }: FeaturedItemsSectionProps) {
-  const columns = settings.columns || 3;
+  const columns = settings.columns || 4;
+  const mobileColumns = settings.mobileColumns || 2;
+  const gap = settings.gap || 24;
   const aspectRatio = settings.imageAspectRatio || 'square';
   const textAlign = settings.textAlign || 'center';
   const sectionBg = settings.sectionBackground || '#ffffff';
@@ -56,12 +60,6 @@ export function FeaturedItemsSection({
   const textColor = settings.textColor || '#1f2937';
   const hoverEffect = settings.hoverEffect || 'zoom';
   const imageStyle = settings.imageStyle || 'rounded';
-
-  const gridCols = columns === 2 
-    ? 'md:grid-cols-2' 
-    : columns === 4 
-      ? 'md:grid-cols-2 lg:grid-cols-4'
-      : 'md:grid-cols-3';
 
   const aspectClass = {
     square: 'aspect-square',
@@ -94,34 +92,52 @@ export function FeaturedItemsSection({
   }[hoverEffect];
 
   return (
-    <section 
-      className="w-full py-16 px-4 md:px-10"
-      style={{ backgroundColor: sectionBg }}
-      data-section-id={sectionId}
-      data-section-type="featured_items"
-      data-section-name="פריטים מובילים"
-    >
-      <div className="max-w-[1200px] mx-auto">
-        {/* Section Header - always rendered for live editor */}
-        <div className={`mb-12 ${alignClass}`} style={{ display: (title || subtitle) ? '' : 'none' }}>
-          <h2 
-            className="text-3xl md:text-4xl font-bold mb-3"
-            style={{ color: textColor, display: title ? '' : 'none' }}
-            data-section-title
-          >
-            {title || ''}
-          </h2>
-          <p 
-            className="text-gray-600"
-            style={{ display: subtitle ? '' : 'none' }}
-            data-section-subtitle
-          >
-            {subtitle || ''}
-          </p>
-        </div>
+    <>
+      {/* Scoped CSS for responsive grid */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        [data-section-id="${sectionId}"] [data-products-grid] {
+          grid-template-columns: repeat(${mobileColumns}, minmax(0, 1fr));
+        }
+        @media (min-width: 1024px) {
+          [data-section-id="${sectionId}"] [data-products-grid] {
+            grid-template-columns: repeat(${columns}, minmax(0, 1fr));
+          }
+        }
+      `}} />
+      <section 
+        className="w-full py-16 px-4 md:px-10"
+        style={{ backgroundColor: sectionBg }}
+        data-section-id={sectionId}
+        data-section-type="featured_items"
+        data-section-name="פריטים מובילים"
+      >
+        <div className="max-w-[1200px] mx-auto">
+          {/* Section Header - always rendered for live editor */}
+          <div className={`mb-12 ${alignClass}`} style={{ display: (title || subtitle) ? '' : 'none' }}>
+            <h2 
+              className="text-3xl md:text-4xl font-bold mb-3"
+              style={{ color: textColor, display: title ? '' : 'none' }}
+              data-section-title
+            >
+              {title || ''}
+            </h2>
+            <p 
+              className="text-gray-600"
+              style={{ display: subtitle ? '' : 'none' }}
+              data-section-subtitle
+            >
+              {subtitle || ''}
+            </p>
+          </div>
 
-        {/* Items Grid */}
-        <div className={`grid grid-cols-2 ${gridCols} gap-6 md:gap-8`}>
+          {/* Items Grid */}
+          <div 
+            className="grid"
+            style={{ gap: `${gap}px` }}
+            data-products-grid
+            data-columns={columns}
+            data-mobile-columns={mobileColumns}
+          >
           {content.items.map((item, index) => {
             const href = item.link.startsWith('/') ? `${basePath}${item.link}` : item.link;
             
@@ -171,8 +187,9 @@ export function FeaturedItemsSection({
               </Link>
             );
           })}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

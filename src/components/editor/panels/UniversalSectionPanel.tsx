@@ -445,6 +445,7 @@ export function UniversalSectionPanel({
                         onChange={(v) => updateSettings('columns', v)}
                         min={2}
                         max={6}
+                        suffix=""
                       />
                       
                       <EditorSlider
@@ -453,6 +454,7 @@ export function UniversalSectionPanel({
                         onChange={(v) => updateSettings('mobileColumns', v)}
                         min={1}
                         max={3}
+                        suffix=""
                       />
                       
                       <EditorSlider
@@ -751,6 +753,7 @@ function SectionContentEditor({
               onChange={(v) => updateContent('displayLimit', v)}
               min={1}
               max={12}
+              suffix=""
             />
 
             <EditorToggle
@@ -1112,6 +1115,13 @@ function SectionContentEditor({
     case 'categories':
       const categorySelectionMode = (content.selectionMode as string) || 'all';
       const selectedCategoryIds = (content.categoryIds as string[]) || [];
+      const categoryImages = (content.categoryImages as Record<string, string>) || {};
+      
+      const updateCategoryImage = (catId: string, imageUrl: string) => {
+        const newImages = { ...categoryImages, [catId]: imageUrl };
+        if (!imageUrl) delete newImages[catId];
+        updateContent('categoryImages', newImages);
+      };
       
       return (
         <>
@@ -1153,55 +1163,111 @@ function SectionContentEditor({
                     בחר קטגוריות (לפי סדר ההופעה)
                   </label>
                   
-                  {/* Selected Categories - Reorderable */}
+                  {/* Selected Categories - Reorderable with custom image */}
                   {selectedCategoryIds.length > 0 && (
-                    <div className="space-y-1 mb-2">
+                    <div className="space-y-2 mb-2">
                       {selectedCategoryIds.map((catId, index) => {
                         const cat = categories.find(c => c.id === catId);
                         if (!cat) return null;
+                        const hasCustomImage = catId in categoryImages;
+                        
                         return (
                           <div 
                             key={catId}
-                            className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs"
+                            className="bg-blue-50 border border-blue-200 rounded-lg text-xs overflow-hidden"
                           >
-                            <span className="text-gray-400 cursor-move">⋮⋮</span>
-                            <span className="flex-1">{cat.name}</span>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => {
-                                  if (index > 0) {
-                                    const newIds = [...selectedCategoryIds];
-                                    [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                            <div className="flex items-center gap-2 p-2">
+                              <span className="text-gray-400 cursor-move">⋮⋮</span>
+                              <span className="flex-1 font-medium">{cat.name}</span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => {
+                                    if (index > 0) {
+                                      const newIds = [...selectedCategoryIds];
+                                      [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                                      updateContent('categoryIds', newIds);
+                                    }
+                                  }}
+                                  disabled={index === 0}
+                                  className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (index < selectedCategoryIds.length - 1) {
+                                      const newIds = [...selectedCategoryIds];
+                                      [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
+                                      updateContent('categoryIds', newIds);
+                                    }
+                                  }}
+                                  disabled={index === selectedCategoryIds.length - 1}
+                                  className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const newIds = selectedCategoryIds.filter(id => id !== catId);
                                     updateContent('categoryIds', newIds);
-                                  }
-                                }}
-                                disabled={index === 0}
-                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
-                              >
-                                ↑
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (index < selectedCategoryIds.length - 1) {
-                                    const newIds = [...selectedCategoryIds];
-                                    [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
-                                    updateContent('categoryIds', newIds);
-                                  }
-                                }}
-                                disabled={index === selectedCategoryIds.length - 1}
-                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
-                              >
-                                ↓
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const newIds = selectedCategoryIds.filter(id => id !== catId);
-                                  updateContent('categoryIds', newIds);
-                                }}
-                                className="p-1 hover:bg-red-100 text-red-500 rounded"
-                              >
-                                ✕
-                              </button>
+                                    // Also remove custom image if exists
+                                    if (categoryImages[catId]) {
+                                      const newImages = { ...categoryImages };
+                                      delete newImages[catId];
+                                      updateContent('categoryImages', newImages);
+                                    }
+                                  }}
+                                  className="p-1 hover:bg-red-100 text-red-500 rounded"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Custom Image Option */}
+                            <div className="px-2 pb-2 pt-1 border-t border-blue-200/50">
+                              {hasCustomImage ? (
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {categoryImages[catId] && (
+                                      <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                        <img 
+                                          src={categoryImages[catId]} 
+                                          alt="" 
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                      </div>
+                                    )}
+                                    <input
+                                      type="text"
+                                      value={categoryImages[catId] || ''}
+                                      onChange={(e) => updateCategoryImage(catId, e.target.value)}
+                                      placeholder="URL תמונה..."
+                                      className="flex-1 px-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:border-blue-400 focus:outline-none"
+                                    />
+                                    <button
+                                      onClick={() => updateCategoryImage(catId, '')}
+                                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                      title="הסר תמונה מותאמת"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => updateCategoryImage(catId, 'https://')}
+                                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  תמונה מותאמת
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
@@ -1240,6 +1306,7 @@ function SectionContentEditor({
                   onChange={(v) => updateContent('displayLimit', v)}
                   min={1}
                   max={12}
+                  suffix=""
                 />
               )}
             </div>
@@ -1276,6 +1343,7 @@ function SectionContentEditor({
               onChange={(v) => updateContent('displayLimit', v)}
               min={1}
               max={12}
+              suffix=""
             />
             
             <EditorToggle
@@ -1293,6 +1361,13 @@ function SectionContentEditor({
     case 'series_grid':
       const seriesSelectionMode = (content.selectionMode as string) || 'all';
       const selectedSeriesIds = (content.categoryIds as string[]) || [];
+      const seriesImages = (content.categoryImages as Record<string, string>) || {};
+      
+      const updateSeriesImage = (catId: string, imageUrl: string) => {
+        const newImages = { ...seriesImages, [catId]: imageUrl };
+        if (!imageUrl) delete newImages[catId];
+        updateContent('categoryImages', newImages);
+      };
       
       return (
         <>
@@ -1334,55 +1409,111 @@ function SectionContentEditor({
                     בחר קטגוריות (לפי סדר ההופעה)
                   </label>
                   
-                  {/* Selected Categories - Reorderable */}
+                  {/* Selected Categories - Reorderable with custom image */}
                   {selectedSeriesIds.length > 0 && (
-                    <div className="space-y-1 mb-2">
+                    <div className="space-y-2 mb-2">
                       {selectedSeriesIds.map((catId, index) => {
                         const cat = categories.find(c => c.id === catId);
                         if (!cat) return null;
+                        const hasCustomImage = catId in seriesImages;
+                        
                         return (
                           <div 
                             key={catId}
-                            className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg text-xs"
+                            className="bg-blue-50 border border-blue-200 rounded-lg text-xs overflow-hidden"
                           >
-                            <span className="text-gray-400 cursor-move">⋮⋮</span>
-                            <span className="flex-1">{cat.name}</span>
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => {
-                                  if (index > 0) {
-                                    const newIds = [...selectedSeriesIds];
-                                    [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                            <div className="flex items-center gap-2 p-2">
+                              <span className="text-gray-400 cursor-move">⋮⋮</span>
+                              <span className="flex-1 font-medium">{cat.name}</span>
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => {
+                                    if (index > 0) {
+                                      const newIds = [...selectedSeriesIds];
+                                      [newIds[index - 1], newIds[index]] = [newIds[index], newIds[index - 1]];
+                                      updateContent('categoryIds', newIds);
+                                    }
+                                  }}
+                                  disabled={index === 0}
+                                  className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                                >
+                                  ↑
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (index < selectedSeriesIds.length - 1) {
+                                      const newIds = [...selectedSeriesIds];
+                                      [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
+                                      updateContent('categoryIds', newIds);
+                                    }
+                                  }}
+                                  disabled={index === selectedSeriesIds.length - 1}
+                                  className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
+                                >
+                                  ↓
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const newIds = selectedSeriesIds.filter(id => id !== catId);
                                     updateContent('categoryIds', newIds);
-                                  }
-                                }}
-                                disabled={index === 0}
-                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
-                              >
-                                ↑
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (index < selectedSeriesIds.length - 1) {
-                                    const newIds = [...selectedSeriesIds];
-                                    [newIds[index], newIds[index + 1]] = [newIds[index + 1], newIds[index]];
-                                    updateContent('categoryIds', newIds);
-                                  }
-                                }}
-                                disabled={index === selectedSeriesIds.length - 1}
-                                className="p-1 hover:bg-blue-100 rounded disabled:opacity-30"
-                              >
-                                ↓
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const newIds = selectedSeriesIds.filter(id => id !== catId);
-                                  updateContent('categoryIds', newIds);
-                                }}
-                                className="p-1 hover:bg-red-100 text-red-500 rounded"
-                              >
-                                ✕
-                              </button>
+                                    // Also remove custom image if exists
+                                    if (seriesImages[catId]) {
+                                      const newImages = { ...seriesImages };
+                                      delete newImages[catId];
+                                      updateContent('categoryImages', newImages);
+                                    }
+                                  }}
+                                  className="p-1 hover:bg-red-100 text-red-500 rounded"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Custom Image Option */}
+                            <div className="px-2 pb-2 pt-1 border-t border-blue-200/50">
+                              {hasCustomImage ? (
+                                <div className="space-y-1.5">
+                                  <div className="flex items-center gap-2">
+                                    {seriesImages[catId] && (
+                                      <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                        <img 
+                                          src={seriesImages[catId]} 
+                                          alt="" 
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                      </div>
+                                    )}
+                                    <input
+                                      type="text"
+                                      value={seriesImages[catId] || ''}
+                                      onChange={(e) => updateSeriesImage(catId, e.target.value)}
+                                      placeholder="URL תמונה..."
+                                      className="flex-1 px-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:border-blue-400 focus:outline-none"
+                                    />
+                                    <button
+                                      onClick={() => updateSeriesImage(catId, '')}
+                                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                      title="הסר תמונה מותאמת"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => updateSeriesImage(catId, 'https://')}
+                                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-[10px] text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  תמונה מותאמת
+                                </button>
+                              )}
                             </div>
                           </div>
                         );
@@ -1421,6 +1552,7 @@ function SectionContentEditor({
                   onChange={(v) => updateContent('displayLimit', v)}
                   min={1}
                   max={12}
+                  suffix=""
                 />
               )}
             </div>

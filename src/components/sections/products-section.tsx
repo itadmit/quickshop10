@@ -126,10 +126,22 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
   };
   
   return (
-    <section 
-      id={settings.customId || 'products'} 
-      className={`${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
-      style={{
+    <>
+      {/* Scoped CSS for responsive grid */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        [data-section-id="${sectionId}"] [data-products-grid] {
+          grid-template-columns: repeat(${mobileColumns}, minmax(0, 1fr));
+        }
+        @media (min-width: 1024px) {
+          [data-section-id="${sectionId}"] [data-products-grid] {
+            grid-template-columns: repeat(${columns}, minmax(0, 1fr));
+          }
+        }
+      `}} />
+      <section 
+        id={settings.customId || 'products'} 
+        className={`${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
+        style={{
         backgroundColor: settings.backgroundColor || '#ffffff',
         paddingTop: `${paddingTop}px`,
         paddingBottom: `${paddingBottom}px`,
@@ -180,9 +192,14 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
         </p>
         
         <div 
-          className={`grid grid-cols-${mobileColumns} lg:grid-cols-${columns} ${settings.showAddToCart ? 'items-stretch' : ''}`} 
-          style={{ gap: `${gap}px` }}
+          className={`grid ${settings.showAddToCart ? 'items-stretch' : ''}`} 
+          style={{ 
+            gap: `${gap}px`,
+            gridTemplateColumns: `repeat(${mobileColumns}, minmax(0, 1fr))`,
+          }}
           data-products-grid
+          data-columns={columns}
+          data-mobile-columns={mobileColumns}
         >
           {products.map((product, i) => (
             <div 
@@ -221,6 +238,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
         </div>
       </div>
     </section>
+    </>
   );
 }
 

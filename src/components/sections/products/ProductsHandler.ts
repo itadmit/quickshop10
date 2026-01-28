@@ -119,20 +119,38 @@ export function handleProductsUpdate(
   // =====================================================
   
   const gridEl = el.querySelector('[data-products-grid]') as HTMLElement;
+  const sectionId = el.getAttribute('data-section-id');
   
   if (gridEl) {
-    // Columns
-    if (updates.settings?.columns !== undefined) {
-      const cols = updates.settings.columns as number;
-      gridEl.classList.remove('lg:grid-cols-2', 'lg:grid-cols-3', 'lg:grid-cols-4', 'lg:grid-cols-5', 'lg:grid-cols-6');
-      gridEl.classList.add(`lg:grid-cols-${cols}`);
-    }
-
-    // Mobile columns
-    if (updates.settings?.mobileColumns !== undefined) {
-      const cols = updates.settings.mobileColumns as number;
-      gridEl.classList.remove('grid-cols-1', 'grid-cols-2');
-      gridEl.classList.add(`grid-cols-${cols}`);
+    // Columns - use inline styles and inject scoped CSS for responsive
+    if (updates.settings?.columns !== undefined || updates.settings?.mobileColumns !== undefined) {
+      const cols = (updates.settings?.columns as number) || gridEl.getAttribute('data-columns') || 4;
+      const mobileCols = (updates.settings?.mobileColumns as number) || gridEl.getAttribute('data-mobile-columns') || 2;
+      
+      // Update data attributes
+      gridEl.setAttribute('data-columns', String(cols));
+      gridEl.setAttribute('data-mobile-columns', String(mobileCols));
+      
+      // Apply inline style for mobile (default)
+      gridEl.style.gridTemplateColumns = `repeat(${mobileCols}, minmax(0, 1fr))`;
+      
+      // Inject/update scoped CSS for desktop
+      if (sectionId) {
+        const styleId = `products-grid-style-${sectionId}`;
+        let styleEl = document.getElementById(styleId);
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = styleId;
+          document.head.appendChild(styleEl);
+        }
+        styleEl.textContent = `
+          @media (min-width: 1024px) {
+            [data-section-id="${sectionId}"] [data-products-grid] {
+              grid-template-columns: repeat(${cols}, minmax(0, 1fr)) !important;
+            }
+          }
+        `;
+      }
     }
 
     // Gap

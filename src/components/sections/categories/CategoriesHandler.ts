@@ -57,6 +57,117 @@ export function handleCategoriesUpdate(
       gridEl.style.gap = `${updates.settings.gap}px`;
     }
   }
+  
+  // Category selection and ordering
+  if (updates.content?.categoryIds !== undefined || updates.content?.selectionMode !== undefined) {
+    const selectionMode = (updates.content?.selectionMode as string) || 'all';
+    const categoryIds = (updates.content?.categoryIds as string[]) || [];
+    const displayLimit = (updates.content?.displayLimit as number) || 6;
+    const gridEl = el.querySelector('[data-categories-grid]') as HTMLElement;
+    
+    if (gridEl) {
+      const categoryElements = Array.from(gridEl.querySelectorAll('[data-category-id]')) as HTMLElement[];
+      
+      if (selectionMode === 'manual' && categoryIds.length > 0) {
+        // Hide unselected categories
+        categoryElements.forEach(catEl => {
+          const catId = catEl.getAttribute('data-category-id');
+          if (catId && !categoryIds.includes(catId)) {
+            catEl.style.display = 'none';
+          } else {
+            catEl.style.display = '';
+          }
+        });
+        
+        // Reorder based on selection order
+        categoryIds.forEach((catId, index) => {
+          const catEl = gridEl.querySelector(`[data-category-id="${catId}"]`) as HTMLElement;
+          if (catEl) {
+            catEl.style.order = String(index);
+          }
+        });
+      } else {
+        // Show all mode - show all with limit
+        categoryElements.forEach((catEl, index) => {
+          catEl.style.display = index < displayLimit ? '' : 'none';
+          catEl.style.order = '';
+        });
+      }
+    }
+  }
+  
+  // Display limit (for "all" mode)
+  if (updates.content?.displayLimit !== undefined) {
+    // Get current selection mode from element dataset or updates
+    const currentSelectionMode = (updates.content?.selectionMode as string) || 
+                                  el.getAttribute('data-selection-mode') || 
+                                  'all';
+    if (currentSelectionMode === 'all') {
+      const displayLimit = updates.content.displayLimit as number;
+      const gridEl = el.querySelector('[data-categories-grid]') as HTMLElement;
+      if (gridEl) {
+        const categoryElements = Array.from(gridEl.querySelectorAll('[data-category-id]')) as HTMLElement[];
+        categoryElements.forEach((catEl, index) => {
+          catEl.style.display = index < displayLimit ? '' : 'none';
+        });
+      }
+    }
+  }
+  
+  // Update selection mode on element for future reference
+  if (updates.content?.selectionMode !== undefined) {
+    el.setAttribute('data-selection-mode', updates.content.selectionMode as string);
+  }
+  
+  // Custom category images
+  if (updates.content?.categoryImages !== undefined) {
+    const categoryImages = updates.content.categoryImages as Record<string, string>;
+    const gridEl = el.querySelector('[data-categories-grid]') as HTMLElement;
+    if (gridEl) {
+      // Get all categories
+      const allCategories = Array.from(gridEl.querySelectorAll('[data-category-id]')) as HTMLElement[];
+      
+      allCategories.forEach(catEl => {
+        const catId = catEl.getAttribute('data-category-id');
+        if (!catId) return;
+        
+        const imageContainer = catEl.querySelector('[data-category-image-container]') as HTMLElement;
+        const imgEl = catEl.querySelector('[data-category-image]') as HTMLImageElement;
+        const placeholderEl = catEl.querySelector('[data-category-placeholder]') as HTMLElement;
+        
+        const customImageUrl = categoryImages[catId];
+        const originalImageUrl = imageContainer?.getAttribute('data-original-image');
+        
+        if (customImageUrl && customImageUrl !== 'https://') {
+          // Use custom image
+          if (imgEl) {
+            imgEl.src = customImageUrl;
+            imgEl.style.display = '';
+          } else if (imageContainer) {
+            // Create img if it doesn't exist
+            const newImg = document.createElement('img');
+            newImg.src = customImageUrl;
+            newImg.alt = '';
+            newImg.className = 'w-full h-full object-cover group-hover:scale-105 transition-transform duration-700';
+            newImg.setAttribute('data-category-image', '');
+            if (placeholderEl) placeholderEl.style.display = 'none';
+            imageContainer.appendChild(newImg);
+          }
+        } else if (originalImageUrl) {
+          // Restore original image
+          if (imgEl) {
+            imgEl.src = originalImageUrl;
+            imgEl.style.display = '';
+          }
+          if (placeholderEl) placeholderEl.style.display = 'none';
+        } else {
+          // No image - show placeholder
+          if (imgEl) imgEl.style.display = 'none';
+          if (placeholderEl) placeholderEl.style.display = '';
+        }
+      });
+    }
+  }
 }
 
 export const defaultContent = {

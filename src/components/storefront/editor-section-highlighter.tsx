@@ -189,7 +189,7 @@ export function EditorSectionHighlighter() {
         // Also handled by PreviewSettingsProvider for header settings
       }
       if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
-        const { sectionId, updates } = event.data;
+        const { sectionId, updates, categories } = event.data;
         const element = document.querySelector(`[data-section-id="${sectionId}"]`);
         if (!element) {
           // List all section IDs in DOM for debugging
@@ -207,7 +207,12 @@ export function EditorSectionHighlighter() {
         if (currentSectionType && hasHandler(currentSectionType)) {
           const dedicatedHandler = getHandler(currentSectionType);
           if (dedicatedHandler) {
-            dedicatedHandler(element, updates);
+            // Add categories to updates for handlers that need it
+            const updatesWithCategories = {
+              ...updates,
+              _categories: categories || [],
+            };
+            dedicatedHandler(element, updatesWithCategories);
             return; // Handler took care of everything
           }
         }
@@ -2651,21 +2656,112 @@ export function EditorSectionHighlighter() {
             break;
           
           case 'products':
+            const prodColumns = (event.data.settings?.columns as number) || 4;
+            const prodMobileColumns = (event.data.settings?.mobileColumns as number) || 2;
+            const prodGap = (event.data.settings?.gap as number) || 24;
+            const prodDisplayLimit = (content?.displayLimit as number) || 8;
+            
             placeholder.className = 'py-16 bg-white';
+            placeholder.dataset.sectionName = 'מוצרים';
+            
+            // Inject scoped CSS for responsive columns
+            const prodStyleId = `products-placeholder-style-${sectionId}`;
+            let prodStyleEl = document.getElementById(prodStyleId);
+            if (!prodStyleEl) {
+              prodStyleEl = document.createElement('style');
+              prodStyleEl.id = prodStyleId;
+              document.head.appendChild(prodStyleEl);
+            }
+            prodStyleEl.textContent = `
+              [data-section-id="${sectionId}"] [data-products-grid] {
+                grid-template-columns: repeat(${prodMobileColumns}, minmax(0, 1fr));
+              }
+              @media (min-width: 1024px) {
+                [data-section-id="${sectionId}"] [data-products-grid] {
+                  grid-template-columns: repeat(${prodColumns}, minmax(0, 1fr));
+                }
+              }
+            `;
+            
             html = `
-              <div class="container mx-auto px-4">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'המוצרים שלנו'}</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4" data-products-grid>
-                  ${[1,2,3,4].map(() => `
-                    <div class="group">
-                      <div class="aspect-square bg-gray-100 rounded mb-3 flex items-center justify-center">
+              <div class="max-w-7xl mx-auto px-6" data-content-wrapper>
+                <h2 class="font-display text-2xl md:text-3xl text-center font-light tracking-[0.15em] uppercase mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || 'מוצרים'}</h2>
+                <p class="text-center text-gray-400 text-xs tracking-[0.2em] uppercase ${subtitle ? 'mb-12' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
+                <div class="grid" style="gap: ${prodGap}px" data-products-grid data-columns="${prodColumns}" data-mobile-columns="${prodMobileColumns}">
+                  ${Array.from({length: Math.min(prodDisplayLimit, 8)}, (_, i) => `
+                    <div class="group" data-product-index="${i}">
+                      <div class="aspect-square bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
                         <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                       </div>
-                      <p class="text-sm text-gray-600">שם מוצר</p>
-                      <p class="font-medium">₪99</p>
+                      <p class="text-sm text-gray-800 text-center">שם מוצר</p>
+                      <p class="font-medium text-center">₪99</p>
                     </div>
+                  `).join('')}
+                </div>
+                <p class="text-center text-gray-400 text-sm mt-6">המוצרים יוצגו מהחנות לאחר שמירה</p>
+              </div>
+            `;
+            break;
+          
+          case 'featured_items':
+            const featColumns = (event.data.settings?.columns as number) || 4;
+            const featMobileColumns = (event.data.settings?.mobileColumns as number) || 2;
+            const featGap = (event.data.settings?.gap as number) || 24;
+            const featItems = (content?.items as Array<{id: string; name: string; imageUrl?: string; link?: string}>) || [];
+            
+            placeholder.className = 'py-16 bg-white';
+            placeholder.dataset.sectionName = 'פריטים מובילים';
+            
+            // Inject scoped CSS for responsive columns
+            const featStyleId = `featured-items-placeholder-style-${sectionId}`;
+            let featStyleEl = document.getElementById(featStyleId);
+            if (!featStyleEl) {
+              featStyleEl = document.createElement('style');
+              featStyleEl.id = featStyleId;
+              document.head.appendChild(featStyleEl);
+            }
+            featStyleEl.textContent = `
+              [data-section-id="${sectionId}"] [data-products-grid] {
+                grid-template-columns: repeat(${featMobileColumns}, minmax(0, 1fr));
+              }
+              @media (min-width: 1024px) {
+                [data-section-id="${sectionId}"] [data-products-grid] {
+                  grid-template-columns: repeat(${featColumns}, minmax(0, 1fr));
+                }
+              }
+            `;
+            
+            // Generate items - use provided items or placeholders
+            const itemsToShow = featItems.length > 0 
+              ? featItems 
+              : [
+                  { id: '1', name: 'פריט 1', imageUrl: '' },
+                  { id: '2', name: 'פריט 2', imageUrl: '' },
+                  { id: '3', name: 'פריט 3', imageUrl: '' },
+                  { id: '4', name: 'פריט 4', imageUrl: '' },
+                ];
+            
+            html = `
+              <div class="max-w-[1200px] mx-auto px-4 md:px-10" data-content-wrapper>
+                <div class="mb-12 text-center" style="${(title || subtitle) ? '' : 'display:none'}">
+                  <h2 class="text-3xl md:text-4xl font-bold mb-3" style="${title ? '' : 'display:none'}" data-section-title>${title || ''}</h2>
+                  <p class="text-gray-600" style="${subtitle ? '' : 'display:none'}" data-section-subtitle>${subtitle || ''}</p>
+                </div>
+                <div class="grid" style="gap: ${featGap}px" data-products-grid data-columns="${featColumns}" data-mobile-columns="${featMobileColumns}">
+                  ${itemsToShow.map((item, i) => `
+                    <a href="#" class="group block" data-item-id="${item.id}">
+                      <div class="aspect-square bg-gray-100 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
+                        ${item.imageUrl 
+                          ? `<img src="${item.imageUrl}" alt="${item.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />`
+                          : `<svg class="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>`
+                        }
+                      </div>
+                      <h3 class="font-medium text-center text-gray-800" data-item-name>${item.name}</h3>
+                    </a>
                   `).join('')}
                 </div>
               </div>
@@ -2673,19 +2769,61 @@ export function EditorSectionHighlighter() {
             break;
           
           case 'categories':
+            const catCategories = (event.data.categories as Array<{id: string; name: string; slug: string; imageUrl?: string}>) || [];
+            const catDisplayLimit = (content?.displayLimit as number) || 6;
+            const catColumns = (event.data.settings?.columns as number) || 4;
+            const catSelectionMode = (content?.selectionMode as string) || 'all';
+            const catSelectedIds = (content?.categoryIds as string[]) || [];
+            
             placeholder.className = 'py-16 bg-white';
-            html = `
-              <div class="container mx-auto px-4">
-                <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'קטגוריות'}</h2>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  ${[1,2,3,4].map(() => `
-                    <div class="aspect-square bg-gray-100 rounded flex items-center justify-center">
-                      <span class="text-gray-400">קטגוריה</span>
-                    </div>
-                  `).join('')}
+            placeholder.dataset.sectionName = 'רשימת קטגוריות';
+            placeholder.dataset.selectionMode = catSelectionMode;
+            
+            if (catCategories.length > 0) {
+              // Render ALL categories, but hide/show based on selection mode and limit
+              html = `
+                <div class="max-w-7xl mx-auto px-6">
+                  <h2 class="font-display text-2xl md:text-3xl text-center font-light tracking-[0.15em] uppercase mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
+                  <p class="text-center text-gray-400 text-xs tracking-[0.2em] uppercase ${subtitle ? 'mb-20' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
+                  <div class="grid grid-cols-2 md:grid-cols-${catColumns} gap-8" data-categories-grid>
+                    ${catCategories.map((cat, i) => {
+                      // Determine if category should be visible
+                      let shouldShow = false;
+                      if (catSelectionMode === 'manual' && catSelectedIds.length > 0) {
+                        shouldShow = catSelectedIds.includes(cat.id);
+                      } else {
+                        shouldShow = i < catDisplayLimit;
+                      }
+                      const displayStyle = shouldShow ? '' : 'display: none;';
+                      const orderStyle = catSelectionMode === 'manual' ? `order: ${catSelectedIds.indexOf(cat.id) >= 0 ? catSelectedIds.indexOf(cat.id) : 999};` : '';
+                      
+                      return `
+                      <a href="#" class="group text-center animate-slide-up" style="animation-delay: ${i * 100}ms; ${displayStyle} ${orderStyle}" data-category-id="${cat.id}">
+                        <div class="aspect-[3/4] bg-gray-100 mb-6 overflow-hidden" data-category-image-container data-original-image="${cat.imageUrl || ''}">
+                          ${cat.imageUrl 
+                            ? `<img src="${cat.imageUrl}" alt="${cat.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" data-category-image />`
+                            : `<div class="w-full h-full bg-gradient-to-b from-gray-50 to-gray-200 group-hover:scale-105 transition-transform duration-700" data-category-placeholder></div>`
+                          }
+                        </div>
+                        <span class="text-xs tracking-[0.25em] uppercase text-gray-800 group-hover:text-black transition-colors">${cat.name}</span>
+                      </a>
+                    `}).join('')}
+                  </div>
                 </div>
-              </div>
-            `;
+              `;
+            } else {
+              html = `
+                <div class="container mx-auto px-4">
+                  <h2 class="text-2xl md:text-3xl font-light tracking-wide text-center mb-8 ${title ? '' : 'hidden'}" data-section-title>${title || 'קטגוריות'}</h2>
+                  <div class="text-center py-12 border-2 border-dashed border-gray-200 rounded-lg">
+                    <svg class="w-12 h-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/>
+                    </svg>
+                    <p class="text-gray-400 text-sm">אין קטגוריות בחנות</p>
+                  </div>
+                </div>
+              `;
+            }
             break;
           
           case 'gallery':
@@ -2857,11 +2995,50 @@ export function EditorSectionHighlighter() {
             break;
 
           case 'series_grid':
-            const seriesItems = (content?.items as Array<{id: string; title: string; subtitle?: string; description?: string; imageUrl?: string}>) || [
-              { id: '1', title: 'סדרה 1', description: 'תיאור קצר של הסדרה.' },
-              { id: '2', title: 'סדרה 2', description: 'תיאור קצר של הסדרה.' },
-              { id: '3', title: 'סדרה 3', description: 'תיאור קצר של הסדרה.' },
-            ];
+            // Use categories data if available (for category-based series)
+            const seriesCategories = (event.data.categories as Array<{id: string; name: string; slug: string; imageUrl?: string}>) || [];
+            const seriesSelectionMode = (content?.selectionMode as string) || 'all';
+            const seriesSelectedIds = (content?.categoryIds as string[]) || [];
+            const seriesDisplayLimit = (content?.displayLimit as number) || 4;
+            
+            // Build items from ALL categories (for real-time updates)
+            let seriesItems: Array<{id: string; title: string; subtitle?: string; description?: string; imageUrl?: string; originalImageUrl?: string; shouldShow?: boolean; order?: number}> = [];
+            
+            if (seriesCategories.length > 0) {
+              // Use ALL categories, but mark which should be shown
+              seriesItems = seriesCategories.map((cat, index) => {
+                let shouldShow = false;
+                let order = index;
+                if (seriesSelectionMode === 'manual' && seriesSelectedIds.length > 0) {
+                  shouldShow = seriesSelectedIds.includes(cat.id);
+                  order = seriesSelectedIds.indexOf(cat.id) >= 0 ? seriesSelectedIds.indexOf(cat.id) : 999;
+                } else {
+                  shouldShow = index < seriesDisplayLimit;
+                }
+                return {
+                  id: cat.id,
+                  title: cat.name,
+                  imageUrl: cat.imageUrl || '',
+                  originalImageUrl: cat.imageUrl || '',
+                  shouldShow,
+                  order,
+                };
+              });
+            } else {
+              // Fallback to content items or placeholder
+              const fallbackItems = (content?.items as Array<{id: string; title: string; subtitle?: string; description?: string; imageUrl?: string}>) || [
+                { id: '1', title: 'סדרה 1', description: 'תיאור קצר של הסדרה.' },
+                { id: '2', title: 'סדרה 2', description: 'תיאור קצר של הסדרה.' },
+                { id: '3', title: 'סדרה 3', description: 'תיאור קצר של הסדרה.' },
+              ];
+              seriesItems = fallbackItems.map((item, index) => ({
+                ...item,
+                originalImageUrl: item.imageUrl || '',
+                shouldShow: index < seriesDisplayLimit,
+                order: index,
+              }));
+            }
+            
             const seriesStyle = (event.data.settings?.style as string) || 'cards';
             const seriesCols = (event.data.settings?.columns as number) || 3;
             const seriesMobileCols = (event.data.settings?.mobileColumns as number) || 1;
@@ -2884,6 +3061,8 @@ export function EditorSectionHighlighter() {
             };
             const aspectClass = getAspectClass(seriesAspectRatio);
             
+            placeholder.dataset.selectionMode = seriesSelectionMode;
+            
             if (seriesStyle === 'overlay') {
               // Overlay style
               html = `
@@ -2894,11 +3073,14 @@ export function EditorSectionHighlighter() {
                     <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary, #d4af37);" data-accent-color-bg></div>
                   </div>
                   <div class="grid grid-cols-${seriesMobileCols} md:grid-cols-${seriesCols} gap-6" data-items-grid>
-                    ${seriesItems.map((item) => `
-                      <a href="#" class="group relative rounded-2xl overflow-hidden" style="height: 320px;" data-item-id="${item.id}">
+                    ${seriesItems.map((item) => {
+                      const displayStyle = item.shouldShow !== false ? '' : 'display: none;';
+                      const orderStyle = item.order !== undefined ? `order: ${item.order};` : '';
+                      return `
+                      <a href="#" class="group relative rounded-2xl overflow-hidden" style="height: 320px; ${displayStyle} ${orderStyle}" data-item-id="${item.id}">
                         ${item.imageUrl 
-                          ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');" data-item-bg></div>`
-                          : `<div class="absolute inset-0 bg-gray-300 flex items-center justify-center" data-item-bg>
+                          ? `<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" style="background-image: url('${item.imageUrl}');" data-item-bg data-original-image="${item.originalImageUrl || item.imageUrl || ''}"></div>`
+                          : `<div class="absolute inset-0 bg-gray-300 flex items-center justify-center" data-item-bg data-original-image="${item.originalImageUrl || ''}">
                               <svg class="w-12 h-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
@@ -2910,7 +3092,7 @@ export function EditorSectionHighlighter() {
                           ${item.description ? `<p class="text-sm opacity-90 mb-4" data-item-description>${item.description}</p>` : ''}
                         </div>
                       </a>
-                    `).join('')}
+                    `}).join('')}
                   </div>
                 </div>
               `;
@@ -2924,12 +3106,15 @@ export function EditorSectionHighlighter() {
                     <div class="w-16 h-1 mx-auto mt-4" style="background: var(--template-primary, #d4af37);" data-accent-color-bg></div>
                   </div>
                   <div class="grid grid-cols-${seriesMobileCols} md:grid-cols-${seriesCols} gap-6" data-items-grid>
-                    ${seriesItems.map((item) => `
-                      <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: #f9f7f4;" data-item-id="${item.id}">
+                    ${seriesItems.map((item) => {
+                      const displayStyle = item.shouldShow !== false ? '' : 'display: none;';
+                      const orderStyle = item.order !== undefined ? `order: ${item.order};` : '';
+                      return `
+                      <div class="group rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all" style="background: #f9f7f4; ${displayStyle} ${orderStyle}" data-item-id="${item.id}">
                         <div class="overflow-hidden ${aspectClass}" style="${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-image-container>
                           ${item.imageUrl 
-                            ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}'); ${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-item-bg></div>`
-                            : `<div class="w-full h-full bg-gray-200 flex items-center justify-center" style="${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-item-bg>
+                            ? `<div class="w-full h-full bg-cover bg-center transition-transform duration-500 group-hover:scale-105" style="background-image: url('${item.imageUrl}'); ${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-item-bg data-original-image="${item.originalImageUrl || item.imageUrl || ''}"></div>`
+                            : `<div class="w-full h-full bg-gray-200 flex items-center justify-center" style="${seriesAspectRatio === 'auto' ? `min-height: ${seriesMinHeight}` : ''}" data-item-bg data-original-image="${item.originalImageUrl || ''}">
                                 <svg class="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
@@ -2942,7 +3127,7 @@ export function EditorSectionHighlighter() {
                           ${item.description ? `<p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" data-item-description>${item.description}</p>` : ''}
                         </div>
                       </div>
-                    `).join('')}
+                    `}).join('')}
                   </div>
                 </div>
               `;
