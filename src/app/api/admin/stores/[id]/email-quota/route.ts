@@ -13,8 +13,12 @@ export async function POST(
   try {
     const session = await auth();
     
+    // Super admin emails
+    const SUPER_ADMINS = ['yogev@tadmit.co.il', 'admin@quickshop.co.il'];
+    
     // Only super admins can modify quotas
-    if (!session?.user?.email || session.user.email !== 'yogev@tadmit.co.il') {
+    if (!session?.user?.email || !SUPER_ADMINS.includes(session.user.email)) {
+      console.log('[Email Quota] Unauthorized access attempt:', session?.user?.email);
       return NextResponse.json(
         { error: 'אין הרשאה' },
         { status: 403 }
