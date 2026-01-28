@@ -119,8 +119,9 @@ export function ProductCard({
             <ProductImage 
               src={displayImage} 
               alt={name}
-              className={`w-full h-full object-cover ${outOfStock ? 'opacity-60' : ''}`}
+              className={outOfStock ? 'opacity-60' : ''}
               loading="lazy"
+              sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             />
           )}
           
