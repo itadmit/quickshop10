@@ -231,15 +231,24 @@ function AutomationCard({
           <button
             onClick={() => onToggle(automation.id, !automation.isActive)}
             disabled={isPending}
-            className={`relative w-11 h-6 rounded-full transition-colors ${
+            className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-70 ${
               automation.isActive ? 'bg-green-500' : 'bg-slate-300'
             }`}
           >
-            <span
-              className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-                automation.isActive ? 'right-0.5' : 'right-5'
-              }`}
-            />
+            {isPending ? (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <svg className="w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              </span>
+            ) : (
+              <span
+                className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                  automation.isActive ? 'right-0.5' : 'right-5'
+                }`}
+              />
+            )}
           </button>
 
           {/* Edit */}
