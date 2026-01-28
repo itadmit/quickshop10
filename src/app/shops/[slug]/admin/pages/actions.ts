@@ -4,7 +4,6 @@ import { db } from '@/lib/db';
 import { pages, pageTemplates } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { revalidatePath, revalidateTag } from 'next/cache';
-import { getDefaultPageTemplateById } from '@/lib/default-page-templates';
 import { randomUUID } from 'crypto';
 
 // ============================================
@@ -165,7 +164,6 @@ export async function togglePagePublish(pageId: string, storeSlug: string, isPub
 
 /**
  * Create a new page with template sections
- * Supports both system templates (system:templateId) and custom templates (UUID)
  * NEW ARCHITECTURE: Sections stored directly on page as JSON
  */
 export async function createPageWithTemplate(
@@ -184,10 +182,7 @@ export async function createPageWithTemplate(
       return { success: false, error: 'כתובת URL כבר קיימת' };
     }
 
-    // Determine template type and get sections
-    const isSystemTemplate = templateId.startsWith('system:');
-    const templateIdClean = isSystemTemplate ? templateId.replace('system:', '') : templateId;
-    
+    // Get sections from custom template in DB
     let templateSections: Array<{
       type: string;
       title: string | null;
@@ -196,24 +191,15 @@ export async function createPageWithTemplate(
       settings: Record<string, unknown>;
     }> = [];
 
-    if (isSystemTemplate) {
-      // Get from default system templates
-      const systemTemplate = getDefaultPageTemplateById(templateIdClean);
-      if (systemTemplate) {
-        templateSections = systemTemplate.sections;
-      }
-    } else {
-      // Get from custom template in DB
-      const customTemplate = await db.query.pageTemplates.findFirst({
-        where: and(
-          eq(pageTemplates.id, templateIdClean),
-          eq(pageTemplates.storeId, storeId)
-        ),
-      });
-      
-      if (customTemplate && Array.isArray(customTemplate.sections)) {
-        templateSections = customTemplate.sections as typeof templateSections;
-      }
+    const customTemplate = await db.query.pageTemplates.findFirst({
+      where: and(
+        eq(pageTemplates.id, templateId),
+        eq(pageTemplates.storeId, storeId)
+      ),
+    });
+    
+    if (customTemplate && Array.isArray(customTemplate.sections)) {
+      templateSections = customTemplate.sections as typeof templateSections;
     }
 
     // Convert template sections to page sections with IDs

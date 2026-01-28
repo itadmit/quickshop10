@@ -23,7 +23,8 @@ interface Props {
 // שדות חובה ואופציונליים לייבוא
 const IMPORT_FIELDS = [
   { key: 'name', label: 'שם מוצר', required: true },
-  { key: 'description', label: 'תיאור', required: false },
+  { key: 'shortDescription', label: 'תיאור קצר', required: false },
+  { key: 'description', label: 'תיאור מלא', required: false },
   { key: 'price', label: 'מחיר', required: true },
   { key: 'comparePrice', label: 'מחיר להשוואה (מבצע)', required: false },
   { key: 'sku', label: 'מק"ט / ברקוד', required: false },
@@ -48,6 +49,7 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
   // Step 2: Column Mapping
   const [mapping, setMapping] = useState<ColumnMapping>({
     name: -1,
+    shortDescription: -1,
     description: -1,
     price: -1,
     comparePrice: -1,
@@ -170,6 +172,7 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
   const autoDetectMapping = (columns: string[]): ColumnMapping => {
     const newMapping: ColumnMapping = {
       name: -1,
+      shortDescription: -1,
       description: -1,
       price: -1,
       comparePrice: -1,
@@ -186,7 +189,11 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
       if (colLower.includes('שם מוצר') || colLower === 'name' || colLower === 'title') {
         if (newMapping.name === -1) newMapping.name = index;
       }
-      // תיאור
+      // תיאור קצר
+      else if (colLower.includes('תיאור קצר') || colLower === 'short description' || colLower === 'short_description' || colLower === 'shortdescription') {
+        if (newMapping.shortDescription === -1) newMapping.shortDescription = index;
+      }
+      // תיאור מלא
       else if (colLower.includes('תיאור') || colLower === 'description') {
         if (newMapping.description === -1) newMapping.description = index;
       }
@@ -289,6 +296,7 @@ export function ProductImportForm({ storeId, storeSlug }: Props) {
     setResult(null);
     setMapping({
       name: -1,
+      shortDescription: -1,
       description: -1,
       price: -1,
       comparePrice: -1,

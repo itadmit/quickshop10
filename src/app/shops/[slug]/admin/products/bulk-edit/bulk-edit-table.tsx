@@ -469,10 +469,10 @@ export function BulkEditTable({ items, storeSlug, categories }: BulkEditTablePro
                 </svg>
               </div>
             )}
-            <div className="min-w-0 overflow-hidden">
-              <p className="font-medium text-gray-900 text-sm truncate">{item.productName}</p>
+            <div className="min-w-0">
+              <p className="font-medium text-gray-900 text-xs leading-snug">{item.productName}</p>
               {item.variantTitle && (
-                <p className="text-xs text-gray-500 truncate">{item.variantTitle}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">{item.variantTitle}</p>
               )}
             </div>
           </div>

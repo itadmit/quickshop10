@@ -88,8 +88,11 @@ type TabType = 'content' | 'design' | 'advanced';
 
 // Section display names
 const SECTION_NAMES: Record<string, string> = {
+  content_block: 'בלוק תוכן',
   text_block: 'בלוק טקסט',
   hero: 'באנר ראשי',
+  hero_premium: 'באנר פרימיום',
+  hero_slider: 'סליידר הירו',
   products: 'מוצרים נבחרים',
   categories: 'קטגוריות',
   reviews: 'ביקורות',
@@ -107,6 +110,9 @@ const SECTION_NAMES: Record<string, string> = {
   series_grid: 'סדרות',
 };
 
+// content_block - סקשן אחד, אותן הגדרות
+// מה שריק בתוכן פשוט לא מוצג
+
 // Design config per section type
 interface DesignConfig {
   showButton?: boolean;
@@ -119,6 +125,13 @@ interface DesignConfig {
 }
 
 const DESIGN_CONFIG: Record<string, DesignConfig> = {
+  content_block: {
+    showButton: true,
+    titleDefaults: { size: 36, sizeMobile: 28, weight: 'bold', color: '#000000' },
+    subtitleDefaults: { size: 18, sizeMobile: 16, weight: 'normal', color: '#6b7280' },
+    textDefaults: { size: 16, sizeMobile: 14, color: '#374151' },
+    paddingDefaults: { top: 64, bottom: 64, left: 24, right: 24 },
+  },
   text_block: {
     showButton: true,
     titleDefaults: { size: 36, sizeMobile: 28, weight: 'bold', color: '#000000' },
@@ -128,8 +141,21 @@ const DESIGN_CONFIG: Record<string, DesignConfig> = {
   },
   hero: {
     showButton: true,
-    titleDefaults: { size: 48, sizeMobile: 32, weight: 'bold', color: '#ffffff' },
-    subtitleDefaults: { size: 18, sizeMobile: 16, weight: 'normal', color: '#ffffff' },
+    titleDefaults: { size: 96, sizeMobile: 48, weight: 'extralight', color: '#ffffff' },
+    subtitleDefaults: { size: 14, sizeMobile: 12, weight: 'normal', color: 'rgba(255,255,255,0.9)' },
+    paddingDefaults: { top: 0, bottom: 0, left: 0, right: 0 },
+  },
+  hero_premium: {
+    showButton: true,
+    titleDefaults: { size: 96, sizeMobile: 48, weight: 'extralight', color: '#ffffff' },
+    subtitleDefaults: { size: 14, sizeMobile: 12, weight: 'normal', color: 'rgba(255,255,255,0.9)' },
+    textDefaults: { size: 16, sizeMobile: 14, color: '#ffffff' },
+    paddingDefaults: { top: 0, bottom: 80, left: 24, right: 24 },
+  },
+  hero_slider: {
+    showButton: true,
+    titleDefaults: { size: 72, sizeMobile: 36, weight: 'extralight', color: '#ffffff' },
+    subtitleDefaults: { size: 18, sizeMobile: 14, weight: 'normal', color: 'rgba(255,255,255,0.9)' },
     paddingDefaults: { top: 0, bottom: 0, left: 0, right: 0 },
   },
   products: {
@@ -376,6 +402,14 @@ export function UniversalSectionPanel({
                     <MinHeightControl
                       settings={section.settings}
                       onChange={updateSettings}
+                      defaultValue={
+                        // For hero with media - 90vh, for text_block - 400px
+                        (section.type === 'hero' || section.type === 'hero_premium' || section.type === 'hero_slider') 
+                          ? 90
+                          : (section.type === 'content_block' || section.type === 'text_block')
+                            ? ((section.content?.imageUrl || section.content?.videoUrl) ? 90 : 400)
+                            : 0
+                      }
                     />
                     
                     <VerticalAlignControl
@@ -433,14 +467,41 @@ export function UniversalSectionPanel({
                   </MiniAccordion>
                 )}
 
-                {/* רקע */}
-                <MiniAccordion title="רקע" defaultOpen={false}>
-                  <FullBackgroundControl
-                    settings={section.settings}
-                    onChange={updateSettings}
-                    defaultColor="#ffffff"
-                  />
-                </MiniAccordion>
+                {/* רקע - לא רלוונטי לסליידר הירו כי לכל שקופית יש רקע משלה */}
+                {section.type !== 'hero_slider' && (
+                  <MiniAccordion title="רקע" defaultOpen={false}>
+                    <FullBackgroundControl
+                      settings={{
+                        ...section.settings,
+                        // Merge content values for content_block sections
+                        imageUrl: (section.content?.imageUrl as string) || (section.settings?.imageUrl as string),
+                        mobileImageUrl: (section.content?.mobileImageUrl as string) || (section.settings?.mobileImageUrl as string),
+                        videoUrl: (section.content?.videoUrl as string) || (section.settings?.videoUrl as string),
+                        mobileVideoUrl: (section.content?.mobileVideoUrl as string) || (section.settings?.mobileVideoUrl as string),
+                      }}
+                      onChange={(key, value) => {
+                        // For content_block, image/video go to content, others to settings
+                        if (['imageUrl', 'mobileImageUrl', 'videoUrl', 'mobileVideoUrl'].includes(key)) {
+                          updateContent(key, value);
+                        } else {
+                          updateSettings(key, value);
+                        }
+                      }}
+                      defaultColor="#ffffff"
+                    />
+                  </MiniAccordion>
+                )}
+
+                {/* חץ גלילה - רק לסקשנים עם רקע */}
+                {['content_block', 'hero', 'hero_premium', 'text_block'].includes(section.type) && (
+                  <MiniAccordion title="חץ גלילה" defaultOpen={false}>
+                    <EditorToggle
+                      label="הצג חץ"
+                      value={(section.settings?.showScrollArrow as boolean) !== false}
+                      onChange={(v) => updateSettings('showScrollArrow', v)}
+                    />
+                  </MiniAccordion>
+                )}
 
                 {/* כותרת */}
                 <MiniAccordion title="כותרת" defaultOpen={false}>
@@ -612,40 +673,47 @@ function SectionContentEditor({
   
   switch (sectionType) {
     // ==========================================
-    // בלוק טקסט
+    // בלוק תוכן - סקשן אחד, אותן הגדרות בדיוק
+    // כולם משתמשים באותו פאנל ובאותה קומפוננטה
     // ==========================================
+    case 'content_block':
     case 'text_block':
+    case 'hero':
+    case 'hero_premium':
+      // תוכן בלבד - רקע בלשונית עיצוב
       return (
         <>
+          {/* תוכן טקסט */}
           <MiniAccordion title="תוכן" defaultOpen={true}>
             <RichTextEditor
               value={(content.text as string) || ''}
               onChange={(v) => updateContent('text', v)}
-              placeholder="הזן תוכן עשיר..."
-              minHeight={100}
-              maxHeight={300}
+              placeholder="הזן תוכן..."
+              minHeight={80}
+              maxHeight={200}
             />
           </MiniAccordion>
 
+          {/* כפתור */}
           <MiniAccordion title="כפתור" defaultOpen={false}>
             <div className="space-y-3">
               <EditorInput
                 label="טקסט כפתור"
                 value={(content.buttonText as string) || ''}
                 onChange={(v) => updateContent('buttonText', v)}
-                placeholder="קרא עוד"
+                placeholder="לחנות"
               />
-              
               <EditorInput
                 label="קישור"
                 value={(content.buttonLink as string) || ''}
                 onChange={(v) => updateContent('buttonLink', v)}
-                placeholder="/about"
+                placeholder="/products"
               />
             </div>
           </MiniAccordion>
         </>
       );
+
 
     // ==========================================
     // מוצרים נבחרים
@@ -700,34 +768,7 @@ function SectionContentEditor({
     case 'hero':
       return (
         <>
-          <MiniAccordion title="תמונה" defaultOpen={true}>
-            <div className="space-y-3">
-              <EditorInput
-                label="תמונת רקע"
-                value={(content.imageUrl as string) || ''}
-                onChange={(v) => updateContent('imageUrl', v)}
-                placeholder="URL תמונה"
-              />
-              
-              <EditorInput
-                label="תמונה למובייל"
-                value={(content.mobileImageUrl as string) || ''}
-                onChange={(v) => updateContent('mobileImageUrl', v)}
-                placeholder="URL תמונה למובייל"
-              />
-
-              <EditorSlider
-                label="שכבה כהה"
-                value={((settings.overlay as number) || 0) * 100}
-                onChange={(v) => updateSettings('overlay', v / 100)}
-                min={0}
-                max={100}
-                suffix="%"
-              />
-            </div>
-          </MiniAccordion>
-
-          <MiniAccordion title="כפתור" defaultOpen={false}>
+          <MiniAccordion title="כפתור" defaultOpen={true}>
             <div className="space-y-3">
               <EditorInput
                 label="טקסט כפתור"
@@ -745,13 +786,6 @@ function SectionContentEditor({
             </div>
           </MiniAccordion>
 
-          <MiniAccordion title="אפשרויות" defaultOpen={false}>
-            <EditorToggle
-              label="הצג חץ גלילה"
-              value={(settings.showScrollArrow as boolean) !== false}
-              onChange={(v) => updateSettings('showScrollArrow', v)}
-            />
-          </MiniAccordion>
         </>
       );
 
@@ -934,15 +968,6 @@ function SectionContentEditor({
     case 'image_text':
       return (
         <>
-          <MiniAccordion title="תמונה" defaultOpen={true}>
-            <EditorInput
-              label="URL תמונה"
-              value={(content.imageUrl as string) || ''}
-              onChange={(v) => updateContent('imageUrl', v)}
-              placeholder="https://..."
-            />
-          </MiniAccordion>
-
           <MiniAccordion title="תוכן" defaultOpen={true}>
             <RichTextEditor
               value={(content.text as string) || ''}
@@ -990,34 +1015,23 @@ function SectionContentEditor({
     // ==========================================
     case 'banner_small':
       return (
-        <>
-          <MiniAccordion title="רקע" defaultOpen={true}>
+        <MiniAccordion title="כפתור" defaultOpen={true}>
+          <div className="space-y-3">
             <EditorInput
-              label="תמונת רקע"
-              value={(content.imageUrl as string) || ''}
-              onChange={(v) => updateContent('imageUrl', v)}
-              placeholder="URL תמונה"
+              label="טקסט כפתור"
+              value={(content.buttonText as string) || ''}
+              onChange={(v) => updateContent('buttonText', v)}
+              placeholder="לצפייה"
             />
-          </MiniAccordion>
-
-          <MiniAccordion title="כפתור" defaultOpen={false}>
-            <div className="space-y-3">
-              <EditorInput
-                label="טקסט כפתור"
-                value={(content.buttonText as string) || ''}
-                onChange={(v) => updateContent('buttonText', v)}
-                placeholder="לצפייה"
-              />
-              
-              <EditorInput
-                label="קישור"
-                value={(content.buttonLink as string) || ''}
-                onChange={(v) => updateContent('buttonLink', v)}
-                placeholder="/products"
-              />
-            </div>
-          </MiniAccordion>
-        </>
+            
+            <EditorInput
+              label="קישור"
+              value={(content.buttonLink as string) || ''}
+              onChange={(v) => updateContent('buttonLink', v)}
+              placeholder="/products"
+            />
+          </div>
+        </MiniAccordion>
       );
 
     // ==========================================
@@ -1025,43 +1039,23 @@ function SectionContentEditor({
     // ==========================================
     case 'video_banner':
       return (
-        <>
-          <MiniAccordion title="וידאו" defaultOpen={true}>
-            <div className="space-y-3">
-              <EditorInput
-                label="URL וידאו"
-                value={(content.videoUrl as string) || ''}
-                onChange={(v) => updateContent('videoUrl', v)}
-                placeholder="https://..."
-              />
-              
-              <EditorInput
-                label="תמונת פולבק"
-                value={(content.posterUrl as string) || ''}
-                onChange={(v) => updateContent('posterUrl', v)}
-                placeholder="URL תמונה"
-              />
-            </div>
-          </MiniAccordion>
-
-          <MiniAccordion title="כפתור" defaultOpen={false}>
-            <div className="space-y-3">
-              <EditorInput
-                label="טקסט כפתור"
-                value={(content.buttonText as string) || ''}
-                onChange={(v) => updateContent('buttonText', v)}
-                placeholder="לצפייה"
-              />
-              
-              <EditorInput
-                label="קישור"
-                value={(content.buttonLink as string) || ''}
-                onChange={(v) => updateContent('buttonLink', v)}
-                placeholder="/products"
-              />
-            </div>
-          </MiniAccordion>
-        </>
+        <MiniAccordion title="כפתור" defaultOpen={true}>
+          <div className="space-y-3">
+            <EditorInput
+              label="טקסט כפתור"
+              value={(content.buttonText as string) || ''}
+              onChange={(v) => updateContent('buttonText', v)}
+              placeholder="לצפייה"
+            />
+            
+            <EditorInput
+              label="קישור"
+              value={(content.buttonLink as string) || ''}
+              onChange={(v) => updateContent('buttonLink', v)}
+              placeholder="/products"
+            />
+          </div>
+        </MiniAccordion>
       );
 
     // ==========================================
@@ -1070,15 +1064,6 @@ function SectionContentEditor({
     case 'split_banner':
       return (
         <>
-          <MiniAccordion title="תמונה" defaultOpen={true}>
-            <EditorInput
-              label="URL תמונה"
-              value={(content.imageUrl as string) || ''}
-              onChange={(v) => updateContent('imageUrl', v)}
-              placeholder="https://..."
-            />
-          </MiniAccordion>
-
           <MiniAccordion title="תוכן" defaultOpen={true}>
             <RichTextEditor
               value={(content.text as string) || ''}
@@ -1191,6 +1176,215 @@ function SectionContentEditor({
             />
           </div>
         </MiniAccordion>
+      );
+
+    // ==========================================
+    // סליידר הירו
+    // ==========================================
+    case 'hero_slider':
+      const slides = (content.slides as Array<{
+        id: string;
+        title?: string;
+        subtitle?: string;
+        imageUrl?: string;
+        mobileImageUrl?: string;
+        videoUrl?: string;
+        buttonText?: string;
+        buttonLink?: string;
+      }>) || [];
+      
+      const addSlide = () => {
+        const newSlide = {
+          id: `slide-${Date.now()}`,
+          title: `שקופית ${slides.length + 1}`,
+          subtitle: '',
+          imageUrl: '',
+          buttonText: '',
+          buttonLink: '',
+        };
+        updateContent('slides', [...slides, newSlide]);
+      };
+      
+      const updateSlide = (slideId: string, key: string, value: unknown) => {
+        const updatedSlides = slides.map(slide => 
+          slide.id === slideId ? { ...slide, [key]: value } : slide
+        );
+        updateContent('slides', updatedSlides);
+      };
+      
+      const removeSlide = (slideId: string) => {
+        if (slides.length <= 1) return;
+        updateContent('slides', slides.filter(s => s.id !== slideId));
+      };
+      
+      const moveSlide = (slideId: string, direction: 'up' | 'down') => {
+        const index = slides.findIndex(s => s.id === slideId);
+        if (index === -1) return;
+        if (direction === 'up' && index === 0) return;
+        if (direction === 'down' && index === slides.length - 1) return;
+        
+        const newSlides = [...slides];
+        const targetIndex = direction === 'up' ? index - 1 : index + 1;
+        [newSlides[index], newSlides[targetIndex]] = [newSlides[targetIndex], newSlides[index]];
+        updateContent('slides', newSlides);
+      };
+      
+      return (
+        <>
+          {/* הגדרות סליידר */}
+          <MiniAccordion title="הגדרות סליידר" defaultOpen={false}>
+            <div className="space-y-3">
+              <EditorToggle
+                label="ניגון אוטומטי"
+                value={(settings.autoplay as boolean) !== false}
+                onChange={(v) => updateSettings('autoplay', v)}
+              />
+              
+              {(settings.autoplay !== false) && (
+                <EditorSlider
+                  label="משך שקופית (שניות)"
+                  value={((settings.autoplayInterval as number) || 5000) / 1000}
+                  min={2}
+                  max={15}
+                  step={1}
+                  suffix="s"
+                  onChange={(v) => updateSettings('autoplayInterval', v * 1000)}
+                />
+              )}
+              
+              <EditorToggle
+                label="לופ אינסופי"
+                value={(settings.loop as boolean) !== false}
+                onChange={(v) => updateSettings('loop', v)}
+              />
+              
+              <EditorToggle
+                label="הצג נקודות ניווט"
+                value={(settings.showDots as boolean) !== false}
+                onChange={(v) => updateSettings('showDots', v)}
+              />
+              
+              <EditorToggle
+                label="הצג חצים"
+                value={(settings.showArrows as boolean) !== false}
+                onChange={(v) => updateSettings('showArrows', v)}
+              />
+            </div>
+          </MiniAccordion>
+          
+          {/* שקופיות */}
+          <MiniAccordion title={`שקופיות (${slides.length})`} defaultOpen={true}>
+            <div className="space-y-3">
+              {slides.map((slide, index) => (
+                <div 
+                  key={slide.id}
+                  className="border border-[var(--editor-border-default)] rounded-lg p-3 bg-[var(--editor-bg-tertiary)]"
+                >
+                  {/* Slide Header */}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-[var(--editor-text-secondary)]">
+                      שקופית {index + 1}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => moveSlide(slide.id, 'up')}
+                        disabled={index === 0}
+                        className="p-1 hover:bg-[var(--editor-bg-hover)] rounded disabled:opacity-30"
+                        title="הזז למעלה"
+                      >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M18 15l-6-6-6 6" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => moveSlide(slide.id, 'down')}
+                        disabled={index === slides.length - 1}
+                        className="p-1 hover:bg-[var(--editor-bg-hover)] rounded disabled:opacity-30"
+                        title="הזז למטה"
+                      >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M6 9l6 6 6-6" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => removeSlide(slide.id)}
+                        disabled={slides.length <= 1}
+                        className="p-1 hover:bg-red-100 text-red-500 rounded disabled:opacity-30"
+                        title="מחק שקופית"
+                      >
+                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Slide Content */}
+                  <div className="space-y-2">
+                    <EditorInput
+                      label="כותרת"
+                      value={slide.title || ''}
+                      onChange={(v) => updateSlide(slide.id, 'title', v)}
+                      placeholder="כותרת השקופית"
+                    />
+                    
+                    <EditorInput
+                      label="תת-כותרת"
+                      value={slide.subtitle || ''}
+                      onChange={(v) => updateSlide(slide.id, 'subtitle', v)}
+                      placeholder="תיאור קצר"
+                    />
+                    
+                    <EditorInput
+                      label="תמונת רקע"
+                      value={slide.imageUrl || ''}
+                      onChange={(v) => updateSlide(slide.id, 'imageUrl', v)}
+                      placeholder="https://..."
+                    />
+                    
+                    <EditorInput
+                      label="תמונה למובייל"
+                      value={slide.mobileImageUrl || ''}
+                      onChange={(v) => updateSlide(slide.id, 'mobileImageUrl', v)}
+                      placeholder="אופציונלי - תמונה אחרת למובייל"
+                    />
+                    
+                    <EditorInput
+                      label="וידאו רקע"
+                      value={slide.videoUrl || ''}
+                      onChange={(v) => updateSlide(slide.id, 'videoUrl', v)}
+                      placeholder="https://...mp4"
+                    />
+                    
+                    <div className="pt-2 border-t border-[var(--editor-border-default)]">
+                      <EditorInput
+                        label="טקסט כפתור"
+                        value={slide.buttonText || ''}
+                        onChange={(v) => updateSlide(slide.id, 'buttonText', v)}
+                        placeholder="לחנות"
+                      />
+                      
+                      <EditorInput
+                        label="קישור כפתור"
+                        value={slide.buttonLink || ''}
+                        onChange={(v) => updateSlide(slide.id, 'buttonLink', v)}
+                        placeholder="/products"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              
+              {/* Add Slide Button */}
+              <button
+                onClick={addSlide}
+                className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-sm text-[var(--editor-text-secondary)] hover:border-[var(--editor-accent)] hover:text-[var(--editor-accent)] transition-colors"
+              >
+                + הוסף שקופית
+              </button>
+            </div>
+          </MiniAccordion>
+        </>
       );
 
     // ==========================================

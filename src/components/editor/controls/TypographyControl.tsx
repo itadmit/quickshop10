@@ -111,7 +111,7 @@ export function TypographyControl({
         <div
           ref={popoverRef}
           className="absolute left-0 top-full mt-2 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
-                     border border-[var(--editor-border-default)] shadow-lg p-4 w-72"
+                     border border-[var(--editor-border-default)] shadow-lg p-4 w-64 overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--editor-border-default)]">

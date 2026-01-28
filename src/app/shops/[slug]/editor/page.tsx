@@ -56,6 +56,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
         isPublished: true,
         seoTitle: true,
         seoDescription: true,
+        template: true,
       },
       orderBy: (pages, { asc }) => [asc(pages.title)],
     }),
@@ -69,6 +70,7 @@ export default async function EditorPage({ params, searchParams }: EditorPagePro
     isPublished: p.isPublished,
     seoTitle: p.seoTitle,
     seoDescription: p.seoDescription,
+    template: (p.template as 'default' | 'clean') || 'default',
   }));
   
   // Re-declare rawSections as mutable for potential modifications

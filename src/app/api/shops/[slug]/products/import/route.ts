@@ -247,6 +247,7 @@ export async function POST(
           try {
             // Extract data using mapping
             const name = row[mapping.name]?.trim();
+            const shortDescription = mapping.shortDescription >= 0 ? row[mapping.shortDescription]?.trim() || '' : '';
             const description = row[mapping.description]?.trim() || '';
             const priceStr = row[mapping.price]?.trim() || '0';
             const price = parseFloat(priceStr.replace(/[^\d.]/g, '')) || 0;
@@ -287,6 +288,7 @@ export async function POST(
               
               await db.update(products).set({
                 name,
+                shortDescription: shortDescription || null,
                 description,
                 price: price.toString(),
                 comparePrice: comparePrice?.toString() || null,
@@ -389,6 +391,7 @@ export async function POST(
                 storeId: store.id,
                 name,
                 slug: productSlug,
+                shortDescription: shortDescription || null,
                 description,
                 price: price.toString(),
                 comparePrice: comparePrice?.toString() || null,

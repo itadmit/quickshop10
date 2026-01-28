@@ -293,7 +293,7 @@ export function VerticalAlignControl({
       value={verticalAlign}
       options={[
         { 
-          value: 'start', 
+          value: 'top', 
           title: 'למעלה',
           icon: (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -311,7 +311,7 @@ export function VerticalAlignControl({
           )
         },
         { 
-          value: 'end', 
+          value: 'bottom', 
           title: 'למטה',
           icon: (
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

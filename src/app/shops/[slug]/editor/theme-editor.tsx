@@ -108,6 +108,7 @@ interface InternalPage {
   isPublished: boolean;
   seoTitle?: string | null;
   seoDescription?: string | null;
+  template?: 'default' | 'clean'; // default = with header/footer, clean = without
 }
 
 // Metafield definition for dynamic source picker
@@ -170,6 +171,7 @@ export function ThemeEditor({
     seoTitle: '',
     seoDescription: '',
     isPublished: false,
+    template: 'default' as 'default' | 'clean', // default = with header/footer, clean = without
   });
   const [isSavingPageSettings, setIsSavingPageSettings] = useState(false);
   const [isDeletingPage, setIsDeletingPage] = useState(false);
@@ -271,6 +273,7 @@ export function ThemeEditor({
       seoTitle: currentInternalPage.seoTitle || '',
       seoDescription: currentInternalPage.seoDescription || '',
       isPublished: currentInternalPage.isPublished,
+      template: currentInternalPage.template || 'default',
     });
     setShowPageSettingsModal(true);
   };
@@ -290,6 +293,7 @@ export function ThemeEditor({
           seoTitle: pageSettingsForm.seoTitle.trim() || null,
           seoDescription: pageSettingsForm.seoDescription.trim() || null,
           isPublished: pageSettingsForm.isPublished,
+          template: pageSettingsForm.template,
         }),
       });
       
@@ -306,6 +310,7 @@ export function ThemeEditor({
                 seoTitle: pageSettingsForm.seoTitle.trim() || null,
                 seoDescription: pageSettingsForm.seoDescription.trim() || null,
                 isPublished: pageSettingsForm.isPublished,
+                template: pageSettingsForm.template,
               }
             : p
         ));
@@ -1749,6 +1754,52 @@ export function ThemeEditor({
                 </label>
               </div>
               
+              {/* Page Template */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  תבנית עמוד
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPageSettingsForm(prev => ({ ...prev, template: 'default' }))}
+                    className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                      pageSettingsForm.template === 'default' 
+                        ? 'border-black bg-gray-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      {/* Icon - page with header/footer */}
+                      <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <path d="M3 7h18M3 17h18" />
+                      </svg>
+                      <span className="text-sm font-medium">רגיל</span>
+                      <span className="text-xs text-gray-500">עם הדר ופוטר</span>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPageSettingsForm(prev => ({ ...prev, template: 'clean' }))}
+                    className={`flex-1 p-4 rounded-lg border-2 transition-all ${
+                      pageSettingsForm.template === 'clean' 
+                        ? 'border-black bg-gray-50' 
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex flex-col items-center gap-2">
+                      {/* Icon - clean page */}
+                      <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                      </svg>
+                      <span className="text-sm font-medium">נקי</span>
+                      <span className="text-xs text-gray-500">ללא הדר ופוטר</span>
+                    </div>
+                  </button>
+                </div>
+              </div>
+              
               {/* SEO Section */}
               <div className="border-t pt-5">
                 <p className="text-sm font-medium text-gray-700 mb-3">הגדרות SEO</p>
@@ -1844,6 +1895,8 @@ export function ThemeEditor({
 // Helper functions for default section values
 function getSectionDefaultTitle(type: string): string {
   const titles: Record<string, string> = {
+    // Universal content block
+    content_block: 'בלוק תוכן',
     // Home page sections
     hero: 'באנר ראשי',
     categories: 'קטגוריות',
@@ -1927,6 +1980,15 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       text: '<p>זהו טקסט לדוגמה. ניתן לערוך אותו לפי הצורך ולהוסיף תוכן מותאם אישית לעסק שלכם.</p>',
       buttonText: 'קרא עוד',
       buttonLink: '#'
+    },
+    content_block: {
+      text: '<p>זהו טקסט לדוגמה. ניתן לערוך אותו לפי הצורך.</p>',
+      buttonText: '',
+      buttonLink: '',
+      imageUrl: '',
+      mobileImageUrl: '',
+      videoUrl: '',
+      mobileVideoUrl: '',
     },
     image_text: {
       imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800',
@@ -2052,10 +2114,19 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       slides: [
         {
           id: '1',
-          imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920',
           title: 'שקופית 1',
+          subtitle: 'תיאור קצר לשקופית הראשונה',
+          imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1920',
           buttonText: 'לחנות',
           buttonLink: '/products',
+        },
+        {
+          id: '2',
+          title: 'שקופית 2',
+          subtitle: 'תיאור לשקופית השנייה',
+          imageUrl: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1920',
+          buttonText: 'למבצעים',
+          buttonLink: '/products?sale=true',
         },
       ],
     },
@@ -2065,8 +2136,69 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
 
 function getSectionDefaultSettings(type: string): Record<string, unknown> {
   const defaults: Record<string, Record<string, unknown>> = {
+    // Universal content block
+    content_block: {
+      variant: 'text_block',
+      height: 'auto',
+      minHeight: 400,
+      minHeightUnit: 'px',
+      sectionWidth: 'full',
+      contentWidth: 1200,
+      textAlign: 'center',
+      verticalAlign: 'center',
+      backgroundColor: '#ffffff',
+      overlay: 0,
+      showGradient: false,
+      showScrollArrow: false,
+      titleSize: 36,
+      titleSizeMobile: 28,
+      titleColor: '#000000',
+      titleWeight: 'bold',
+      subtitleSize: 18,
+      subtitleSizeMobile: 16,
+      subtitleColor: '#6b7280',
+      textSize: 16,
+      textSizeMobile: 14,
+      textColor: '#374151',
+      buttonStyle: 'outline',
+      buttonTextColor: '#000000',
+      buttonBorderColor: '#000000',
+      buttonBorderWidth: 2,
+      buttonBorderRadius: 0,
+      paddingTop: 64,
+      paddingBottom: 64,
+    },
     // Home page sections
-    hero: { height: '90vh', overlay: 0.3 },
+    hero: { 
+      minHeight: 90,
+      minHeightUnit: 'vh',
+      sectionWidth: 'full',
+      contentWidth: 1200,
+      textAlign: 'center',
+      verticalAlign: 'center',
+      backgroundColor: '#000000',
+      overlay: 0.3,
+      showGradient: false,
+      showScrollArrow: true,
+      titleSize: 96,
+      titleSizeMobile: 48,
+      titleColor: '#ffffff',
+      titleWeight: 'extralight',
+      subtitleSize: 24,
+      subtitleSizeMobile: 18,
+      subtitleColor: '#ffffff',
+      textSize: 16,
+      textSizeMobile: 14,
+      textColor: '#ffffff',
+      buttonStyle: 'filled',
+      buttonTextColor: '#000000',
+      buttonBackgroundColor: '#ffffff',
+      buttonBorderColor: '#ffffff',
+      buttonBorderWidth: 0,
+      buttonBorderRadius: 0,
+      paddingTop: 0,
+      paddingBottom: 64,
+    },
     categories: { columns: 4, gap: 8 },
     products: { columns: 4, gap: 8, showCount: false },
     newsletter: { maxWidth: '600px' },
@@ -2148,8 +2280,34 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       imageRatio: 'auto',
     },
     hero_premium: {
-      height: '90vh',
+      minHeight: 90,
+      minHeightUnit: 'vh',
+      sectionWidth: 'full',
+      contentWidth: 1200,
+      textAlign: 'center',
+      verticalAlign: 'bottom',
+      backgroundColor: '#000000',
       overlay: 0.3,
+      showGradient: true,
+      showScrollArrow: true,
+      titleSize: 96,
+      titleSizeMobile: 48,
+      titleColor: '#ffffff',
+      titleWeight: 'extralight',
+      subtitleSize: 24,
+      subtitleSizeMobile: 18,
+      subtitleColor: '#ffffff',
+      textSize: 16,
+      textSizeMobile: 14,
+      textColor: '#ffffff',
+      buttonStyle: 'filled',
+      buttonTextColor: '#000000',
+      buttonBackgroundColor: '#ffffff',
+      buttonBorderColor: '#ffffff',
+      buttonBorderWidth: 0,
+      buttonBorderRadius: 0,
+      paddingTop: 0,
+      paddingBottom: 80,
     },
     quote_banner: {
       height: '60vh',
@@ -2160,9 +2318,41 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       gap: 8,
     },
     hero_slider: {
-      height: '90vh',
+      // Layout
+      minHeight: 90,
+      minHeightUnit: 'vh',
+      sectionWidth: 'full',
+      contentWidth: 1200,
+      textAlign: 'center',
+      verticalAlign: 'center',
+      
+      // Slider
       autoplay: true,
-      interval: 5000,
+      autoplayInterval: 5000,
+      loop: true,
+      showDots: true,
+      showArrows: true,
+      
+      // Background
+      overlay: 0.3,
+      showGradient: true,
+      gradientDirection: 'top',
+      
+      // Typography
+      titleColor: '#ffffff',
+      titleSize: 72,
+      titleSizeMobile: 36,
+      titleWeight: 'extralight',
+      subtitleColor: 'rgba(255,255,255,0.9)',
+      subtitleSize: 18,
+      subtitleSizeMobile: 14,
+      subtitleWeight: 'normal',
+      
+      // Button
+      buttonStyle: 'filled',
+      buttonTextColor: '#000000',
+      buttonBackgroundColor: '#ffffff',
+      buttonBorderColor: '#ffffff',
     },
     // Content sections with columns
     reviews: {

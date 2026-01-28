@@ -62,9 +62,14 @@ export default async function ProductImportPage({ params }: PageProps) {
               </thead>
               <tbody className="text-gray-600">
                 <tr className="border-b border-gray-50">
-                  <td className="py-2 pr-0 pl-4 font-mono text-xs">סלאג</td>
+                  <td className="py-2 pr-0 pl-4 font-mono text-xs">שם מוצר</td>
                   <td className="py-2 px-2 text-center text-green-500">✓</td>
                   <td className="py-2 pl-0 pr-4">שם המוצר</td>
+                </tr>
+                <tr className="border-b border-gray-50">
+                  <td className="py-2 pr-0 pl-4 font-mono text-xs">תיאור קצר</td>
+                  <td className="py-2 px-2 text-center text-gray-300">-</td>
+                  <td className="py-2 pl-0 pr-4">תיאור קצר (עד 500 תווים)</td>
                 </tr>
                 <tr className="border-b border-gray-50">
                   <td className="py-2 pr-0 pl-4 font-mono text-xs">תיאור</td>

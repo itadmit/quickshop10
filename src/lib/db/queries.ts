@@ -1582,3 +1582,199 @@ export async function getProductsBadgesForCards(storeId: string, productIds: str
 
   return badgeMap;
 }
+
+// ============ DASHBOARD OPTIMIZED QUERIES ============
+// These functions use SQL aggregation instead of fetching all data
+
+export interface DashboardStats {
+  todaySales: number;
+  todayOrdersCount: number;
+  monthlyRevenue: number;
+  monthlyOrdersCount: number;
+  pendingOrders: number;
+  totalProducts: number;
+  lowStockProducts: number;
+  outOfStockProducts: number;
+}
+
+/**
+ * Get dashboard statistics with optimized SQL aggregation
+ * Much faster than fetching all orders and products!
+ */
+export const getDashboardStats = cache(async (storeId: string, timezone: string = 'Asia/Jerusalem'): Promise<DashboardStats> => {
+  // Get today and month start in the store's timezone
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD
+  const monthStartStr = todayStr.substring(0, 7) + '-01'; // YYYY-MM-01
+  
+  // Convert to Date objects for SQL comparison
+  const todayStart = new Date(todayStr + 'T00:00:00');
+  const todayEnd = new Date(todayStr + 'T23:59:59.999');
+  const monthStart = new Date(monthStartStr + 'T00:00:00');
+  
+  // Run all queries in parallel
+  const [
+    todayStats,
+    monthStats,
+    pendingCount,
+    productStats,
+  ] = await Promise.all([
+    // Today's sales (paid orders only)
+    db.select({
+      total: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      sql`${orders.createdAt} >= ${todayStart}`,
+      sql`${orders.createdAt} <= ${todayEnd}`
+    ))
+    .then(r => r[0]),
+    
+    // Monthly sales (paid orders only)
+    db.select({
+      total: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      sql`${orders.createdAt} >= ${monthStart}`
+    ))
+    .then(r => r[0]),
+    
+    // Pending orders (paid but not shipped)
+    db.select({
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      eq(orders.fulfillmentStatus, 'unfulfilled'),
+      sql`${orders.status} != 'cancelled'`
+    ))
+    .then(r => r[0]),
+    
+    // Product inventory stats
+    db.select({
+      total: sql<number>`COUNT(*)`,
+      lowStock: sql<number>`COUNT(*) FILTER (WHERE ${products.trackInventory} = true AND ${products.inventory} <= 5 AND ${products.inventory} > 0)`,
+      outOfStock: sql<number>`COUNT(*) FILTER (WHERE ${products.trackInventory} = true AND (${products.inventory} IS NULL OR ${products.inventory} = 0))`,
+    })
+    .from(products)
+    .where(eq(products.storeId, storeId))
+    .then(r => r[0]),
+  ]);
+  
+  return {
+    todaySales: Number(todayStats?.total) || 0,
+    todayOrdersCount: Number(todayStats?.count) || 0,
+    monthlyRevenue: Number(monthStats?.total) || 0,
+    monthlyOrdersCount: Number(monthStats?.count) || 0,
+    pendingOrders: Number(pendingCount?.count) || 0,
+    totalProducts: Number(productStats?.total) || 0,
+    lowStockProducts: Number(productStats?.lowStock) || 0,
+    outOfStockProducts: Number(productStats?.outOfStock) || 0,
+  };
+});
+
+/**
+ * Get revenue by day for chart - optimized with SQL aggregation
+ */
+export const getDashboardChartData = cache(async (
+  storeId: string, 
+  timezone: string = 'Asia/Jerusalem',
+  days: number = 14
+): Promise<Array<{ date: string; revenue: number; orders: number }>> => {
+  // Get the date range
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('en-CA', { timeZone: timezone });
+  const startDate = new Date(todayStr);
+  startDate.setDate(startDate.getDate() - (days - 1));
+  
+  // Get aggregated data from SQL - using simple DATE cast
+  const result = await db.select({
+    date: sql<string>`DATE(${orders.createdAt})::text`,
+    revenue: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+    count: sql<number>`COUNT(*)`,
+  })
+  .from(orders)
+  .where(and(
+    eq(orders.storeId, storeId),
+    eq(orders.financialStatus, 'paid'),
+    sql`${orders.createdAt} >= ${startDate}`
+  ))
+  .groupBy(sql`DATE(${orders.createdAt})`)
+  .orderBy(sql`DATE(${orders.createdAt})`);
+  
+  // Create a map of date -> data
+  const dataMap = new Map(result.map(r => [r.date, { revenue: Number(r.revenue), orders: Number(r.count) }]));
+  
+  // Fill in missing days with zeros
+  const chartData: Array<{ date: string; revenue: number; orders: number }> = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const targetDate = new Date(todayStr);
+    targetDate.setDate(targetDate.getDate() - i);
+    const dateStr = targetDate.toISOString().split('T')[0];
+    const data = dataMap.get(dateStr) || { revenue: 0, orders: 0 };
+    chartData.push({ date: dateStr, revenue: data.revenue, orders: data.orders });
+  }
+  
+  return chartData;
+});
+
+/**
+ * Get recent PAID orders for dashboard (limited to latest N)
+ */
+export const getDashboardRecentOrders = cache(async (storeId: string, limit: number = 5) => {
+  return db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      financialStatus: orders.financialStatus,
+      fulfillmentStatus: orders.fulfillmentStatus,
+      total: orders.total,
+      createdAt: orders.createdAt,
+      customerName: orders.customerName,
+      customerEmail: orders.customerEmail,
+      customer: {
+        firstName: customers.firstName,
+        lastName: customers.lastName,
+        email: customers.email,
+      },
+    })
+    .from(orders)
+    .leftJoin(customers, eq(orders.customerId, customers.id))
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid')
+    ))
+    .orderBy(desc(orders.createdAt))
+    .limit(limit);
+});
+
+/**
+ * Get top products for dashboard (limited to latest N)
+ */
+export const getDashboardTopProducts = cache(async (storeId: string, limit: number = 5) => {
+  return db
+    .select({
+      id: products.id,
+      name: products.name,
+      price: products.price,
+      image: productImages.url,
+    })
+    .from(products)
+    .leftJoin(productImages, and(
+      eq(productImages.productId, products.id),
+      eq(productImages.isPrimary, true)
+    ))
+    .where(eq(products.storeId, storeId))
+    .orderBy(desc(products.createdAt))
+    .limit(limit);
+});

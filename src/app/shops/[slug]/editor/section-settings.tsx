@@ -652,9 +652,10 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 
   // 🆕 NEW: Universal Panel for all section types
   const UNIVERSAL_PANEL_SECTIONS = [
-    'text_block', 'hero', 'reviews', 'features', 'faq', 
-    'newsletter', 'contact', 'logos', 'gallery', 'image_text',
-    'banner_small', 'video_banner', 'split_banner', 'products', 
+    'content_block', 'text_block', 'hero', 'hero_premium', 'hero_slider',
+    'reviews', 'features', 'faq', 'newsletter', 'contact', 
+    'logos', 'gallery', 'image_text', 'banner_small', 
+    'video_banner', 'split_banner', 'products', 
     'categories', 'featured_items', 'series_grid'
   ];
   

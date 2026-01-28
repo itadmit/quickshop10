@@ -8,7 +8,7 @@ interface PageFormProps {
   storeId: string;
   slug: string;
   pageId?: string;
-  templateId?: string; // Template ID (custom) or system:templateId (system template)
+  templateId?: string; // Custom template ID
   initialData?: {
     title: string;
     slug: string;

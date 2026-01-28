@@ -281,7 +281,7 @@ async function FinancialContent({
   const [salesOverview, giftCardStats, influencerStats, refundStats, creditStats] = await Promise.all([
     getSalesOverview(storeId, period, customRange),
     getGiftCardSummary(storeId),
-    getInfluencerStats(storeId),
+    getInfluencerStats(storeId, period, customRange),
     getRefundStats(storeId, period, customRange),
     getStoreCreditStats(storeId),
   ]);
@@ -558,7 +558,7 @@ async function InfluencersDetailContent({
   period: '7d' | '30d' | '90d' | 'custom';
   customRange?: { from: Date; to: Date };
 }) {
-  const { influencers } = await getInfluencerStats(storeId);
+  const { influencers } = await getInfluencerStats(storeId, period, customRange);
 
   return (
     <div className="bg-white border border-gray-200 p-6">

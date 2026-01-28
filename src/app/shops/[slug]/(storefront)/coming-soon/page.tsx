@@ -66,7 +66,7 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
   if (sections.length > 0) {
     // Import section components dynamically
     const { 
-      HeroSection, 
+      ContentBlockSection, 
       NewsletterSection 
     } = await import('@/components/sections');
 
@@ -76,15 +76,37 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
 
       switch (section.type) {
         case 'hero':
+        case 'text_block':
+        case 'hero_premium':
+        case 'content_block':
           return (
-            <HeroSection
+            <ContentBlockSection
               key={section.id}
+              sectionId={section.id}
               title={section.title}
               subtitle={section.subtitle}
-              content={content as { imageUrl?: string; buttonText?: string; buttonLink?: string }}
-              settings={settings as { height?: string; overlay?: number }}
+              content={{
+                text: (content as { text?: string }).text,
+                buttonText: (content as { buttonText?: string }).buttonText,
+                buttonLink: (content as { buttonLink?: string }).buttonLink,
+                imageUrl: (content as { imageUrl?: string }).imageUrl,
+                mobileImageUrl: (content as { mobileImageUrl?: string }).mobileImageUrl,
+                videoUrl: (content as { videoUrl?: string }).videoUrl,
+                mobileVideoUrl: (content as { mobileVideoUrl?: string }).mobileVideoUrl,
+              }}
+              settings={{
+                backgroundColor: (settings as { backgroundColor?: string }).backgroundColor,
+                minHeight: (settings as { minHeight?: number }).minHeight,
+                minHeightUnit: (settings as { minHeightUnit?: string }).minHeightUnit as 'px' | 'vh' | undefined,
+                height: (settings as { height?: string }).height,
+                overlay: (settings as { overlay?: number }).overlay,
+                textAlign: (settings as { textAlign?: string }).textAlign as 'left' | 'center' | 'right' | undefined,
+                verticalAlign: (settings as { verticalAlign?: string }).verticalAlign as 'top' | 'center' | 'bottom' | undefined,
+                titleColor: (settings as { titleColor?: string }).titleColor,
+                titleSize: (settings as { titleSize?: number }).titleSize,
+                subtitleColor: (settings as { subtitleColor?: string }).subtitleColor,
+              }}
               basePath={basePath}
-              sectionId={section.id}
             />
           );
         case 'newsletter':

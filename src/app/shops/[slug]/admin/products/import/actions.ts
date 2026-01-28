@@ -37,6 +37,7 @@ export interface ImportResult {
 // מיפוי עמודות מפורש
 export interface ColumnMapping {
   name: number;        // חובה
+  shortDescription: number;
   description: number;
   price: number;       // חובה
   comparePrice: number;
@@ -867,6 +868,7 @@ export async function importProductsWithMapping(
     interface ParsedRow {
       rowNum: number;
       name: string;
+      shortDescription: string;
       description: string;
       price: number;
       comparePrice: number;
@@ -905,6 +907,7 @@ export async function importProductsWithMapping(
       if (i === 0) {
         console.log('[Import] First row values:', {
           name: getValue(mapping.name),
+          shortDescription: getValue(mapping.shortDescription)?.substring(0, 50),
           description: getValue(mapping.description)?.substring(0, 50),
           price: getValue(mapping.price),
           images: getValue(mapping.images),
@@ -915,6 +918,7 @@ export async function importProductsWithMapping(
       rows.push({
         rowNum,
         name,
+        shortDescription: getValue(mapping.shortDescription),
         description: getValue(mapping.description),
         price,
         comparePrice,
@@ -1051,6 +1055,7 @@ export async function importProductsWithMapping(
             categoryId: p.primaryCategoryId,
             name: p.row.name,
             slug: p.slug,
+            shortDescription: p.row.shortDescription || null,
             description: p.row.description || null,
             price: finalPrice.toString(),
             comparePrice: finalComparePrice ? finalComparePrice.toString() : null,

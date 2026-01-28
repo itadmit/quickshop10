@@ -8,7 +8,7 @@ import {
   customerCreditTransactions, productImages, discounts,
   gamificationWins, gamificationCampaigns, productVariants
 } from '@/lib/db/schema';
-import { eq, and, or, gte, lte, desc, asc, sql, count, sum, inArray } from 'drizzle-orm';
+import { eq, and, or, gte, lte, desc, asc, sql, count, sum, inArray, isNotNull } from 'drizzle-orm';
 import { cache } from 'react';
 
 // ============ TYPES ============
@@ -988,33 +988,84 @@ export const getGiftCardSummary = cache(async (storeId: string) => {
   };
 });
 
-export const getInfluencerStats = cache(async (storeId: string) => {
-  const result = await db
+export const getInfluencerStats = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  // Get all influencers for the store
+  const allInfluencers = await db
     .select({
       id: influencers.id,
       name: influencers.name,
       couponCode: influencers.couponCode,
-      totalSales: influencers.totalSales,
-      totalCommission: influencers.totalCommission,
-      totalOrders: influencers.totalOrders,
       isActive: influencers.isActive,
+      commissionType: influencers.commissionType,
+      commissionValue: influencers.commissionValue,
     })
     .from(influencers)
-    .where(eq(influencers.storeId, storeId))
-    .orderBy(desc(sql`${influencers.totalSales}::numeric`));
+    .where(eq(influencers.storeId, storeId));
+
+  // Calculate sales from orders in the selected period
+  const salesByInfluencer = await db
+    .select({
+      influencerId: orders.influencerId,
+      totalSales: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
+      totalOrders: sql<number>`COUNT(*)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      isNotNull(orders.influencerId),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
+    ))
+    .groupBy(orders.influencerId);
+
+  // Merge data
+  const salesMap = new Map(salesByInfluencer.map(s => [s.influencerId, s]));
+  
+  const result = allInfluencers.map(inf => {
+    const sales = salesMap.get(inf.id);
+    const totalSales = Number(sales?.totalSales || 0);
+    const totalOrders = Number(sales?.totalOrders || 0);
+    
+    // Calculate commission based on influencer's commission settings
+    let totalCommission = 0;
+    if (inf.commissionValue && Number(inf.commissionValue) > 0) {
+      if (inf.commissionType === 'percentage') {
+        totalCommission = totalSales * (Number(inf.commissionValue) / 100);
+      } else {
+        // Fixed amount per order
+        totalCommission = totalOrders * Number(inf.commissionValue);
+      }
+    }
+    
+    return {
+      id: inf.id,
+      name: inf.name,
+      couponCode: inf.couponCode,
+      isActive: inf.isActive,
+      totalSales,
+      totalOrders,
+      totalCommission,
+    };
+  });
+
+  // Sort by total sales descending
+  result.sort((a, b) => b.totalSales - a.totalSales);
 
   const totals = result.reduce((acc, inf) => ({
-    totalSales: acc.totalSales + Number(inf.totalSales || 0),
-    totalCommission: acc.totalCommission + Number(inf.totalCommission || 0),
-    totalOrders: acc.totalOrders + Number(inf.totalOrders || 0),
+    totalSales: acc.totalSales + inf.totalSales,
+    totalCommission: acc.totalCommission + inf.totalCommission,
+    totalOrders: acc.totalOrders + inf.totalOrders,
   }), { totalSales: 0, totalCommission: 0, totalOrders: 0 });
 
   return {
-    influencers: result.map(i => ({
-      ...i,
-      totalSales: Number(i.totalSales || 0),
-      totalCommission: Number(i.totalCommission || 0),
-    })),
+    influencers: result,
     totals,
   };
 });

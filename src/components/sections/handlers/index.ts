@@ -6,8 +6,6 @@
 import { SectionHandler, SectionHandlers } from '../types';
 
 // Import all handlers
-import { handler as textBlockHandler } from '../text-block';
-import { handler as heroHandler } from '../hero';
 import { handler as reviewsHandler } from '../reviews';
 import { handler as featuresHandler } from '../features';
 import { handler as faqHandler } from '../faq';
@@ -23,11 +21,19 @@ import { handler as productsHandler } from '../products';
 import { handler as categoriesHandler } from '../categories';
 import { handler as featuredItemsHandler } from '../featured-items';
 import { handler as seriesGridHandler } from '../series-grid';
+import { handler as contentBlockHandler } from '../content-block';
+import { handler as heroSliderHandler } from '../hero-slider';
 
 // Registry of all section handlers
 export const sectionHandlers: SectionHandlers = {
-  text_block: textBlockHandler,
-  hero: heroHandler,
+  // בלוק תוכן - כולם משתמשים באותו handler
+  content_block: contentBlockHandler,
+  text_block: contentBlockHandler,
+  hero: contentBlockHandler,
+  hero_premium: contentBlockHandler,
+  // סליידרים
+  hero_slider: heroSliderHandler,
+  // סקשנים אחרים
   reviews: reviewsHandler,
   features: featuresHandler,
   faq: faqHandler,

@@ -23,7 +23,7 @@ interface AddonFormProps {
 const fieldTypes = [
   { value: 'text', label: 'טקסט חופשי', description: 'שדה טקסט לכתיבה חופשית (למשל: רקמה אישית)' },
   { value: 'select', label: 'בחירה מרשימה', description: 'דרופדאון עם מספר אפשרויות' },
-  { value: 'checkbox', label: 'תיבת סימון', description: 'אפשרות כן/לא (למשל: אריזת מתנה)' },
+  { value: 'checkbox', label: 'תיבת סימון', description: 'בחירה מרובה - ניתן לבחור כמה אפשרויות' },
   { value: 'radio', label: 'בחירה בודדת', description: 'כפתורי רדיו - בחירה אחת מתוך כמה' },
   { value: 'date', label: 'תאריך', description: 'בחירת תאריך (למשל: תאריך משלוח רצוי)' },
 ] as const;
@@ -45,7 +45,8 @@ export function AddonForm({ storeId, storeSlug, addon }: AddonFormProps) {
     addon?.options?.length ? addon.options : [{ label: '', value: '', priceAdjustment: 0 }]
   );
 
-  const needsOptions = fieldType === 'select' || fieldType === 'radio';
+  // checkbox can also have multiple options (multi-select behavior)
+  const needsOptions = fieldType === 'select' || fieldType === 'radio' || fieldType === 'checkbox';
 
   const addOption = () => {
     setOptions([...options, { label: '', value: '', priceAdjustment: 0 }]);
@@ -267,8 +268,8 @@ export function AddonForm({ storeId, storeSlug, addon }: AddonFormProps) {
         </div>
       )}
 
-      {/* Price (for simple types) */}
-      {!needsOptions && (
+      {/* Price (for simple types without options - text/date only) */}
+      {(fieldType === 'text' || fieldType === 'date') && (
         <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
           <h2 className="text-lg font-medium text-gray-900">תמחור</h2>
           
@@ -289,7 +290,7 @@ export function AddonForm({ storeId, storeSlug, addon }: AddonFormProps) {
               />
             </div>
             <p className="mt-1 text-sm text-gray-500">
-              {fieldType === 'checkbox' ? 'הסכום שיתווסף אם הלקוח יסמן' : 'הסכום שיתווסף למחיר המוצר'}
+              הסכום שיתווסף למחיר המוצר
             </p>
           </div>
         </div>

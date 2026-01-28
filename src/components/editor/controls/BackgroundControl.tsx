@@ -13,7 +13,7 @@
  * יוצר הגדרות: backgroundColor, backgroundImage, backgroundVideo, overlay
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { EditorColorPicker, EditorColorInline } from '../ui/EditorColorPicker';
 import { EditorSlider } from '../ui/EditorSlider';
 import { EditorSelect } from '../ui/EditorSelect';
@@ -37,16 +37,27 @@ export function FullBackgroundControl({
   showOverlay = true,
   defaultColor = '#ffffff',
 }: FullBackgroundControlProps) {
-  // Determine current background type
-  const hasVideo = !!(settings.backgroundVideo as string);
-  const hasImage = !!(settings.backgroundImage as string);
-  const initialType: BackgroundType = hasVideo ? 'video' : hasImage ? 'image' : 'color';
+  // Determine current background type from settings
+  const detectBackgroundType = (): BackgroundType => {
+    const hasVideo = !!(settings.backgroundVideo as string) || !!(settings.videoUrl as string);
+    const hasImage = !!(settings.backgroundImage as string) || !!(settings.imageUrl as string);
+    return hasVideo ? 'video' : hasImage ? 'image' : 'color';
+  };
   
-  const [bgType, setBgType] = useState<BackgroundType>(initialType);
+  const [bgType, setBgType] = useState<BackgroundType>(detectBackgroundType);
+  
+  // Update bgType when settings change (e.g., when switching sections or loading)
+  useEffect(() => {
+    setBgType(detectBackgroundType());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.backgroundVideo, settings.videoUrl, settings.backgroundImage, settings.imageUrl]);
   
   const backgroundColor = (settings.backgroundColor as string) || defaultColor;
-  const backgroundImage = (settings.backgroundImage as string) || '';
-  const backgroundVideo = (settings.backgroundVideo as string) || '';
+  // Support both backgroundImage and imageUrl (for content_block)
+  const backgroundImage = (settings.backgroundImage as string) || (settings.imageUrl as string) || '';
+  const mobileImage = (settings.mobileImageUrl as string) || '';
+  const backgroundVideo = (settings.backgroundVideo as string) || (settings.videoUrl as string) || '';
+  const mobileVideo = (settings.mobileVideoUrl as string) || '';
   const overlay = (settings.overlay as number) || 0;
   const backgroundSize = (settings.backgroundSize as string) || 'cover';
   const backgroundPosition = (settings.backgroundPosition as string) || 'center';
@@ -56,12 +67,31 @@ export function FullBackgroundControl({
     // Clear other types when switching
     if (type === 'color') {
       onChange('backgroundImage', '');
+      onChange('imageUrl', '');
+      onChange('mobileImageUrl', '');
       onChange('backgroundVideo', '');
+      onChange('videoUrl', '');
+      onChange('mobileVideoUrl', '');
     } else if (type === 'image') {
       onChange('backgroundVideo', '');
+      onChange('videoUrl', '');
+      onChange('mobileVideoUrl', '');
     } else if (type === 'video') {
       onChange('backgroundImage', '');
+      onChange('imageUrl', '');
+      onChange('mobileImageUrl', '');
     }
+  };
+
+  // Helper to update both legacy and new keys
+  const updateImage = (value: string) => {
+    onChange('backgroundImage', value);
+    onChange('imageUrl', value);
+  };
+
+  const updateVideo = (value: string) => {
+    onChange('backgroundVideo', value);
+    onChange('videoUrl', value);
   };
 
   return (
@@ -123,37 +153,65 @@ export function FullBackgroundControl({
       {/* Image Settings */}
       {bgType === 'image' && (
         <div className="space-y-3">
+          {/* Desktop Image */}
           <div>
-            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">תמונת רקע</label>
+            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">תמונה (מחשב)</label>
             {backgroundImage ? (
               <div className="relative">
                 <div 
-                  className="w-full h-20 rounded-lg bg-cover bg-center border border-[var(--editor-border-default)]"
+                  className="w-full h-16 rounded-lg bg-cover bg-center border border-[var(--editor-border-default)]"
                   style={{ backgroundImage: `url(${backgroundImage})` }}
                 />
                 <button
-                  onClick={() => onChange('backgroundImage', '')}
+                  onClick={() => updateImage('')}
                   className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                 >
                   <X className="w-3 h-3" />
                 </button>
               </div>
             ) : (
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={backgroundImage}
-                  onChange={(e) => onChange('backgroundImage', e.target.value)}
-                  placeholder="הזן URL של תמונה..."
-                  className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
-                             rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
-                  dir="ltr"
-                />
-                <p className="text-[10px] text-[var(--editor-text-muted)]">
-                  הזן URL או העלה תמונה
-                </p>
-              </div>
+              <input
+                type="text"
+                value={backgroundImage}
+                onChange={(e) => updateImage(e.target.value)}
+                placeholder="URL תמונה למחשב..."
+                className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                           rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+                dir="ltr"
+              />
             )}
+          </div>
+
+          {/* Mobile Image */}
+          <div>
+            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">תמונה (מובייל)</label>
+            {mobileImage ? (
+              <div className="relative">
+                <div 
+                  className="w-full h-16 rounded-lg bg-cover bg-center border border-[var(--editor-border-default)]"
+                  style={{ backgroundImage: `url(${mobileImage})` }}
+                />
+                <button
+                  onClick={() => onChange('mobileImageUrl', '')}
+                  className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={mobileImage}
+                onChange={(e) => onChange('mobileImageUrl', e.target.value)}
+                placeholder="URL תמונה למובייל (אופציונלי)..."
+                className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                           rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+                dir="ltr"
+              />
+            )}
+            <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">
+              אם ריק, תוצג תמונת המחשב גם במובייל
+            </p>
           </div>
 
           <EditorSelect
@@ -185,31 +243,54 @@ export function FullBackgroundControl({
       {/* Video Settings */}
       {bgType === 'video' && (
         <div className="space-y-3">
+          {/* Desktop Video */}
           <div>
-            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">וידאו רקע</label>
+            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">וידאו (מחשב)</label>
             <input
               type="text"
               value={backgroundVideo}
-              onChange={(e) => onChange('backgroundVideo', e.target.value)}
-              placeholder="הזן URL של וידאו (MP4, WebM)..."
+              onChange={(e) => updateVideo(e.target.value)}
+              placeholder="URL וידאו למחשב (MP4, WebM)..."
               className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
                          rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
               dir="ltr"
             />
-            <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">
-              הוידאו יתנגן באופן אוטומטי ללא קול
-            </p>
+            {backgroundVideo && (
+              <button
+                onClick={() => updateVideo('')}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors mt-1"
+              >
+                <X className="w-3 h-3" />
+                הסר וידאו
+              </button>
+            )}
           </div>
 
-          {backgroundVideo && (
-            <button
-              onClick={() => onChange('backgroundVideo', '')}
-              className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors"
-            >
-              <X className="w-3 h-3" />
-              הסר וידאו
-            </button>
-          )}
+          {/* Mobile Video */}
+          <div>
+            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">וידאו (מובייל)</label>
+            <input
+              type="text"
+              value={mobileVideo}
+              onChange={(e) => onChange('mobileVideoUrl', e.target.value)}
+              placeholder="URL וידאו למובייל (אופציונלי)..."
+              className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                         rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+              dir="ltr"
+            />
+            {mobileVideo && (
+              <button
+                onClick={() => onChange('mobileVideoUrl', '')}
+                className="flex items-center gap-1.5 text-xs text-red-500 hover:text-red-600 transition-colors mt-1"
+              >
+                <X className="w-3 h-3" />
+                הסר וידאו
+              </button>
+            )}
+            <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">
+              אם ריק, יוצג וידאו המחשב גם במובייל
+            </p>
+          </div>
         </div>
       )}
 
@@ -239,8 +320,9 @@ interface MinHeightControlProps {
 export function MinHeightControl({
   settings,
   onChange,
-}: MinHeightControlProps) {
-  const minHeight = (settings.minHeight as number) || 0;
+  defaultValue = 0,
+}: MinHeightControlProps & { defaultValue?: number }) {
+  const minHeight = (settings.minHeight as number) ?? defaultValue;
   const minHeightUnit = (settings.minHeightUnit as string) || 'px';
 
   return (
@@ -249,9 +331,9 @@ export function MinHeightControl({
       <div className="flex gap-1.5 items-center">
         <input
           type="number"
-          value={minHeight || ''}
-          onChange={(e) => onChange('minHeight', e.target.value ? Number(e.target.value) : 0)}
-          placeholder="0"
+          value={minHeight}
+          onChange={(e) => onChange('minHeight', e.target.value ? Number(e.target.value) : defaultValue)}
+          placeholder={String(defaultValue)}
           className="w-16 px-2 py-1.5 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
                      rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
           dir="ltr"

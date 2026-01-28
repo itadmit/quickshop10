@@ -84,15 +84,37 @@ export function TrackInitiateCheckout({ cart }: { cart: CartData }) {
 
 /**
  * Track Purchase event
+ * Uses sessionStorage to prevent duplicate tracking on page refresh
  */
 export function TrackPurchase({ order }: { order: OrderData }) {
   const tracked = useRef(false);
 
   useEffect(() => {
     if (tracked.current) return;
-    tracked.current = true;
     
+    // Check if this order was already tracked in this session
+    const storageKey = `purchase_tracked_${order.orderNumber}`;
+    try {
+      if (typeof window !== 'undefined' && sessionStorage.getItem(storageKey)) {
+        console.log(`[Tracking] Purchase already tracked for order ${order.orderNumber}, skipping`);
+        tracked.current = true;
+        return;
+      }
+    } catch {
+      // sessionStorage might not be available
+    }
+    
+    tracked.current = true;
     tracker.purchase(order);
+    
+    // Mark as tracked in sessionStorage
+    try {
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem(storageKey, 'true');
+      }
+    } catch {
+      // Ignore storage errors
+    }
   }, [order]);
 
   return null;

@@ -278,6 +278,18 @@ export function applyCommonUpdates(
   }
 
   // =====================================================
+  // SCROLL ARROW
+  // =====================================================
+  
+  if (updates.settings?.showScrollArrow !== undefined) {
+    const arrowEl = el.querySelector('[data-scroll-arrow]') as HTMLElement;
+    if (arrowEl) {
+      const shouldHide = updates.settings.showScrollArrow === false;
+      arrowEl.style.display = shouldHide ? 'none' : '';
+    }
+  }
+
+  // =====================================================
   // SECTION WIDTH SETTINGS (Elementor style)
   // =====================================================
   
@@ -446,19 +458,31 @@ export function applyCommonUpdates(
   }
 
   // Vertical Alignment (requires flex)
+  // Note: For sections with data-content-container (like content_block), 
+  // the section-specific handler applies alignment to the container
   if (updates.settings?.verticalAlign !== undefined) {
     const verticalAlign = updates.settings.verticalAlign as string;
     const alignMap: Record<string, string> = {
+      top: 'flex-start',
       start: 'flex-start',
       center: 'center',
+      bottom: 'flex-end',
       end: 'flex-end',
     };
-    // Ensure flex is enabled for vertical alignment to work
-    if (!el.style.display || el.style.display === 'block') {
-      el.style.display = 'flex';
-      el.style.flexDirection = 'column';
+    
+    // Check if this section has a content container
+    const contentContainer = el.querySelector('[data-content-container]') as HTMLElement;
+    if (contentContainer) {
+      // Apply to content container instead of section
+      contentContainer.style.justifyContent = alignMap[verticalAlign] || 'center';
+    } else {
+      // Apply to section element directly
+      if (!el.style.display || el.style.display === 'block') {
+        el.style.display = 'flex';
+        el.style.flexDirection = 'column';
+      }
+      el.style.justifyContent = alignMap[verticalAlign] || 'center';
     }
-    el.style.justifyContent = alignMap[verticalAlign] || 'center';
     el.dataset.verticalAlign = verticalAlign;
   }
 

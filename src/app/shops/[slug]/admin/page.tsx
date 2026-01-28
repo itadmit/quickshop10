@@ -1,4 +1,4 @@
-import { getStoreBySlug, getStoreOrders, getStoreProducts } from '@/lib/db/queries';
+import { getStoreBySlug, getDashboardStats, getDashboardChartData, getDashboardRecentOrders, getDashboardTopProducts } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -44,57 +44,6 @@ function formatDate(timezone: string): string {
     year: 'numeric',
     timeZone: timezone,
   });
-}
-
-// Check if an order date is "today" in the store's timezone
-function isOrderFromToday(orderDate: Date | null, timezone: string): boolean {
-  if (!orderDate) return false;
-  const orderDateStr = orderDate.toLocaleDateString('en-CA', { timeZone: timezone });
-  const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
-  return orderDateStr === todayDateStr;
-}
-
-// Check if an order date is in the current month in the store's timezone
-function isOrderFromThisMonth(orderDate: Date | null, timezone: string): boolean {
-  if (!orderDate) return false;
-  const orderDateStr = orderDate.toLocaleDateString('en-CA', { timeZone: timezone });
-  const todayDateStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
-  return orderDateStr.substring(0, 7) === todayDateStr.substring(0, 7); // Compare YYYY-MM
-}
-
-function getRevenueByDay(
-  orders: { createdAt: Date | null; total: string; financialStatus: string | null }[], 
-  timezone: string,
-  days = 14
-) {
-  const data: Array<{ date: string; revenue: number; orders: number }> = [];
-  
-  // Only include paid orders in revenue calculations
-  const paidOrders = orders.filter(o => o.financialStatus === 'paid');
-  
-  // Get today's date in the store's timezone
-  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
-  
-  for (let i = days - 1; i >= 0; i--) {
-    // Calculate the date for this day
-    const targetDate = new Date(todayStr);
-    targetDate.setDate(targetDate.getDate() - i);
-    const targetDateStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'UTC' });
-    
-    // Filter orders that match this date in the store's timezone
-    const dayOrders = paidOrders.filter(order => {
-      if (!order.createdAt) return false;
-      const orderDateStr = new Date(order.createdAt).toLocaleDateString('en-CA', { timeZone: timezone });
-      return orderDateStr === targetDateStr;
-    });
-    
-    data.push({
-      date: targetDateStr,
-      revenue: dayOrders.reduce((sum, o) => sum + Number(o.total), 0),
-      orders: dayOrders.length,
-    });
-  }
-  return data;
 }
 
 // ============================================
@@ -369,51 +318,30 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
     notFound();
   }
 
-  // Fetch all data in parallel ⚡
-  const [orders, products] = await Promise.all([
-    getStoreOrders(store.id),
-    getStoreProducts(store.id),
-  ]);
-
   // Get store timezone (default to Israel if not set)
   const storeTimezone = store.timezone || 'Asia/Jerusalem';
 
-  // Calculate today's metrics - only count PAID orders (using store timezone)
-  const todayOrders = orders.filter(o => {
-    if (!o.createdAt) return false;
-    // Only count paid orders
-    if (o.financialStatus !== 'paid') return false;
-    return isOrderFromToday(new Date(o.createdAt), storeTimezone);
-  });
-  const todaySales = todayOrders.reduce((sum, o) => sum + Number(o.total), 0);
-  const todayOrdersCount = todayOrders.length;
-  
-  // Calculate monthly metrics - only count PAID orders (using store timezone)
-  const monthlyOrders = orders.filter(o => {
-    if (!o.createdAt) return false;
-    // Only count paid orders
-    if (o.financialStatus !== 'paid') return false;
-    return isOrderFromThisMonth(new Date(o.createdAt), storeTimezone);
-  });
-  const monthlyRevenue = monthlyOrders.reduce((sum, o) => sum + Number(o.total), 0);
-  
-  // Only count orders that are PAID and waiting for shipping
-  const pendingOrders = orders.filter(o => 
-    o.fulfillmentStatus === 'unfulfilled' && 
-    o.status !== 'cancelled' &&
-    o.financialStatus === 'paid'
-  ).length;
-  
-  const lowStockProducts = products.filter(p => 
-    p.trackInventory && p.inventory !== null && p.inventory <= 5 && p.inventory > 0
-  ).length;
+  // Fetch all data in parallel using OPTIMIZED SQL queries ⚡
+  // Instead of fetching ALL orders/products and filtering in JS,
+  // we now use SQL aggregation which is MUCH faster!
+  const [stats, salesByDay, recentOrders, topProducts] = await Promise.all([
+    getDashboardStats(store.id, storeTimezone),
+    getDashboardChartData(store.id, storeTimezone, 14),
+    getDashboardRecentOrders(store.id, 5),
+    getDashboardTopProducts(store.id, 5),
+  ]);
 
-  const outOfStockProducts = products.filter(p => 
-    p.trackInventory && (p.inventory === null || p.inventory === 0)
-  ).length;
-
-  // Chart data
-  const salesByDay = getRevenueByDay(orders, storeTimezone, 14);
+  // Extract values from optimized stats
+  const {
+    todaySales,
+    todayOrdersCount,
+    monthlyRevenue,
+    monthlyOrdersCount,
+    pendingOrders,
+    totalProducts,
+    lowStockProducts,
+    outOfStockProducts,
+  } = stats;
 
   // Has alerts
   const hasAlerts = pendingOrders > 0 || lowStockProducts > 0 || outOfStockProducts > 0;
@@ -442,19 +370,19 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
         <StatCard
           label="מכירות חודשיות"
           value={formatCurrency(monthlyRevenue)}
-          subLabel={`${monthlyOrders.length} הזמנות`}
+          subLabel={`${monthlyOrdersCount} הזמנות`}
           icon={<ChartBarIcon size={20} />}
         />
         <StatCard
           label="מוצרים"
-          value={products.length}
+          value={totalProducts}
           subLabel="בקטלוג"
           icon={<PackageIcon size={20} />}
         />
       </div>
 
       {/* Main Content Grid - Sales Chart + Orders */}
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+      <div className="grid lg:grid-cols-2 lg:items-start gap-4 sm:gap-6 mt-4 sm:mt-6">
         {/* Sales Chart + Alerts */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
@@ -508,14 +436,14 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
             </Link>
           </div>
           <RecentOrdersList 
-            orders={orders.filter(o => o.financialStatus === 'paid')} 
+            orders={recentOrders} 
             storeSlug={slug} 
           />
         </div>
       </div>
 
       {/* Second Row - Products + Quick Actions */}
-      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 mt-4 sm:mt-6">
+      <div className="grid lg:grid-cols-2 lg:items-start gap-4 sm:gap-6 mt-4 sm:mt-6">
         {/* Top Products */}
         <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5">
           <div className="flex items-center justify-between mb-4">
@@ -524,7 +452,7 @@ export default async function AdminDashboardPage({ params }: AdminPageProps) {
               כל המוצרים ←
             </Link>
           </div>
-          <TopProductsList products={products} storeSlug={slug} />
+          <TopProductsList products={topProducts} storeSlug={slug} />
         </div>
 
         {/* Quick Actions */}

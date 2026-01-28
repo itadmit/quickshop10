@@ -242,7 +242,7 @@ function TopProductsList({
   return (
     <div className="divide-y divide-gray-100">
       {products.map((product, i) => (
-        <div key={product.id} className="flex items-center gap-4 py-3">
+        <div key={`${product.id}-${i}`} className="flex items-center gap-4 py-3">
           <span className="text-gray-400 text-sm w-4">{i + 1}</span>
           {product.image ? (
             <img 

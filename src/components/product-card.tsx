@@ -193,7 +193,8 @@ export function ProductCard({
           )}
           {!showAddToCart && !outOfStock && !hasVariants && (
             // Simple product - hover only
-            <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
+            // 🔧 pointer-events-none on mobile prevents accidental clicks on hidden button
+            <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none md:pointer-events-auto">
               <AddToCartButton 
                 productId={id}
                 name={name}

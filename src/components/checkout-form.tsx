@@ -12,6 +12,7 @@ import { createOrder } from '@/app/actions/order';
 import { getAutomaticDiscounts, type AutomaticDiscountResult, type CartItemForDiscount } from '@/app/actions/automatic-discount';
 import { calculateDiscounts, dbDiscountToEngine, type CartItem as EngineCartItem, type Discount } from '@/lib/discount-engine';
 import { tracker } from '@/lib/tracking';
+import { getUTMSource, getUTMData } from '@/components/utm-tracker';
 import { getProductsByIds } from '@/app/actions/products';
 import { useCitySearch, useStreetSearch } from '@/hooks/useIsraelAddress';
 import { Autocomplete } from '@/components/ui/autocomplete';
@@ -1344,6 +1345,9 @@ export function CheckoutForm({
                   type: d.type,
                   value: d.value,
                 })),
+                // 📊 UTM tracking for attribution
+                utmSource: getUTMSource(),
+                utmData: getUTMData(),
               },
             }),
           });

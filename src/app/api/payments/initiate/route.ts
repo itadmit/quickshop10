@@ -575,6 +575,9 @@ export async function POST(request: NextRequest) {
       // Influencer
       influencerId: body.influencerId,
       
+      // 📊 UTM Source for traffic attribution
+      utmSource: (body.orderData as { utmSource?: string })?.utmSource || null,
+      
       // Note: paymentMethod and paymentDetails will be updated after payment
     }).returning();
 

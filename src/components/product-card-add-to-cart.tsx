@@ -109,11 +109,12 @@ export function ProductCardAddToCart({
   };
 
   // Container classes based on position mode
+  // 🔧 pointer-events-none on mobile prevents accidental clicks on hidden button
   const containerClasses = positionBelow
     ? '' // Below card - no absolute positioning
     : showAlways
       ? 'absolute bottom-0 left-0 right-0 p-4' // Always visible on image
-      : 'absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300'; // Hover only
+      : 'absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none md:pointer-events-auto'; // Hover only - disabled on mobile
 
   return (
     <>

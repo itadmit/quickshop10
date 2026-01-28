@@ -2467,6 +2467,7 @@ export function EditorSectionHighlighter() {
       // =====================================================
       if (event.data?.type === 'SECTION_ADD') {
         const { sectionId, sectionType, title, subtitle, afterSectionId, content } = event.data;
+        console.log('[SECTION_ADD] Adding section:', sectionType, sectionId);
         
         // Create placeholder element with all data- attributes for live updates
         const placeholder = document.createElement('section');
@@ -2529,18 +2530,6 @@ export function EditorSectionHighlighter() {
             `;
             break;
           
-          case 'text_block':
-            placeholder.className = 'py-16 px-4';
-            html = `
-              <div class="max-w-2xl mx-auto text-center">
-                <h2 class="text-3xl md:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title style="color: inherit;">${title || ''}</h2>
-                <p class="text-lg opacity-80 mb-6 ${subtitle ? '' : 'hidden'}" data-section-subtitle style="color: inherit;">${subtitle || ''}</p>
-                <div class="prose prose mx-auto mb-8" data-content-text style="color: inherit;">${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
-                <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" style="color: #000; background-color: transparent; border-color: currentColor;" data-section-button>${content?.buttonText || ''}</a>
-              </div>
-            `;
-            break;
-          
           case 'video_banner':
             const hasVideoMedia = !!(content?.videoUrl || content?.imageUrl);
             placeholder.className = 'relative overflow-hidden';
@@ -2567,29 +2556,35 @@ export function EditorSectionHighlighter() {
             break;
 
           case 'hero':
+          case 'hero_premium':
+          case 'content_block':
+          case 'text_block':
           case 'banner':
-            const hasHeroImage = !!(content?.imageUrl || content?.mobileImageUrl);
-            const heroBgColor = hasHeroImage ? 'transparent' : '#6B7280'; // Gray fallback if no image
-            // Match exact styling from HeroSection component
-            placeholder.className = 'relative overflow-hidden';
-            placeholder.style.height = '90vh';
-            placeholder.dataset.hasImage = hasHeroImage ? 'true' : 'false';
-            placeholder.style.backgroundColor = hasHeroImage ? '' : heroBgColor;
+            // All content block types use the same structure
+            const hasContentBlockImage = !!(content?.imageUrl || content?.mobileImageUrl || content?.videoUrl);
+            const contentBlockBgColor = hasContentBlockImage ? '#000' : '#ffffff';
+            const textColor = hasContentBlockImage ? '#ffffff' : '#000000';
+            placeholder.className = 'relative overflow-hidden flex flex-col';
+            placeholder.style.minHeight = hasContentBlockImage ? '90vh' : '400px';
+            placeholder.style.backgroundColor = contentBlockBgColor;
             html = `
-              <div class="absolute inset-0">
-                <div class="absolute inset-0 bg-cover bg-center" data-bg-desktop style="background-size: cover; background-position: center; ${content?.imageUrl ? `background-image: url('${content.imageUrl}')` : 'background-image: none;'}"></div>
-                <div class="absolute inset-0" data-overlay style="background-color: rgba(0,0,0,0.3);"></div>
+              ${content?.imageUrl ? `<div class="absolute inset-0 bg-cover bg-center" data-bg-desktop data-bg-type="image" style="background-size: cover; background-position: center; background-image: url('${content.imageUrl}');"></div>` : ''}
+              ${hasContentBlockImage ? `<div class="absolute inset-0" data-overlay style="background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.4) 50%, transparent 100%);"></div>` : ''}
+              <div class="relative z-10 flex-1 flex flex-col justify-center items-center text-center px-6" data-content-container>
+                <div class="w-full" data-content-wrapper style="max-width: 1200px; margin: 0 auto;">
+                  <h1 class="${hasContentBlockImage ? 'font-display text-6xl md:text-8xl font-extralight tracking-[0.3em] uppercase' : 'text-3xl md:text-4xl font-bold'} mb-4" data-section-title style="color: ${textColor}; ${title ? '' : 'display:none'}">${title || ''}</h1>
+                  <p class="text-lg opacity-80 mb-6" data-section-subtitle style="color: ${textColor}; ${subtitle ? '' : 'display:none'}">${subtitle || ''}</p>
+                  <div class="prose mx-auto mb-8" data-content-text style="color: ${textColor}; ${content?.text ? '' : 'display:none'}">${content?.text || ''}</div>
+                  <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 ${hasContentBlockImage ? 'bg-white text-black' : 'border border-current'} uppercase tracking-wider text-sm transition-all" data-section-button style="${content?.buttonText ? '' : 'display:none'}">${content?.buttonText || ''}</a>
+                </div>
               </div>
-              <div class="relative z-10 h-full flex flex-col justify-center items-center text-center container mx-auto px-6" data-content-container>
-                <h1 class="font-display text-6xl md:text-8xl lg:text-9xl text-white font-extralight tracking-[0.3em] mb-6 uppercase" data-section-title style="${title ? '' : 'display:none'}">${title || ''}</h1>
-                <p class="text-white/90 text-xs md:text-sm tracking-[0.4em] uppercase mb-12" data-section-subtitle style="${subtitle ? '' : 'display:none'}">${subtitle || ''}</p>
-                <a href="${content?.buttonLink || '/products'}" class="inline-block px-8 py-3 bg-white text-black uppercase tracking-wider text-sm transition-all" data-section-button style="${content?.buttonText ? '' : 'display:none'}">${content?.buttonText || ''}</a>
-              </div>
-              <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+              ${hasContentBlockImage ? `
+              <div class="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce" data-scroll-arrow>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1">
                   <path d="M12 5v14M19 12l-7 7-7-7"/>
                 </svg>
               </div>
+              ` : ''}
             `;
             break;
           
@@ -3037,6 +3032,66 @@ export function EditorSectionHighlighter() {
             `;
             break;
 
+          case 'hero_slider':
+            // Slider with slides
+            const sliderSlides = content?.slides || [{ id: '1', title: 'שקופית 1', subtitle: 'תיאור קצר' }];
+            placeholder.className = 'relative overflow-hidden';
+            placeholder.style.minHeight = '90vh';
+            placeholder.style.backgroundColor = '#1f2937';
+            html = `
+              <style>
+                [data-section-id="${sectionId}"] [data-slide-title] {
+                  font-size: 36px;
+                  font-weight: 200;
+                  color: #ffffff;
+                }
+                @media (min-width: 768px) {
+                  [data-section-id="${sectionId}"] [data-slide-title] {
+                    font-size: 72px;
+                  }
+                }
+                [data-section-id="${sectionId}"] [data-slide-subtitle] {
+                  font-size: 14px;
+                  color: rgba(255,255,255,0.9);
+                }
+                @media (min-width: 768px) {
+                  [data-section-id="${sectionId}"] [data-slide-subtitle] {
+                    font-size: 18px;
+                  }
+                }
+              </style>
+              <div class="overflow-hidden h-full">
+                <div class="flex h-full" style="min-height: 90vh;">
+                  ${(sliderSlides as Array<{id: string; title?: string; subtitle?: string; imageUrl?: string; buttonText?: string; buttonLink?: string}>).map((slide, index) => `
+                    <div class="flex-shrink-0 w-full relative" style="min-height: 90vh;" data-slide-index="${index}" data-slide-id="${slide.id}">
+                      ${slide.imageUrl ? `<img src="${slide.imageUrl}" alt="${slide.title || ''}" class="absolute inset-0 w-full h-full object-cover" data-slide-image-desktop />` : '<div class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-700 to-gray-900"></div>'}
+                      <div class="absolute inset-0 z-[1]" style="background-color: rgba(0,0,0,0.3);" data-slide-overlay></div>
+                      <div class="absolute inset-0 z-[2]" style="background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.2) 40%, transparent 100%);" data-slide-gradient></div>
+                      <div class="relative z-10 h-full flex flex-col justify-center items-center text-center px-6">
+                        <div class="max-w-4xl w-full">
+                          <h2 class="font-display tracking-[0.2em] uppercase mb-4 md:mb-6" data-slide-title style="${slide.title ? '' : 'display:none'}">${slide.title || ''}</h2>
+                          <p class="opacity-90 mb-6 md:mb-8 max-w-2xl mx-auto" data-slide-subtitle style="${slide.subtitle ? '' : 'display:none'}">${slide.subtitle || ''}</p>
+                          ${slide.buttonText ? `<a href="${slide.buttonLink || '#'}" class="inline-block px-8 py-3 bg-white text-black text-sm font-medium tracking-wider uppercase" data-slide-button>${slide.buttonText}</a>` : ''}
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+              <div class="absolute bottom-6 md:bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                ${(sliderSlides as Array<{id: string}>).map((_, index) => `
+                  <button class="w-2.5 h-2.5 rounded-full transition-all" style="background-color: ${index === 0 ? '#ffffff' : 'rgba(255,255,255,0.5)'}"></button>
+                `).join('')}
+              </div>
+              <button class="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full" aria-label="הקודם">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M9 18l6-6-6-6" /></svg>
+              </button>
+              <button class="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full" aria-label="הבא">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+            `;
+            break;
+          
           case 'custom':
             placeholder.className = 'py-16 bg-gradient-to-b from-blue-50 to-white border-2 border-dashed border-blue-300';
             html = `
@@ -3125,6 +3180,22 @@ export function EditorSectionHighlighter() {
             }
           }
         }
+        
+        // Hide empty state if visible and reset main styling
+        const emptyState = document.querySelector('[data-empty-state]');
+        if (emptyState) {
+          (emptyState as HTMLElement).style.display = 'none';
+        }
+        
+        // Also remove the empty home styling from main
+        const emptyHome = document.querySelector('[data-empty-home]');
+        if (emptyHome) {
+          // Remove ALL flex-related classes that prevent normal section display
+          emptyHome.className = '';
+          (emptyHome as HTMLElement).style.cssText = '';
+        }
+        
+        console.log('[SECTION_ADD] Placeholder inserted, parent:', placeholder.parentElement?.tagName, 'classes:', placeholder.parentElement?.className);
         
         // Scroll to the new section
         setTimeout(() => {

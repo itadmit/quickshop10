@@ -93,7 +93,8 @@ async function executeRetry() {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
-    const ordersToRetry = await db
+    // 1. Orders with retryable errors
+    const ordersWithErrors = await db
       .select({
         id: orders.id,
         orderNumber: orders.orderNumber,
@@ -104,6 +105,7 @@ async function executeRetry() {
         shippingAddress: orders.shippingAddress,
         shipmentError: orders.shipmentError,
         shipmentErrorAt: orders.shipmentErrorAt,
+        createdAt: orders.createdAt,
       })
       .from(orders)
       .where(
@@ -115,25 +117,63 @@ async function executeRetry() {
         )
       )
       .orderBy(desc(orders.shipmentErrorAt))
-      .limit(20); // Process max 20 orders per run
+      .limit(20);
     
-    // Filter to only retryable errors
-    const retryableOrders = ordersToRetry.filter(order => 
+    // 2. 🔧 NEW: Orders that were paid but never got shipment (no error, just missed)
+    // Look for orders from last 3 days with no shipment error
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    const missedOrders = await db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        storeId: orders.storeId,
+        customerName: orders.customerName,
+        customerEmail: orders.customerEmail,
+        customerPhone: orders.customerPhone,
+        shippingAddress: orders.shippingAddress,
+        shipmentError: orders.shipmentError,
+        shipmentErrorAt: orders.shipmentErrorAt,
+        createdAt: orders.createdAt,
+      })
+      .from(orders)
+      .where(
+        and(
+          sql`${orders.shipmentError} IS NULL`, // No error recorded
+          eq(orders.fulfillmentStatus, 'unfulfilled'),
+          eq(orders.financialStatus, 'paid'),
+          sql`${orders.status} != 'cancelled'`,
+          sql`${orders.createdAt} > ${threeDaysAgo}`,
+          sql`${orders.createdAt} < NOW() - INTERVAL '5 minutes'` // Give 5 min grace period
+        )
+      )
+      .orderBy(desc(orders.createdAt))
+      .limit(10);
+    
+    console.log(`[RetryShipments] Found ${ordersWithErrors.length} orders with errors, ${missedOrders.length} missed orders`);
+    
+    // Filter errored orders to only retryable errors
+    const retryableErrorOrders = ordersWithErrors.filter(order => 
       RETRYABLE_ERRORS.some(err => 
         order.shipmentError?.toLowerCase().includes(err.toLowerCase())
       )
     );
     
-    if (retryableOrders.length === 0) {
+    // Combine both lists (errored + missed)
+    const allOrdersToRetry = [...retryableErrorOrders, ...missedOrders];
+    
+    if (allOrdersToRetry.length === 0) {
       console.log('[RetryShipments] No orders to retry');
       return NextResponse.json({ 
         success: true, 
         message: 'No orders to retry',
-        checked: ordersToRetry.length,
+        checkedWithErrors: ordersWithErrors.length,
+        checkedMissed: missedOrders.length,
       });
     }
     
-    console.log(`[RetryShipments] Found ${retryableOrders.length} orders to retry`);
+    console.log(`[RetryShipments] Processing ${allOrdersToRetry.length} orders (${retryableErrorOrders.length} with errors, ${missedOrders.length} missed)`);
     
     const results: Array<{
       orderNumber: string;
@@ -142,8 +182,9 @@ async function executeRetry() {
       error?: string;
     }> = [];
     
-    for (const order of retryableOrders) {
-      console.log(`[RetryShipments] Retrying ${order.orderNumber}...`);
+    for (const order of allOrdersToRetry) {
+      const isMissed = !order.shipmentError;
+      console.log(`[RetryShipments] ${isMissed ? 'Processing missed' : 'Retrying'} ${order.orderNumber}...`);
       
       try {
         // Check if shipment already exists (maybe it was created manually)

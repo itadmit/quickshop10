@@ -202,10 +202,10 @@ export function ProductsDataTable({
               </div>
             )}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <Link 
               href={`/shops/${storeSlug}/admin/products/${product.id}`}
-              className="font-medium text-gray-900 hover:text-blue-600 truncate block"
+              className="font-medium text-gray-900 hover:text-blue-600 text-sm leading-snug block"
               onClick={(e) => e.stopPropagation()}
             >
               {product.name}
@@ -301,8 +301,7 @@ export function ProductsDataTable({
     {
       key: 'price',
       header: 'מחיר',
-      width: '140px',
-      align: 'center',
+      width: '120px',
       render: (product) => {
         // For products with variants, show price range
         if (product.hasVariants && product.variantMinPrice) {
@@ -311,26 +310,24 @@ export function ProductsDataTable({
           
           if (minPrice === maxPrice) {
             return (
-              <span className="font-medium">₪{minPrice.toFixed(2)}</span>
+              <span className="font-medium text-sm">₪{minPrice.toFixed(2)}</span>
             );
           }
           
           return (
-            <div className="flex flex-col items-center">
-              <span className="font-medium text-sm">₪{minPrice.toFixed(2)} - ₪{maxPrice.toFixed(2)}</span>
-            </div>
+            <span className="font-medium text-sm">₪{minPrice.toFixed(2)} - ₪{maxPrice.toFixed(2)}</span>
           );
         }
         
         return (
-        <div className="flex items-center justify-center gap-1.5">
-            <span className="font-medium">₪{Number(product.price || 0).toFixed(2)}</span>
-          {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
-            <span className="text-xs text-gray-400 line-through">
-              ₪{Number(product.comparePrice).toFixed(2)}
-            </span>
-          )}
-        </div>
+          <div className="flex flex-col">
+            <span className="font-medium text-sm">₪{Number(product.price || 0).toFixed(2)}</span>
+            {product.comparePrice && Number(product.comparePrice) > Number(product.price) && (
+              <span className="text-xs text-gray-400 line-through">
+                ₪{Number(product.comparePrice).toFixed(2)}
+              </span>
+            )}
+          </div>
         );
       },
     },

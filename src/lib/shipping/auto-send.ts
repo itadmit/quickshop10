@@ -322,4 +322,3 @@ async function createShipmentForOrder(
     };
   }
 }
-

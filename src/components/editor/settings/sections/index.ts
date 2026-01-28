@@ -1,6 +1,8 @@
 /**
  * Section Settings Components - Export all
  * קומפוננטות הגדרות סקשנים - ייצוא מרכזי
+ * 
+ * הערה: רוב הסקשנים עכשיו משתמשים ב-UniversalSectionPanel
  */
 
 // Reviews section
@@ -23,12 +25,6 @@ export { NewsletterContentSettings, NewsletterDesignSettings } from './newslette
 
 // Contact section
 export { ContactContentSettings, ContactDesignSettings } from './contact-settings';
-
-// Text Block section
-export { TextBlockContentSettings, TextBlockDesignSettings } from './text-block-settings';
-
-// Hero section
-export { HeroContentSettings, HeroDesignSettings } from './hero-settings';
 
 // Series Grid section
 export { SeriesGridContentSettings, SeriesGridDesignSettings } from './series-grid-settings';

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { tracker, type TrackingConfig } from '@/lib/tracking';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { saveUTMData } from '@/components/utm-tracker';
 
 interface TrackingProviderProps {
   config: TrackingConfig;
@@ -13,11 +14,13 @@ interface TrackingProviderProps {
  * Tracking Provider Component
  * 
  * Initializes the tracking system and handles automatic PageView tracking
+ * Also captures UTM parameters for order attribution
  * Uses requestIdleCallback to not block the main thread
  */
 export function TrackingProvider({ config, children }: TrackingProviderProps) {
   const [isReady, setIsReady] = useState(false);
   const initStarted = useRef(false);
+  const utmCaptured = useRef(false);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const lastTrackedPath = useRef<string | null>(null);
@@ -44,6 +47,36 @@ export function TrackingProvider({ config, children }: TrackingProviderProps) {
       setTimeout(doInit, 1);
     }
   }, [config]);
+
+  // 📊 Capture UTM parameters once on first visit
+  useEffect(() => {
+    if (utmCaptured.current) return;
+    utmCaptured.current = true;
+
+    const utmSource = searchParams?.get('utm_source');
+    const utmMedium = searchParams?.get('utm_medium');
+    const utmCampaign = searchParams?.get('utm_campaign');
+    const utmContent = searchParams?.get('utm_content');
+    const utmTerm = searchParams?.get('utm_term');
+    
+    // Also check for shorthand params (common in social media)
+    const source = utmSource || searchParams?.get('source') || searchParams?.get('ref');
+    
+    // If any UTM param exists, save to localStorage
+    if (source || utmMedium || utmCampaign || utmContent || utmTerm) {
+      saveUTMData({
+        source,
+        medium: utmMedium,
+        campaign: utmCampaign,
+        content: utmContent,
+        term: utmTerm,
+      });
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[TrackingProvider] Saved UTM:', { source, utmMedium, utmCampaign });
+      }
+    }
+  }, [searchParams]);
 
   // Track page views on navigation - only after tracker is ready
   // Wait for document.title to update (Next.js updates it asynchronously)

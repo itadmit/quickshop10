@@ -285,7 +285,7 @@ export function ContactsDataTable({
     {
       key: 'contact',
       header: 'איש קשר',
-      width: '200px',
+      width: '180px',
       render: (contact) => {
         const metadata = (contact.metadata || {}) as { tag?: string };
         const tag = metadata.tag;
@@ -333,7 +333,7 @@ export function ContactsDataTable({
     {
       key: 'email',
       header: 'אימייל',
-      width: '200px',
+      width: '160px',
       render: (contact) => (
         <a 
           href={`mailto:${contact.email}`}
@@ -347,7 +347,7 @@ export function ContactsDataTable({
     {
       key: 'phone',
       header: 'טלפון',
-      width: '130px',
+      width: '110px',
       render: (contact) => (
         <span className="text-gray-600 text-sm">
           {contact.phone || '-'}
@@ -357,7 +357,7 @@ export function ContactsDataTable({
     {
       key: 'type',
       header: 'סוג',
-      width: '110px',
+      width: '90px',
       align: 'center',
       render: (contact) => {
         const typeInfo = typeLabels[contact.type] || { label: contact.type, color: 'default' as const };
@@ -371,7 +371,7 @@ export function ContactsDataTable({
     {
       key: 'customer',
       header: 'לקוח',
-      width: '100px',
+      width: '80px',
       align: 'center',
       render: (contact) => {
         const orders = contact.customer?.totalOrders || 0;
@@ -390,7 +390,7 @@ export function ContactsDataTable({
     {
       key: 'status',
       header: 'סטטוס',
-      width: '90px',
+      width: '80px',
       align: 'center',
       render: (contact) => {
         const statusInfo = statusLabels[contact.status] || { label: contact.status, color: 'default' as const };
@@ -404,7 +404,7 @@ export function ContactsDataTable({
     {
       key: 'source',
       header: 'מקור',
-      width: '120px',
+      width: '100px',
       render: (contact) => (
         <span className="text-gray-500 text-sm">
           {contact.source ? (sourceLabels[contact.source] || contact.source) : '-'}
@@ -415,7 +415,7 @@ export function ContactsDataTable({
     {
       key: 'date',
       header: 'תאריך',
-      width: '100px',
+      width: '90px',
       render: (contact) => (
         <span className="text-gray-500 text-sm">
           {new Date(contact.createdAt).toLocaleDateString('he-IL')}
@@ -425,7 +425,7 @@ export function ContactsDataTable({
     {
       key: 'actions',
       header: '',
-      width: '80px',
+      width: '60px',
       align: 'left',
       render: (contact) => (
         <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>

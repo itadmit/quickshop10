@@ -466,6 +466,20 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
         // Order already paid - just show it
         console.log(`Thank you page: Order ${existingOrder.orderNumber} already paid, showing thank you`);
         order = existingOrder;
+        
+        // 🔧 FIX: Try auto-send if not already shipped (may have been missed)
+        if (existingOrder.fulfillmentStatus === 'unfulfilled') {
+          console.log(`Thank you page: Order ${existingOrder.orderNumber} paid but not shipped, attempting auto-send...`);
+          autoSendShipmentOnPayment(store.id, existingOrder.id)
+            .then(result => {
+              if (result.success) {
+                console.log(`Thank you page: Late auto-send successful for order ${existingOrder.orderNumber}, tracking: ${result.trackingNumber}`);
+              } else if (result.error !== 'Auto-send is disabled' && result.error !== 'No default shipping provider') {
+                console.error(`Thank you page: Late auto-send failed: ${result.error}`);
+              }
+            })
+            .catch(err => console.error('Thank you page: Late auto-send error:', err));
+        }
       } else {
         // Order exists but in other status - just show it
         order = existingOrder;
@@ -701,6 +715,8 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
           },
           discountCode: pendingPayment.discountCode,
           influencerId: pendingPayment.influencerId,
+          // 📊 UTM Source for traffic attribution
+          utmSource: (orderData as { utmSource?: string })?.utmSource || null,
           paidAt: new Date(),
         }).returning();
         

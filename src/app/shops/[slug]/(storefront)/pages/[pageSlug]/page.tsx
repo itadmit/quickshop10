@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { 
-  HeroSection, 
+  ContentBlockSection,
   ProductsSection, 
   CategoriesSection,
   VideoBannerSection, 
@@ -14,13 +14,11 @@ import {
   FeaturesSection,
   BannerSmallSection,
   GallerySection,
-  TextBlockSection,
   LogosSection,
   FAQSection,
   HeroSliderSection,
   SeriesGridSection,
   QuoteBannerSection,
-  HeroPremiumSection,
   FeaturedItemsSection,
   ContactSection,
 } from '@/components/sections';
@@ -89,6 +87,10 @@ export default async function InternalPage({ params }: InternalPageProps) {
     notFound();
   }
   
+  // Get page template setting (default = with header/footer, clean = without)
+  const pageTemplate = (page.template as 'default' | 'clean') || 'default';
+  const isCleanTemplate = pageTemplate === 'clean';
+  
   // Get price display settings
   const storeSettings = (store.settings as Record<string, unknown>) || {};
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
@@ -120,7 +122,13 @@ export default async function InternalPage({ params }: InternalPageProps) {
   // If no sections exist, show empty state
   if (sections.length === 0) {
     return (
-      <div className="min-h-screen bg-white" dir="rtl">
+      <div className="min-h-screen bg-white" dir="rtl" data-page-template={pageTemplate}>
+        {/* Hide header when clean template */}
+        {isCleanTemplate && (
+          <style dangerouslySetInnerHTML={{ __html: `
+            header, [data-header], .shop-header, nav[role="navigation"] { display: none !important; }
+          ` }} />
+        )}
         {/* Editor Section Highlighter - ONLY in preview mode */}
         {isPreviewMode && <EditorSectionHighlighter />}
         
@@ -133,15 +141,17 @@ export default async function InternalPage({ params }: InternalPageProps) {
           )}
         </div>
 
-        {/* Footer */}
-        <StoreFooter 
-          storeName={store.name}
-          storeSlug={slug}
-          categories={categories} 
-          basePath={basePath}
-          settings={store.settings as Record<string, unknown>}
-          footerMenuItems={footerMenuItems}
-        />
+        {/* Footer - hide for clean template */}
+        {!isCleanTemplate && (
+          <StoreFooter 
+            storeName={store.name}
+            storeSlug={slug}
+            categories={categories} 
+            basePath={basePath}
+            settings={store.settings as Record<string, unknown>}
+            footerMenuItems={footerMenuItems}
+          />
+        )}
       </div>
     );
   }
@@ -196,27 +206,62 @@ export default async function InternalPage({ params }: InternalPageProps) {
 
     switch (section.type) {
       case 'hero':
-        sectionElement = (
-          <HeroSection
-            title={section.title}
-            subtitle={section.subtitle}
-            content={content as { imageUrl?: string; buttonText?: string; buttonLink?: string }}
-            settings={settings as { height?: string; overlay?: number }}
-            basePath={basePath}
-            sectionId={section.id}
-          />
-        );
-        break;
-
       case 'text_block':
+      case 'hero_premium':
+      case 'content_block':
+        // All content block types use the same component
         sectionElement = (
-          <TextBlockSection
+          <ContentBlockSection
+            sectionId={section.id}
             title={section.title}
             subtitle={section.subtitle}
-            content={content as { text?: string; buttonText?: string; buttonLink?: string }}
-            settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | 'full'; textAlign?: 'right' | 'center' | 'left'; backgroundColor?: string; textColor?: string; paddingY?: 'small' | 'medium' | 'large' }}
+            content={{
+              text: (content as { text?: string }).text,
+              buttonText: (content as { buttonText?: string; primaryButtonText?: string }).buttonText || (content as { primaryButtonText?: string }).primaryButtonText,
+              buttonLink: (content as { buttonLink?: string; primaryButtonLink?: string }).buttonLink || (content as { primaryButtonLink?: string }).primaryButtonLink,
+              secondaryButtonText: (content as { secondaryButtonText?: string }).secondaryButtonText,
+              secondaryButtonLink: (content as { secondaryButtonLink?: string }).secondaryButtonLink,
+              imageUrl: (content as { imageUrl?: string }).imageUrl,
+              mobileImageUrl: (content as { mobileImageUrl?: string }).mobileImageUrl,
+              videoUrl: (content as { videoUrl?: string }).videoUrl,
+              mobileVideoUrl: (content as { mobileVideoUrl?: string }).mobileVideoUrl,
+            }}
+            settings={{
+              backgroundColor: (settings as { backgroundColor?: string }).backgroundColor,
+              minHeight: (settings as { minHeight?: number }).minHeight,
+              minHeightUnit: (settings as { minHeightUnit?: string }).minHeightUnit as 'px' | 'vh' | undefined,
+              height: (settings as { height?: string }).height,
+              overlay: (settings as { overlay?: number; overlayOpacity?: number }).overlay ?? (settings as { overlayOpacity?: number }).overlayOpacity,
+              showGradient: (settings as { showGradient?: boolean }).showGradient,
+              gradientDirection: (settings as { gradientDirection?: string }).gradientDirection as 'top' | 'bottom' | 'left' | 'right' | undefined,
+              textAlign: (settings as { textAlign?: string }).textAlign as 'left' | 'center' | 'right' | undefined,
+              verticalAlign: (settings as { verticalAlign?: string }).verticalAlign as 'top' | 'center' | 'bottom' | undefined,
+              sectionWidth: (settings as { sectionWidth?: string }).sectionWidth as 'full' | 'boxed' | undefined,
+              contentWidth: (settings as { contentWidth?: number }).contentWidth,
+              titleColor: (settings as { titleColor?: string }).titleColor,
+              titleSize: (settings as { titleSize?: number }).titleSize,
+              titleSizeMobile: (settings as { titleSizeMobile?: number }).titleSizeMobile,
+              titleWeight: (settings as { titleWeight?: string }).titleWeight as 'extralight' | 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold' | undefined,
+              subtitleColor: (settings as { subtitleColor?: string }).subtitleColor,
+              subtitleSize: (settings as { subtitleSize?: number }).subtitleSize,
+              subtitleSizeMobile: (settings as { subtitleSizeMobile?: number }).subtitleSizeMobile,
+              textColor: (settings as { textColor?: string }).textColor,
+              textSize: (settings as { textSize?: number }).textSize,
+              textSizeMobile: (settings as { textSizeMobile?: number }).textSizeMobile,
+              buttonTextColor: (settings as { buttonTextColor?: string }).buttonTextColor,
+              buttonBackgroundColor: (settings as { buttonBackgroundColor?: string; buttonBackground?: string }).buttonBackgroundColor || (settings as { buttonBackground?: string }).buttonBackground,
+              buttonBorderColor: (settings as { buttonBorderColor?: string }).buttonBorderColor,
+              buttonStyle: (settings as { buttonStyle?: string }).buttonStyle as 'filled' | 'outline' | 'underline' | undefined,
+              paddingTop: (settings as { paddingTop?: number }).paddingTop,
+              paddingBottom: (settings as { paddingBottom?: number }).paddingBottom,
+              hideOnMobile: (settings as { hideOnMobile?: boolean }).hideOnMobile,
+              hideOnDesktop: (settings as { hideOnDesktop?: boolean }).hideOnDesktop,
+              showScrollArrow: (settings as { showScrollArrow?: boolean }).showScrollArrow,
+              zIndex: (settings as { zIndex?: number }).zIndex,
+              customClass: (settings as { customClass?: string }).customClass,
+              customId: (settings as { customId?: string }).customId,
+            }}
             basePath={basePath}
-            sectionId={section.id}
           />
         );
         break;
@@ -522,44 +567,6 @@ export default async function InternalPage({ params }: InternalPageProps) {
         );
         break;
 
-      case 'hero_premium':
-        sectionElement = (
-          <HeroPremiumSection
-            title={section.title}
-            subtitle={section.subtitle}
-            content={content as { 
-              imageUrl?: string;
-              mobileImageUrl?: string;
-              videoUrl?: string;
-              mobileVideoUrl?: string;
-              eyebrow?: string;
-              headline?: string;
-              headlineAccent?: string;
-              description?: string;
-              primaryButtonText?: string;
-              primaryButtonLink?: string;
-              primaryButtonStyle?: 'filled' | 'outline';
-              secondaryButtonText?: string;
-              secondaryButtonLink?: string;
-              secondaryButtonStyle?: 'filled' | 'outline';
-            }}
-            settings={settings as { 
-              height?: string;
-              mobileHeight?: string;
-              gradientDirection?: 'left' | 'right' | 'center';
-              accentColor?: string;
-              overlayOpacity?: number;
-              videoAutoplay?: boolean;
-              videoMuted?: boolean;
-              videoLoop?: boolean;
-              videoControls?: boolean;
-            }}
-            basePath={basePath}
-            sectionId={section.id}
-          />
-        );
-        break;
-
       case 'featured_items':
         sectionElement = (
           <FeaturedItemsSection
@@ -637,22 +644,31 @@ export default async function InternalPage({ params }: InternalPageProps) {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" data-page-template={pageTemplate}>
+      {/* Hide header when clean template */}
+      {isCleanTemplate && (
+        <style dangerouslySetInnerHTML={{ __html: `
+          header, [data-header], .shop-header, nav[role="navigation"] { display: none !important; }
+        ` }} />
+      )}
+      
       {/* Editor Section Highlighter - ONLY in preview mode */}
       {isPreviewMode && <EditorSectionHighlighter />}
       
       {/* Render all sections from database */}
       {sections.map((section, i) => renderSection(section, i))}
 
-      {/* Footer */}
-      <StoreFooter 
-        storeName={store.name}
-        storeSlug={slug}
-        categories={categories} 
-        basePath={basePath}
-        settings={store.settings as Record<string, unknown>}
-        footerMenuItems={footerMenuItems}
-      />
+      {/* Footer - hide for clean template */}
+      {!isCleanTemplate && (
+        <StoreFooter 
+          storeName={store.name}
+          storeSlug={slug}
+          categories={categories} 
+          basePath={basePath}
+          settings={store.settings as Record<string, unknown>}
+          footerMenuItems={footerMenuItems}
+        />
+      )}
     </div>
   );
 }

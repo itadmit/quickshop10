@@ -1,25 +1,22 @@
 import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds, getFooterMenuItems, getProductsBadgesForCards } from '@/lib/db/queries';
 import { 
-  HeroSection, 
+  ContentBlockSection,
   CategoriesSection, 
   ProductsSection, 
   VideoBannerSection, 
   SplitBannerSection, 
   NewsletterSection,
   ContactSection,
-  // New sections - all Server Components!
   ReviewsSection,
   ImageTextSection,
   FeaturesSection,
   BannerSmallSection,
   GallerySection,
-  TextBlockSection,
   LogosSection,
   FAQSection,
   HeroSliderSection,
   SeriesGridSection,
   QuoteBannerSection,
-  HeroPremiumSection,
   FeaturedItemsSection,
 } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
@@ -82,24 +79,29 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   ]);
 
   // If no sections exist, show empty state with message to add sections
+  // Wrapped in <main> so EditorSectionHighlighter can add placeholders
+  // IMPORTANT: EditorSectionHighlighter must be included for live section adding to work!
   if (sections.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8" dir="rtl">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <path d="M3 9h18M9 21V9" />
-            </svg>
+      <>
+        {isPreviewMode && <EditorSectionHighlighter />}
+        <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-8" dir="rtl" data-empty-home>
+          <div className="text-center max-w-md" data-empty-state>
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M3 9h18M9 21V9" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-medium text-gray-900 mb-2">
+              עדיין אין תוכן
+            </h1>
+            <p className="text-gray-500 mb-6">
+              הוסף סקשנים לדף הבית דרך עורך העיצוב
+            </p>
           </div>
-          <h1 className="text-xl font-medium text-gray-900 mb-2">
-            עדיין אין תוכן
-          </h1>
-          <p className="text-gray-500 mb-6">
-            הוסף סקשנים לדף הבית דרך עורך העיצוב
-          </p>
-        </div>
-      </div>
+        </main>
+      </>
     );
   }
 
@@ -155,14 +157,68 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
 
     switch (section.type) {
       case 'hero':
+        // hero now uses ContentBlockSection - identical to content_block
         sectionElement = (
-          <HeroSection
+          <ContentBlockSection
+            sectionId={section.id}
             title={section.title}
             subtitle={section.subtitle}
-            content={content as { imageUrl?: string; buttonText?: string; buttonLink?: string }}
-            settings={settings as { height?: string; overlay?: number }}
+            content={{
+              text: (content as { text?: string }).text,
+              buttonText: (content as { buttonText?: string; primaryButtonText?: string }).buttonText || (content as { primaryButtonText?: string }).primaryButtonText,
+              buttonLink: (content as { buttonLink?: string; primaryButtonLink?: string }).buttonLink || (content as { primaryButtonLink?: string }).primaryButtonLink,
+              secondaryButtonText: (content as { secondaryButtonText?: string }).secondaryButtonText,
+              secondaryButtonLink: (content as { secondaryButtonLink?: string }).secondaryButtonLink,
+              imageUrl: (content as { imageUrl?: string }).imageUrl,
+              mobileImageUrl: (content as { mobileImageUrl?: string }).mobileImageUrl,
+              videoUrl: (content as { videoUrl?: string }).videoUrl,
+              mobileVideoUrl: (content as { mobileVideoUrl?: string }).mobileVideoUrl,
+            }}
+            settings={{
+              backgroundColor: (settings as { backgroundColor?: string }).backgroundColor,
+              minHeight: (settings as { minHeight?: number }).minHeight,
+              minHeightUnit: (settings as { minHeightUnit?: string }).minHeightUnit as 'px' | 'vh' | undefined,
+              height: (settings as { height?: string }).height,
+              overlay: (settings as { overlay?: number; overlayOpacity?: number }).overlay ?? (settings as { overlayOpacity?: number }).overlayOpacity,
+              showGradient: (settings as { showGradient?: boolean }).showGradient,
+              gradientDirection: (settings as { gradientDirection?: string }).gradientDirection as 'top' | 'bottom' | 'left' | 'right' | undefined,
+              textAlign: (settings as { textAlign?: string }).textAlign as 'left' | 'center' | 'right' | undefined,
+              verticalAlign: (settings as { verticalAlign?: string }).verticalAlign as 'top' | 'center' | 'bottom' | undefined,
+              sectionWidth: (settings as { sectionWidth?: string }).sectionWidth as 'full' | 'boxed' | undefined,
+              contentWidth: (settings as { contentWidth?: number }).contentWidth,
+              titleColor: (settings as { titleColor?: string }).titleColor,
+              titleSize: (settings as { titleSize?: number }).titleSize,
+              titleSizeMobile: (settings as { titleSizeMobile?: number }).titleSizeMobile,
+              titleWeight: (settings as { titleWeight?: string }).titleWeight as 'extralight' | 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold' | undefined,
+              subtitleColor: (settings as { subtitleColor?: string }).subtitleColor,
+              subtitleSize: (settings as { subtitleSize?: number }).subtitleSize,
+              subtitleSizeMobile: (settings as { subtitleSizeMobile?: number }).subtitleSizeMobile,
+              subtitleWeight: (settings as { subtitleWeight?: string }).subtitleWeight as 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | undefined,
+              textColor: (settings as { textColor?: string }).textColor,
+              textSize: (settings as { textSize?: number }).textSize,
+              textSizeMobile: (settings as { textSizeMobile?: number }).textSizeMobile,
+              buttonTextColor: (settings as { buttonTextColor?: string }).buttonTextColor,
+              buttonBackgroundColor: (settings as { buttonBackgroundColor?: string; buttonBackground?: string }).buttonBackgroundColor || (settings as { buttonBackground?: string }).buttonBackground,
+              buttonBorderColor: (settings as { buttonBorderColor?: string }).buttonBorderColor,
+              buttonBorderWidth: (settings as { buttonBorderWidth?: number }).buttonBorderWidth,
+              buttonBorderRadius: (settings as { buttonBorderRadius?: number }).buttonBorderRadius,
+              buttonStyle: (settings as { buttonStyle?: string }).buttonStyle as 'filled' | 'outline' | 'underline' | undefined,
+              paddingTop: (settings as { paddingTop?: number }).paddingTop,
+              paddingBottom: (settings as { paddingBottom?: number }).paddingBottom,
+              paddingLeft: (settings as { paddingLeft?: number }).paddingLeft,
+              paddingRight: (settings as { paddingRight?: number }).paddingRight,
+              marginTop: (settings as { marginTop?: number }).marginTop,
+              marginBottom: (settings as { marginBottom?: number }).marginBottom,
+              animation: (settings as { animation?: string }).animation as 'none' | 'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | undefined,
+              animationDuration: (settings as { animationDuration?: number }).animationDuration,
+              hideOnMobile: (settings as { hideOnMobile?: boolean }).hideOnMobile,
+              hideOnDesktop: (settings as { hideOnDesktop?: boolean }).hideOnDesktop,
+              showScrollArrow: (settings as { showScrollArrow?: boolean }).showScrollArrow,
+              zIndex: (settings as { zIndex?: number }).zIndex,
+              customClass: (settings as { customClass?: string }).customClass,
+              customId: (settings as { customId?: string }).customId,
+            }}
             basePath={basePath}
-            sectionId={section.id}
           />
         );
         break;
@@ -369,14 +425,68 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         break;
 
       case 'text_block':
+        // text_block now uses ContentBlockSection - identical to content_block
         sectionElement = (
-          <TextBlockSection
+          <ContentBlockSection
+            sectionId={section.id}
             title={section.title}
             subtitle={section.subtitle}
-            content={content as { text?: string; buttonText?: string; buttonLink?: string }}
-            settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | 'full'; textAlign?: 'right' | 'center' | 'left'; backgroundColor?: string; textColor?: string; paddingY?: 'small' | 'medium' | 'large' }}
+            content={{
+              text: (content as { text?: string }).text,
+              buttonText: (content as { buttonText?: string; primaryButtonText?: string }).buttonText || (content as { primaryButtonText?: string }).primaryButtonText,
+              buttonLink: (content as { buttonLink?: string; primaryButtonLink?: string }).buttonLink || (content as { primaryButtonLink?: string }).primaryButtonLink,
+              secondaryButtonText: (content as { secondaryButtonText?: string }).secondaryButtonText,
+              secondaryButtonLink: (content as { secondaryButtonLink?: string }).secondaryButtonLink,
+              imageUrl: (content as { imageUrl?: string }).imageUrl,
+              mobileImageUrl: (content as { mobileImageUrl?: string }).mobileImageUrl,
+              videoUrl: (content as { videoUrl?: string }).videoUrl,
+              mobileVideoUrl: (content as { mobileVideoUrl?: string }).mobileVideoUrl,
+            }}
+            settings={{
+              backgroundColor: (settings as { backgroundColor?: string }).backgroundColor,
+              minHeight: (settings as { minHeight?: number }).minHeight,
+              minHeightUnit: (settings as { minHeightUnit?: string }).minHeightUnit as 'px' | 'vh' | undefined,
+              height: (settings as { height?: string }).height,
+              overlay: (settings as { overlay?: number; overlayOpacity?: number }).overlay ?? (settings as { overlayOpacity?: number }).overlayOpacity,
+              showGradient: (settings as { showGradient?: boolean }).showGradient,
+              gradientDirection: (settings as { gradientDirection?: string }).gradientDirection as 'top' | 'bottom' | 'left' | 'right' | undefined,
+              textAlign: (settings as { textAlign?: string }).textAlign as 'left' | 'center' | 'right' | undefined,
+              verticalAlign: (settings as { verticalAlign?: string }).verticalAlign as 'top' | 'center' | 'bottom' | undefined,
+              sectionWidth: (settings as { sectionWidth?: string }).sectionWidth as 'full' | 'boxed' | undefined,
+              contentWidth: (settings as { contentWidth?: number }).contentWidth,
+              titleColor: (settings as { titleColor?: string }).titleColor,
+              titleSize: (settings as { titleSize?: number }).titleSize,
+              titleSizeMobile: (settings as { titleSizeMobile?: number }).titleSizeMobile,
+              titleWeight: (settings as { titleWeight?: string }).titleWeight as 'extralight' | 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold' | undefined,
+              subtitleColor: (settings as { subtitleColor?: string }).subtitleColor,
+              subtitleSize: (settings as { subtitleSize?: number }).subtitleSize,
+              subtitleSizeMobile: (settings as { subtitleSizeMobile?: number }).subtitleSizeMobile,
+              subtitleWeight: (settings as { subtitleWeight?: string }).subtitleWeight as 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | undefined,
+              textColor: (settings as { textColor?: string }).textColor,
+              textSize: (settings as { textSize?: number }).textSize,
+              textSizeMobile: (settings as { textSizeMobile?: number }).textSizeMobile,
+              buttonTextColor: (settings as { buttonTextColor?: string }).buttonTextColor,
+              buttonBackgroundColor: (settings as { buttonBackgroundColor?: string; buttonBackground?: string }).buttonBackgroundColor || (settings as { buttonBackground?: string }).buttonBackground,
+              buttonBorderColor: (settings as { buttonBorderColor?: string }).buttonBorderColor,
+              buttonBorderWidth: (settings as { buttonBorderWidth?: number }).buttonBorderWidth,
+              buttonBorderRadius: (settings as { buttonBorderRadius?: number }).buttonBorderRadius,
+              buttonStyle: (settings as { buttonStyle?: string }).buttonStyle as 'filled' | 'outline' | 'underline' | undefined,
+              paddingTop: (settings as { paddingTop?: number }).paddingTop,
+              paddingBottom: (settings as { paddingBottom?: number }).paddingBottom,
+              paddingLeft: (settings as { paddingLeft?: number }).paddingLeft,
+              paddingRight: (settings as { paddingRight?: number }).paddingRight,
+              marginTop: (settings as { marginTop?: number }).marginTop,
+              marginBottom: (settings as { marginBottom?: number }).marginBottom,
+              animation: (settings as { animation?: string }).animation as 'none' | 'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | undefined,
+              animationDuration: (settings as { animationDuration?: number }).animationDuration,
+              hideOnMobile: (settings as { hideOnMobile?: boolean }).hideOnMobile,
+              hideOnDesktop: (settings as { hideOnDesktop?: boolean }).hideOnDesktop,
+              showScrollArrow: (settings as { showScrollArrow?: boolean }).showScrollArrow,
+              zIndex: (settings as { zIndex?: number }).zIndex,
+              customClass: (settings as { customClass?: string }).customClass,
+              customId: (settings as { customId?: string }).customId,
+            }}
             basePath={basePath}
-            sectionId={section.id}
           />
         );
         break;
@@ -450,30 +560,61 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
       case 'hero_slider':
         sectionElement = (
           <HeroSliderSection
+            sectionId={section.id}
             title={section.title}
             subtitle={section.subtitle}
             content={content as { 
               slides?: Array<{ 
                 id: string; 
-                imageUrl: string; 
-                title?: string; 
-                subtitle?: string; 
-                buttonText?: string; 
+                title?: string;
+                subtitle?: string;
+                text?: string;
+                buttonText?: string;
                 buttonLink?: string;
-                textPosition?: 'center' | 'bottom-center' | 'bottom-right' | 'bottom-left';
+                imageUrl?: string;
+                mobileImageUrl?: string;
+                videoUrl?: string;
+                mobileVideoUrl?: string;
+                textAlign?: 'right' | 'center' | 'left';
+                verticalAlign?: 'top' | 'center' | 'bottom';
+                overlay?: number;
               }>;
-              autoPlay?: boolean;
-              interval?: number;
             }}
             settings={settings as { 
-              height?: string; 
-              overlay?: number; 
-              showDots?: boolean; 
+              minHeight?: number;
+              minHeightUnit?: 'px' | 'vh';
+              sectionWidth?: 'full' | 'boxed';
+              contentWidth?: number;
+              autoplay?: boolean;
+              autoplayInterval?: number;
+              loop?: boolean;
+              showDots?: boolean;
               showArrows?: boolean;
-              textStyle?: 'elegant' | 'bold' | 'minimal';
+              textAlign?: 'right' | 'center' | 'left';
+              verticalAlign?: 'top' | 'center' | 'bottom';
+              overlay?: number;
+              showGradient?: boolean;
+              gradientDirection?: 'top' | 'bottom';
+              titleColor?: string;
+              titleSize?: number;
+              titleSizeMobile?: number;
+              titleWeight?: string;
+              subtitleColor?: string;
+              subtitleSize?: number;
+              subtitleSizeMobile?: number;
+              subtitleWeight?: string;
+              buttonStyle?: 'filled' | 'outline' | 'underline';
+              buttonTextColor?: string;
+              buttonBackgroundColor?: string;
+              buttonBorderColor?: string;
+              dotsColor?: string;
+              dotsActiveColor?: string;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+              customClass?: string;
+              customId?: string;
             }}
             basePath={basePath}
-            sectionId={section.id}
           />
         );
         break;
@@ -541,39 +682,67 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
         break;
 
       case 'hero_premium':
+      case 'content_block':
+        // אותו סקשן - מה שריק פשוט לא מוצג
         sectionElement = (
-          <HeroPremiumSection
+          <ContentBlockSection
+            sectionId={section.id}
             title={section.title}
             subtitle={section.subtitle}
-            content={content as { 
-              imageUrl?: string;
-              mobileImageUrl?: string;
-              videoUrl?: string;
-              mobileVideoUrl?: string;
-              eyebrow?: string;
-              headline?: string;
-              headlineAccent?: string;
-              description?: string;
-              primaryButtonText?: string;
-              primaryButtonLink?: string;
-              primaryButtonStyle?: 'filled' | 'outline';
-              secondaryButtonText?: string;
-              secondaryButtonLink?: string;
-              secondaryButtonStyle?: 'filled' | 'outline';
+            content={{
+              text: (content as { text?: string }).text,
+              buttonText: (content as { buttonText?: string; primaryButtonText?: string }).buttonText || (content as { primaryButtonText?: string }).primaryButtonText,
+              buttonLink: (content as { buttonLink?: string; primaryButtonLink?: string }).buttonLink || (content as { primaryButtonLink?: string }).primaryButtonLink,
+              secondaryButtonText: (content as { secondaryButtonText?: string }).secondaryButtonText,
+              secondaryButtonLink: (content as { secondaryButtonLink?: string }).secondaryButtonLink,
+              imageUrl: (content as { imageUrl?: string }).imageUrl,
+              mobileImageUrl: (content as { mobileImageUrl?: string }).mobileImageUrl,
+              videoUrl: (content as { videoUrl?: string }).videoUrl,
+              mobileVideoUrl: (content as { mobileVideoUrl?: string }).mobileVideoUrl,
             }}
-            settings={settings as { 
-              height?: string;
-              mobileHeight?: string;
-              gradientDirection?: 'left' | 'right' | 'center';
-              accentColor?: string;
-              overlayOpacity?: number;
-              videoAutoplay?: boolean;
-              videoMuted?: boolean;
-              videoLoop?: boolean;
-              videoControls?: boolean;
+            settings={{
+              backgroundColor: (settings as { backgroundColor?: string }).backgroundColor,
+              minHeight: (settings as { minHeight?: number }).minHeight,
+              minHeightUnit: (settings as { minHeightUnit?: string }).minHeightUnit as 'px' | 'vh' | undefined,
+              height: (settings as { height?: string }).height,
+              overlay: (settings as { overlay?: number; overlayOpacity?: number }).overlay ?? (settings as { overlayOpacity?: number }).overlayOpacity,
+              showGradient: (settings as { showGradient?: boolean }).showGradient,
+              gradientDirection: (settings as { gradientDirection?: string }).gradientDirection as 'top' | 'bottom' | 'left' | 'right' | undefined,
+              textAlign: (settings as { textAlign?: string }).textAlign as 'left' | 'center' | 'right' | undefined,
+              verticalAlign: (settings as { verticalAlign?: string }).verticalAlign as 'top' | 'center' | 'bottom' | undefined,
+              titleColor: (settings as { titleColor?: string }).titleColor,
+              titleSize: (settings as { titleSize?: number }).titleSize,
+              titleSizeMobile: (settings as { titleSizeMobile?: number }).titleSizeMobile,
+              titleWeight: (settings as { titleWeight?: string }).titleWeight as 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | 'extrabold' | undefined,
+              subtitleColor: (settings as { subtitleColor?: string }).subtitleColor,
+              subtitleSize: (settings as { subtitleSize?: number }).subtitleSize,
+              subtitleSizeMobile: (settings as { subtitleSizeMobile?: number }).subtitleSizeMobile,
+              subtitleWeight: (settings as { subtitleWeight?: string }).subtitleWeight as 'light' | 'normal' | 'medium' | 'semibold' | 'bold' | undefined,
+              textColor: (settings as { textColor?: string }).textColor,
+              textSize: (settings as { textSize?: number }).textSize,
+              textSizeMobile: (settings as { textSizeMobile?: number }).textSizeMobile,
+              buttonTextColor: (settings as { buttonTextColor?: string }).buttonTextColor,
+              buttonBackgroundColor: (settings as { buttonBgColor?: string; buttonBackground?: string }).buttonBgColor || (settings as { buttonBackground?: string }).buttonBackground,
+              buttonBorderColor: (settings as { buttonBorderColor?: string }).buttonBorderColor,
+              buttonBorderWidth: (settings as { buttonBorderWidth?: number }).buttonBorderWidth,
+              buttonBorderRadius: (settings as { buttonBorderRadius?: number }).buttonBorderRadius,
+              buttonStyle: (settings as { buttonStyle?: string }).buttonStyle as 'filled' | 'outline' | 'underline' | undefined,
+              paddingTop: (settings as { paddingTop?: number }).paddingTop,
+              paddingBottom: (settings as { paddingBottom?: number }).paddingBottom,
+              paddingLeft: (settings as { paddingLeft?: number }).paddingLeft,
+              paddingRight: (settings as { paddingRight?: number }).paddingRight,
+              marginTop: (settings as { marginTop?: number }).marginTop,
+              marginBottom: (settings as { marginBottom?: number }).marginBottom,
+              animation: (settings as { animation?: string }).animation as 'none' | 'fade' | 'slide-up' | 'slide-down' | 'slide-left' | 'slide-right' | undefined,
+              animationDuration: (settings as { animationDuration?: number }).animationDuration,
+              zIndex: (settings as { zIndex?: number }).zIndex,
+              customClass: (settings as { customClass?: string }).customClass,
+              customId: (settings as { customId?: string }).customId,
+              hideOnMobile: (settings as { hideOnMobile?: boolean }).hideOnMobile,
+              hideOnDesktop: (settings as { hideOnDesktop?: boolean }).hideOnDesktop,
+              showScrollArrow: (settings as { showScrollArrow?: boolean }).showScrollArrow,
             }}
             basePath={basePath}
-            sectionId={section.id}
           />
         );
         break;

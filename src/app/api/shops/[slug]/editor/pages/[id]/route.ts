@@ -107,6 +107,7 @@ export async function PATCH(
     }
     if (body.seoTitle !== undefined) updateData.seoTitle = body.seoTitle;
     if (body.seoDescription !== undefined) updateData.seoDescription = body.seoDescription;
+    if (body.template !== undefined) updateData.template = body.template;
 
     // Handle slug change - no need to update separate sections table anymore!
     if (body.pageSlug !== undefined && body.pageSlug !== page.slug) {
