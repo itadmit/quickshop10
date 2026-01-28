@@ -9,6 +9,7 @@ interface Props {
   slug: string;
   hasCrmPlugin: boolean;
   customerTags: Array<{ id: string; label: string; color: string }>;
+  hasEmailPackage: boolean;
 }
 
 // Trigger type labels
@@ -36,13 +37,22 @@ const ACTION_LABELS: Record<string, { label: string; icon: string }> = {
   'crm.add_note': { label: 'הוסף הערה (CRM)', icon: '📝' },
 };
 
-export default function AutomationsClient({ automations, slug, hasCrmPlugin, customerTags }: Props) {
+export default function AutomationsClient({ automations, slug, hasCrmPlugin, customerTags, hasEmailPackage }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   async function toggleAutomation(id: string, isActive: boolean) {
+    // Find the automation to check if it's an email automation
+    const automation = automations.find(a => a.id === id);
+    
+    // Prevent enabling email automations without email package
+    if (isActive && automation?.actionType === 'send_email' && !hasEmailPackage) {
+      alert('לא ניתן להפעיל אוטומציות שליחת מייל ללא חבילת דיוור פעילה. יש לרכוש חבילת דיוור תחילה.');
+      return;
+    }
+    
     startTransition(async () => {
       await fetch(`/api/shops/${slug}/automations/${id}`, {
         method: 'PUT',
@@ -118,6 +128,7 @@ export default function AutomationsClient({ automations, slug, hasCrmPlugin, cus
               onDelete={deleteAutomation}
               onEdit={() => setEditingId(automation.id)}
               isPending={isPending}
+              hasEmailPackage={hasEmailPackage}
             />
           ))
         )}
@@ -148,18 +159,23 @@ function AutomationCard({
   onDelete,
   onEdit,
   isPending,
+  hasEmailPackage,
 }: {
   automation: Automation;
   onToggle: (id: string, isActive: boolean) => void;
   onDelete: (id: string) => void;
   onEdit: () => void;
   isPending: boolean;
+  hasEmailPackage: boolean;
 }) {
   const trigger = TRIGGER_LABELS[automation.triggerType] || { label: automation.triggerType, icon: '⚡', color: 'bg-gray-100 text-gray-800' };
   const action = ACTION_LABELS[automation.actionType] || { label: automation.actionType, icon: '⚙️' };
+  
+  // Check if this is an email automation without email package
+  const isEmailBlocked = automation.actionType === 'send_email' && !hasEmailPackage;
 
   return (
-    <div className={`bg-white rounded-2xl border ${automation.isActive ? 'border-slate-200' : 'border-slate-200/50 opacity-60'} p-5 transition-all hover:shadow-sm`}>
+    <div className={`bg-white rounded-2xl border ${automation.isActive && !isEmailBlocked ? 'border-slate-200' : 'border-slate-200/50 opacity-60'} p-5 transition-all hover:shadow-sm ${isEmailBlocked ? 'relative' : ''}`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           {/* Header */}
@@ -184,6 +200,14 @@ function AutomationCard({
           <h3 className="text-base font-medium text-slate-900">{automation.name}</h3>
           {automation.description && (
             <p className="text-sm text-slate-500 mt-1">{automation.description}</p>
+          )}
+          
+          {/* Email package warning */}
+          {isEmailBlocked && (
+            <div className="mt-2 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700 flex items-center gap-2">
+              <span>⚠️</span>
+              <span>נדרשת חבילת דיוור להפעלת אוטומציה זו</span>
+            </div>
           )}
 
           {/* Stats */}

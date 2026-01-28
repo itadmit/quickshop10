@@ -184,6 +184,7 @@ export default async function AutomationsPage({ params }: PageProps) {
         slug={slug}
         hasCrmPlugin={hasCrmPlugin}
         customerTags={customerTags}
+        hasEmailPackage={emailQuotaStatus?.hasPackage ?? false}
       />
     </div>
   );
