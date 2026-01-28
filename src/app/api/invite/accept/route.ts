@@ -165,6 +165,7 @@ function getDefaultPermissions(role: string): Record<string, boolean> {
       reports: true,
       settings: true,
       team: true,
+      pos: true,
     },
     marketing: {
       products: true,
@@ -174,6 +175,7 @@ function getDefaultPermissions(role: string): Record<string, boolean> {
       reports: true,
       settings: false,
       team: false,
+      pos: false,
     },
     developer: {
       products: true,
@@ -183,6 +185,7 @@ function getDefaultPermissions(role: string): Record<string, boolean> {
       reports: false,
       settings: true,
       team: false,
+      pos: false,
     },
     influencer: {
       products: false,
@@ -192,6 +195,17 @@ function getDefaultPermissions(role: string): Record<string, boolean> {
       reports: true,
       settings: false,
       team: false,
+      pos: false,
+    },
+    agent: {
+      products: false,
+      orders: true,
+      customers: true,
+      discounts: false,
+      reports: true,
+      settings: false,
+      team: false,
+      pos: true,
     },
   };
   return permissions[role] || {};

@@ -656,7 +656,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     'reviews', 'features', 'faq', 'newsletter', 'contact', 
     'logos', 'gallery', 'image_text', 'banner_small', 
     'video_banner', 'split_banner', 'products', 
-    'categories', 'featured_items', 'series_grid'
+    'categories', 'featured_items', 'series_grid', 'custom'
   ];
   
   if (USE_NEW_EDITOR_UI && UNIVERSAL_PANEL_SECTIONS.includes(section.type)) {
@@ -861,6 +861,9 @@ function DesignSettings({
   section: Section; 
   onUpdate: (updates: Partial<Section>) => void;
 }) {
+  // Track initial cardStyle to show warning only when changed
+  const [initialCardStyle] = useState(() => (section.settings?.cardStyle as string) || 'standard');
+  
   const updateSettings = (key: string, value: unknown) => {
     onUpdate({
       settings: { ...section.settings, [key]: value }
@@ -1831,15 +1834,6 @@ function DesignSettings({
             onChange={(v) => updateSettings('containerType', v)}
           />
           <SelectField
-            label="פריסה"
-            value={(section.settings.layout as string) || 'grid'}
-            options={[
-              { value: 'grid', label: 'גריד' },
-              { value: 'slider', label: 'סליידר' },
-            ]}
-            onChange={(v) => updateSettings('layout', v)}
-          />
-          <SelectField
             label="עמודות"
             value={String((section.settings.columns as number) || 4)}
             options={[
@@ -1877,7 +1871,7 @@ function DesignSettings({
           />
         </SettingsGroup>
 
-        <SettingsGroup title="עיצוב כרטיס">
+        <SettingsGroup title="כרטיסים">
           <SelectField
             label="סגנון כרטיס"
             value={(section.settings.cardStyle as string) || 'standard'}
@@ -1888,6 +1882,9 @@ function DesignSettings({
             ]}
             onChange={(v) => updateSettings('cardStyle', v)}
           />
+          {((section.settings.cardStyle as string) || 'standard') !== initialCardStyle && (
+            <p className="text-[11px] text-red-500 -mt-1">* שינוי סגנון יכנס לתוקף לאחר שמירה</p>
+          )}
           <SelectField
             label="אפקט ריחוף"
             value={(section.settings.hoverEffect as string) || 'scale'}
@@ -1897,6 +1894,12 @@ function DesignSettings({
               { value: 'zoom', label: 'זום' },
             ]}
             onChange={(v) => updateSettings('hoverEffect', v)}
+          />
+          <ToggleField
+            label="יישור טקסט"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
           <SwitchField
             label="הצג כפתור הוספה לסל"
@@ -2957,6 +2960,12 @@ function DesignSettings({
               { value: 'lift', label: 'הרמה' },
             ]}
             onChange={(v) => updateSettings('hoverEffect', v)}
+          />
+          <ToggleField
+            label="יישור טקסט"
+            options={['ימין', 'מרכז', 'שמאל']}
+            value={(section.settings.textAlign as string) === 'left' ? 'ימין' : (section.settings.textAlign as string) === 'right' ? 'שמאל' : 'מרכז'}
+            onChange={(v) => updateSettings('textAlign', v === 'ימין' ? 'left' : v === 'שמאל' ? 'right' : 'center')}
           />
           <SwitchField
             label="הצג מספר מוצרים"

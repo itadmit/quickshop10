@@ -24,6 +24,8 @@ export function handler(element: Element, updates: Record<string, unknown>) {
       title?: string;
       subtitle?: string;
       imageUrl?: string;
+      mobileImageUrl?: string;
+      mobileImagePosition?: string;
       buttonText?: string;
       buttonLink?: string;
     }>;
@@ -54,6 +56,33 @@ export function handler(element: Element, updates: Record<string, unknown>) {
       const desktopImg = slideEl.querySelector('[data-slide-image-desktop]') as HTMLImageElement;
       if (desktopImg && slide.imageUrl !== undefined) {
         desktopImg.src = slide.imageUrl;
+      }
+      
+      // Update mobile image
+      const mobileImg = slideEl.querySelector('[data-slide-image-mobile]') as HTMLImageElement;
+      if (mobileImg && slide.mobileImageUrl !== undefined) {
+        mobileImg.src = slide.mobileImageUrl;
+      }
+      
+      // Update mobile image position (object-position)
+      if (slide.mobileImagePosition !== undefined) {
+        const sectionId = el.dataset?.sectionId;
+        let styleEl = el.querySelector(`style[data-mobile-position-${index}]`) as HTMLStyleElement;
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.setAttribute(`data-mobile-position-${index}`, '');
+          el.appendChild(styleEl);
+        }
+        
+        const position = slide.mobileImagePosition || 'center';
+        styleEl.textContent = `
+          @media (max-width: 767px) {
+            [data-section-id="${sectionId}"] [data-slide-index="${index}"] [data-slide-image-desktop],
+            [data-section-id="${sectionId}"] [data-slide-index="${index}"] [data-slide-image-mobile] {
+              object-position: ${position} center !important;
+            }
+          }
+        `;
       }
     });
   }

@@ -23,6 +23,8 @@ import { handler as featuredItemsHandler } from '../featured-items';
 import { handler as seriesGridHandler } from '../series-grid';
 import { handler as contentBlockHandler } from '../content-block';
 import { handler as heroSliderHandler } from '../hero-slider';
+import { handler as quoteBannerHandler } from '../quote-banner';
+import { handler as customHandler } from '../custom';
 
 // Registry of all section handlers
 export const sectionHandlers: SectionHandlers = {
@@ -49,6 +51,8 @@ export const sectionHandlers: SectionHandlers = {
   categories: categoriesHandler,
   featured_items: featuredItemsHandler,
   series_grid: seriesGridHandler,
+  quote_banner: quoteBannerHandler,
+  custom: customHandler,
 };
 
 /**

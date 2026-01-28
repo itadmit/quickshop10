@@ -19,6 +19,7 @@ const rolePermissions: Record<string, Record<string, boolean>> = {
     reports: true,
     settings: true,
     team: true,
+    pos: true,
   },
   marketing: {
     products: true,
@@ -28,6 +29,7 @@ const rolePermissions: Record<string, Record<string, boolean>> = {
     reports: true,
     settings: false,
     team: false,
+    pos: false,
   },
   developer: {
     products: true,
@@ -37,6 +39,7 @@ const rolePermissions: Record<string, Record<string, boolean>> = {
     reports: false,
     settings: true,
     team: false,
+    pos: false,
   },
   influencer: {
     products: false,
@@ -46,6 +49,17 @@ const rolePermissions: Record<string, Record<string, boolean>> = {
     reports: true,
     settings: false,
     team: false,
+    pos: false,
+  },
+  agent: {
+    products: false,
+    orders: true,
+    customers: true,
+    discounts: false,
+    reports: true,
+    settings: false,
+    team: false,
+    pos: true,
   },
 };
 
@@ -57,6 +71,7 @@ const permissionLabels: Record<string, { label: string; description: string }> =
   reports: { label: 'דוחות', description: 'צפייה בדוחות ואנליטיקס' },
   settings: { label: 'הגדרות', description: 'שינוי הגדרות החנות' },
   team: { label: 'צוות', description: 'ניהול חברי צוות' },
+  pos: { label: 'קופה (POS)', description: 'גישה למסוף קופה רושמת' },
 };
 
 export function InviteForm({ storeId, slug }: InviteFormProps) {
@@ -136,6 +151,7 @@ export function InviteForm({ storeId, slug }: InviteFormProps) {
             <option value="marketing">שיווק</option>
             <option value="developer">מפתח</option>
             <option value="influencer">משפיען</option>
+            <option value="agent">סוכן</option>
           </select>
         </div>
       </div>
@@ -228,6 +244,7 @@ function getRoleLabel(role: string): string {
     marketing: 'שיווק',
     developer: 'מפתח',
     influencer: 'משפיען',
+    agent: 'סוכן',
   };
   return labels[role] || role;
 }
@@ -238,6 +255,7 @@ function getRoleDescription(role: string): string {
     marketing: 'גישה למוצרים, לקוחות, הנחות ודוחות. ללא גישה להזמנות והגדרות.',
     developer: 'גישה למוצרים, הזמנות והגדרות טכניות. ללא גישה ללקוחות ודוחות.',
     influencer: 'גישה לצפייה בהנחות ודוחות משויכים בלבד.',
+    agent: 'גישה לקופה (POS), לקוחות ודוחות ביצועים. מעקב מכירות אישי.',
   };
   return descriptions[role] || '';
 }

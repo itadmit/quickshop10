@@ -27,7 +27,7 @@ export async function inviteTeamMember(
     }
 
     // Validate role
-    const validRoles = ['manager', 'marketing', 'developer', 'influencer'];
+    const validRoles = ['manager', 'marketing', 'developer', 'influencer', 'agent'];
     if (!validRoles.includes(data.role)) {
       return { success: false, error: 'תפקיד לא תקין' };
     }
@@ -82,7 +82,7 @@ export async function inviteTeamMember(
     await db.insert(teamInvitations).values({
       storeId,
       email: data.email,
-      role: data.role as 'owner' | 'manager' | 'marketing' | 'developer' | 'influencer',
+      role: data.role as 'owner' | 'manager' | 'marketing' | 'developer' | 'influencer' | 'agent',
       invitedBy: session.user.id,
       token,
       expiresAt,
@@ -127,6 +127,7 @@ function getRoleLabel(role: string): string {
     marketing: 'שיווק',
     developer: 'מפתח',
     influencer: 'משפיען',
+    agent: 'סוכן',
   };
   return labels[role] || role;
 }
@@ -159,14 +160,14 @@ export async function updateMemberRole(
   role: string
 ) {
   try {
-    const validRoles = ['manager', 'marketing', 'developer', 'influencer'];
+    const validRoles = ['manager', 'marketing', 'developer', 'influencer', 'agent'];
     if (!validRoles.includes(role)) {
       return { success: false, error: 'תפקיד לא תקין' };
     }
 
     await db
       .update(storeMembers)
-      .set({ role: role as 'owner' | 'manager' | 'marketing' | 'developer' | 'influencer' })
+      .set({ role: role as 'owner' | 'manager' | 'marketing' | 'developer' | 'influencer' | 'agent' })
       .where(eq(storeMembers.id, memberId));
 
     revalidatePath(`/shops/${slug}/admin/settings/team`);

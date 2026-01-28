@@ -32,6 +32,7 @@ interface FeaturedItemsSectionProps {
     gap?: number;
     imageAspectRatio?: 'square' | 'portrait' | 'landscape';
     textAlign?: 'right' | 'center' | 'left';
+    cardTextAlign?: 'right' | 'center' | 'left';
     sectionBackground?: string;
     cardBackground?: string;
     textColor?: string;
@@ -55,6 +56,7 @@ export function FeaturedItemsSection({
   const gap = settings.gap || 24;
   const aspectRatio = settings.imageAspectRatio || 'square';
   const textAlign = settings.textAlign || 'center';
+  const cardTextAlign = settings.cardTextAlign || textAlign;
   const sectionBg = settings.sectionBackground || '#ffffff';
   const cardBg = settings.cardBackground || 'transparent';
   const textColor = settings.textColor || '#1f2937';
@@ -72,6 +74,12 @@ export function FeaturedItemsSection({
     center: 'text-center',
     left: 'text-left',
   }[textAlign];
+
+  const cardAlignClass = {
+    right: 'text-right',
+    center: 'text-center',
+    left: 'text-left',
+  }[cardTextAlign];
 
   const imageRoundedClass = {
     rounded: 'rounded-xl',
@@ -178,7 +186,7 @@ export function FeaturedItemsSection({
 
                 {/* Name */}
                 <h3 
-                  className={`font-medium text-base md:text-lg transition-colors ${alignClass}`}
+                  className={`font-medium text-base md:text-lg transition-colors ${cardAlignClass}`}
                   style={{ color: textColor }}
                   data-item-name
                 >

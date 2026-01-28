@@ -8,7 +8,9 @@ import { automations, stores } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
 import { createDefaultAutomations } from '@/lib/automations';
+import { getEmailQuotaStatus } from '@/lib/email-packages';
 import AutomationsClient from './automations-client';
+import Link from 'next/link';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -57,6 +59,17 @@ export default async function AutomationsPage({ params }: PageProps) {
   // Get customer tags for action config
   const customerTags = (store[0].crmTags as Array<{id: string; label: string; color: string}>) || [];
 
+  // Get email quota status
+  let emailQuotaStatus = null;
+  try {
+    emailQuotaStatus = await getEmailQuotaStatus(store[0].id);
+  } catch {
+    console.log('[Automations] Email quota table not ready yet');
+  }
+
+  // Check if any automation uses send_email
+  const hasEmailAutomations = storeAutomations.some(a => a.actionType === 'send_email' && a.isActive);
+
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
@@ -68,6 +81,80 @@ export default async function AutomationsPage({ params }: PageProps) {
           </p>
         </div>
       </div>
+
+      {/* Email Quota Status Banner */}
+      {emailQuotaStatus && (
+        <div className={`rounded-2xl border p-4 ${
+          !emailQuotaStatus.hasPackage
+            ? 'bg-amber-50 border-amber-200'
+            : emailQuotaStatus.percentUsed >= 90
+            ? 'bg-red-50 border-red-200'
+            : emailQuotaStatus.percentUsed >= 75
+            ? 'bg-amber-50 border-amber-200'
+            : 'bg-emerald-50 border-emerald-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
+                !emailQuotaStatus.hasPackage
+                  ? 'bg-amber-100'
+                  : emailQuotaStatus.percentUsed >= 90
+                  ? 'bg-red-100'
+                  : emailQuotaStatus.percentUsed >= 75
+                  ? 'bg-amber-100'
+                  : 'bg-emerald-100'
+              }`}>
+                {!emailQuotaStatus.hasPackage ? '📧' : emailQuotaStatus.percentUsed >= 90 ? '🚨' : '✉️'}
+              </div>
+              <div>
+                {!emailQuotaStatus.hasPackage ? (
+                  <>
+                    <h4 className="font-medium text-slate-900">אין חבילת דיוור פעילה</h4>
+                    <p className="text-sm text-slate-600">
+                      {hasEmailAutomations 
+                        ? 'יש לך אוטומציות שליחת מייל פעילות. רכוש חבילת דיוור כדי שהן יפעלו.'
+                        : 'רכוש חבילת דיוור כדי להפעיל אוטומציות עם שליחת מיילים.'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h4 className="font-medium text-slate-900">
+                      מכסת דיוור: {emailQuotaStatus.emailsRemaining.toLocaleString()} מיילים נותרו
+                    </h4>
+                    <p className="text-sm text-slate-600">
+                      {emailQuotaStatus.packageName} • {emailQuotaStatus.emailsUsed.toLocaleString()} / {emailQuotaStatus.emailsLimit.toLocaleString()} ({emailQuotaStatus.percentUsed}%)
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+            <Link
+              href={`/shops/${slug}/admin/settings/email`}
+              className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                !emailQuotaStatus.hasPackage || emailQuotaStatus.percentUsed >= 75
+                  ? 'bg-slate-900 text-white hover:bg-slate-800'
+                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              {!emailQuotaStatus.hasPackage ? 'רכוש חבילה' : emailQuotaStatus.percentUsed >= 75 ? 'שדרג חבילה' : 'נהל חבילה'}
+            </Link>
+          </div>
+          
+          {/* Progress bar for active packages */}
+          {emailQuotaStatus.hasPackage && (
+            <div className="mt-3 h-2 bg-white/50 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  emailQuotaStatus.percentUsed >= 90 ? 'bg-red-500' :
+                  emailQuotaStatus.percentUsed >= 75 ? 'bg-amber-500' :
+                  'bg-emerald-500'
+                }`}
+                style={{ width: `${Math.min(100, emailQuotaStatus.percentUsed)}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Info Box */}
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-6">

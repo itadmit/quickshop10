@@ -28,10 +28,15 @@ export function handleProductsUpdate(
   
   if (updates.title !== undefined) {
     const titleEl = el.querySelector('[data-section-title]') as HTMLElement;
+    const dividerEl = el.querySelector('[data-section-divider]') as HTMLElement;
     if (titleEl) {
       titleEl.textContent = updates.title || '';
       titleEl.style.display = updates.title ? '' : 'none';
       titleEl.classList.toggle('hidden', !updates.title);
+    }
+    // Show/hide divider with title
+    if (dividerEl) {
+      dividerEl.classList.toggle('hidden', !updates.title);
     }
   }
 
@@ -97,6 +102,17 @@ export function handleProductsUpdate(
   }
 
   // =====================================================
+  // DIVIDER UPDATES
+  // =====================================================
+  
+  if (updates.settings?.dividerColor !== undefined) {
+    const dividerEl = el.querySelector('[data-section-divider]') as HTMLElement;
+    if (dividerEl) {
+      dividerEl.style.backgroundColor = updates.settings.dividerColor as string;
+    }
+  }
+
+  // =====================================================
   // TEXT ALIGNMENT
   // =====================================================
   
@@ -104,6 +120,7 @@ export function handleProductsUpdate(
     const align = updates.settings.textAlign as string;
     const titleEl = el.querySelector('[data-section-title]') as HTMLElement;
     const subtitleEl = el.querySelector('[data-section-subtitle]') as HTMLElement;
+    const dividerEl = el.querySelector('[data-section-divider]') as HTMLElement;
     
     // Remove existing alignment classes
     [titleEl, subtitleEl].forEach(elem => {
@@ -112,6 +129,23 @@ export function handleProductsUpdate(
         elem.classList.add(`text-${align}`);
       }
     });
+    
+    // Align divider using inline-start/end for RTL support
+    // In RTL: left=start (ימין), right=end (שמאל)
+    if (dividerEl) {
+      if (align === 'center') {
+        dividerEl.style.marginInlineStart = 'auto';
+        dividerEl.style.marginInlineEnd = 'auto';
+      } else if (align === 'left') {
+        // left = ימין (start side in RTL)
+        dividerEl.style.marginInlineStart = '0';
+        dividerEl.style.marginInlineEnd = 'auto';
+      } else {
+        // right = שמאל (end side in RTL)
+        dividerEl.style.marginInlineStart = 'auto';
+        dividerEl.style.marginInlineEnd = '0';
+      }
+    }
   }
 
   // =====================================================
@@ -220,16 +254,87 @@ export function handleProductsUpdate(
       (card as HTMLElement).style.backgroundColor = updates.settings?.cardBackgroundColor as string;
     });
   }
+  
+  // Card style (standard/minimal/overlay)
+  // This changes the card structure - update data attribute for CSS and require save/refresh for full effect
+  if (updates.settings?.cardStyle !== undefined) {
+    const cardStyle = updates.settings.cardStyle as string;
+    el.setAttribute('data-card-style', cardStyle);
+    
+    // Apply immediate CSS-based changes
+    if (sectionId) {
+      const styleId = `products-card-style-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      // Apply basic style differences via CSS (full changes need refresh)
+      if (cardStyle === 'minimal') {
+        styleEl.textContent = `
+          [data-section-id="${sectionId}"] [data-product-id] .aspect-\\[3\\/4\\] {
+            background-color: transparent !important;
+          }
+        `;
+      } else if (cardStyle === 'overlay') {
+        // Overlay needs DOM changes - show indicator that refresh is needed
+        styleEl.textContent = `
+          [data-section-id="${sectionId}"] [data-product-id] {
+            position: relative;
+          }
+        `;
+      } else {
+        // Standard
+        styleEl.textContent = `
+          [data-section-id="${sectionId}"] [data-product-id] .aspect-\\[3\\/4\\] {
+            background-color: rgb(249 250 251) !important;
+          }
+        `;
+      }
+    }
+  }
+
+  // Card text alignment - inject CSS for real-time update
+  if (updates.settings?.cardTextAlign !== undefined || updates.settings?.textAlign !== undefined) {
+    const align = (updates.settings?.cardTextAlign || updates.settings?.textAlign) as string;
+    el.setAttribute('data-card-text-align', align);
+    
+    // Inject scoped CSS for card text alignment
+    if (sectionId) {
+      const styleId = `products-card-align-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      // Map alignment to CSS and justify classes
+      const textAlignCSS = align === 'center' ? 'center' : align === 'right' ? 'right' : 'left';
+      const justifyCSS = align === 'center' ? 'center' : align === 'right' ? 'flex-start' : 'flex-end';
+      
+      styleEl.textContent = `
+        [data-section-id="${sectionId}"] [data-product-id] article > div:last-child {
+          text-align: ${textAlignCSS} !important;
+        }
+        [data-section-id="${sectionId}"] [data-product-id] article > div:last-child > div {
+          justify-content: ${justifyCSS} !important;
+        }
+      `;
+    }
+  }
 }
 
 /**
  * Default content for new products sections
  */
 export const defaultContent = {
-  displayBy: 'category', // 'category' | 'manual' | 'all'
+  type: 'all', // 'all' | 'category' | 'featured' | 'specific'
   categoryId: '',
   productIds: [],
-  displayLimit: 4,
+  displayLimit: 8,
 };
 
 /**
@@ -246,6 +351,9 @@ export const defaultSettings = {
   subtitleSize: 12,
   subtitleSizeMobile: 10,
   subtitleColor: '#9ca3af',
+  
+  // Divider
+  dividerColor: '#C9A962',
   
   // Layout
   textAlign: 'center',

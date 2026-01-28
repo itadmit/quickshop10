@@ -436,6 +436,10 @@ export function applyCommonUpdates(
   // MIN HEIGHT & VERTICAL ALIGN
   // =====================================================
   
+  // Check if this section uses grid layout (like split_banner) - don't change display
+  const isGridSection = el.classList.contains('grid') || 
+                        el.getAttribute('data-section-type') === 'split_banner';
+  
   if (updates.settings?.minHeight !== undefined || updates.settings?.minHeightUnit !== undefined) {
     const minHeightValue = updates.settings?.minHeight !== undefined 
       ? Number(updates.settings.minHeight) 
@@ -444,14 +448,20 @@ export function applyCommonUpdates(
     
     if (minHeightValue && minHeightValue > 0) {
       el.style.minHeight = `${minHeightValue}${minHeightUnit}`;
-      el.style.display = 'flex';
-      el.style.flexDirection = 'column';
+      // Only change display to flex if not a grid section
+      if (!isGridSection) {
+        el.style.display = 'flex';
+        el.style.flexDirection = 'column';
+      }
       el.dataset.minHeight = String(minHeightValue);
       el.dataset.minHeightUnit = minHeightUnit;
     } else {
       el.style.minHeight = '';
-      el.style.display = '';
-      el.style.flexDirection = '';
+      // Only reset display if we changed it
+      if (!isGridSection) {
+        el.style.display = '';
+        el.style.flexDirection = '';
+      }
       delete el.dataset.minHeight;
       delete el.dataset.minHeightUnit;
     }
@@ -460,7 +470,8 @@ export function applyCommonUpdates(
   // Vertical Alignment (requires flex)
   // Note: For sections with data-content-container (like content_block), 
   // the section-specific handler applies alignment to the container
-  if (updates.settings?.verticalAlign !== undefined) {
+  // Skip for grid sections - they handle alignment differently
+  if (updates.settings?.verticalAlign !== undefined && !isGridSection) {
     const verticalAlign = updates.settings.verticalAlign as string;
     const alignMap: Record<string, string> = {
       top: 'flex-start',

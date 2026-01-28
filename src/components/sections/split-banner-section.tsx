@@ -18,6 +18,8 @@ interface SideContent {
 
 interface SplitBannerSectionProps {
   content: {
+    title?: string;
+    subtitle?: string;
     right?: SideContent;
     left?: SideContent;
     items?: {
@@ -29,7 +31,12 @@ interface SplitBannerSectionProps {
   };
   settings: {
     height?: string;
+    minHeight?: number;
+    minHeightUnit?: 'px' | 'vh';
     overlay?: number;
+    // Alignment
+    verticalAlign?: 'top' | 'center' | 'bottom';
+    textAlign?: 'right' | 'center' | 'left';
     // Typography (supports both string keys and numeric px values)
     titleColor?: string;
     titleSize?: TitleSize | number;
@@ -56,8 +63,25 @@ export function SplitBannerSection({
   basePath, 
   sectionId 
 }: SplitBannerSectionProps) {
-  const height = settings.height || '70vh';
+  // Height - supports both old height string and new minHeight/minHeightUnit
+  const minHeight = settings.minHeight ?? 70;
+  const minHeightUnit = settings.minHeightUnit || 'vh';
+  const height = settings.height || `${minHeight}${minHeightUnit}`;
   const overlay = settings.overlay ?? 0.1;
+  
+  // Alignment
+  const verticalAlign = settings.verticalAlign || 'bottom';
+  const textAlign = settings.textAlign || 'center';
+  
+  // Vertical align class
+  const verticalAlignClass = verticalAlign === 'top' ? 'items-start pt-16' 
+    : verticalAlign === 'center' ? 'items-center' 
+    : 'items-end pb-16';
+    
+  // Text align class - in RTL: right = start (justify-start), left = end (justify-end)
+  const textAlignClass = textAlign === 'right' ? 'text-right justify-start px-12' 
+    : textAlign === 'left' ? 'text-left justify-end px-12' 
+    : 'text-center justify-center';
   
   // Check for numeric font sizes
   const titleSizeValue = settings.titleSize;
@@ -75,11 +99,11 @@ export function SplitBannerSection({
     sides = content.items;
   }
 
-  // If no content, show placeholders
+  // If no content, show placeholders with demo content
   if (sides.length === 0) {
     sides = [
-      { title: 'נשים', imageUrl: '', link: '/category/women' },
-      { title: 'גברים', imageUrl: '', link: '/category/men' },
+      { title: 'נשים', imageUrl: 'https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/noir-fashion/x0gDz-4TUp.webp', link: '/category/women' },
+      { title: 'גברים', imageUrl: 'https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/noir-fashion/r6Du0CcW_E.webp', link: '/category/men' },
     ];
   }
   
@@ -149,7 +173,10 @@ export function SplitBannerSection({
             style={{ backgroundColor: `rgba(0,0,0,${overlay})` }}
             data-side-overlay
           />
-          <div className="absolute inset-0 flex items-end justify-center pb-16">
+          <div 
+            className={`absolute inset-0 flex ${verticalAlignClass} ${textAlignClass}`}
+            data-side-content
+          >
             <span 
               className={`${!isNumericTitleSize ? TITLE_SIZES[titleSize as TitleSize] : ''} ${FONT_WEIGHTS[titleWeight]} tracking-[0.3em] uppercase`}
               style={{ color: settings.titleColor || '#ffffff' }}

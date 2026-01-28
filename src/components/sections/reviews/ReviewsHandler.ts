@@ -145,20 +145,94 @@ export function handleReviewsUpdate(
     el.setAttribute('data-layout', updates.settings.layout as string);
     
     const grid = el.querySelector('[data-reviews-grid]') as HTMLElement;
+    const sectionId = el.getAttribute('data-section-id');
+    
     if (grid) {
       if (updates.settings.layout === 'slider') {
-        grid.classList.add('flex', 'overflow-x-auto', 'snap-x', 'snap-mandatory');
-        grid.classList.remove('grid');
+        // Remove grid classes
+        grid.classList.remove('grid', 'md:grid-cols-1', 'md:grid-cols-2', 'md:grid-cols-3', 'md:grid-cols-4');
+        // Add slider classes
+        grid.classList.add('flex', 'overflow-x-auto', 'snap-x', 'snap-mandatory', 'gap-6', '-mx-4', 'px-4');
+        grid.style.scrollbarWidth = 'none';
+        
+        // Style each card to have fixed width in slider mode
+        const cards = grid.querySelectorAll('[data-review-index]');
+        cards.forEach((card) => {
+          (card as HTMLElement).classList.add('flex-shrink-0', 'snap-center');
+          (card as HTMLElement).style.width = '320px';
+          (card as HTMLElement).style.minWidth = '320px';
+        });
+        
+        // Add/show navigation arrows if they exist
+        let nav = el.querySelector('[data-slider-nav]') as HTMLElement;
+        if (!nav) {
+          nav = document.createElement('div');
+          nav.setAttribute('data-slider-nav', '');
+          nav.className = 'flex justify-center gap-2 mt-4';
+          nav.innerHTML = `
+            <button class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" data-slider-prev>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <button class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" data-slider-next>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+          `;
+          grid.parentElement?.appendChild(nav);
+          
+          // Add click handlers
+          const prevBtn = nav.querySelector('[data-slider-prev]');
+          const nextBtn = nav.querySelector('[data-slider-next]');
+          prevBtn?.addEventListener('click', () => {
+            grid.scrollBy({ left: 340, behavior: 'smooth' });
+          });
+          nextBtn?.addEventListener('click', () => {
+            grid.scrollBy({ left: -340, behavior: 'smooth' });
+          });
+        }
+        nav.style.display = 'flex';
+        
+        // Inject scoped CSS for slider
+        let styleEl = el.querySelector('style[data-slider-style]') as HTMLStyleElement;
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.setAttribute('data-slider-style', '');
+          el.appendChild(styleEl);
+        }
+        styleEl.textContent = `
+          [data-section-id="${sectionId}"] [data-reviews-grid]::-webkit-scrollbar {
+            display: none;
+          }
+        `;
       } else {
-        grid.classList.remove('flex', 'overflow-x-auto', 'snap-x', 'snap-mandatory');
+        // Remove slider classes
+        grid.classList.remove('flex', 'overflow-x-auto', 'snap-x', 'snap-mandatory', '-mx-4', 'px-4');
+        grid.style.scrollbarWidth = '';
+        // Add grid classes
         grid.classList.add('grid');
+        
+        // Reset card styles
+        const cards = grid.querySelectorAll('[data-review-index]');
+        cards.forEach((card) => {
+          (card as HTMLElement).classList.remove('flex-shrink-0', 'snap-center');
+          (card as HTMLElement).style.width = '';
+          (card as HTMLElement).style.minWidth = '';
+        });
+        
+        // Hide navigation
+        const nav = el.querySelector('[data-slider-nav]') as HTMLElement;
+        if (nav) nav.style.display = 'none';
+        
+        // Remove slider style
+        const styleEl = el.querySelector('style[data-slider-style]');
+        if (styleEl) styleEl.remove();
       }
     }
   }
 
   if (updates.settings?.columns !== undefined) {
     const grid = el.querySelector('[data-reviews-grid]') as HTMLElement;
-    if (grid) {
+    const layout = el.getAttribute('data-layout') || 'grid';
+    if (grid && layout !== 'slider') {
       grid.classList.remove('md:grid-cols-1', 'md:grid-cols-2', 'md:grid-cols-3', 'md:grid-cols-4');
       grid.classList.add(`md:grid-cols-${updates.settings.columns}`);
     }
@@ -170,25 +244,58 @@ export function handleReviewsUpdate(
       grid.style.gap = `${updates.settings.gap}px`;
     }
   }
+  
+  // Slider card width
+  if (updates.settings?.cardWidth !== undefined) {
+    const grid = el.querySelector('[data-reviews-grid]') as HTMLElement;
+    const layout = el.getAttribute('data-layout');
+    if (grid && layout === 'slider') {
+      const cards = grid.querySelectorAll('[data-review-index]');
+      const cardWidth = updates.settings.cardWidth as number;
+      cards.forEach((card) => {
+        (card as HTMLElement).style.width = `${cardWidth}px`;
+        (card as HTMLElement).style.minWidth = `${cardWidth}px`;
+      });
+    }
+  }
+  
+  // Show/hide arrows
+  if (updates.settings?.showArrows !== undefined) {
+    const nav = el.querySelector('[data-slider-nav]') as HTMLElement;
+    if (nav) {
+      nav.style.display = updates.settings.showArrows ? 'flex' : 'none';
+    }
+  }
 
-  if (updates.settings?.contentAlign !== undefined) {
-    const align = updates.settings.contentAlign as string;
+  // Card text alignment (cardTextAlign or contentAlign)
+  const alignSetting = updates.settings?.cardTextAlign ?? updates.settings?.contentAlign;
+  if (alignSetting !== undefined) {
+    const align = alignSetting as string;
     const cards = el.querySelectorAll('[data-review-index]');
     cards.forEach((card) => {
       (card as HTMLElement).classList.remove('text-left', 'text-center', 'text-right');
       (card as HTMLElement).classList.add(`text-${align}`);
       
-      // Update flex alignments within card
-      const flexContainers = card.querySelectorAll('.flex');
-      flexContainers.forEach((fc) => {
-        (fc as HTMLElement).classList.remove('justify-start', 'justify-center', 'justify-end');
-        const justifyMap: Record<string, string> = {
-          'left': 'justify-end',   // RTL
-          'center': 'justify-center',
-          'right': 'justify-start', // RTL
-        };
-        (fc as HTMLElement).classList.add(justifyMap[align] || 'justify-center');
-      });
+      // Update flex alignments within card - RTL aware
+      // Only update rating and author containers, NOT the avatar circle
+      const ratingContainer = card.querySelector('[data-review-rating]') as HTMLElement;
+      const authorContainer = card.querySelector('[data-review-avatar]')?.parentElement as HTMLElement;
+      
+      const justifyMap: Record<string, string> = {
+        'right': 'justify-start',
+        'center': 'justify-center',
+        'left': 'justify-end',
+      };
+      const justifyClass = justifyMap[align] || 'justify-center';
+      
+      if (ratingContainer) {
+        ratingContainer.classList.remove('justify-start', 'justify-center', 'justify-end');
+        ratingContainer.classList.add(justifyClass);
+      }
+      if (authorContainer) {
+        authorContainer.classList.remove('justify-start', 'justify-center', 'justify-end');
+        authorContainer.classList.add(justifyClass);
+      }
     });
   }
 
@@ -236,28 +343,28 @@ export function handleReviewsUpdate(
 /**
  * Create a new review card element
  */
-function createReviewCard(review: Review, index: number, sectionId: string): HTMLElement {
+function createReviewCard(review: Review, index: number, _sectionId: string): HTMLElement {
   const card = document.createElement('div');
-  card.className = 'bg-white rounded-xl p-6 shadow-sm';
+  card.className = 'bg-white p-6 rounded-lg shadow-sm border border-gray-100';
   card.setAttribute('data-review-index', String(index));
   card.setAttribute('data-review-id', review.id || `review-${index}`);
   
   card.innerHTML = `
-    <div class="mb-3 flex justify-center" data-review-rating="${review.rating}">
-      ${Array(5).fill(0).map((_, i) => `
-        <svg class="w-5 h-5 ${i < review.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+    <div class="flex gap-0.5 mb-3" data-review-rating="${review.rating}">
+      ${[1,2,3,4,5].map(i => `
+        <svg class="w-4 h-4 ${i <= review.rating ? 'text-yellow-400' : 'text-gray-200'}" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
         </svg>
       `).join('')}
     </div>
-    <p class="text-gray-700 mb-4 leading-relaxed" data-review-text>${review.text}</p>
-    <div class="flex items-center gap-3 justify-center">
+    <p class="text-gray-700 mb-4" data-review-text>"${review.text}"</p>
+    <div class="flex items-center gap-3">
       <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium" data-review-avatar>
-        ${review.avatar ? `<img src="${review.avatar}" class="w-full h-full rounded-full object-cover" />` : (review.author?.[0] || '?')}
+        ${review.author?.[0] || '?'}
       </div>
       <div>
-        <div class="font-medium text-gray-900" data-review-author>${review.author}</div>
-        ${review.date ? `<div class="text-sm text-gray-500" data-review-date>${review.date}</div>` : ''}
+        <div class="font-medium text-gray-900 flex items-center gap-2" data-review-author>${review.author || 'לקוח'}</div>
+        <div class="text-sm text-gray-500" data-review-date style="display: ${review.date ? '' : 'none'}">${review.date || ''}</div>
       </div>
     </div>
   `;
@@ -296,12 +403,13 @@ function updateReviewField(card: HTMLElement, field: string, value: string | num
         ratingContainer.setAttribute('data-review-rating', String(value));
         const stars = ratingContainer.querySelectorAll('svg');
         stars.forEach((star, i) => {
-          if (i < (value as number)) {
-            star.classList.add('text-yellow-400', 'fill-current');
-            star.classList.remove('text-gray-300');
+          // i is 0-indexed, rating is 1-5, so compare i+1 <= rating
+          if ((i + 1) <= (value as number)) {
+            star.classList.add('text-yellow-400');
+            star.classList.remove('text-gray-200');
           } else {
-            star.classList.remove('text-yellow-400', 'fill-current');
-            star.classList.add('text-gray-300');
+            star.classList.remove('text-yellow-400');
+            star.classList.add('text-gray-200');
           }
         });
       }
@@ -315,11 +423,15 @@ function updateReviewField(card: HTMLElement, field: string, value: string | num
   }
 }
 
+export function handler(element: Element, updates: Record<string, unknown>) {
+  handleReviewsUpdate(element, updates as Partial<Section>);
+}
+
 export const defaultContent = {
   reviews: [
-    { author: 'שרה כ.', text: 'מוצר מעולה, ממליצה בחום!', rating: 5 },
-    { author: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
-    { author: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
+    { id: '1', author: 'שרה כ.', text: 'מוצר מעולה, ממליצה בחום!', rating: 5 },
+    { id: '2', author: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
+    { id: '3', author: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
   ],
 };
 
@@ -335,6 +447,7 @@ export const defaultSettings = {
   mobileColumns: 1,
   gap: 24,
   contentAlign: 'center',
+  cardTextAlign: 'center',
   cardBackground: '#ffffff',
   starColor: '#facc15',
   backgroundColor: '#f9fafb',

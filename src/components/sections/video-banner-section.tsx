@@ -26,15 +26,19 @@ interface VideoBannerSectionProps {
   };
   settings: {
     height?: string;
+    minHeight?: number;
+    minHeightUnit?: 'vh' | 'px';
     overlay?: number;
     autoplay?: boolean;
     loop?: boolean;
     muted?: boolean;
     controls?: boolean;
     backgroundColor?: string;
+    sectionWidth?: 'full' | 'container';
     // Text Alignment & Position
     textAlign?: 'right' | 'center' | 'left';
     textPosition?: 'top' | 'center' | 'bottom';
+    verticalAlign?: 'top' | 'center' | 'bottom';
     // Typography - Title (supports both string keys and numeric px values)
     titleColor?: string;
     titleSize?: TitleSize | number;
@@ -72,8 +76,12 @@ export function VideoBannerSection({
   basePath, 
   sectionId 
 }: VideoBannerSectionProps) {
-  const height = settings.height || '80vh';
-  const overlay = settings.overlay ?? 0.2;
+  // Height - support both old height prop and new minHeight
+  const minHeightValue = settings.minHeight || 90;
+  const minHeightUnit = settings.minHeightUnit || 'vh';
+  const height = settings.height || `${minHeightValue}${minHeightUnit}`;
+  
+  const overlay = settings.overlay ?? 0.4;
   const autoplay = settings.autoplay ?? true;
   const loop = settings.loop ?? true;
   const muted = settings.muted ?? true;
@@ -81,7 +89,8 @@ export function VideoBannerSection({
 
   // Text settings
   const textAlign = settings.textAlign || 'center';
-  const textPosition = settings.textPosition || 'center';
+  // Support both textPosition (old) and verticalAlign (new)
+  const textPosition = settings.verticalAlign || settings.textPosition || 'center';
   
   // Check for numeric font sizes
   const titleSizeValue = settings.titleSize;
@@ -102,10 +111,14 @@ export function VideoBannerSection({
   const hasMobileImage = content.mobileImageUrl;
   const hasAnyMedia = hasDesktopVideo || hasDesktopImage || hasMobileMedia;
 
-  // Text alignment classes
-  const textAlignClass = textAlign === 'right' ? 'text-right' : textAlign === 'left' ? 'text-left' : 'text-center';
-  const itemsClass = textAlign === 'right' ? 'items-end' : textAlign === 'left' ? 'items-start' : 'items-center';
-  const justifyClass = textPosition === 'top' ? 'justify-start pt-20' : textPosition === 'bottom' ? 'justify-end pb-20' : 'justify-center';
+  // Text alignment classes - using flex-col so:
+  // justify-* = vertical (main axis), items-* = horizontal (cross axis)
+  const textAlignClass = textAlign === 'right' ? 'text-right items-start' 
+    : textAlign === 'left' ? 'text-left items-end' 
+    : 'text-center items-center';
+  const verticalAlignClass = textPosition === 'top' ? 'justify-start pt-20' 
+    : textPosition === 'bottom' ? 'justify-end pb-20' 
+    : 'justify-center';
 
   // Button styles
   const buttonStyle = {
@@ -124,7 +137,7 @@ export function VideoBannerSection({
     <section 
       className={`relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{ 
-        height,
+        minHeight: height,
         backgroundColor: hasAnyMedia ? 'black' : (settings.backgroundColor || '#000000'),
         marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
         marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
@@ -215,7 +228,7 @@ export function VideoBannerSection({
       
       {/* Overlay + Content */}
       <div 
-        className={`absolute inset-0 flex ${justifyClass} ${itemsClass}`}
+        className={`absolute inset-0 flex flex-col ${textAlignClass} ${verticalAlignClass}`}
         style={{ backgroundColor: `rgba(0,0,0,${overlay})` }}
         data-overlay
         data-content-container

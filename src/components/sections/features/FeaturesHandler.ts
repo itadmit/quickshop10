@@ -229,7 +229,7 @@ export function handleFeaturesUpdate(
  */
 function createFeatureCard(feature: Feature, index: number): HTMLElement {
   const card = document.createElement('div');
-  card.className = 'text-center';
+  card.className = 'py-6 px-4 text-center';
   card.setAttribute('data-feature-id', feature.id || String(index));
   
   const iconPath = feature.icon && ICON_PATHS[feature.icon] ? ICON_PATHS[feature.icon] : ICON_PATHS.sparkles;
@@ -238,13 +238,15 @@ function createFeatureCard(feature: Feature, index: number): HTMLElement {
     <div class="mb-4 flex justify-center" data-feature-icon>
       ${feature.emoji ? 
         `<span class="text-3xl" data-feature-emoji>${feature.emoji}</span>` :
-        `<svg class="w-12 h-12 text-primary stroke-current" fill="none" viewBox="0 0 24 24" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round" d="${iconPath}" />
-        </svg>`
+        `<div class="w-12 h-12 md:w-14 md:h-14 rounded-full flex items-center justify-center" style="background-color: rgba(0,0,0,0.05)">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="${iconPath}" />
+          </svg>
+        </div>`
       }
     </div>
-    <h3 class="font-semibold text-gray-900 mb-2" data-feature-title>${feature.title}</h3>
-    <p class="text-sm text-gray-600" data-feature-description>${feature.description}</p>
+    <h3 class="font-medium mb-1" style="color: #111827;" data-feature-title>${feature.title}</h3>
+    <p class="text-sm" style="color: #6b7280;" data-feature-description>${feature.description}</p>
   `;
   
   return card;
@@ -291,12 +293,16 @@ function updateFeatureField(card: HTMLElement, field: string, value: string): vo
   }
 }
 
+export function handler(element: Element, updates: Record<string, unknown>) {
+  handleFeaturesUpdate(element, updates as Partial<Section>);
+}
+
 export const defaultContent = {
   features: [
-    { icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
-    { icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
-    { icon: 'shield', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
-    { icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
+    { id: '1', icon: 'truck', title: 'משלוח מהיר', description: 'עד 3 ימי עסקים' },
+    { id: '2', icon: 'refresh', title: 'החזרות חינם', description: 'עד 30 יום' },
+    { id: '3', icon: 'shield', title: 'תשלום מאובטח', description: 'אבטחה מלאה' },
+    { id: '4', icon: 'message', title: 'תמיכה 24/7', description: 'בכל שאלה' },
   ],
 };
 

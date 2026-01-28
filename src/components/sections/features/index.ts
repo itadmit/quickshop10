@@ -4,7 +4,8 @@
  */
 
 export { 
-  handleFeaturesUpdate as handler,
+  handler,
+  handleFeaturesUpdate,
   defaultContent,
   defaultSettings,
 } from './FeaturesHandler';

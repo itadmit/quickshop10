@@ -1969,16 +1969,15 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       description: 'הירשמו לניוזלטר שלנו וקבלו עדכונים על מבצעים והנחות בלעדיות'
     },
     video_banner: { 
-      videoUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', 
-      imageUrl: 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=1920',
+      videoUrl: 'https://imagine-public.x.ai/imagine-public/share-videos/7ea822ec-5653-4f9a-ae8f-de25454ef9e1_hd.mp4', 
       buttonText: 'צפה עכשיו',
-      buttonLink: '#'
+      buttonLink: '/products'
     },
     split_banner: { 
-      items: [
-        { title: 'קטגוריה 1', imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800', link: '/products' },
-        { title: 'קטגוריה 2', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800', link: '/products' }
-      ] 
+      title: '',
+      subtitle: '',
+      right: { title: 'נשים', imageUrl: 'https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/noir-fashion/x0gDz-4TUp.webp', link: '/category/women' },
+      left: { title: 'גברים', imageUrl: 'https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/noir-fashion/r6Du0CcW_E.webp', link: '/category/men' },
     },
     text_block: {
       text: '<p>זהו טקסט לדוגמה. ניתן לערוך אותו לפי הצורך ולהוסיף תוכן מותאם אישית לעסק שלכם.</p>',
@@ -2031,6 +2030,15 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     },
     brands: {
       images: []
+    },
+    logos: {
+      logos: [
+        { id: '1', imageUrl: '', alt: 'לוגו 1' },
+        { id: '2', imageUrl: '', alt: 'לוגו 2' },
+        { id: '3', imageUrl: '', alt: 'לוגו 3' },
+        { id: '4', imageUrl: '', alt: 'לוגו 4' },
+        { id: '5', imageUrl: '', alt: 'לוגו 5' },
+      ]
     },
     contact: {
       email: 'info@example.com',
@@ -2104,14 +2112,17 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       buttonLink: '/products',
     },
     quote_banner: {
-      quote: 'הציטוט שלכם כאן',
-      author: 'שם המחבר',
+      quote: 'בפלטפורמה שלנו לא רק בונים חנויות - בפלטפורמה שלנו בונים עסקים מצליחים',
+      attribution: 'יוגב אביטן, מנכ״ל קוויק שופ',
+      imageUrl: '',
+      mobileImageUrl: '',
+      mediaType: 'image',
     },
     featured_items: {
       items: [
-        { id: '1', title: 'פריט 1', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600', link: '/products' },
-        { id: '2', title: 'פריט 2', imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', link: '/products' },
-        { id: '3', title: 'פריט 3', imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600', link: '/products' },
+        { id: '1', name: 'מוצר א׳', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=600', link: '/products' },
+        { id: '2', name: 'מוצר ב׳', imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600', link: '/products' },
+        { id: '3', name: 'מוצר ג׳', imageUrl: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=600', link: '/products' },
       ],
     },
     hero_slider: {
@@ -2206,8 +2217,40 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
     categories: { columns: 4, gap: 8 },
     products: { columns: 4, gap: 8, showCount: false },
     newsletter: { maxWidth: '600px' },
-    video_banner: { height: '80vh', overlay: 0.4 },
-    split_banner: { height: '60vh' },
+    image_text: {
+      imagePosition: 'right',
+      imageWidth: '50%',
+      verticalAlign: 'center',
+      titleSize: 32,
+      titleSizeMobile: 24,
+      titleColor: '#000000',
+      titleWeight: 'light',
+      subtitleSize: 16,
+      subtitleSizeMobile: 14,
+      subtitleColor: '#6b7280',
+      textSize: 16,
+      textSizeMobile: 14,
+      textColor: '#374151',
+      backgroundColor: '#ffffff',
+    },
+    video_banner: { 
+      minHeight: 90, 
+      minHeightUnit: 'vh',
+      overlay: 0.4,
+      verticalAlign: 'center',
+      textAlign: 'center',
+      sectionWidth: 'full',
+    },
+    split_banner: { 
+      minHeight: 70, 
+      minHeightUnit: 'vh', 
+      verticalAlign: 'bottom', 
+      textAlign: 'center',
+      titleSize: 32,
+      titleSizeMobile: 24,
+      titleColor: '#ffffff',
+      overlay: 0.1,
+    },
     contact: { 
       layout: 'simple', 
       maxWidth: 'lg', 
@@ -2314,8 +2357,13 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       paddingBottom: 80,
     },
     quote_banner: {
-      height: '60vh',
+      minHeight: 60,
+      minHeightUnit: 'vh',
       overlay: 0.4,
+      textStyle: 'italic',
+      textAlign: 'center',
+      verticalAlign: 'center',
+      parallax: true,
     },
     featured_items: {
       columns: 3,

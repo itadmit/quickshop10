@@ -26,6 +26,7 @@ interface ImageTextSectionProps {
   settings: {
     imagePosition?: 'right' | 'left';
     imageWidth?: '40%' | '50%' | '60%';
+    verticalAlign?: 'top' | 'center' | 'bottom';
     height?: string;
     backgroundColor?: string;
     overlay?: number;
@@ -72,7 +73,13 @@ export function ImageTextSection({
 }: ImageTextSectionProps) {
   const imagePosition = settings.imagePosition || 'right';
   const imageWidth = settings.imageWidth || '50%';
+  const verticalAlign = settings.verticalAlign || 'center';
   const height = settings.height || 'auto';
+  
+  // Vertical alignment class
+  const verticalAlignClass = verticalAlign === 'top' ? 'items-start' 
+    : verticalAlign === 'bottom' ? 'items-end' 
+    : 'items-center';
 
   // Check for numeric font sizes
   const titleSizeValue = settings.titleSize;
@@ -89,17 +96,12 @@ export function ImageTextSection({
   const isNumericTextSize = typeof textSizeValue === 'number';
   const textSize = isNumericTextSize ? 'sm' : (textSizeValue || 'sm');
 
-  // Determine flex direction based on image position (RTL aware)
-  const flexDirection = imagePosition === 'right' ? 'flex-row' : 'flex-row-reverse';
-
   // Button styles
   const buttonStyle = {
     color: settings.buttonTextColor || 'black',
     backgroundColor: settings.buttonBackgroundColor || 'transparent',
     borderColor: settings.buttonBorderColor || 'black',
   };
-
-  const hasCustomSizes = isNumericTitleSize || isNumericSubtitleSize || isNumericTextSize;
   
   // Visibility classes
   const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
@@ -117,60 +119,75 @@ export function ImageTextSection({
       data-section-id={sectionId}
       data-section-type="image_text"
       data-section-name="תמונה + טקסט"
+      data-image-position={imagePosition}
+      data-image-width={imageWidth}
       {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
       {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {settings.customCss && <style>{settings.customCss}</style>}
       
-      {/* Scoped responsive styles for numeric font sizes */}
-      {hasCustomSizes && (
-        <style dangerouslySetInnerHTML={{ __html: `
-          ${isNumericTitleSize ? `
+      {/* Scoped responsive styles */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        /* Mobile: stack vertically */
+        [data-section-id="${sectionId}"] [data-image-text-container] {
+          flex-direction: column;
+        }
+        /* Desktop: side by side */
+        @media (min-width: 768px) {
+          [data-section-id="${sectionId}"] [data-image-text-container] {
+            flex-direction: ${imagePosition === 'right' ? 'row' : 'row-reverse'};
+          }
+          [data-section-id="${sectionId}"] [data-image-container] {
+            flex-basis: ${imageWidth};
+            width: ${imageWidth};
+          }
+          [data-section-id="${sectionId}"] [data-text-container] {
+            flex-basis: calc(100% - ${imageWidth});
+            width: calc(100% - ${imageWidth});
+          }
+        }
+        ${isNumericTitleSize ? `
+          [data-section-id="${sectionId}"] [data-section-title] {
+            font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+          }
+          @media (min-width: 768px) {
             [data-section-id="${sectionId}"] [data-section-title] {
-              font-size: ${settings.titleSizeMobile || (titleSizeValue as number) * 0.7}px !important;
+              font-size: ${titleSizeValue}px !important;
             }
-            @media (min-width: 768px) {
-              [data-section-id="${sectionId}"] [data-section-title] {
-                font-size: ${titleSizeValue}px !important;
-              }
-            }
-          ` : ''}
-          ${isNumericSubtitleSize ? `
+          }
+        ` : ''}
+        ${isNumericSubtitleSize ? `
+          [data-section-id="${sectionId}"] [data-section-subtitle] {
+            font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+          }
+          @media (min-width: 768px) {
             [data-section-id="${sectionId}"] [data-section-subtitle] {
-              font-size: ${settings.subtitleSizeMobile || (subtitleSizeValue as number) * 0.8}px !important;
+              font-size: ${subtitleSizeValue}px !important;
             }
-            @media (min-width: 768px) {
-              [data-section-id="${sectionId}"] [data-section-subtitle] {
-                font-size: ${subtitleSizeValue}px !important;
-              }
-            }
-          ` : ''}
-          ${isNumericTextSize ? `
+          }
+        ` : ''}
+        ${isNumericTextSize ? `
+          [data-section-id="${sectionId}"] [data-content-text] {
+            font-size: ${settings.textSizeMobile || (textSizeValue as number) * 0.9}px !important;
+          }
+          @media (min-width: 768px) {
             [data-section-id="${sectionId}"] [data-content-text] {
-              font-size: ${settings.textSizeMobile || (textSizeValue as number) * 0.9}px !important;
+              font-size: ${textSizeValue}px !important;
             }
-            @media (min-width: 768px) {
-              [data-section-id="${sectionId}"] [data-content-text] {
-                font-size: ${textSizeValue}px !important;
-              }
-            }
-          ` : ''}
-        `}} />
-      )}
+          }
+        ` : ''}
+      `}} />
       <div 
-        className={`flex flex-col md:${flexDirection} min-h-[400px]`} 
+        className="flex min-h-[400px]"
         style={{ 
           minHeight: height !== 'auto' ? height : undefined,
-          flexDirection: imagePosition === 'right' ? 'row' : 'row-reverse',
         }}
         data-image-text-container
       >
         {/* Image Side */}
         <div 
-          className="w-full md:w-1/2 relative overflow-hidden"
+          className="w-full relative overflow-hidden"
           style={{ 
-            flexBasis: imageWidth,
-            width: imageWidth,
             minHeight: '300px'
           }}
           data-image-container
@@ -197,11 +214,7 @@ export function ImageTextSection({
 
         {/* Text Side */}
         <div 
-          className="w-full md:w-1/2 flex items-center p-8 md:p-12 lg:p-16"
-          style={{ 
-            flexBasis: `calc(100% - ${imageWidth})`,
-            width: `calc(100% - ${imageWidth})`,
-          }}
+          className={`w-full flex ${verticalAlignClass} p-8 md:p-12 lg:p-16`}
           data-text-container
         >
           <div className="max-w-lg mx-auto">

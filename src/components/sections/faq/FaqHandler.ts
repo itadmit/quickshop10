@@ -63,11 +63,15 @@ export function handleFaqUpdate(
   }
 }
 
+export function handler(element: Element, updates: Record<string, unknown>) {
+  handleFaqUpdate(element, updates as Partial<Section>);
+}
+
 export const defaultContent = {
   items: [
-    { question: 'מה אני מקבל?', answer: 'תיאור מפורט של מה שהלקוח מקבל.' },
-    { question: 'כמה זמן המשלוח?', answer: 'המשלוח מגיע תוך 3-5 ימי עסקים.' },
-    { question: 'מה מדיניות ההחזרות?', answer: 'ניתן להחזיר את המוצר תוך 30 יום.' },
+    { id: '1', question: 'מה אני מקבל?', answer: 'תיאור מפורט של מה שהלקוח מקבל.' },
+    { id: '2', question: 'כמה זמן המשלוח?', answer: 'המשלוח מגיע תוך 3-5 ימי עסקים.' },
+    { id: '3', question: 'מה מדיניות ההחזרות?', answer: 'ניתן להחזיר את המוצר תוך 30 יום.' },
   ],
 };
 

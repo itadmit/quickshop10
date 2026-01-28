@@ -58,6 +58,8 @@ interface ProductsSectionProps {
     subtitleColor?: string;
     subtitleSize?: number;
     subtitleSizeMobile?: number;
+    // Divider
+    dividerColor?: string;
     // Background
     backgroundColor?: string;
     // Spacing
@@ -99,8 +101,9 @@ interface ProductsSectionProps {
 }
 
 export function ProductsSection({ title, subtitle, products, settings, basePath, showDecimalPrices = false, sectionId, displayLimit, discountsMap, badgesMap, storeSlug, showWishlist = false }: ProductsSectionProps & { sectionId?: string }) {
-  // Text alignment classes
-  const alignClass = settings.textAlign === 'right' ? 'text-right' : settings.textAlign === 'left' ? 'text-left' : 'text-center';
+  // Text alignment - default to center
+  const textAlign = settings.textAlign || 'center';
+  const alignClass = textAlign === 'right' ? 'text-right' : textAlign === 'left' ? 'text-left' : 'text-center';
   
   // Visibility classes
   const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
@@ -159,6 +162,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
       data-section-type="products"
       data-section-name="מוצרים נבחרים"
       data-display-limit={displayLimit || ''}
+      data-card-style={settings.cardStyle || 'standard'}
       data-hide-on-mobile={settings.hideOnMobile ? 'true' : undefined}
       data-hide-on-desktop={settings.hideOnDesktop ? 'true' : undefined}
     >
@@ -166,9 +170,21 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
         className={`${settings.containerType === 'full' ? 'w-full px-4' : 'max-w-7xl mx-auto'}`}
         data-content-wrapper
       >
+        {/* Subtitle (Eyebrow) - above title */}
+        <p 
+          className={`${alignClass} tracking-[0.2em] uppercase mb-4 ${!subtitle ? 'hidden' : ''}`}
+          data-section-subtitle
+          style={{
+            color: settings.subtitleColor || '#9ca3af',
+            fontSize: settings.subtitleSize ? `${settings.subtitleSize}px` : '12px',
+          }}
+        >
+          {subtitle || ''}
+        </p>
+        
         {/* Title - always render for live editing */}
         <h2 
-          className={`font-display ${alignClass} mb-4 tracking-[0.15em] uppercase ${!title ? 'hidden' : ''}`}
+          className={`font-display text-2xl md:text-3xl ${alignClass} font-light tracking-[0.15em] uppercase ${!title ? 'hidden' : ''}`}
           data-section-title
           style={{
             color: settings.titleColor || '#000000',
@@ -179,23 +195,21 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
           {title || ''}
         </h2>
         
-        {/* Subtitle - always render for live editing */}
-        <p 
-          className={`${alignClass} tracking-[0.2em] uppercase mb-20 ${!subtitle ? 'hidden' : ''}`}
-          data-section-subtitle
-          style={{
-            color: settings.subtitleColor || '#9ca3af',
-            fontSize: settings.subtitleSize ? `${settings.subtitleSize}px` : '12px',
+        {/* Divider - gold line under title */}
+        <div 
+          className={`w-16 h-0.5 mt-6 mb-8 ${!title ? 'hidden' : ''}`}
+          style={{ 
+            backgroundColor: settings.dividerColor || '#C9A962',
+            marginInlineStart: textAlign === 'center' ? 'auto' : textAlign === 'left' ? '0' : 'auto',
+            marginInlineEnd: textAlign === 'center' ? 'auto' : textAlign === 'left' ? 'auto' : '0',
           }}
-        >
-          {subtitle || ''}
-        </p>
+          data-section-divider
+        />
         
         <div 
-          className={`grid ${settings.showAddToCart ? 'items-stretch' : ''}`} 
+          className={`grid ${settings.showAddToCart ? 'items-stretch' : ''} mt-12`} 
           style={{ 
             gap: `${gap}px`,
-            gridTemplateColumns: `repeat(${mobileColumns}, minmax(0, 1fr))`,
           }}
           data-products-grid
           data-columns={columns}
@@ -232,6 +246,8 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 storeSlug={storeSlug}
                 badges={badgesMap?.get(product.id) || []}
                 showWishlist={showWishlist}
+                cardStyle={settings.cardStyle}
+                cardTextAlign={settings.textAlign}
               />
             </div>
           ))}

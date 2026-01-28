@@ -33,6 +33,7 @@ import { eq, and, sql } from 'drizzle-orm';
 import { sendAbandonedCartEmail, sendEmail } from '@/lib/email';
 import { sendWhatsAppMessage } from '@/lib/whatsapp-trustory/send';
 import { getTemplateById, replaceTemplateVariables } from '@/lib/whatsapp-trustory/templates';
+import { canSendEmail, incrementEmailUsage, logFailedEmail } from '@/lib/email-packages';
 
 // Map event types to automation trigger types
 const EVENT_TO_TRIGGER_MAP: Record<string, string> = {
@@ -322,9 +323,24 @@ async function executeSendEmail(
   const subject = config.subject as string;
   const customerEmail = event.data.customerEmail as string;
   const customerName = event.data.customerName as string;
+  const automationId = event.data.automationId as string | undefined;
 
   if (!customerEmail) {
     throw new Error('No customer email in event data');
+  }
+
+  // 🔒 Check email quota before sending
+  const quotaCheck = await canSendEmail(event.storeId);
+  if (!quotaCheck.canSend) {
+    // Log the failed attempt
+    await logFailedEmail({
+      storeId: event.storeId,
+      automationId,
+      recipientEmail: customerEmail,
+      emailType: template || 'custom',
+      errorMessage: quotaCheck.reason || 'No email quota',
+    });
+    throw new Error(quotaCheck.reason || 'אין מכסת מיילים זמינה');
   }
 
   // Get store info
@@ -338,43 +354,85 @@ async function executeSendEmail(
     throw new Error('Store not found');
   }
 
-  // For abandoned cart, use specialized email
-  if (template === 'abandoned_cart') {
-    const items = event.data.items as Array<{name: string; quantity: number; price: number; image?: string}> || [];
-    const subtotal = Number(event.data.subtotal || 0);
-    const recoveryUrl = event.data.recoveryUrl as string || `https://my-quickshop.com/shops/${store[0].slug}/checkout`;
+  try {
+    // For abandoned cart, use specialized email
+    if (template === 'abandoned_cart') {
+      const items = event.data.items as Array<{name: string; quantity: number; price: number; image?: string}> || [];
+      const subtotal = Number(event.data.subtotal || 0);
+      const recoveryUrl = event.data.recoveryUrl as string || `https://my-quickshop.com/shops/${store[0].slug}/checkout`;
 
-    await sendAbandonedCartEmail({
-      customerEmail,
-      customerName,
-      items,
-      subtotal,
-      recoveryUrl,
-      storeName: store[0].name,
-      storeSlug: store[0].slug,
+      await sendAbandonedCartEmail({
+        customerEmail,
+        customerName,
+        items,
+        subtotal,
+        recoveryUrl,
+        storeName: store[0].name,
+        storeSlug: store[0].slug,
+      });
+
+      // ✅ Increment usage after successful send
+      await incrementEmailUsage({
+        storeId: event.storeId,
+        automationId,
+        recipientEmail: customerEmail,
+        emailType: 'abandoned_cart',
+        subject: 'שחזור עגלה נטושה',
+        metadata: { template, subtotal, itemsCount: items.length },
+      });
+
+      return { 
+        emailSent: true, 
+        template, 
+        to: customerEmail,
+        quotaRemaining: quotaCheck.quotaStatus.emailsRemaining - 1,
+      };
+    }
+
+    // Generic email
+    const html = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; direction: rtl; text-align: right;">
+        <h2>${subject || 'הודעה מהחנות'}</h2>
+        <p>שלום ${customerName || 'לקוח יקר'},</p>
+        <p>${config.body || ''}</p>
+        <p>בברכה,<br>${store[0].name}</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to: customerEmail,
+      subject: subject || `הודעה מ-${store[0].name}`,
+      html,
+      senderName: store[0].name,
     });
 
-    return { emailSent: true, template, to: customerEmail };
+    // ✅ Increment usage after successful send
+    await incrementEmailUsage({
+      storeId: event.storeId,
+      automationId,
+      recipientEmail: customerEmail,
+      emailType: 'custom',
+      subject: subject || `הודעה מ-${store[0].name}`,
+      metadata: { template: 'custom' },
+    });
+
+    return { 
+      emailSent: true, 
+      template: 'custom', 
+      to: customerEmail,
+      quotaRemaining: quotaCheck.quotaStatus.emailsRemaining - 1,
+    };
+  } catch (error) {
+    // Log failed email
+    await logFailedEmail({
+      storeId: event.storeId,
+      automationId,
+      recipientEmail: customerEmail,
+      emailType: template || 'custom',
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    });
+    throw error;
   }
-
-  // Generic email
-  const html = `
-    <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; direction: rtl; text-align: right;">
-      <h2>${subject || 'הודעה מהחנות'}</h2>
-      <p>שלום ${customerName || 'לקוח יקר'},</p>
-      <p>${config.body || ''}</p>
-      <p>בברכה,<br>${store[0].name}</p>
-    </div>
-  `;
-
-  await sendEmail({
-    to: customerEmail,
-    subject: subject || `הודעה מ-${store[0].name}`,
-    html,
-    senderName: store[0].name,
-  });
-
-  return { emailSent: true, template: 'custom', to: customerEmail };
 }
 
 async function executeChangeOrderStatus(

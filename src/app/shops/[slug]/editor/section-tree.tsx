@@ -88,7 +88,7 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   { type: 'reviews', label: 'ביקורות', icon: Star, category: 'סושיאל' },
   { type: 'gallery', label: 'גלריה', icon: Images, category: 'סושיאל' },
   { type: 'logos', label: 'לוגואים', icon: Building2, category: 'סושיאל' },
-  { type: 'featured_items', label: 'פריטים מובילים', icon: Users, category: 'סושיאל' },
+  { type: 'featured_items', label: 'פריטים מובילים', icon: Users, category: 'קטלוג' },
   // אחר
   { type: 'newsletter', label: 'ניוזלטר', icon: Mail, category: 'אחר' },
   { type: 'contact', label: 'יצירת קשר', icon: Phone, category: 'אחר' },
@@ -744,7 +744,7 @@ export function SectionTree({
                 onClick={() => onSelectSection(section.id)}
                 isExpanded={expandedSections.has(section.id)}
                 onToggle={() => toggleExpand(section.id)}
-                hasChildren={section.type === 'categories' || section.type === 'products'}
+                hasChildren={section.type === 'categories'}
                 isDisabled={!section.isActive}
                 hideOnMobile={section.settings?.hideOnMobile}
                 hideOnDesktop={section.settings?.hideOnDesktop}

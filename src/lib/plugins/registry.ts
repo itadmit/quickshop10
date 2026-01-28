@@ -358,6 +358,71 @@ export const pluginRegistry: PluginDefinition[] = [
   },
 
   // ============================================
+  // 🍳 KITCHEN DISPLAY - מסך מטבח
+  // ============================================
+  {
+    slug: 'kitchen-display',
+    name: 'מסך מטבח',
+    description: 'הצג הזמנות בזמן אמת על מסך ייעודי עם התראות קוליות, שעון סופר וכפתורי ניהול - מושלם למסעדות ובתי מלאכה',
+    type: 'core',
+    category: 'operations',
+    version: '1.0.0',
+    icon: 'monitor',
+    author: 'QuickShop',
+    isFree: false,
+    price: 89,
+    trialDays: 14,
+    defaultConfig: {
+      enabled: true,
+      // סטטוסים להצגה (מה מוצג על המסך)
+      displayStatuses: ['pending', 'confirmed', 'processing'],
+      // סטטוס אחרי לחיצה על "אישור"
+      successStatus: 'processing',
+      successCustomStatus: null,
+      // סטטוס אחרי לחיצה על "ביטול"
+      cancelStatus: 'cancelled',
+      cancelCustomStatus: null,
+      // הגדרות צליל
+      soundEnabled: true,
+      soundVolume: 80,
+      // רענון (שניות)
+      refreshInterval: 60,
+      // מיון
+      sortOrder: 'oldest_first',
+      // תצוגה
+      showCustomerPhone: true,
+      showCustomerName: true,
+      showOrderNotes: true,
+      showProductImages: true,
+      cardSize: 'medium',
+      darkMode: true,
+      // זמני התראה (דקות)
+      warningTimeMinutes: 5,
+      dangerTimeMinutes: 10,
+    },
+    metadata: {
+      menuItem: {
+        icon: 'Monitor',
+        label: 'מסך מטבח',
+        href: '/plugins/kitchen-display',
+        section: 'addons',
+        badge: 'חדש',
+      },
+      features: [
+        'תצוגת הזמנות בזמן אמת',
+        'התראות קוליות',
+        'שעון סופר לכל הזמנה',
+        'כפתורי אישור/ביטול/הדפסה',
+        'סטטוסים מותאמים אישית',
+        'מצב מסך מלא',
+        'תמיכה במצב כהה',
+        'תמונות מוצרים ותוספות',
+      ],
+      screenshots: [],
+    },
+  },
+
+  // ============================================
   // ⭐ REVIEWS - ביקורות
   // ============================================
   {

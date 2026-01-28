@@ -1737,8 +1737,8 @@ export function EditorSectionHighlighter() {
             link?: string;
           }>;
           
-          // Get the grid container and existing items
-          const grid = element.querySelector('[data-items-grid]') as HTMLElement;
+          // Get the grid container and existing items (try both data-items-grid and data-products-grid)
+          const grid = (element.querySelector('[data-items-grid]') || element.querySelector('[data-products-grid]')) as HTMLElement;
           const existingItems = element.querySelectorAll('[data-item-id]');
           const existingIds = new Set(Array.from(existingItems).map(el => (el as HTMLElement).dataset.itemId));
           
@@ -1760,6 +1760,7 @@ export function EditorSectionHighlighter() {
             if (!itemEl && grid && !existingIds.has(item.id)) {
               const sectionName = (element as HTMLElement).dataset.sectionName || '';
               const isSeriesGrid = sectionName === 'גריד סדרות' || element.querySelector('[data-items-grid]');
+              const isFeaturedItems = sectionName === 'פריטים מובילים' || sectionName === 'פריטים מובחרים' || element.querySelector('[data-products-grid]');
               
               if (isSeriesGrid) {
                 // Create new series grid card (cards style)
@@ -1776,6 +1777,25 @@ export function EditorSectionHighlighter() {
                     <h3 class="text-xl font-bold text-gray-900 mt-1 mb-3" data-item-title>${item.title || 'סדרה חדשה'}</h3>
                     <p class="text-sm text-gray-600 leading-relaxed mb-4 line-clamp-3" style="display: ${item.description ? '' : 'none'};" data-item-description>${item.description || ''}</p>
                   </div>
+                `;
+                grid.appendChild(newCard);
+                itemEl = newCard;
+              } else if (isFeaturedItems) {
+                // Create new featured items card
+                const newCard = document.createElement('a');
+                newCard.href = item.link || '#';
+                newCard.className = 'group block';
+                newCard.setAttribute('data-item-id', item.id);
+                newCard.innerHTML = `
+                  <div class="aspect-square bg-gray-100 rounded-xl mb-4 overflow-hidden flex items-center justify-center">
+                    ${item.imageUrl 
+                      ? `<img src="${item.imageUrl}" alt="${item.name || ''}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />`
+                      : `<svg class="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>`
+                    }
+                  </div>
+                  <h3 class="font-medium text-center text-gray-800" data-item-name>${item.name || 'פריט חדש'}</h3>
                 `;
                 grid.appendChild(newCard);
                 itemEl = newCard;
@@ -2510,40 +2530,93 @@ export function EditorSectionHighlighter() {
         // Generate type-specific placeholder HTML
         let html = '';
         switch (sectionType) {
-          case 'image_text':
+          case 'image_text': {
+            const imgTextSettings = event.data.settings || {};
+            const imagePosition = (imgTextSettings?.imagePosition as string) || 'right';
+            const imageWidth = (imgTextSettings?.imageWidth as string) || '50%';
+            const verticalAlign = (imgTextSettings?.verticalAlign as string) || 'center';
+            const imgTextFlexDir = imagePosition === 'right' ? 'row' : 'row-reverse';
+            const vertAlignClass = verticalAlign === 'top' ? 'items-start' : verticalAlign === 'bottom' ? 'items-end' : 'items-center';
+            
             placeholder.className = 'py-12 md:py-0';
+            // Store values in dataset for handler to read
+            placeholder.dataset.imagePosition = imagePosition;
+            placeholder.dataset.imageWidth = imageWidth;
+            
             html = `
-              <div class="flex flex-col md:flex-row min-h-[400px]" data-image-text-container style="flex-direction: row;">
-                <div class="w-full md:w-1/2 relative overflow-hidden" style="min-height: 300px; flex-basis: 50%; width: 50%;" data-image-container>
+              <style data-handler-style>
+                [data-section-id="${sectionId}"] [data-image-text-container] {
+                  flex-direction: column;
+                }
+                @media (min-width: 768px) {
+                  [data-section-id="${sectionId}"] [data-image-text-container] {
+                    flex-direction: ${imgTextFlexDir};
+                  }
+                  [data-section-id="${sectionId}"] [data-image-container] {
+                    flex-basis: ${imageWidth};
+                    width: ${imageWidth};
+                  }
+                  [data-section-id="${sectionId}"] [data-text-container] {
+                    flex-basis: calc(100% - ${imageWidth});
+                    width: calc(100% - ${imageWidth});
+                  }
+                }
+              </style>
+              <div class="flex flex-col min-h-[400px]" data-image-text-container>
+                <div class="w-full relative overflow-hidden" style="min-height: 300px;" data-image-container>
                   <img src="${content?.imageUrl || ''}" alt="" class="w-full h-full object-cover absolute inset-0 ${content?.imageUrl ? '' : 'hidden'}" data-content-image />
-                  <div class="absolute inset-0" style="background-color: transparent;" data-overlay></div>
                   <div class="w-full h-full bg-gray-100 flex items-center justify-center ${content?.imageUrl ? 'hidden' : ''}" data-image-placeholder>
                     <svg class="w-16 h-16 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
                 </div>
-                <div class="w-full md:w-1/2 flex items-center p-8 md:p-12 lg:p-16" style="flex-basis: calc(100% - 50%); width: calc(100% - 50%);" data-text-container>
+                <div class="w-full flex ${vertAlignClass} p-8 md:p-12 lg:p-16" data-text-container>
                   <div class="max-w-lg mx-auto">
-                    <h2 class="text-3xl md:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || ''}</h2>
-                    <p class="text-lg mb-4 ${subtitle ? '' : 'hidden'}" style="color: #4b5563;" data-section-subtitle>${subtitle || ''}</p>
-                    <div class="leading-relaxed mb-6 prose prose-sm" style="color: #4b5563;" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
+                    <h2 class="text-3xl md:text-4xl font-light tracking-wide mb-4 ${title ? '' : 'hidden'}" style="color: ${imgTextSettings?.titleColor || '#000000'};" data-section-title>${title || ''}</h2>
+                    <p class="text-lg mb-4 ${subtitle ? '' : 'hidden'}" style="color: ${imgTextSettings?.subtitleColor || '#6b7280'};" data-section-subtitle>${subtitle || ''}</p>
+                    <div class="leading-relaxed mb-6 prose prose-sm" style="color: ${imgTextSettings?.textColor || '#4b5563'};" data-content-text>${content?.text || '<p>הקלידו טקסט כאן...</p>'}</div>
                     <a href="${content?.buttonLink || '#'}" class="inline-block px-8 py-3 border transition-colors text-sm tracking-wider uppercase ${content?.buttonText ? '' : 'hidden'}" style="color: #000; background-color: transparent; border-color: #000;" data-section-button>${content?.buttonText || ''}</a>
                   </div>
                 </div>
               </div>
             `;
             break;
+          }
           
           case 'video_banner':
-            const hasVideoMedia = !!(content?.videoUrl || content?.imageUrl);
+            const videoUrl = (content?.videoUrl as string) || '';
+            const hasVideoMedia = !!(videoUrl || content?.imageUrl);
+            const videoOverlay = (event.data.settings?.overlay as number) ?? 0.4;
+            const videoMinHeight = (event.data.settings?.minHeight as number) || 90;
+            const videoMinHeightUnit = (event.data.settings?.minHeightUnit as string) || 'vh';
+            const videoAutoplay = (event.data.settings?.autoplay as boolean) !== false;
+            const videoMuted = (event.data.settings?.muted as boolean) !== false;
+            const videoLoop = (event.data.settings?.loop as boolean) !== false;
+            const videoControls = (event.data.settings?.controls as boolean) || false;
+            
             placeholder.className = 'relative overflow-hidden';
-            placeholder.style.height = '80vh';
-            placeholder.style.backgroundColor = hasVideoMedia ? '#000' : '#1f2937';
+            placeholder.style.minHeight = `${videoMinHeight}${videoMinHeightUnit}`;
+            placeholder.style.backgroundColor = '#000';
             placeholder.style.marginTop = '0';
             placeholder.style.marginBottom = '0';
             html = `
-              <div class="absolute inset-0 flex items-center justify-center" style="background-color: rgba(0,0,0,0.2);" data-overlay data-content-container>
+              ${videoUrl ? `
+              <video 
+                src="${videoUrl}" 
+                ${videoAutoplay ? 'autoplay' : ''} 
+                ${videoMuted ? 'muted' : ''} 
+                ${videoLoop ? 'loop' : ''} 
+                ${videoControls ? 'controls' : ''} 
+                playsinline 
+                class="absolute inset-0 w-full h-full object-cover"
+                data-content-video
+              ></video>
+              ` : ''}
+              ${!videoUrl && content?.imageUrl ? `
+              <img src="${content.imageUrl}" class="absolute inset-0 w-full h-full object-cover" data-content-image />
+              ` : ''}
+              <div class="absolute inset-0 flex flex-col justify-center items-center text-center" style="background-color: rgba(0,0,0,${videoOverlay});" data-overlay data-content-container>
                 <div class="max-w-2xl px-6 text-center">
                   <p class="text-xs font-normal tracking-[0.4em] uppercase mb-6 ${subtitle ? '' : 'hidden'}" style="color: rgba(255,255,255,0.8);" data-section-subtitle>${subtitle || ''}</p>
                   <h2 class="text-4xl md:text-6xl lg:text-7xl font-extralight tracking-[0.2em] uppercase mb-8 ${title ? '' : 'hidden'}" style="color: #fff;" data-section-title>${title || ''}</h2>
@@ -2685,9 +2758,10 @@ export function EditorSectionHighlighter() {
             
             html = `
               <div class="max-w-7xl mx-auto px-6" data-content-wrapper>
-                <h2 class="font-display text-2xl md:text-3xl text-center font-light tracking-[0.15em] uppercase mb-4 ${title ? '' : 'hidden'}" data-section-title>${title || 'מוצרים'}</h2>
-                <p class="text-center text-gray-400 text-xs tracking-[0.2em] uppercase ${subtitle ? 'mb-12' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
-                <div class="grid" style="gap: ${prodGap}px" data-products-grid data-columns="${prodColumns}" data-mobile-columns="${prodMobileColumns}">
+                <p class="text-center text-gray-400 text-xs tracking-[0.2em] uppercase mb-4 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
+                <h2 class="font-display text-2xl md:text-3xl text-center font-light tracking-[0.15em] uppercase ${title ? '' : 'hidden'}" data-section-title>${title || 'מוצרים'}</h2>
+                <div class="w-16 h-0.5 mt-6 mb-8 mx-auto ${title ? '' : 'hidden'}" style="background-color: #C9A962" data-section-divider></div>
+                <div class="grid mt-12" style="gap: ${prodGap}px" data-products-grid data-columns="${prodColumns}" data-mobile-columns="${prodMobileColumns}">
                   ${Array.from({length: Math.min(prodDisplayLimit, 8)}, (_, i) => `
                     <div class="group" data-product-index="${i}">
                       <div class="aspect-square bg-gray-100 rounded-lg mb-3 flex items-center justify-center">
@@ -2737,10 +2811,10 @@ export function EditorSectionHighlighter() {
             const itemsToShow = featItems.length > 0 
               ? featItems 
               : [
-                  { id: '1', name: 'פריט 1', imageUrl: '' },
-                  { id: '2', name: 'פריט 2', imageUrl: '' },
-                  { id: '3', name: 'פריט 3', imageUrl: '' },
-                  { id: '4', name: 'פריט 4', imageUrl: '' },
+                  { id: '1', name: 'מוצר א׳', imageUrl: '' },
+                  { id: '2', name: 'מוצר ב׳', imageUrl: '' },
+                  { id: '3', name: 'מוצר ג׳', imageUrl: '' },
+                  { id: '4', name: 'מוצר ד׳', imageUrl: '' },
                 ];
             
             html = `
@@ -2854,25 +2928,56 @@ export function EditorSectionHighlighter() {
             `;
             break;
 
-          case 'split_banner':
+          case 'split_banner': {
             placeholder.className = 'grid md:grid-cols-2';
+            const defaultRight = { title: 'נשים', imageUrl: 'https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/noir-fashion/x0gDz-4TUp.webp', link: '/category/women' };
+            const defaultLeft = { title: 'גברים', imageUrl: 'https://3lwnd3ucppklouqs.public.blob.vercel-storage.com/quickshop/stores/noir-fashion/r6Du0CcW_E.webp', link: '/category/men' };
+            const splitRight = { ...defaultRight, ...(content?.right as { title?: string; imageUrl?: string; mobileImageUrl?: string; link?: string } || {}) };
+            const splitLeft = { ...defaultLeft, ...(content?.left as { title?: string; imageUrl?: string; mobileImageUrl?: string; link?: string } || {}) };
+            const splitSettings = event.data.settings || {};
+            const splitMinHeight = (splitSettings?.minHeight as number) ?? 70;
+            const splitMinHeightUnit = (splitSettings?.minHeightUnit as string) || 'vh';
+            const splitVerticalAlign = (splitSettings?.verticalAlign as string) || 'bottom';
+            const splitTextAlign = (splitSettings?.textAlign as string) || 'center';
+            const splitOverlay = (splitSettings?.overlay as number) ?? 0.1;
+            const splitTitleColor = (splitSettings?.titleColor as string) || '#fff';
+            
+            // Vertical alignment classes
+            const vertAlignClass = splitVerticalAlign === 'top' ? 'items-start pt-16' 
+              : splitVerticalAlign === 'center' ? 'items-center' 
+              : 'items-end pb-16';
+            
+            // Text alignment classes - in RTL: right = start, left = end
+            const txtAlignClass = splitTextAlign === 'right' ? 'text-right justify-start px-12' 
+              : splitTextAlign === 'left' ? 'text-left justify-end px-12' 
+              : 'text-center justify-center';
+            
             html = `
-              <div class="relative overflow-hidden group" style="height: 70vh;">
-                <div class="absolute inset-0 bg-gradient-to-b from-gray-200 to-gray-300"></div>
-                <div class="absolute inset-0" style="background-color: rgba(0,0,0,0.1);" data-overlay></div>
-                <div class="absolute inset-0 flex items-end justify-center pb-16">
-                  <span class="text-3xl md:text-4xl font-extralight tracking-[0.3em] uppercase" style="color: #fff;" data-section-title>נשים</span>
+              <a href="${splitRight.link}" class="relative overflow-hidden group" style="height: ${splitMinHeight}${splitMinHeightUnit};" data-side-index="0">
+                ${splitRight.mobileImageUrl ? `<img src="${splitRight.mobileImageUrl}" alt="" class="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 md:hidden" data-side-mobile-image />` : ''}
+                ${splitRight.imageUrl 
+                  ? `<img src="${splitRight.imageUrl}" alt="" class="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 ${splitRight.mobileImageUrl ? 'hidden md:block' : ''}" data-side-image />`
+                  : `<div class="w-full h-full bg-gradient-to-b from-gray-200 to-gray-300 ${splitRight.mobileImageUrl ? 'hidden md:block' : ''}" data-side-placeholder></div>`
+                }
+                <div class="absolute inset-0" style="background-color: rgba(0,0,0,${splitOverlay});" data-side-overlay></div>
+                <div class="absolute inset-0 flex ${vertAlignClass} ${txtAlignClass}" data-side-content>
+                  <span class="text-3xl md:text-4xl font-extralight tracking-[0.3em] uppercase" style="color: ${splitTitleColor};" data-side-title>${splitRight.title}</span>
                 </div>
-              </div>
-              <div class="relative overflow-hidden group" style="height: 70vh;">
-                <div class="absolute inset-0 bg-gradient-to-b from-gray-300 to-gray-400"></div>
-                <div class="absolute inset-0" style="background-color: rgba(0,0,0,0.1);" data-overlay></div>
-                <div class="absolute inset-0 flex items-end justify-center pb-16">
-                  <span class="text-3xl md:text-4xl font-extralight tracking-[0.3em] uppercase" style="color: #fff;" data-section-title>גברים</span>
+              </a>
+              <a href="${splitLeft.link}" class="relative overflow-hidden group" style="height: ${splitMinHeight}${splitMinHeightUnit};" data-side-index="1">
+                ${splitLeft.mobileImageUrl ? `<img src="${splitLeft.mobileImageUrl}" alt="" class="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 md:hidden" data-side-mobile-image />` : ''}
+                ${splitLeft.imageUrl 
+                  ? `<img src="${splitLeft.imageUrl}" alt="" class="w-full h-full object-cover object-top transition-transform duration-700 group-hover:scale-105 ${splitLeft.mobileImageUrl ? 'hidden md:block' : ''}" data-side-image />`
+                  : `<div class="w-full h-full bg-gradient-to-b from-gray-300 to-gray-400 ${splitLeft.mobileImageUrl ? 'hidden md:block' : ''}" data-side-placeholder></div>`
+                }
+                <div class="absolute inset-0" style="background-color: rgba(0,0,0,${splitOverlay});" data-side-overlay></div>
+                <div class="absolute inset-0 flex ${vertAlignClass} ${txtAlignClass}" data-side-content>
+                  <span class="text-3xl md:text-4xl font-extralight tracking-[0.3em] uppercase" style="color: ${splitTitleColor};" data-side-title>${splitLeft.title}</span>
                 </div>
-              </div>
+              </a>
             `;
             break;
+          }
 
           case 'banner_small':
             placeholder.className = 'py-5 px-4';
@@ -2887,6 +2992,61 @@ export function EditorSectionHighlighter() {
               </div>
             `;
             break;
+
+          case 'quote_banner': {
+            const quoteSettings = event.data.settings || {};
+            const quoteMinHeight = (quoteSettings?.minHeight as number) ?? 60;
+            const quoteMinHeightUnit = (quoteSettings?.minHeightUnit as string) || 'vh';
+            const quoteOverlay = (quoteSettings?.overlay as number) ?? 0.4;
+            const quoteTextStyle = (quoteSettings?.textStyle as string) || 'italic';
+            const quoteText = (content?.quote as string) || 'בפלטפורמה שלנו לא רק בונים חנויות - בפלטפורמה שלנו בונים עסקים מצליחים';
+            const quoteAttribution = (content?.attribution as string) || 'יוגב אביטן, מנכ״ל קוויק שופ';
+            const quoteImageUrl = (content?.imageUrl as string) || '';
+            
+            const quoteFontClass = quoteTextStyle === 'serif' 
+              ? 'font-serif' 
+              : quoteTextStyle === 'italic' 
+                ? 'font-serif italic' 
+                : 'font-sans';
+            
+            placeholder.className = 'w-full relative overflow-hidden';
+            html = `
+              <div 
+                class="absolute inset-0 bg-cover bg-center"
+                style="background-image: ${quoteImageUrl ? `url('${quoteImageUrl}')` : 'none'}; background-attachment: fixed;"
+                data-bg-desktop
+                data-bg-type="image"
+              ></div>
+              <div 
+                class="absolute inset-0 bg-gray-900"
+                style="display: ${quoteImageUrl ? 'none' : 'block'};"
+                data-bg-fallback
+              ></div>
+              <div 
+                class="absolute inset-0 bg-black"
+                style="opacity: ${quoteOverlay};"
+                data-overlay
+              ></div>
+              <div 
+                class="relative flex items-center justify-center"
+                style="height: ${quoteMinHeight}${quoteMinHeightUnit};"
+                data-content-container
+              >
+                <div class="text-center text-white px-4 max-w-4xl mx-auto">
+                  <h2 
+                    class="text-3xl md:text-5xl ${quoteFontClass} mb-4"
+                    data-section-quote
+                  >"${quoteText}"</h2>
+                  <p 
+                    class="text-lg opacity-90"
+                    style="display: ${quoteAttribution ? '' : 'none'};"
+                    data-section-attribution
+                  >${quoteAttribution}</p>
+                </div>
+              </div>
+            `;
+            break;
+          }
 
           case 'faq':
             const faqItems = (content?.items as Array<{ id?: string; question: string; answer: string }>) || [
@@ -2930,18 +3090,41 @@ export function EditorSectionHighlighter() {
               { author: 'דוד מ.', text: 'איכות גבוהה ומשלוח מהיר', rating: 5 },
               { author: 'רחל ל.', text: 'שירות לקוחות מצוין', rating: 4 },
             ];
+            const reviewCardAlign = (event.data.settings?.cardTextAlign as string) || 'center';
+            const reviewLayout = (event.data.settings?.layout as string) || 'grid';
+            const reviewCardWidth = (event.data.settings?.cardWidth as number) || 320;
+            const reviewCols = (event.data.settings?.columns as number) || 3;
+            // RTL: 'right' = justify-start (ימין), 'left' = justify-end (שמאל)
+            const reviewJustifyMap: Record<string, string> = { right: 'justify-start', center: 'justify-center', left: 'justify-end' };
+            const reviewJustify = reviewJustifyMap[reviewCardAlign] || 'justify-center';
             placeholder.className = 'py-16 bg-gray-50';
             placeholder.dataset.sectionName = 'ביקורות';
+            placeholder.setAttribute('data-layout', reviewLayout);
+            
+            const reviewGridClasses = reviewLayout === 'slider' 
+              ? 'flex overflow-x-auto snap-x snap-mandatory gap-6 -mx-4 px-4'
+              : `grid md:grid-cols-${reviewCols} gap-6`;
+            const reviewCardClasses = reviewLayout === 'slider'
+              ? `bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-${reviewCardAlign} flex-shrink-0 snap-center`
+              : `bg-white p-6 rounded-lg shadow-sm border border-gray-100 text-${reviewCardAlign}`;
+            const reviewCardStyle = reviewLayout === 'slider' 
+              ? `width: ${reviewCardWidth}px; min-width: ${reviewCardWidth}px;`
+              : '';
+              
             html = `
+              <style>
+                [data-section-id="${sectionId}"] [data-reviews-grid]::-webkit-scrollbar { display: none; }
+                [data-section-id="${sectionId}"] [data-reviews-grid] { scrollbar-width: none; }
+              </style>
               <div class="max-w-7xl mx-auto px-4">
                 <div class="text-center mb-12">
                   <h2 class="text-2xl md:text-3xl font-display font-light tracking-wide mb-3 ${title ? '' : 'hidden'}" data-section-title style="display: ${title ? '' : 'none'}">${title || ''}</h2>
                   <p class="text-gray-600 text-sm md:text-base max-w-2xl mx-auto ${subtitle ? '' : 'hidden'}" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
                 </div>
-                <div class="grid md:grid-cols-3 gap-6" data-reviews-grid>
+                <div class="${reviewGridClasses}" data-reviews-grid>
                   ${reviewsContent.map((review, index) => `
-                    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-100" data-review-index="${index}" data-review-id="${index}">
-                      <div class="flex gap-0.5 mb-3" data-review-rating="${review.rating}">
+                    <div class="${reviewCardClasses}" style="${reviewCardStyle}" data-review-index="${index}" data-review-id="${index}">
+                      <div class="flex gap-0.5 mb-3 ${reviewJustify}" data-review-rating="${review.rating}">
                         ${[1,2,3,4,5].map(i => `
                           <svg class="w-4 h-4 ${i <= review.rating ? 'text-yellow-400' : 'text-gray-200'}" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -2949,7 +3132,7 @@ export function EditorSectionHighlighter() {
                         `).join('')}
                       </div>
                       <p class="text-gray-700 mb-4" data-review-text>"${review.text}"</p>
-                      <div class="flex items-center gap-3">
+                      <div class="flex items-center gap-3 ${reviewJustify}">
                         <div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-medium" data-review-avatar>
                           ${(review.author || '').charAt(0)}
                         </div>
@@ -2964,6 +3147,16 @@ export function EditorSectionHighlighter() {
                     </div>
                   `).join('')}
                 </div>
+                ${reviewLayout === 'slider' ? `
+                  <div class="flex justify-center gap-2 mt-4" data-slider-nav>
+                    <button class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" data-slider-prev>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                    </button>
+                    <button class="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors" data-slider-next>
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                    </button>
+                  </div>
+                ` : ''}
               </div>
             `;
             break;
@@ -3185,13 +3378,16 @@ export function EditorSectionHighlighter() {
             const contactPhone = content?.phone || '03-1234567';
             const contactAddress = content?.address || '';
             const contactHours = content?.hours || '';
+            const showForm = content?.showForm !== false; // Default true
+            const submitButtonText = content?.submitButtonText || 'שליחה';
             html = `
               <div class="max-w-4xl mx-auto" data-content-wrapper>
                 <h2 class="text-2xl md:text-3xl font-bold tracking-wide mb-4 text-center" data-section-title style="${title ? '' : 'display:none'}">${title || 'צור קשר'}</h2>
                 <p class="text-lg opacity-80 mb-8 text-center" data-section-subtitle style="${subtitle ? '' : 'display:none'}">${subtitle || ''}</p>
                 
-                <div class="space-y-8 text-center" data-contact-info>
-                  <div class="space-y-6" data-contact-details>
+                <div class="grid md:grid-cols-2 gap-12">
+                  <!-- פרטי קשר -->
+                  <div class="space-y-6" data-contact-info>
                     <div style="${contactEmail ? '' : 'display:none'}" data-contact-email-wrapper>
                       <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">אימייל</p>
                       <a href="mailto:${contactEmail}" class="text-sm hover:underline" dir="ltr" data-contact-email>${contactEmail}</a>
@@ -3211,6 +3407,29 @@ export function EditorSectionHighlighter() {
                       <p class="text-xs uppercase tracking-widest text-gray-500 mb-1">שעות פעילות</p>
                       <span class="text-sm" data-contact-hours>${contactHours}</span>
                     </div>
+                  </div>
+                  
+                  <!-- טופס יצירת קשר -->
+                  <div class="bg-white p-6 rounded-lg shadow-sm" data-contact-form-container style="${showForm ? '' : 'display:none'}">
+                    <form class="space-y-4" data-contact-form>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">שם מלא</label>
+                        <input type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="השם שלך" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">אימייל</label>
+                        <input type="email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="email@example.com" dir="ltr" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">טלפון</label>
+                        <input type="tel" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="05X-XXXXXXX" dir="ltr" />
+                      </div>
+                      <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">הודעה</label>
+                        <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none" rows="4" placeholder="כתוב את הודעתך כאן..."></textarea>
+                      </div>
+                      <button type="submit" class="w-full py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 transition-colors" data-contact-button>${submitButtonText}</button>
+                    </form>
                   </div>
                 </div>
               </div>
@@ -3278,18 +3497,26 @@ export function EditorSectionHighlighter() {
             break;
           
           case 'custom':
-            placeholder.className = 'py-16 bg-gradient-to-b from-blue-50 to-white border-2 border-dashed border-blue-300';
-            html = `
-              <div class="container mx-auto px-4 text-center">
-                <div class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                  <svg class="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                  </svg>
+            const customHtml = (content?.html as string) || '';
+            if (customHtml) {
+              // If there's HTML content, show it
+              placeholder.className = '';
+              html = `<div data-custom-html>${customHtml}</div>`;
+            } else {
+              // Show placeholder if no content
+              placeholder.className = 'py-16 bg-gradient-to-b from-blue-50 to-white border-2 border-dashed border-blue-300';
+              html = `
+                <div class="container mx-auto px-4 text-center">
+                  <div class="w-16 h-16 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                    </svg>
+                  </div>
+                  <h2 class="text-xl font-medium text-gray-900 mb-2">custom</h2>
+                  <p class="text-gray-500">הוסף קוד HTML מותאם אישית</p>
                 </div>
-                <h2 class="text-xl font-medium text-gray-900 mb-2" data-section-title>${title || 'סקשן מותאם אישית'}</h2>
-                <p class="text-gray-500">הוסף קוד HTML מותאם אישית</p>
-              </div>
-            `;
+              `;
+            }
             break;
           
           default:

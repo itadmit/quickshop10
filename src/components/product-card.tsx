@@ -53,6 +53,10 @@ interface ProductCardProps {
   badges?: Badge[];
   // ❤️ Wishlist support
   showWishlist?: boolean;
+  // 🎨 Card style
+  cardStyle?: 'standard' | 'minimal' | 'overlay';
+  // 📐 Text alignment in card
+  cardTextAlign?: 'left' | 'center' | 'right';
 }
 
 export function ProductCard({ 
@@ -77,6 +81,8 @@ export function ProductCard({
   storeSlug,
   badges = [],
   showWishlist = false,
+  cardStyle = 'standard',
+  cardTextAlign = 'center',
 }: ProductCardProps) {
   // Use video thumbnail (cardImage) if available, otherwise use regular image
   // If cardImage is a video URL, generate a thumbnail from it
@@ -99,11 +105,15 @@ export function ProductCard({
   const format = (p: number) => formatPrice(p, { showDecimal: showDecimalPrices });
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
 
+  // Card style classes
+  const isOverlay = cardStyle === 'overlay';
+  const isMinimal = cardStyle === 'minimal';
+  
   return (
-    <article className={`group animate-slide-up ${showAddToCart ? 'h-full flex flex-col' : ''}`} dir="rtl">
+    <article className={`group animate-slide-up ${showAddToCart ? 'h-full flex flex-col' : ''} ${isOverlay ? 'relative' : ''}`} dir="rtl">
       {/* Image or Video */}
-      <Link href={productUrl} className="block img-zoom mb-4 flex-shrink-0">
-        <div className="aspect-[3/4] bg-gray-50 relative overflow-hidden">
+      <Link href={productUrl} className={`block img-zoom ${isOverlay ? '' : 'mb-4'} flex-shrink-0`}>
+        <div className={`aspect-[3/4] relative overflow-hidden ${isMinimal ? 'bg-transparent' : 'bg-gray-50'}`}>
           {isVideoCard ? (
             // Autoplay muted video for video cards
             <video
@@ -213,62 +223,80 @@ export function ProductCard({
         </div>
       </Link>
 
-      {/* Content */}
-      <div className={`text-center ${showAddToCart ? 'flex-1 flex flex-col' : ''}`}>
-        <Link href={productUrl}>
-          <h3 className={`text-sm font-medium mb-2 group-hover:underline underline-offset-4 transition-all ${outOfStock ? 'text-gray-400' : 'text-black'}`}>
-            {name}
-          </h3>
+      {/* Content - overlay style puts content inside image */}
+      {isOverlay ? (
+        <Link href={productUrl} className="absolute inset-0 flex items-end">
+          <div className="w-full p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
+            <h3 className="text-sm font-medium text-white mb-1 group-hover:underline underline-offset-4 transition-all">
+              {name}
+            </h3>
+            <div className="flex items-center justify-center gap-3">
+              <span className={`text-sm ${hasAutoDiscount ? 'text-green-300 font-medium' : 'text-white'}`}>
+                {format(finalPrice)}
+              </span>
+              {originalPrice && (
+                <span className="text-sm text-white/60 line-through">{format(originalPrice)}</span>
+              )}
+            </div>
+          </div>
         </Link>
+      ) : (
+        <div className={`${cardTextAlign === 'center' ? 'text-center' : cardTextAlign === 'right' ? 'text-right' : 'text-left'} ${showAddToCart ? 'flex-1 flex flex-col' : ''}`}>
+          <Link href={productUrl}>
+            <h3 className={`text-sm font-medium mb-2 group-hover:underline underline-offset-4 transition-all ${outOfStock ? 'text-gray-400' : 'text-black'}`}>
+              {name}
+            </h3>
+          </Link>
 
-        {/* Price */}
-        <div className="flex items-center justify-center gap-3">
-          <span className={`text-sm ${outOfStock ? 'text-gray-400' : hasAutoDiscount ? 'text-green-600 font-medium' : 'text-black'}`}>
-            {format(finalPrice)}
-          </span>
-          {originalPrice && (
-            <span className="text-sm text-gray-400 line-through">{format(originalPrice)}</span>
-          )}
-        </div>
-        
-        {/* Add to Cart Button - BELOW the card (when showAddToCart is ON) */}
-        {showAddToCart && !outOfStock && (
-          <div className="mt-auto pt-3">
-            {hasVariants && storeSlug ? (
-              <ProductCardAddToCart
-                productId={id}
-                name={name}
-                price={price}
-                image={image}
-                inventory={inventory}
-                trackInventory={trackInventory}
-                allowBackorder={allowBackorder}
-                hasVariants={true}
-                storeSlug={storeSlug}
-                showAlways={true}
-                automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
-                categoryIds={automaticDiscount?.categoryIds}
-                positionBelow={true}
-                buttonStyle={addToCartStyle}
-              />
-            ) : (
-              <AddToCartButton 
-                productId={id}
-                name={name}
-                price={price}
-                image={image}
-                inventory={inventory}
-                trackInventory={trackInventory}
-                allowBackorder={allowBackorder}
-                className="w-full"
-                variant={addToCartStyle === 'filled' ? 'primary' : 'outline'}
-                automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
-                categoryIds={automaticDiscount?.categoryIds}
-              />
+          {/* Price */}
+          <div className={`flex items-center gap-3 ${cardTextAlign === 'center' ? 'justify-center' : cardTextAlign === 'right' ? 'justify-start' : 'justify-end'}`}>
+            <span className={`text-sm ${outOfStock ? 'text-gray-400' : hasAutoDiscount ? 'text-green-600 font-medium' : 'text-black'}`}>
+              {format(finalPrice)}
+            </span>
+            {originalPrice && (
+              <span className="text-sm text-gray-400 line-through">{format(originalPrice)}</span>
             )}
           </div>
-        )}
-      </div>
+        
+          {/* Add to Cart Button - BELOW the card (when showAddToCart is ON) */}
+          {showAddToCart && !outOfStock && (
+            <div className="mt-auto pt-3">
+              {hasVariants && storeSlug ? (
+                <ProductCardAddToCart
+                  productId={id}
+                  name={name}
+                  price={price}
+                  image={image}
+                  inventory={inventory}
+                  trackInventory={trackInventory}
+                  allowBackorder={allowBackorder}
+                  hasVariants={true}
+                  storeSlug={storeSlug}
+                  showAlways={true}
+                  automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                  categoryIds={automaticDiscount?.categoryIds}
+                  positionBelow={true}
+                  buttonStyle={addToCartStyle}
+                />
+              ) : (
+                <AddToCartButton 
+                  productId={id}
+                  name={name}
+                  price={price}
+                  image={image}
+                  inventory={inventory}
+                  trackInventory={trackInventory}
+                  allowBackorder={allowBackorder}
+                  className="w-full"
+                  variant={addToCartStyle === 'filled' ? 'primary' : 'outline'}
+                  automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                  categoryIds={automaticDiscount?.categoryIds}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </article>
   );
 }

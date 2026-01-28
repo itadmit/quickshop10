@@ -33,7 +33,7 @@ interface SubscriptionManagerProps {
   };
   invoices: {
     id: string;
-    type: 'subscription' | 'transaction_fee' | 'plugin';
+    type: 'subscription' | 'transaction_fee' | 'plugin' | 'email_package';
     amount: number;
     status: 'pending' | 'paid' | 'failed' | 'refunded';
     createdAt: string;
@@ -83,10 +83,11 @@ const statusInfo = {
   expired: { label: 'פג תוקף', color: 'red', icon: AlertTriangle },
 };
 
-const invoiceTypeLabels = {
+const invoiceTypeLabels: Record<string, string> = {
   subscription: 'מנוי חודשי',
   transaction_fee: 'עמלות עסקאות',
   plugin: 'תוספים',
+  email_package: 'חבילת דיוור',
 };
 
 export function SubscriptionManager({ store, subscription, billing, invoices, prices, paymentResult }: SubscriptionManagerProps) {

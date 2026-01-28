@@ -289,6 +289,30 @@ export function handleContactUpdate(element: Element, updates: Partial<Section>)
       }
     });
   }
+
+  // =====================================================
+  // FORM VISIBILITY
+  // =====================================================
+  if (updates.content?.showForm !== undefined) {
+    const formContainer = el.querySelector('[data-contact-form-container]') as HTMLElement;
+    if (formContainer) {
+      formContainer.style.display = updates.content.showForm ? 'block' : 'none';
+    }
+  }
+
+  // =====================================================
+  // BUTTON TEXT
+  // =====================================================
+  if (updates.content?.submitButtonText !== undefined) {
+    const buttonEl = el.querySelector('[data-contact-button]') as HTMLElement;
+    if (buttonEl) {
+      buttonEl.textContent = updates.content.submitButtonText as string || 'שליחה';
+    }
+  }
+}
+
+export function handler(element: Element, updates: Record<string, unknown>) {
+  handleContactUpdate(element, updates as Partial<Section>);
 }
 
 // Default content for new sections

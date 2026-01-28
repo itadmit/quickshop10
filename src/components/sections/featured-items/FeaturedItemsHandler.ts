@@ -80,10 +80,84 @@ export function handleFeaturedItemsUpdate(
   if (updates.settings?.gap !== undefined && gridEl) {
     gridEl.style.gap = `${updates.settings.gap}px`;
   }
+
+  // Card text alignment
+  if (updates.settings?.cardTextAlign !== undefined) {
+    const nameEls = el.querySelectorAll('[data-item-name]');
+    const align = updates.settings.cardTextAlign as string;
+    nameEls.forEach((nameEl) => {
+      (nameEl as HTMLElement).classList.remove('text-right', 'text-center', 'text-left');
+      (nameEl as HTMLElement).classList.add(`text-${align}`);
+    });
+  }
+
+  // Card style (standard/minimal/overlay) - store for CSS
+  if (updates.settings?.cardStyle !== undefined) {
+    el.setAttribute('data-card-style', updates.settings.cardStyle as string);
+  }
+  
+  // Items - update names, images, links in real-time
+  if (updates.content?.items !== undefined) {
+    const items = updates.content.items as Array<{
+      id: string;
+      name: string;
+      imageUrl?: string;
+      videoUrl?: string;
+      link?: string;
+    }>;
+    
+    items.forEach((item) => {
+      const itemEl = el.querySelector(`[data-item-id="${item.id}"]`) as HTMLElement;
+      if (!itemEl) return;
+      
+      // Update name
+      const nameEl = itemEl.querySelector('[data-item-name]') as HTMLElement;
+      if (nameEl && item.name !== undefined) {
+        nameEl.textContent = item.name;
+      }
+      
+      // Update image
+      const imgEl = itemEl.querySelector('img') as HTMLImageElement;
+      if (imgEl && item.imageUrl !== undefined) {
+        if (item.imageUrl) {
+          imgEl.src = item.imageUrl;
+          imgEl.style.display = '';
+        } else {
+          imgEl.style.display = 'none';
+        }
+      }
+      
+      // Update video
+      const videoEl = itemEl.querySelector('video') as HTMLVideoElement;
+      if (videoEl && item.videoUrl !== undefined) {
+        if (item.videoUrl) {
+          videoEl.src = item.videoUrl;
+          videoEl.style.display = '';
+          if (imgEl) imgEl.style.display = 'none';
+        } else {
+          videoEl.style.display = 'none';
+          if (imgEl && item.imageUrl) imgEl.style.display = '';
+        }
+      }
+      
+      // Update link
+      if (item.link !== undefined) {
+        const linkEl = itemEl.closest('a') || itemEl;
+        if (linkEl.tagName === 'A') {
+          (linkEl as HTMLAnchorElement).href = item.link || '#';
+        }
+      }
+    });
+  }
 }
 
 export const defaultContent = {
   displayLimit: 4,
+  items: [
+    { id: '1', name: 'מוצר א׳', imageUrl: '', link: '/products' },
+    { id: '2', name: 'מוצר ב׳', imageUrl: '', link: '/products' },
+    { id: '3', name: 'מוצר ג׳', imageUrl: '', link: '/products' },
+  ],
 };
 
 export const defaultSettings = {
@@ -100,6 +174,7 @@ export const defaultSettings = {
   gap: 24,
   showAddToCart: false,
   cardStyle: 'standard',
+  cardTextAlign: 'center',
   hoverEffect: 'scale',
   paddingTop: 80,
   paddingBottom: 80,

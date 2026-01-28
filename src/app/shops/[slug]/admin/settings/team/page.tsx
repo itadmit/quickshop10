@@ -53,6 +53,7 @@ export default async function TeamSettingsPage({
     marketing: 'שיווק',
     developer: 'מפתח',
     influencer: 'משפיען',
+    agent: 'סוכן',
   };
 
   return (
@@ -114,6 +115,7 @@ export default async function TeamSettingsPage({
                     member.role === 'manager' ? 'bg-blue-100 text-blue-800' :
                     member.role === 'marketing' ? 'bg-green-100 text-green-800' :
                     member.role === 'influencer' ? 'bg-pink-100 text-pink-800' :
+                    member.role === 'agent' ? 'bg-cyan-100 text-cyan-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {roleLabels[member.role] || member.role}
@@ -157,6 +159,7 @@ export default async function TeamSettingsPage({
                     invitation.role === 'manager' ? 'bg-blue-100 text-blue-800' :
                     invitation.role === 'marketing' ? 'bg-green-100 text-green-800' :
                     invitation.role === 'influencer' ? 'bg-pink-100 text-pink-800' :
+                    invitation.role === 'agent' ? 'bg-cyan-100 text-cyan-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
                     {roleLabels[invitation.role] || invitation.role}
@@ -269,6 +272,25 @@ export default async function TeamSettingsPage({
             </div>
             <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
               <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">הנחות</span>
+              <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">דוחות</span>
+            </div>
+          </div>
+
+          {/* Agent */}
+          <div className="p-4 flex items-start gap-4 hover:bg-gray-50 transition-colors">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-600 flex items-center justify-center text-white text-lg flex-shrink-0">
+              🛒
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-gray-900">סוכן</h4>
+                <span className="px-2 py-0.5 text-[10px] font-medium bg-cyan-100 text-cyan-700 rounded">מכירות</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-0.5">גישה לקופה (POS) ולדוחות ביצועים אישיים. מעקב מכירות לפי סוכן</p>
+            </div>
+            <div className="flex flex-wrap gap-1 max-w-[200px] justify-end">
+              <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">קופה</span>
+              <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">הזמנות</span>
               <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">דוחות</span>
             </div>
           </div>

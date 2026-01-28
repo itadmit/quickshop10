@@ -33,7 +33,8 @@ export const subscriptionStatusEnum = pgEnum('subscription_status', [
 export const platformInvoiceTypeEnum = pgEnum('platform_invoice_type', [
   'subscription',      // מנוי חודשי
   'transaction_fee',   // עמלות עסקאות (0.5%)
-  'plugin'             // תוספים
+  'plugin',            // תוספים
+  'email_package'      // חבילת דיוור
 ]);
 
 export const platformInvoiceStatusEnum = pgEnum('platform_invoice_status', [
@@ -108,7 +109,7 @@ export const giftCardStatusEnum = pgEnum('gift_card_status', ['active', 'used', 
 export const refundStatusEnum = pgEnum('refund_status', ['pending', 'approved', 'rejected', 'completed']);
 
 // Store team roles
-export const storeRoleEnum = pgEnum('store_role', ['owner', 'manager', 'marketing', 'developer', 'influencer']);
+export const storeRoleEnum = pgEnum('store_role', ['owner', 'manager', 'marketing', 'developer', 'influencer', 'agent']);
 
 // Menu link types
 export const menuLinkTypeEnum = pgEnum('menu_link_type', ['url', 'page', 'category', 'product']);
@@ -3844,6 +3845,144 @@ export const platformSettings = pgTable('platform_settings', {
   index('idx_platform_settings_key').on(table.key),
   index('idx_platform_settings_category').on(table.category),
 ]);
+
+// ============ EMAIL PACKAGES (חבילות דיוור) ============
+
+/**
+ * סטטוס מנוי חבילת דיוור
+ */
+export const emailSubscriptionStatusEnum = pgEnum('email_subscription_status', [
+  'active',      // פעיל
+  'cancelled',   // בוטל
+  'past_due',    // חריגה בתשלום
+  'expired'      // פג תוקף
+]);
+
+/**
+ * Email Packages - הגדרות חבילות דיוור (ניהול פלטפורמה)
+ * מגדיר את החבילות הזמינות לרכישה
+ */
+export const emailPackages = pgTable('email_packages', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(), // starter, basic, growth, pro, scale
+  
+  // Package info
+  name: varchar('name', { length: 100 }).notNull(), // 🐣 Starter
+  description: text('description'),
+  
+  // Limits
+  monthlyEmails: integer('monthly_emails').notNull(), // 500, 1000, 5000, etc.
+  
+  // Pricing (before VAT)
+  monthlyPrice: decimal('monthly_price', { precision: 10, scale: 2 }).notNull(), // ₪29, ₪49, etc.
+  
+  // Display
+  icon: varchar('icon', { length: 10 }), // 🐣, 📈, 🚀, 💼, 📊
+  sortOrder: integer('sort_order').default(0).notNull(),
+  isPopular: boolean('is_popular').default(false).notNull(), // להצגת "פופולרי"
+  
+  // Status
+  isActive: boolean('is_active').default(true).notNull(),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_email_packages_slug').on(table.slug),
+  index('idx_email_packages_active').on(table.isActive),
+]);
+
+/**
+ * Store Email Subscriptions - מנוי דיוור לכל חנות
+ * מנהל את המכסה והחיוב
+ */
+export const storeEmailSubscriptions = pgTable('store_email_subscriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull().unique(),
+  packageSlug: varchar('package_slug', { length: 50 }).notNull(), // reference to email_packages.slug
+  
+  // Status
+  status: emailSubscriptionStatusEnum('status').default('active').notNull(),
+  
+  // Current period
+  currentPeriodStart: timestamp('current_period_start').notNull(),
+  currentPeriodEnd: timestamp('current_period_end').notNull(),
+  
+  // Usage tracking
+  emailsUsedThisPeriod: integer('emails_used_this_period').default(0).notNull(),
+  emailsLimit: integer('emails_limit').notNull(), // copied from package at time of subscription
+  
+  // Billing
+  lastBillingDate: timestamp('last_billing_date'),
+  nextBillingDate: timestamp('next_billing_date'),
+  
+  // Metadata
+  cancelledAt: timestamp('cancelled_at'),
+  cancellationReason: text('cancellation_reason'),
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_store_email_subscriptions_store').on(table.storeId),
+  index('idx_store_email_subscriptions_status').on(table.status),
+  index('idx_store_email_subscriptions_next_billing').on(table.nextBillingDate),
+]);
+
+/**
+ * Store Email Logs - לוג שליחות מיילים
+ * לספירה, דיבוג ואנליטיקס
+ */
+export const storeEmailLogs = pgTable('store_email_logs', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  automationId: uuid('automation_id').references(() => automations.id, { onDelete: 'set null' }),
+  
+  // Email details
+  recipientEmail: varchar('recipient_email', { length: 255 }).notNull(),
+  emailType: varchar('email_type', { length: 50 }).notNull(), // abandoned_cart, order_confirmation, custom, etc.
+  subject: varchar('subject', { length: 500 }),
+  
+  // Status
+  status: varchar('status', { length: 20 }).default('sent').notNull(), // sent, failed, bounced
+  errorMessage: text('error_message'),
+  
+  // Metadata
+  metadata: jsonb('metadata').default({}).notNull(), // template, variables, etc.
+  
+  // Period tracking (for billing)
+  billingPeriodStart: timestamp('billing_period_start'),
+  billingPeriodEnd: timestamp('billing_period_end'),
+  
+  sentAt: timestamp('sent_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_store_email_logs_store').on(table.storeId),
+  index('idx_store_email_logs_automation').on(table.automationId),
+  index('idx_store_email_logs_sent_at').on(table.sentAt),
+  index('idx_store_email_logs_period').on(table.storeId, table.billingPeriodStart, table.billingPeriodEnd),
+]);
+
+// Email Package Relations
+export const emailPackagesRelations = relations(emailPackages, ({ many }) => ({
+  subscriptions: many(storeEmailSubscriptions),
+}));
+
+export const storeEmailSubscriptionsRelations = relations(storeEmailSubscriptions, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeEmailSubscriptions.storeId],
+    references: [stores.id],
+  }),
+}));
+
+export const storeEmailLogsRelations = relations(storeEmailLogs, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeEmailLogs.storeId],
+    references: [stores.id],
+  }),
+  automation: one(automations, {
+    fields: [storeEmailLogs.automationId],
+    references: [automations.id],
+  }),
+}));
 
 // Platform Billing Relations
 export const storeSubscriptionsRelations = relations(storeSubscriptions, ({ one, many }) => ({

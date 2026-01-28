@@ -22,6 +22,10 @@ export function handleNewsletterUpdate(element: Element, updates: Partial<Sectio
   }
 }
 
+export function handler(element: Element, updates: Record<string, unknown>) {
+  handleNewsletterUpdate(element, updates as Partial<Section>);
+}
+
 export const defaultContent = { placeholder: 'כתובת אימייל', buttonText: 'הרשמה' };
 export const defaultSettings = {
   titleSize: 30, titleSizeMobile: 24, titleColor: '#000000',

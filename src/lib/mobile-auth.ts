@@ -26,7 +26,7 @@ export interface MobileAuthResult {
     id: string;
     slug: string;
     name: string;
-    role: 'owner' | 'manager' | 'marketing' | 'developer' | 'influencer';
+    role: 'owner' | 'manager' | 'marketing' | 'developer' | 'influencer' | 'agent';
     permissions: Record<string, boolean>;
   } | null;
 }

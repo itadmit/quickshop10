@@ -4,7 +4,8 @@
  */
 
 export { 
-  handleReviewsUpdate as handler,
+  handler,
+  handleReviewsUpdate,
   defaultContent,
   defaultSettings,
 } from './ReviewsHandler';

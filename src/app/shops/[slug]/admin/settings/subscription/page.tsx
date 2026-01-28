@@ -126,7 +126,7 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
         }}
         invoices={recentInvoices.map(inv => ({
           id: inv.id,
-          type: inv.type as 'subscription' | 'transaction_fee' | 'plugin',
+          type: inv.type as 'subscription' | 'transaction_fee' | 'plugin' | 'email_package',
           amount: parseFloat(inv.totalAmount),
           status: inv.status as 'pending' | 'paid' | 'failed' | 'refunded',
           createdAt: inv.createdAt?.toISOString() || '',
