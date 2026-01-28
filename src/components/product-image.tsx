@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 
 interface ProductImageProps {
@@ -50,17 +50,31 @@ export function ProductImage({
   const [imgSrc, setImgSrc] = useState(src || PLACEHOLDER_SVG);
   const [hasError, setHasError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [showImage, setShowImage] = useState(false);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   // Update imgSrc when src prop changes
   useEffect(() => {
     if (src) {
       setImgSrc(src);
       setHasError(false);
-      setIsLoaded(false); // Reset loaded state for new image
+      setIsLoaded(false);
+      setShowImage(false);
     } else {
       setImgSrc(PLACEHOLDER_SVG);
     }
   }, [src]);
+
+  // Small delay to ensure blur is visible before transition
+  useEffect(() => {
+    if (isLoaded) {
+      // Minimum 50ms delay to show blur effect
+      const timer = setTimeout(() => {
+        setShowImage(true);
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded]);
 
   const handleError = () => {
     if (!hasError) {
@@ -72,11 +86,6 @@ export function ProductImage({
   const handleLoad = () => {
     setIsLoaded(true);
   };
-
-  // Blur-to-focus animation classes
-  const blurClasses = isLoaded 
-    ? 'blur-0 scale-100' 
-    : 'blur-sm scale-105';
 
   // If no src or has error, show placeholder with regular img
   if (!src || hasError) {
@@ -94,9 +103,12 @@ export function ProductImage({
   if (isExternalUrl(imgSrc)) {
     return (
       <img 
+        ref={imgRef}
         src={imgSrc}
         alt={alt}
-        className={`${className} object-cover w-full h-full transition-all duration-500 ease-out ${blurClasses}`}
+        className={`${className} object-cover w-full h-full transition-all duration-700 ease-out ${
+          showImage ? 'blur-0 opacity-100 scale-100' : 'blur-md opacity-0 scale-105'
+        }`}
         loading={loading}
         onError={handleError}
         onLoad={handleLoad}
@@ -110,7 +122,9 @@ export function ProductImage({
       src={imgSrc}
       alt={alt}
       fill
-      className={`${className} object-cover transition-all duration-500 ease-out ${blurClasses}`}
+      className={`${className} object-cover transition-all duration-700 ease-out ${
+        showImage ? 'blur-0 opacity-100 scale-100' : 'blur-md opacity-0 scale-105'
+      }`}
       loading={priority ? undefined : loading}
       priority={priority}
       sizes={sizes}
