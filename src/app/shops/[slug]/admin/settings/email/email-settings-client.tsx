@@ -4,6 +4,62 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { EmailQuotaStatus, EmailPackageInfo } from '@/lib/email-packages';
 
+// Package display names
+function getPackageName(slug: string): string {
+  const names: Record<string, string> = {
+    starter: 'Starter',
+    basic: 'Basic',
+    growth: 'Growth',
+    pro: 'Pro',
+    scale: 'Scale',
+  };
+  return names[slug] || slug;
+}
+
+// Package icons as SVG
+function PackageIcon({ slug }: { slug: string }) {
+  const iconClass = "w-6 h-6 text-slate-600";
+  
+  switch (slug) {
+    case 'starter':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.383a14.406 14.406 0 01-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 10-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
+        </svg>
+      );
+    case 'basic':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" />
+        </svg>
+      );
+    case 'growth':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+        </svg>
+      );
+    case 'pro':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
+        </svg>
+      );
+    case 'scale':
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className={iconClass} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+        </svg>
+      );
+  }
+}
+
 interface Props {
   slug: string;
   storeId: string;
@@ -100,11 +156,11 @@ export default function EmailSettingsClient({
             {/* Package Info */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-2xl">
-                  {packages.find(p => p.slug === quotaStatus.packageSlug)?.icon || '📧'}
+                <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
+                  <PackageIcon slug={quotaStatus.packageSlug || ''} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">{quotaStatus.packageName}</h3>
+                  <h3 className="font-semibold text-slate-900">{getPackageName(quotaStatus.packageSlug || '')}</h3>
                   <p className="text-sm text-slate-500">
                     {quotaStatus.status === 'active' ? (
                       <>מתחדש ב-{quotaStatus.periodEnd ? new Date(quotaStatus.periodEnd).toLocaleDateString('he-IL') : '-'}</>
@@ -231,8 +287,10 @@ export default function EmailSettingsClient({
                 <div className={`p-5 ${(pkg.isPopular || isCurrentPackage) ? 'pt-8' : ''}`}>
                   {/* Icon & Name */}
                   <div className="text-center mb-4">
-                    <div className="text-3xl mb-2">{pkg.icon}</div>
-                    <h3 className="font-semibold text-slate-900">{pkg.name.replace(/[🐣📈🚀💼📊]\s*/, '')}</h3>
+                    <div className="w-12 h-12 mx-auto mb-2 rounded-xl bg-slate-100 flex items-center justify-center">
+                      <PackageIcon slug={pkg.slug} />
+                    </div>
+                    <h3 className="font-semibold text-slate-900">{getPackageName(pkg.slug)}</h3>
                   </div>
 
                   {/* Emails */}
@@ -304,7 +362,11 @@ export default function EmailSettingsClient({
         <ul className="space-y-2 text-sm text-slate-600">
           <li className="flex items-start gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
-            <span>כל מייל שנשלח מאוטומציה (עגלות נטושות, הזמנות חדשות וכו&apos;) נספר מהמכסה החודשית</span>
+            <span>המכסה נספרת רק על מיילים שנשלחים <strong>מאוטומציות שיצרת</strong> (עגלות נטושות, תזכורות וכו&apos;)</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0" />
+            <span><strong>לא נספרים:</strong> מיילי מערכת (אישור הזמנה, הזמנת צוות, איפוס סיסמה וכו&apos;) - אלו חינם ללא הגבלה</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
@@ -343,10 +405,12 @@ export default function EmailSettingsClient({
                     }}
                     className="w-full p-4 border-2 border-slate-200 rounded-xl hover:border-indigo-500 transition-colors text-right flex items-center justify-between"
                   >
-                    <div>
-                      <span className="text-xl mr-2">{pkg.icon}</span>
-                      <span className="font-medium">{pkg.name.replace(/[🐣📈🚀💼📊]\s*/, '')}</span>
-                      <span className="text-sm text-slate-500 mr-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                        <PackageIcon slug={pkg.slug} />
+                      </div>
+                      <span className="font-medium">{getPackageName(pkg.slug)}</span>
+                      <span className="text-sm text-slate-500">
                         ({pkg.monthlyEmails.toLocaleString()} מיילים)
                       </span>
                     </div>

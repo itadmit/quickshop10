@@ -105,10 +105,10 @@ export default async function AutomationsPage({ params }: PageProps) {
                 ) : (
                   <>
                     <h4 className="font-medium text-gray-900">
-                      מכסת דיוור: {emailQuotaStatus.emailsRemaining.toLocaleString()} מיילים נותרו
+                      מכסת אוטומציות: {emailQuotaStatus.emailsRemaining.toLocaleString()} מיילים נותרו
                     </h4>
                     <p className="text-sm text-gray-500">
-                      {emailQuotaStatus.packageName} • {emailQuotaStatus.emailsUsed.toLocaleString()} / {emailQuotaStatus.emailsLimit.toLocaleString()} ({emailQuotaStatus.percentUsed}%)
+                      {emailQuotaStatus.packageName} • {emailQuotaStatus.emailsUsed.toLocaleString()} / {emailQuotaStatus.emailsLimit.toLocaleString()} • <span className="text-gray-400">מיילי מערכת לא נספרים</span>
                     </p>
                   </>
                 )}
