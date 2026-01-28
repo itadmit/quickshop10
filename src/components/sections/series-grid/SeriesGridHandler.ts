@@ -154,6 +154,7 @@ export const defaultContent = {
 };
 
 export const defaultSettings = {
+  style: 'cards', // 'cards' | 'overlay'
   backgroundColor: '#ffffff',
   titleSize: 28,
   titleSizeMobile: 22,
@@ -162,8 +163,8 @@ export const defaultSettings = {
   subtitleSize: 14,
   subtitleSizeMobile: 12,
   subtitleColor: '#6b7280',
-  columns: 4,
-  mobileColumns: 2,
+  columns: 3,
+  mobileColumns: 1,
   gap: 24,
   paddingTop: 64,
   paddingBottom: 64,

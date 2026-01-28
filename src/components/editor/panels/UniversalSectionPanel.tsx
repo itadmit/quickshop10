@@ -1362,6 +1362,7 @@ function SectionContentEditor({
       const seriesSelectionMode = (content.selectionMode as string) || 'all';
       const selectedSeriesIds = (content.categoryIds as string[]) || [];
       const seriesImages = (content.categoryImages as Record<string, string>) || {};
+      const seriesStyle = (settings.style as string) || 'cards';
       
       const updateSeriesImage = (catId: string, imageUrl: string) => {
         const newImages = { ...seriesImages, [catId]: imageUrl };
@@ -1373,6 +1374,48 @@ function SectionContentEditor({
         <>
           <MiniAccordion title="סדרות" defaultOpen={true}>
             <div className="space-y-3">
+              {/* Style Selection */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--editor-text-secondary)' }}>
+                  סגנון תצוגה
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => updateSettings('style', 'cards')}
+                    className={`flex-1 py-3 px-3 text-xs rounded-lg border transition-all flex flex-col items-center gap-1 ${
+                      seriesStyle === 'cards'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <rect x="3" y="3" width="7" height="10" rx="1" strokeWidth="1.5"/>
+                      <rect x="14" y="3" width="7" height="10" rx="1" strokeWidth="1.5"/>
+                      <line x1="3" y1="16" x2="10" y2="16" strokeWidth="1.5"/>
+                      <line x1="14" y1="16" x2="21" y2="16" strokeWidth="1.5"/>
+                    </svg>
+                    כרטיסים
+                  </button>
+                  <button
+                    onClick={() => updateSettings('style', 'overlay')}
+                    className={`flex-1 py-3 px-3 text-xs rounded-lg border transition-all flex flex-col items-center gap-1 ${
+                      seriesStyle === 'overlay'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                  >
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <rect x="3" y="3" width="7" height="10" rx="1" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+                      <rect x="14" y="3" width="7" height="10" rx="1" strokeWidth="1.5" fill="currentColor" fillOpacity="0.2"/>
+                      <line x1="4" y1="10" x2="9" y2="10" strokeWidth="1.5"/>
+                      <line x1="15" y1="10" x2="20" y2="10" strokeWidth="1.5"/>
+                    </svg>
+                    אוברליי
+                  </button>
+                </div>
+                <p className="text-[10px] text-red-500 mt-1">* שינוי סגנון יכנס לתוקף לאחר שמירה</p>
+              </div>
+              
               {/* Selection Mode */}
               <div>
                 <label className="block text-xs font-medium mb-2" style={{ color: 'var(--editor-text-secondary)' }}>
