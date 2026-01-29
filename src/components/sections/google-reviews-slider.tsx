@@ -79,6 +79,7 @@ function ReviewerAvatar({ name, photo }: { name: string; photo?: string }) {
         src={photo} 
         alt={name}
         className="w-10 h-10 rounded-full object-cover"
+        referrerPolicy="no-referrer"
       />
     );
   }
@@ -107,7 +108,7 @@ function ReviewCard({
   
   return (
     <div 
-      className={`h-full min-h-[200px] p-5 rounded-xl flex flex-col ${
+      className={`h-full min-h-[200px] w-full p-5 rounded-xl flex flex-col ${
         cardStyle === 'white' 
           ? 'bg-white shadow-sm border border-gray-100' 
           : 'bg-white/80 backdrop-blur'
@@ -157,6 +158,7 @@ function ReviewCard({
               src={img} 
               alt=""
               className="w-16 h-16 rounded-lg object-cover"
+              referrerPolicy="no-referrer"
             />
           ))}
           {review.images.length > 3 && (
@@ -195,11 +197,12 @@ export function GoogleReviewsSlider({ reviews, settings, sectionId }: GoogleRevi
       className="relative"
     >
       {reviews.map((review, index) => (
-        <ReviewCard
-          key={review.id || index}
-          review={review}
-          cardStyle={settings.cardStyle || 'white'}
-        />
+        <div key={review.id || index} className="h-full">
+          <ReviewCard
+            review={review}
+            cardStyle={settings.cardStyle || 'white'}
+          />
+        </div>
       ))}
     </AutoSlider>
   );

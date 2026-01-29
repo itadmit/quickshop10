@@ -107,6 +107,7 @@ function ReviewerAvatar({ name, photo }: { name: string; photo?: string }) {
         src={photo} 
         alt={name}
         className="w-10 h-10 rounded-full object-cover"
+        referrerPolicy="no-referrer"
       />
     );
   }
@@ -207,6 +208,7 @@ export function GoogleReviewsSection({
                 src={businessImage} 
                 alt={businessName}
                 className="w-20 h-20 rounded-full mx-auto mb-4 object-cover"
+                referrerPolicy="no-referrer"
               />
             )}
             

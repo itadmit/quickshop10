@@ -1,155 +1,356 @@
 'use client';
 
-/**
- * Google Business Connect Page
- * 
- * This page opens in a popup and redirects to Google OAuth.
- * After OAuth completes, the callback route sends data back to parent window.
- */
-
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
+import { Search, MapPin, Star, Building2, Loader2, Check, X } from 'lucide-react';
 
-// Google Logo Component
-function GoogleLogo({ size = 48 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" className="flex-shrink-0">
-      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-    </svg>
-  );
+interface Place {
+  placeId: string;
+  name: string;
+  address: string;
+  rating: number;
+  totalReviews: number;
+  photoReference: string | null;
+}
+
+interface Review {
+  id: string;
+  authorName: string;
+  authorPhoto: string | null;
+  profileUrl: string | null;
+  rating: number;
+  text: string;
+  relativeTime: string;
+}
+
+interface PlaceDetails {
+  placeId: string;
+  name: string;
+  address: string;
+  rating: number;
+  totalReviews: number;
+  reviews: Review[];
+  photoUrl: string | null;
+  website: string | null;
+  phone: string | null;
+  googleMapsUrl: string | null;
 }
 
 export default function GoogleBusinessConnectPage() {
   const params = useParams();
-  const storeSlug = params.slug as string;
-  const [status, setStatus] = useState<'loading' | 'redirecting' | 'error'>('loading');
+  const storeSlug = params?.slug as string;
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState<Place[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceDetails | null>(null);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [connected, setConnected] = useState(false);
 
-  useEffect(() => {
-    // Redirect to OAuth authorize endpoint
-    const redirectToOAuth = async () => {
-      try {
-        setStatus('redirecting');
-        
-        // Redirect to authorize endpoint
-        window.location.href = `/api/google-business/authorize?storeSlug=${encodeURIComponent(storeSlug)}`;
-      } catch (err) {
-        console.error('OAuth redirect error:', err);
-        setStatus('error');
-        setError('אירעה שגיאה בהתחלת תהליך ההתחברות');
-      }
-    };
+  // Debounced search
+  const searchPlaces = useCallback(async (query: string) => {
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
 
-    redirectToOAuth();
-  }, [storeSlug]);
-
-  const handleCancel = () => {
-    window.close();
-  };
-
-  const handleRetry = () => {
-    setStatus('loading');
+    setIsSearching(true);
     setError(null);
-    window.location.href = `/api/google-business/authorize?storeSlug=${encodeURIComponent(storeSlug)}`;
+
+    try {
+      const response = await fetch('/api/google-places/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'חיפוש נכשל');
+      }
+
+      const data = await response.json();
+      setSearchResults(data.places || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בחיפוש');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery) {
+        searchPlaces(searchQuery);
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchPlaces]);
+
+  // Load place details
+  const loadPlaceDetails = async (placeId: string) => {
+    setIsLoadingDetails(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/google-places/details?placeId=${placeId}`);
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'טעינת פרטים נכשלה');
+      }
+
+      const data = await response.json();
+      setSelectedPlace(data);
+      setSearchResults([]);
+      setSearchQuery('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בטעינת פרטים');
+    } finally {
+      setIsLoadingDetails(false);
+    }
   };
+
+  // Connect the selected place
+  const connectPlace = async () => {
+    if (!selectedPlace) return;
+
+    setIsConnecting(true);
+
+    try {
+      // Send message to parent window with the place data
+      if (window.opener) {
+        window.opener.postMessage({
+          type: 'google-business-connected',
+          success: true,
+          accountId: selectedPlace.placeId,
+          businessName: selectedPlace.name,
+          averageRating: selectedPlace.rating,
+          totalReviews: selectedPlace.totalReviews,
+          reviews: selectedPlace.reviews.slice(0, 10),
+          googlePlaceUrl: selectedPlace.googleMapsUrl,
+          businessImage: selectedPlace.photoUrl,
+        }, '*');
+      }
+
+      setConnected(true);
+
+      // Close after delay
+      setTimeout(() => {
+        window.close();
+      }, 2000);
+    } catch (err) {
+      setError('שגיאה בחיבור העסק');
+    } finally {
+      setIsConnecting(false);
+    }
+  };
+
+  // Render stars
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex items-center gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`w-4 h-4 ${
+              star <= rating
+                ? 'fill-yellow-400 text-yellow-400'
+                : 'fill-gray-200 text-gray-200'
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // Success state
+  if (connected) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 flex items-center justify-center p-4" dir="rtl">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Check className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">החיבור הצליח!</h2>
+          <p className="text-gray-600">{selectedPlace?.name} חובר בהצלחה</p>
+          <p className="text-sm text-gray-500 mt-4">החלון ייסגר אוטומטית...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center" dir="rtl">
-      <div className="max-w-md mx-auto p-8">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-          {/* Google Logo */}
-          <div className="flex justify-center mb-6">
-            <div className="p-4 bg-gray-50 rounded-2xl">
-              <GoogleLogo size={48} />
-            </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 p-4" dir="rtl">
+      <div className="max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8 pt-8">
+          <div className="w-16 h-16 bg-white rounded-2xl shadow-lg flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-blue-600" />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">חיבור Google Business</h1>
+          <p className="text-gray-600">חפש את העסק שלך והתחבר כדי להציג ביקורות</p>
+        </div>
+
+        {/* Search Box */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+          <div className="relative">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="חפש את שם העסק שלך..."
+              className="w-full pr-12 pl-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-right"
+              disabled={!!selectedPlace}
+            />
+            {isSearching && (
+              <Loader2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500 animate-spin" />
+            )}
           </div>
 
-          {status === 'loading' || status === 'redirecting' ? (
-            <>
-              <h1 className="text-xl font-bold text-gray-900 mb-3">
-                מתחבר ל-Google Business
-              </h1>
-              <p className="text-gray-600 text-sm mb-6">
-                מעביר אותך לדף ההתחברות של Google...
-              </p>
-              
-              {/* Loading Spinner */}
-              <div className="flex justify-center mb-6">
-                <svg className="animate-spin w-8 h-8 text-blue-500" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-              </div>
+          {/* Error */}
+          {error && (
+            <div className="mt-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
 
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <p className="text-xs text-blue-700">
-                  <strong>💡 מה יקרה?</strong>
-                  <br />
-                  Google יבקש ממך לאשר גישה לפרופיל העסקי שלך כדי לטעון את הביקורות.
-                </p>
-              </div>
-            </>
-          ) : status === 'error' ? (
-            <>
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h1 className="text-xl font-bold text-gray-900 mb-3">
-                שגיאה בחיבור
-              </h1>
-              <p className="text-gray-600 text-sm mb-6">
-                {error || 'אירעה שגיאה בתהליך ההתחברות'}
-              </p>
-
-              <div className="flex gap-3">
+          {/* Search Results */}
+          {searchResults.length > 0 && !selectedPlace && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-gray-500 mb-2">נמצאו {searchResults.length} תוצאות:</p>
+              {searchResults.map((place) => (
                 <button
-                  onClick={handleRetry}
-                  className="flex-1 py-3 bg-blue-600 text-white font-medium rounded-xl hover:bg-blue-700 transition-colors"
+                  key={place.placeId}
+                  onClick={() => loadPlaceDetails(place.placeId)}
+                  disabled={isLoadingDetails}
+                  className="w-full p-4 border border-gray-200 rounded-xl hover:border-blue-500 hover:bg-blue-50 transition-all text-right disabled:opacity-50"
                 >
-                  נסה שוב
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-gray-900">{place.name}</h3>
+                      <div className="flex items-center gap-1 text-sm text-gray-500 mt-1">
+                        <MapPin className="w-4 h-4" />
+                        <span>{place.address}</span>
+                      </div>
+                      {place.rating > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          {renderStars(place.rating)}
+                          <span className="text-sm text-gray-600">
+                            {place.rating.toFixed(1)} ({place.totalReviews} ביקורות)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {isLoadingDetails && (
+                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                    )}
+                  </div>
                 </button>
-                <button
-                  onClick={handleCancel}
-                  className="flex-1 py-3 border border-gray-300 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-colors"
-                >
-                  ביטול
-                </button>
-              </div>
-            </>
-          ) : null}
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Requirements Info */}
-        <div className="mt-6 p-4 bg-white/80 rounded-xl">
-          <h3 className="text-sm font-medium text-gray-800 mb-2">דרישות מקדימות:</h3>
-          <ul className="text-xs text-gray-600 space-y-1">
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              יש לך פרופיל עסקי ב-Google Business
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              הפרופיל מאומת ופעיל
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-              יש לך הרשאות ניהול לפרופיל
-            </li>
-          </ul>
-        </div>
+        {/* Selected Place Details */}
+        {selectedPlace && (
+          <div className="bg-white rounded-2xl shadow-xl p-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex items-start gap-4">
+                {selectedPlace.photoUrl && (
+                  <img
+                    src={selectedPlace.photoUrl}
+                    alt={selectedPlace.name}
+                    className="w-20 h-20 rounded-xl object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                )}
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedPlace.name}</h2>
+                  <p className="text-gray-600 text-sm mt-1">{selectedPlace.address}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    {renderStars(selectedPlace.rating)}
+                    <span className="text-sm text-gray-600">
+                      {selectedPlace.rating.toFixed(1)} ({selectedPlace.totalReviews} ביקורות)
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedPlace(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
 
-        {/* Cancel Link */}
-        <button
-          onClick={handleCancel}
-          className="w-full mt-4 py-3 text-gray-500 hover:text-gray-700 text-sm transition-colors"
-        >
-          ביטול וסגירה
-        </button>
+            {/* Reviews Preview */}
+            {selectedPlace.reviews.length > 0 && (
+              <div className="border-t border-gray-100 pt-4 mt-4">
+                <h3 className="font-semibold text-gray-900 mb-3">ביקורות אחרונות:</h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {selectedPlace.reviews.slice(0, 5).map((review) => (
+                    <div key={review.id} className="p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2 mb-1">
+                        {review.authorPhoto && (
+                          <img
+                            src={review.authorPhoto}
+                            alt={review.authorName}
+                            className="w-8 h-8 rounded-full"
+                          />
+                        )}
+                        <div>
+                          <p className="font-medium text-sm">{review.authorName}</p>
+                          <div className="flex items-center gap-1">
+                            {renderStars(review.rating)}
+                            <span className="text-xs text-gray-500">{review.relativeTime}</span>
+                          </div>
+                        </div>
+                      </div>
+                      {review.text && (
+                        <p className="text-sm text-gray-700 mt-2 line-clamp-3">{review.text}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Connect Button */}
+            <button
+              onClick={connectPlace}
+              disabled={isConnecting}
+              className="w-full mt-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isConnecting ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  מחבר...
+                </>
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  חבר עסק זה
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Instructions */}
+        {!selectedPlace && searchResults.length === 0 && !isSearching && (
+          <div className="bg-white/50 rounded-xl p-4 text-center">
+            <p className="text-sm text-gray-600">
+              💡 הקלד את שם העסק שלך כפי שהוא מופיע בגוגל מפות
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
