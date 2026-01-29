@@ -3,8 +3,17 @@
 import { useState, useTransition, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { createDraft, completeDraft, searchProductsForDraft, type SearchProductResult } from '../actions';
-import { Search, X, Plus, Minus, Package, Mail, Truck, Bell, CheckCircle2 } from 'lucide-react';
+import { Search, X, Plus, Minus, Package, Mail, Truck, Bell, CheckCircle2, MapPin } from 'lucide-react';
 import Image from 'next/image';
+
+interface ShippingAddress {
+  city: string;
+  street: string;
+  houseNumber?: string;
+  apartment?: string;
+  floor?: string;
+  zipCode?: string;
+}
 
 interface DraftItem {
   productId: string;
@@ -27,6 +36,17 @@ export default function NewDraftOrderPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [shipping, setShipping] = useState(0);
+  
+  // Shipping method & address
+  const [shippingMethod, setShippingMethod] = useState<'pickup' | 'delivery'>('pickup');
+  const [shippingAddress, setShippingAddress] = useState<ShippingAddress>({
+    city: '',
+    street: '',
+    houseNumber: '',
+    apartment: '',
+    floor: '',
+    zipCode: '',
+  });
   
   // Order options
   const [createAsOrder, setCreateAsOrder] = useState(false); // Create directly as order (not draft)
@@ -135,6 +155,7 @@ export default function NewDraftOrderPage() {
         items,
         notes,
         shipping,
+        shippingAddress: shippingMethod === 'delivery' ? shippingAddress : undefined,
       });
 
       if (!draftResult.success) {
@@ -214,6 +235,103 @@ export default function NewDraftOrderPage() {
                   placeholder="050-0000000"
                 />
               </div>
+            </div>
+
+            {/* Shipping Method */}
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <label className="block text-sm font-medium text-gray-700 mb-3">אופציית משלוח</label>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShippingMethod('pickup');
+                    setShipping(0);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                    shippingMethod === 'pickup'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Package className="w-4 h-4" />
+                  איסוף עצמי
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShippingMethod('delivery')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                    shippingMethod === 'delivery'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <Truck className="w-4 h-4" />
+                  משלוח
+                </button>
+              </div>
+
+              {/* Delivery Address */}
+              {shippingMethod === 'delivery' && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-3">
+                  <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                    <MapPin className="w-4 h-4" />
+                    כתובת למשלוח
+                  </div>
+                  
+                  {/* City */}
+                  <input
+                    type="text"
+                    value={shippingAddress.city}
+                    onChange={(e) => setShippingAddress({ ...shippingAddress, city: e.target.value })}
+                    placeholder="עיר *"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                  />
+                  
+                  {/* Street + House Number */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={shippingAddress.street}
+                      onChange={(e) => setShippingAddress({ ...shippingAddress, street: e.target.value })}
+                      placeholder="רחוב *"
+                      className="col-span-2 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    />
+                    <input
+                      type="text"
+                      value={shippingAddress.houseNumber}
+                      onChange={(e) => setShippingAddress({ ...shippingAddress, houseNumber: e.target.value })}
+                      placeholder="מס׳ בית"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    />
+                  </div>
+
+                  {/* Apartment + Floor + Zip */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      value={shippingAddress.apartment}
+                      onChange={(e) => setShippingAddress({ ...shippingAddress, apartment: e.target.value })}
+                      placeholder="דירה"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    />
+                    <input
+                      type="text"
+                      value={shippingAddress.floor}
+                      onChange={(e) => setShippingAddress({ ...shippingAddress, floor: e.target.value })}
+                      placeholder="קומה"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                    />
+                    <input
+                      type="text"
+                      value={shippingAddress.zipCode}
+                      onChange={(e) => setShippingAddress({ ...shippingAddress, zipCode: e.target.value })}
+                      placeholder="מיקוד"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-black"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

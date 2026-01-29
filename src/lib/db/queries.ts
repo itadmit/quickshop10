@@ -1209,7 +1209,7 @@ export const getProductAddonsForStorefront = cache(async (productId: string) => 
 
 // Get products for upsell selection in product editor (lightweight query)
 export const getProductsForUpsell = cache(async (storeId: string) => {
-  return db
+  const results = await db
     .select({
       id: products.id,
       name: products.name,
@@ -1226,6 +1226,14 @@ export const getProductsForUpsell = cache(async (storeId: string) => {
       eq(products.isActive, true)
     ))
     .orderBy(products.name);
+  
+  // Remove duplicates (can happen if product has multiple primary images)
+  const seen = new Set<string>();
+  return results.filter(p => {
+    if (seen.has(p.id)) return false;
+    seen.add(p.id);
+    return true;
+  });
 });
 
 // Legacy - for backwards compatibility

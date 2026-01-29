@@ -19,3 +19,5 @@ export { SeriesGridSection } from './series-grid-section';
 export { QuoteBannerSection } from './quote-banner-section';
 export { FeaturedItemsSection } from './featured-items-section';
 export { ContactSection } from './contact-section';
+export { GoogleReviewsSection } from './google-reviews-section';
+export type { GoogleReview } from './google-reviews-section';

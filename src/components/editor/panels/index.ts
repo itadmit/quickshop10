@@ -6,6 +6,7 @@
 export { TextBlockPanel } from './TextBlockPanel';
 export { HeroPanel } from './HeroPanel';
 export { ReviewsPanel } from './ReviewsPanel';
+export { GoogleReviewsPanel } from './GoogleReviewsPanel';
 export { FeaturesPanel } from './FeaturesPanel';
 export { FaqPanel } from './FaqPanel';
 export { NewsletterPanel } from './NewsletterPanel';

@@ -44,6 +44,8 @@ export const SECTION_NAMES: Record<string, string> = {
   'reviews-grid': 'ביקורות - גריד',
   'reviews-carousel': 'ביקורות - קרוסלה',
   reviews: 'ביקורות',
+  'google-reviews': 'ביקורות גוגל',
+  'google_reviews': 'ביקורות גוגל',
   logos: 'לוגואים',
   'features-grid': 'חוזקות - גריד',
   'features-carousel': 'חוזקות - קרוסלה',

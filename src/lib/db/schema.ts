@@ -73,6 +73,7 @@ export const sectionTypeEnum = pgEnum('section_type', [
   'hero', 'banner', 'split_banner', 'video_banner', 'categories', 'products', 'newsletter', 'custom',
   // New types - all Server Components, zero JS!
   'reviews',        // ביקורות לקוחות
+  'google_reviews', // ביקורות גוגל
   'image_text',     // תמונה + טקסט (ימין/שמאל)
   'features',       // יתרונות/אייקונים
   'banner_small',   // באנר קטן (הודעה)
@@ -4494,3 +4495,105 @@ export type StoreTranslation = typeof storeTranslations.$inferSelect;
 export type NewStoreTranslation = typeof storeTranslations.$inferInsert;
 export type ContentTranslation = typeof contentTranslations.$inferSelect;
 export type NewContentTranslation = typeof contentTranslations.$inferInsert;
+
+// ============================================================================
+// GOOGLE BUSINESS PROFILE INTEGRATION
+// ============================================================================
+
+/**
+ * Store Google Business Integration
+ * 
+ * Stores OAuth tokens and business info for Google Business Profile API.
+ * Each store can connect ONE Google Business Profile.
+ */
+export const storeGoogleBusiness = pgTable('store_google_business', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull().unique(),
+  
+  // OAuth Tokens
+  accessToken: text('access_token').notNull(),
+  refreshToken: text('refresh_token').notNull(),
+  tokenExpiresAt: timestamp('token_expires_at').notNull(),
+  scope: text('scope'),
+  
+  // Google Business Info
+  accountId: text('account_id').notNull(),        // accounts/{accountId}
+  locationId: text('location_id').notNull(),      // locations/{locationId}
+  businessName: text('business_name'),
+  businessAddress: text('business_address'),
+  businessPhone: text('business_phone'),
+  businessWebsite: text('business_website'),
+  placeId: text('place_id'),                      // Google Place ID
+  
+  // Cached Stats
+  averageRating: decimal('average_rating', { precision: 2, scale: 1 }),
+  totalReviews: integer('total_reviews').default(0),
+  lastSyncedAt: timestamp('last_synced_at'),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_store_google_business_store').on(table.storeId),
+]);
+
+/**
+ * Cached Google Reviews
+ * 
+ * Stores reviews fetched from Google Business Profile API.
+ * Helps avoid hitting API rate limits.
+ */
+export const storeGoogleReviews = pgTable('store_google_reviews', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  integrationId: uuid('integration_id').references(() => storeGoogleBusiness.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Review data from Google
+  googleReviewId: text('google_review_id').notNull(),
+  authorName: text('author_name').notNull(),
+  authorPhotoUrl: text('author_photo_url'),
+  rating: integer('rating').notNull(),           // 1-5 stars
+  comment: text('comment'),
+  relativeTime: text('relative_time'),           // "2 weeks ago"
+  reviewTime: timestamp('review_time'),
+  reviewReply: text('review_reply'),             // Owner's reply
+  replyTime: timestamp('reply_time'),
+  
+  // Display settings
+  isVisible: boolean('is_visible').default(true),
+  displayOrder: integer('display_order').default(0),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_store_google_reviews_store').on(table.storeId),
+  index('idx_store_google_reviews_integration').on(table.integrationId),
+  uniqueIndex('idx_store_google_reviews_unique').on(table.storeId, table.googleReviewId),
+]);
+
+// Relations
+export const storeGoogleBusinessRelations = relations(storeGoogleBusiness, ({ one, many }) => ({
+  store: one(stores, {
+    fields: [storeGoogleBusiness.storeId],
+    references: [stores.id],
+  }),
+  reviews: many(storeGoogleReviews),
+}));
+
+export const storeGoogleReviewsRelations = relations(storeGoogleReviews, ({ one }) => ({
+  store: one(stores, {
+    fields: [storeGoogleReviews.storeId],
+    references: [stores.id],
+  }),
+  integration: one(storeGoogleBusiness, {
+    fields: [storeGoogleReviews.integrationId],
+    references: [storeGoogleBusiness.id],
+  }),
+}));
+
+// Google Business types
+export type StoreGoogleBusiness = typeof storeGoogleBusiness.$inferSelect;
+export type NewStoreGoogleBusiness = typeof storeGoogleBusiness.$inferInsert;
+export type StoreGoogleReview = typeof storeGoogleReviews.$inferSelect;
+export type NewStoreGoogleReview = typeof storeGoogleReviews.$inferInsert;

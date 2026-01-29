@@ -8,6 +8,7 @@ import {
   NewsletterSection,
   ContactSection,
   ReviewsSection,
+  GoogleReviewsSection,
   ImageTextSection,
   FeaturesSection,
   BannerSmallSection,
@@ -19,6 +20,7 @@ import {
   QuoteBannerSection,
   FeaturedItemsSection,
 } from '@/components/sections';
+import type { GoogleReview } from '@/components/sections';
 import { StoreFooter } from '@/components/store-footer';
 import { EditorSectionHighlighter } from '@/components/storefront/editor-section-highlighter';
 import { ScrollToTop } from '@/components/scroll-to-top';
@@ -395,6 +397,37 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             subtitle={section.subtitle}
             content={content as { reviews?: Array<{ id: string; author: string; rating: number; text: string; date?: string; avatar?: string; verified?: boolean }> }}
             settings={settings as { columns?: number; showRating?: boolean; showDate?: boolean; showAvatar?: boolean; style?: 'cards' | 'minimal' | 'quotes'; backgroundColor?: string }}
+            sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'google_reviews':
+        sectionElement = (
+          <GoogleReviewsSection
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as {
+              businessName?: string;
+              businessImage?: string;
+              averageRating?: number;
+              totalReviews?: number;
+              googlePlaceUrl?: string;
+              reviews?: GoogleReview[];
+            }}
+            settings={settings as {
+              layout?: 'full' | 'compact';
+              backgroundColor?: string;
+              cardStyle?: 'white' | 'transparent';
+              columns?: number;
+              mobileColumns?: number;
+              showArrows?: boolean;
+              showDots?: boolean;
+              autoplay?: boolean;
+              autoplayInterval?: number;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+            }}
             sectionId={section.id}
           />
         );

@@ -3161,6 +3161,148 @@ export function EditorSectionHighlighter() {
             `;
             break;
 
+          case 'google_reviews':
+            const gIsConnected = !!(content?.googleAccountId);
+            const gReviewsContent = (content?.reviews as Array<{ 
+              id?: string;
+              authorName: string;
+              authorPhoto?: string;
+              text: string; 
+              rating: number;
+              relativeTime?: string;
+            }>) || [];
+            const gBusinessName = (content?.businessName as string) || 'QuickShop';
+            const gBusinessImage = (content?.businessImage as string) || '';
+            const gAverageRating = (content?.averageRating as number) || 5;
+            const gTotalReviews = (content?.totalReviews as number) || 127;
+            const gGooglePlaceUrl = (content?.googlePlaceUrl as string) || '';
+            const gBgColor = (event.data.settings?.backgroundColor as string) || '#fce7f3';
+            const gCols = (event.data.settings?.columns as number) || 3;
+            const gMinHeight = (event.data.settings?.minHeight as number) || 0;
+            const gTextAlign = (event.data.settings?.textAlign as string) || 'center';
+            const gTitleColor = (event.data.settings?.titleColor as string) || '#000000';
+            const gTitleSize = (event.data.settings?.titleSize as number) || 30;
+            const gTitleSizeMobile = (event.data.settings?.titleSizeMobile as number) || 24;
+            
+            placeholder.className = 'py-8 md:py-12 px-4 md:px-8';
+            placeholder.style.backgroundColor = gBgColor;
+            if (gMinHeight > 0) placeholder.style.minHeight = `${gMinHeight}px`;
+            placeholder.dataset.sectionName = 'ביקורות גוגל';
+            
+            // Generate random avatar colors
+            const gAvatarColors = ['bg-red-500', 'bg-blue-500', 'bg-green-500', 'bg-amber-500', 'bg-purple-500', 'bg-pink-500', 'bg-indigo-500', 'bg-teal-500'];
+            
+            // Check if connected - show placeholder if not
+            if (!gIsConnected || gReviewsContent.length === 0) {
+              html = `
+                <style>
+                  [data-section-id="${sectionId}"] [data-section-title] { 
+                    font-size: ${gTitleSizeMobile}px; 
+                    color: ${gTitleColor};
+                  }
+                  @media (min-width: 768px) {
+                    [data-section-id="${sectionId}"] [data-section-title] { font-size: ${gTitleSize}px; }
+                  }
+                </style>
+                <div class="max-w-7xl mx-auto">
+                  <div class="text-${gTextAlign} mb-8">
+                    <h2 class="font-medium mb-2" data-section-title>${title || 'ביקורות בגוגל'}</h2>
+                    <p class="text-gray-600" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
+                  </div>
+                  
+                  <!-- Not Connected Placeholder -->
+                  <div class="flex flex-col items-center justify-center py-12 px-4">
+                    <div class="w-20 h-20 rounded-full bg-white shadow-lg flex items-center justify-center mb-6">
+                      <svg width="40" height="40" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      </svg>
+                    </div>
+                    <h3 class="text-xl font-medium text-gray-800 mb-2">חבר את Google Business</h3>
+                    <p class="text-gray-500 text-center max-w-md mb-6">
+                      התחבר לחשבון Google Business שלך כדי להציג ביקורות אמיתיות מלקוחות
+                    </p>
+                    <div class="flex items-center gap-2 px-4 py-2 bg-white rounded-full shadow text-sm text-gray-600">
+                      <svg class="w-4 h-4 text-amber-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                      לחץ על הסקשן כדי להתחבר
+                    </div>
+                  </div>
+                </div>
+              `;
+            } else {
+              html = `
+                <style>
+                  [data-section-id="${sectionId}"] [data-section-title] { 
+                    font-size: ${gTitleSizeMobile}px; 
+                    color: ${gTitleColor};
+                  }
+                  @media (min-width: 768px) {
+                    [data-section-id="${sectionId}"] [data-section-title] { font-size: ${gTitleSize}px; }
+                  }
+                </style>
+                <div class="max-w-7xl mx-auto">
+                  <div class="text-${gTextAlign} mb-8">
+                    <h2 class="font-medium mb-2" data-section-title>${title || 'ביקורות בגוגל'}</h2>
+                    <p class="text-gray-600" data-section-subtitle style="display: ${subtitle ? '' : 'none'}">${subtitle || ''}</p>
+                  </div>
+                  
+                  <div class="flex flex-col lg:flex-row gap-6 items-start">
+                    <!-- Business Card -->
+                    <div class="flex-shrink-0 w-full lg:w-64 bg-white rounded-xl p-6 shadow-sm text-center">
+                      ${gBusinessImage ? `<img src="${gBusinessImage}" alt="${gBusinessName}" class="w-20 h-20 rounded-full mx-auto mb-4 object-cover" />` : ''}
+                      <h3 class="font-medium text-gray-900 mb-2 text-lg">${gBusinessName}</h3>
+                      <div class="flex justify-center mb-1">
+                        ${[1,2,3,4,5].map(i => `<svg class="w-5 h-5 ${i <= Math.round(gAverageRating) ? 'text-yellow-400' : 'text-gray-200'}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>`).join('')}
+                      </div>
+                      <p class="text-sm text-gray-500 mb-4">Google ${gTotalReviews} ביקורות</p>
+                      ${gGooglePlaceUrl ? `<a href="${gGooglePlaceUrl}" target="_blank" class="inline-block px-6 py-2.5 bg-gray-900 text-white text-sm font-medium rounded-full hover:bg-gray-800">כתוב ביקורת</a>` : ''}
+                    </div>
+
+                    <!-- Reviews Slider -->
+                    <div class="flex-1 min-w-0">
+                      <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory -mx-4 px-4 pb-4" style="scrollbar-width: none;">
+                        ${gReviewsContent.map((review, index) => {
+                          const avatarColor = gAvatarColors[review.authorName.charCodeAt(0) % gAvatarColors.length];
+                          return `
+                            <div class="flex-shrink-0 snap-center w-[300px] min-h-[200px] p-5 rounded-xl bg-white shadow-sm border border-gray-100 flex flex-col" data-review-index="${index}">
+                              <div class="flex items-start justify-between mb-3">
+                                <div class="flex items-center gap-3">
+                                  ${review.authorPhoto 
+                                    ? `<img src="${review.authorPhoto}" alt="${review.authorName}" class="w-10 h-10 rounded-full object-cover" />`
+                                    : `<div class="w-10 h-10 rounded-full ${avatarColor} flex items-center justify-center text-white font-medium text-lg">${review.authorName.charAt(0)}</div>`
+                                  }
+                                  <div>
+                                    <div class="flex items-center gap-1.5">
+                                      <span class="font-medium text-gray-900 text-sm">${review.authorName}</span>
+                                      <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                                    </div>
+                                    <span class="text-xs text-gray-500">${review.relativeTime || ''}</span>
+                                  </div>
+                                </div>
+                                <svg width="24" height="24" viewBox="0 0 24 24" class="flex-shrink-0">
+                                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                              </div>
+                              <div class="flex gap-0.5 mb-3">
+                                ${[1,2,3,4,5].map(i => `<svg class="w-4 h-4 ${i <= review.rating ? 'text-yellow-400' : 'text-gray-200'}" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg>`).join('')}
+                              </div>
+                              <p class="text-gray-700 text-sm leading-relaxed flex-1">${review.text}</p>
+                            </div>
+                          `;
+                        }).join('')}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              `;
+            }
+            break;
+
           case 'logos':
             const logosList = (content?.logos as Array<{ id?: string; url: string; name?: string; link?: string }>) || [];
             const logosCols = (event.data.settings?.columns as number) || 5;
