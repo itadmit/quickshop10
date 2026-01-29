@@ -125,6 +125,13 @@ export async function GET(request: NextRequest) {
     const baseUrl = (process.env.NEXTAUTH_URL || '').replace(/\/$/, ''); // Remove trailing slash
     const redirectUri = `${baseUrl}/api/google-business/callback`;
 
+    console.log('Token exchange request:', {
+      redirectUri,
+      clientId: clientId?.substring(0, 20) + '...',
+      hasSecret: !!clientSecret,
+      codeLength: code?.length,
+    });
+
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
       method: 'POST',
       headers: {
@@ -142,9 +149,10 @@ export async function GET(request: NextRequest) {
     if (!tokenResponse.ok) {
       const errorData = await tokenResponse.text();
       console.error('Token exchange failed:', errorData);
+      console.error('Request details:', { redirectUri, clientId });
       return renderPopupResponse({
         success: false,
-        error: 'Failed to exchange authorization code',
+        error: `Failed to exchange authorization code: ${errorData}`,
       });
     }
 
