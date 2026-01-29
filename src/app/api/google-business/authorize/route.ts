@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
 
     // Build OAuth URL
     const clientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = `${process.env.NEXTAUTH_URL}/api/google-business/callback`;
+    const baseUrl = (process.env.NEXTAUTH_URL || '').replace(/\/$/, ''); // Remove trailing slash
+    const redirectUri = `${baseUrl}/api/google-business/callback`;
     
     if (!clientId) {
       return NextResponse.json({ error: 'Google OAuth not configured' }, { status: 500 });
