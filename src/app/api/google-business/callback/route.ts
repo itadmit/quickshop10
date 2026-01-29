@@ -15,7 +15,9 @@ import { eq } from 'drizzle-orm';
  */
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_BUSINESS_API = 'https://mybusiness.googleapis.com/v4';
+// Use the newer Account Management API
+const GOOGLE_ACCOUNT_API = 'https://mybusinessaccountmanagement.googleapis.com/v1';
+const GOOGLE_BUSINESS_INFO_API = 'https://mybusinessbusinessinformation.googleapis.com/v1';
 
 interface TokenResponse {
   access_token: string;
@@ -166,22 +168,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Fetch accounts
-    const accountsResponse = await fetch(`${GOOGLE_BUSINESS_API}/accounts`, {
+    // Fetch accounts using the new Account Management API
+    console.log('Fetching Google Business accounts...');
+    const accountsResponse = await fetch(`${GOOGLE_ACCOUNT_API}/accounts`, {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
       },
     });
 
+    const accountsResponseText = await accountsResponse.text();
+    console.log('Accounts response status:', accountsResponse.status);
+    console.log('Accounts response:', accountsResponseText);
+
     if (!accountsResponse.ok) {
-      console.error('Failed to fetch accounts:', await accountsResponse.text());
       return renderPopupResponse({
         success: false,
-        error: 'Failed to fetch Google Business accounts. Make sure you have a Google Business Profile.',
+        error: `Failed to fetch Google Business accounts (${accountsResponse.status}). Make sure: 1) You have a Google Business Profile, 2) The "My Business Account Management API" is enabled in Google Cloud Console.`,
       });
     }
 
-    const accountsData = await accountsResponse.json();
+    const accountsData = JSON.parse(accountsResponseText);
     const accounts: GoogleAccount[] = accountsData.accounts || [];
 
     if (accounts.length === 0) {
@@ -195,23 +201,37 @@ export async function GET(request: NextRequest) {
     const account = accounts[0];
     const accountId = account.name; // accounts/123456
 
-    // Fetch locations for this account
-    const locationsResponse = await fetch(`${GOOGLE_BUSINESS_API}/${accountId}/locations`, {
-      headers: {
-        Authorization: `Bearer ${tokens.access_token}`,
-      },
-    });
+    // Fetch locations for this account using Business Information API
+    console.log('Fetching locations for account:', accountId);
+    const locationsResponse = await fetch(
+      `${GOOGLE_BUSINESS_INFO_API}/${accountId}/locations?readMask=name,title,phoneNumbers,websiteUri,storefrontAddress`, 
+      {
+        headers: {
+          Authorization: `Bearer ${tokens.access_token}`,
+        },
+      }
+    );
+
+    const locationsResponseText = await locationsResponse.text();
+    console.log('Locations response status:', locationsResponse.status);
+    console.log('Locations response:', locationsResponseText);
 
     if (!locationsResponse.ok) {
-      console.error('Failed to fetch locations:', await locationsResponse.text());
       return renderPopupResponse({
         success: false,
-        error: 'Failed to fetch business locations.',
+        error: `Failed to fetch business locations (${locationsResponse.status}). Make sure the "My Business Business Information API" is enabled in Google Cloud Console.`,
       });
     }
 
-    const locationsData = await locationsResponse.json();
-    const locations: GoogleLocation[] = locationsData.locations || [];
+    const locationsData = JSON.parse(locationsResponseText);
+    const locations: GoogleLocation[] = (locationsData.locations || []).map((loc: { name: string; title?: string; phoneNumbers?: { primaryPhone?: string }; websiteUri?: string; storefrontAddress?: { addressLines?: string[]; locality?: string; postalCode?: string; regionCode?: string }; metadata?: { placeId?: string } }) => ({
+      name: loc.name,
+      locationName: loc.title || '',
+      primaryPhone: loc.phoneNumbers?.primaryPhone,
+      websiteUrl: loc.websiteUri,
+      address: loc.storefrontAddress,
+      metadata: loc.metadata,
+    }));
 
     if (locations.length === 0) {
       return renderPopupResponse({
@@ -224,22 +244,30 @@ export async function GET(request: NextRequest) {
     const location = locations[0];
     const locationId = location.name; // accounts/123456/locations/789
 
-    // Fetch reviews
-    const reviewsResponse = await fetch(`${GOOGLE_BUSINESS_API}/${locationId}/reviews`, {
+    // Fetch reviews - still uses the v4 API endpoint
+    console.log('Fetching reviews for location:', locationId);
+    const REVIEWS_API = 'https://mybusiness.googleapis.com/v4';
+    const reviewsResponse = await fetch(`${REVIEWS_API}/${locationId}/reviews`, {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
       },
     });
+
+    const reviewsResponseText = await reviewsResponse.text();
+    console.log('Reviews response status:', reviewsResponse.status);
+    console.log('Reviews response:', reviewsResponseText.substring(0, 500));
 
     let reviews: GoogleReview[] = [];
     let averageRating = 0;
     let totalReviews = 0;
 
     if (reviewsResponse.ok) {
-      const reviewsData = await reviewsResponse.json();
+      const reviewsData = JSON.parse(reviewsResponseText);
       reviews = reviewsData.reviews || [];
       averageRating = reviewsData.averageRating || 0;
       totalReviews = reviewsData.totalReviewCount || reviews.length;
+    } else {
+      console.log('Reviews fetch failed (this is OK if business has no reviews yet):', reviewsResponseText);
     }
 
     // Calculate token expiration
@@ -393,34 +421,44 @@ function renderPopupResponse(data: PopupResponse): NextResponse {
           <h2>החיבור הצליח!</h2>
           <p>${data.businessName || 'העסק שלך'} חובר בהצלחה</p>
           <p style="margin-top: 0.5rem">${data.totalReviews || 0} ביקורות נמצאו</p>
+          <p style="margin-top: 1rem; font-size: 0.75rem;">החלון ייסגר אוטומטית...</p>
         ` : `
           <svg class="icon error" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <h2>שגיאה בחיבור</h2>
-          <p>${data.error || 'אירעה שגיאה'}</p>
+          <p style="font-size: 0.8rem; line-height: 1.5;">${data.error || 'אירעה שגיאה'}</p>
+          <button onclick="window.close()" style="margin-top: 1rem; padding: 0.5rem 1rem; border: none; background: #ef4444; color: white; border-radius: 0.5rem; cursor: pointer;">סגור</button>
         `}
-        <p style="margin-top: 1rem; font-size: 0.75rem;">החלון ייסגר אוטומטית...</p>
       </div>
       <script>
         const data = ${JSON.stringify(data)};
         
         // Send message to parent window
         if (window.opener) {
-          window.opener.postMessage({
-            type: 'google-business-connected',
-            ...data,
-          }, '*');
+          try {
+            window.opener.postMessage({
+              type: 'google-business-connected',
+              ...data,
+            }, '*');
+          } catch (e) {
+            console.log('Could not post message to opener:', e);
+          }
           
-          // Close popup after short delay
-          setTimeout(() => {
-            window.close();
-          }, 2000);
+          // Only auto-close on success
+          if (data.success) {
+            setTimeout(() => {
+              window.close();
+            }, 2000);
+          }
+          // For errors - don't auto-close, let user read and click "close"
         } else {
-          // If no opener, redirect to admin
-          setTimeout(() => {
-            window.location.href = '/';
-          }, 3000);
+          // If no opener, redirect to admin (only on success)
+          if (data.success) {
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 3000);
+          }
         }
       </script>
     </body>
