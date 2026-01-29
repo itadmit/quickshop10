@@ -24,11 +24,17 @@ export default async function ApiSettingsPage({ params }: ApiSettingsPageProps) 
   }
 
   // Get API keys
-  const storeApiKeys = await db
+  const storeApiKeysRaw = await db
     .select()
     .from(apiKeys)
     .where(eq(apiKeys.storeId, store.id))
     .orderBy(desc(apiKeys.createdAt));
+
+  // Map to correct types (scopes from DB is unknown, cast to string[])
+  const storeApiKeys = storeApiKeysRaw.map(key => ({
+    ...key,
+    scopes: (key.scopes as string[]) || [],
+  }));
 
   return (
     <SettingsWrapper storeSlug={slug} activeTab="api">
