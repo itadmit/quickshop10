@@ -57,12 +57,14 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
     );
   }
   
-  // Filter by search
+  // Filter by search (name, slug, SKU, barcode)
   if (search) {
     const searchLower = search.toLowerCase();
     filteredProducts = filteredProducts.filter(p => 
       p.name.toLowerCase().includes(searchLower) ||
-      p.slug.toLowerCase().includes(searchLower)
+      p.slug.toLowerCase().includes(searchLower) ||
+      (p.sku && p.sku.toLowerCase().includes(searchLower)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(searchLower))
     );
   }
   

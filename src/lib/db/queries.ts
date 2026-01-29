@@ -957,6 +957,7 @@ export const getStoreProductsAdmin = cache(async (storeId: string) => {
       name: products.name,
       slug: products.slug,
       sku: products.sku,
+      barcode: products.barcode,
       price: products.price,
       comparePrice: products.comparePrice,
       inventory: products.inventory,

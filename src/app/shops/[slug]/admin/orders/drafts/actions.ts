@@ -5,7 +5,7 @@ import { draftOrders, orders, orderItems, stores, products, productImages, produ
 import { eq, and, ilike, or, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { getStoreBySlug } from '@/lib/db/queries';
-import { autoSendShipmentOnPayment } from '@/lib/shipping/auto-send';
+import { executePostPaymentActions, type CartItem } from '@/lib/orders/post-payment';
 
 interface DraftItem {
   productId: string;
@@ -62,7 +62,13 @@ export async function createDraft(
   }
 }
 
-export async function completeDraft(draftId: string, slug: string) {
+export async function completeDraft(
+  draftId: string, 
+  slug: string,
+  options?: {
+    executePostActions?: boolean; // Run all post-payment actions (email, shipping, automations, etc.)
+  }
+) {
   try {
     const draft = await db.query.draftOrders.findFirst({
       where: eq(draftOrders.id, draftId),
@@ -78,6 +84,17 @@ export async function completeDraft(draftId: string, slug: string) {
 
     const items = draft.items as DraftItem[];
 
+    // Get store info for post-payment actions
+    const [store] = await db
+      .select({ id: stores.id, name: stores.name, orderCounter: stores.orderCounter })
+      .from(stores)
+      .where(eq(stores.id, draft.storeId))
+      .limit(1);
+
+    if (!store) {
+      return { success: false, error: 'חנות לא נמצאה' };
+    }
+
     // 🔒 ATOMIC: Generate order number and increment counter in one operation
     // This prevents race conditions when multiple orders are created simultaneously
     const [updatedStore] = await db
@@ -85,10 +102,6 @@ export async function completeDraft(draftId: string, slug: string) {
       .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
       .where(eq(stores.id, draft.storeId))
       .returning({ orderCounter: stores.orderCounter, id: stores.id });
-    
-    if (!updatedStore) {
-      return { success: false, error: 'חנות לא נמצאה' };
-    }
     
     const orderNumber = String(updatedStore.orderCounter ?? 1001);
 
@@ -133,13 +146,6 @@ export async function completeDraft(draftId: string, slug: string) {
         total: String(item.price * item.quantity),
         imageUrl: item.imageUrl || null,
       });
-
-      // Only update inventory for real products
-      if (productId) {
-        // Note: For proper inventory decrement, you'd use a raw SQL query or transaction
-        // This is simplified - in production you'd want: inventory = inventory - quantity
-        console.log(`Would decrement inventory for product ${productId} by ${item.quantity}`);
-      }
     }
 
     // Update draft as completed
@@ -152,16 +158,39 @@ export async function completeDraft(draftId: string, slug: string) {
       })
       .where(eq(draftOrders.id, draftId));
 
-    // Auto-send shipment if store has auto-send enabled (non-blocking)
-    autoSendShipmentOnPayment(updatedStore.id, order.id)
-      .then(result => {
-        if (result.success) {
-          console.log(`[DraftOrder] Auto-sent shipment for order ${order.orderNumber}, tracking: ${result.trackingNumber}`);
-        } else if (result.error) {
-          console.log(`[DraftOrder] Auto-send skipped or failed for order ${order.orderNumber}: ${result.error}`);
-        }
-      })
-      .catch(err => console.error('[DraftOrder] Auto-send shipment error:', err));
+    // Execute post-payment actions if requested
+    if (options?.executePostActions) {
+      // Convert DraftItem to CartItem format
+      const cartItems: CartItem[] = items.map(item => ({
+        productId: item.productId.startsWith('manual-') ? '' : item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        imageUrl: item.imageUrl,
+      }));
+
+      // Execute all post-payment actions (non-blocking)
+      executePostPaymentActions({
+        storeId: draft.storeId,
+        storeName: store.name,
+        storeSlug: slug,
+        order: {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          total: order.total,
+          customerEmail: order.customerEmail,
+          customerName: order.customerName,
+          customerId: order.customerId,
+        },
+        cartItems,
+        orderData: {
+          shippingAddress: draft.shippingAddress as Record<string, string> | undefined,
+          shipping: { cost: Number(draft.shipping) || 0 },
+        },
+      }).catch(err => console.error('[DraftOrder] Post-payment actions error:', err));
+
+      console.log(`[DraftOrder] Executing post-payment actions for order ${order.orderNumber}`);
+    }
 
     revalidatePath(`/shops/${slug}/admin/orders/drafts`);
     revalidatePath(`/shops/${slug}/admin/orders`);

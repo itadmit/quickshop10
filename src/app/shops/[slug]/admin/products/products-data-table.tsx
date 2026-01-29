@@ -460,7 +460,7 @@ export function ProductsDataTable({
         selectable
         bulkActions={bulkActions}
         searchable
-        searchPlaceholder="חיפוש לפי שם מוצר..."
+        searchPlaceholder="חיפוש לפי שם, מק״ט או ברקוד..."
         searchValue={searchValue}
         pagination={pagination}
         emptyState={

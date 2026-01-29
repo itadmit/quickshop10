@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { createDraft, searchProductsForDraft, type SearchProductResult } from '../actions';
-import { Search, X, Plus, Minus, Package } from 'lucide-react';
+import { createDraft, completeDraft, searchProductsForDraft, type SearchProductResult } from '../actions';
+import { Search, X, Plus, Minus, Package, Mail, Truck, Bell, CheckCircle2 } from 'lucide-react';
 import Image from 'next/image';
 
 interface DraftItem {
@@ -27,6 +27,10 @@ export default function NewDraftOrderPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [notes, setNotes] = useState('');
   const [shipping, setShipping] = useState(0);
+  
+  // Order options
+  const [createAsOrder, setCreateAsOrder] = useState(false); // Create directly as order (not draft)
+  const [executePostActions, setExecutePostActions] = useState(true); // Execute post-payment actions
   
   // Items
   const [items, setItems] = useState<DraftItem[]>([]);
@@ -123,7 +127,8 @@ export default function NewDraftOrderPage() {
     }
 
     startTransition(async () => {
-      const result = await createDraft(slug, {
+      // Create draft first
+      const draftResult = await createDraft(slug, {
         customerName,
         customerEmail,
         customerPhone,
@@ -132,10 +137,24 @@ export default function NewDraftOrderPage() {
         shipping,
       });
 
-      if (result.success) {
-        router.push(`/shops/${slug}/admin/orders/drafts`);
+      if (!draftResult.success) {
+        alert(draftResult.error);
+        return;
+      }
+
+      // If createAsOrder is true, complete the draft immediately
+      if (createAsOrder && draftResult.draftId) {
+        const completeResult = await completeDraft(draftResult.draftId, slug, {
+          executePostActions,
+        });
+
+        if (completeResult.success) {
+          router.push(`/shops/${slug}/admin/orders`);
+        } else {
+          alert(completeResult.error);
+        }
       } else {
-        alert(result.error);
+        router.push(`/shops/${slug}/admin/orders/drafts`);
       }
     });
   };
@@ -423,6 +442,77 @@ export default function NewDraftOrderPage() {
               placeholder="הערות פנימיות להזמנה..."
             />
           </div>
+
+          {/* Order Options */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="font-semibold mb-4">אפשרויות הזמנה</h2>
+            
+            {/* Create as order toggle */}
+            <div className="flex items-start gap-3 mb-4 pb-4 border-b border-gray-100">
+              <input
+                type="checkbox"
+                id="createAsOrder"
+                checked={createAsOrder}
+                onChange={(e) => setCreateAsOrder(e.target.checked)}
+                className="mt-1 w-4 h-4 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
+              />
+              <label htmlFor="createAsOrder" className="cursor-pointer flex-1">
+                <span className="font-medium text-gray-900">צור כהזמנה מושלמת</span>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  ההזמנה תיוצר ישירות בסטטוס &quot;אושרה&quot; ולא כטיוטה
+                </p>
+              </label>
+            </div>
+
+            {/* Post-payment actions - only shown when createAsOrder is true */}
+            {createAsOrder && (
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-gray-700 mb-2">פעולות אוטומטיות:</p>
+                
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="executePostActions"
+                    checked={executePostActions}
+                    onChange={(e) => setExecutePostActions(e.target.checked)}
+                    className="mt-1 w-4 h-4 text-black border-gray-300 rounded focus:ring-black cursor-pointer"
+                  />
+                  <label htmlFor="executePostActions" className="cursor-pointer flex-1">
+                    <span className="font-medium text-gray-900">בצע פעולות אחרי הזמנה</span>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      כמו בהזמנה רגילה מהחנות
+                    </p>
+                  </label>
+                </div>
+
+                {/* Actions breakdown */}
+                {executePostActions && (
+                  <div className="mr-7 mt-2 p-3 bg-gray-50 rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Mail className="w-4 h-4 text-blue-500" />
+                      <span>שליחת מייל אישור ללקוח</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Truck className="w-4 h-4 text-green-500" />
+                      <span>שליחה אוטומטית לחברת משלוחים</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Bell className="w-4 h-4 text-orange-500" />
+                      <span>הפעלת אוטומציות (SMS, Webhooks)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <Package className="w-4 h-4 text-purple-500" />
+                      <span>עדכון מלאי</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-600">
+                      <CheckCircle2 className="w-4 h-4 text-teal-500" />
+                      <span>תיעוד לסטטיסטיקות ו-tracking</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Summary */}
@@ -456,9 +546,17 @@ export default function NewDraftOrderPage() {
               <button
                 onClick={handleSubmit}
                 disabled={isPending || items.length === 0}
-                className="w-full px-4 py-3 bg-black text-white font-medium rounded-lg hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                className={`w-full px-4 py-3 font-medium rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors ${
+                  createAsOrder
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-black text-white hover:bg-gray-800'
+                }`}
               >
-                {isPending ? 'יוצר הזמנה...' : 'צור הזמנה'}
+                {isPending 
+                  ? 'יוצר הזמנה...' 
+                  : createAsOrder 
+                    ? 'צור והשלם הזמנה' 
+                    : 'צור טיוטה'}
               </button>
               <button
                 onClick={() => router.back()}
