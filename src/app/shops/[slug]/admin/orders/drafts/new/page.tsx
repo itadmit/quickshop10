@@ -155,7 +155,7 @@ export default function NewDraftOrderPage() {
         items,
         notes,
         shipping,
-        shippingAddress: shippingMethod === 'delivery' ? shippingAddress : undefined,
+        shippingAddress: shippingMethod === 'delivery' ? shippingAddress as Record<string, unknown> : undefined,
       });
 
       if (!draftResult.success) {
