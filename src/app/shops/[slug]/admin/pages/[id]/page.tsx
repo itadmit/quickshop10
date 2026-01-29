@@ -49,7 +49,7 @@ export default async function EditPagePage({
             href={`/shops/${slug}/admin/pages`}
             className="text-sm text-gray-600 hover:text-gray-900"
           >
-            חזרה לעמודים →
+            → חזרה לעמודים
           </Link>
         </div>
       </div>

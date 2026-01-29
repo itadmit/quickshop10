@@ -19,7 +19,7 @@ import {
 async function getRedisTrafficSources(storeId: string, from: Date, to: Date) {
   try {
     const pageStats = await import('@/lib/upstash/page-stats');
-    return await pageStats.getTrafficSourcesForRange(storeId, from, to, 20);
+    return await pageStats.getTrafficSourcesForRange(storeId, from, to, 50);
   } catch {
     return null;
   }
@@ -55,27 +55,46 @@ function TableSkeleton() {
   );
 }
 
-// Traffic Sources Table
-function TrafficSourcesTable({ 
+// Source name labels
+const sourceLabels: Record<string, string> = {
+  google: 'Google',
+  facebook: 'Facebook',
+  fb: 'Facebook',
+  instagram: 'Instagram',
+  ig: 'Instagram',
+  tiktok: 'TikTok',
+  email: 'אימייל',
+  direct: 'ישיר',
+  referral: 'הפניות',
+  pos: 'קופה (POS)',
+  manual: 'ידני',
+  newsletter: 'ניוזלטר',
+  sms: 'SMS',
+};
+
+// Sources that don't have website visits (manual entry)
+const offlineSourcesSet = new Set(['pos', 'manual']);
+
+// Combined Traffic Sources Table - unified data from Redis + Orders
+function UnifiedTrafficSourcesTable({ 
   sources 
 }: { 
-  sources: Array<{ source: string; sessions: number; orders: number; revenue: number; conversionRate: number }> 
+  sources: Array<{ 
+    source: string; 
+    visits: number; 
+    orders: number; 
+    revenue: number; 
+    conversionRate: number;
+    isOffline: boolean;
+  }> 
 }) {
   if (!sources.length) {
     return <p className="text-gray-500 text-center py-12">אין נתוני תנועה לתקופה זו</p>;
   }
 
-  const sourceLabels: Record<string, string> = {
-    google: 'Google',
-    facebook: 'Facebook',
-    instagram: 'Instagram',
-    tiktok: 'TikTok',
-    email: 'אימייל',
-    direct: 'ישיר',
-    referral: 'הפניות',
-  };
-
-  const totalSessions = sources.reduce((sum, s) => sum + s.sessions, 0);
+  const totalVisits = sources.filter(s => !s.isOffline).reduce((sum, s) => sum + s.visits, 0);
+  const totalOrders = sources.reduce((sum, s) => sum + s.orders, 0);
+  const totalRevenue = sources.reduce((sum, s) => sum + s.revenue, 0);
 
   return (
     <div className="overflow-x-auto">
@@ -94,32 +113,78 @@ function TrafficSourcesTable({
           {sources.map((source) => (
             <tr key={source.source} className="hover:bg-gray-50">
               <td className="py-3 px-4 font-medium">
-                {sourceLabels[source.source] || source.source}
-              </td>
-              <td className="py-3 px-4">{formatNumber(source.sessions)}</td>
-              <td className="py-3 px-4">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 h-2 bg-gray-100 max-w-20">
-                    <div 
-                      className="h-full bg-blue-500"
-                      style={{ width: `${totalSessions > 0 ? (source.sessions / totalSessions) * 100 : 0}%` }}
-                    />
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    {totalSessions > 0 ? ((source.sessions / totalSessions) * 100).toFixed(1) : 0}%
-                  </span>
+                  {sourceLabels[source.source] || source.source}
+                  {source.isOffline && (
+                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
+                      לא באתר
+                    </span>
+                  )}
                 </div>
               </td>
-              <td className="py-3 px-4">{formatNumber(source.orders)}</td>
-              <td className="py-3 px-4 font-medium">{formatCurrency(source.revenue)}</td>
               <td className="py-3 px-4">
-                <span className={`${source.conversionRate >= 3 ? 'text-green-600' : source.conversionRate >= 1 ? 'text-amber-600' : 'text-gray-500'}`}>
-                  {formatPercent(source.conversionRate)}
-                </span>
+                {source.isOffline ? (
+                  <span className="text-gray-400">—</span>
+                ) : (
+                  formatNumber(source.visits)
+                )}
+              </td>
+              <td className="py-3 px-4">
+                {source.isOffline ? (
+                  <span className="text-gray-400">—</span>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-gray-100 max-w-20">
+                      <div 
+                        className="h-full bg-blue-500"
+                        style={{ width: `${totalVisits > 0 ? (source.visits / totalVisits) * 100 : 0}%` }}
+                      />
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {totalVisits > 0 ? ((source.visits / totalVisits) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                )}
+              </td>
+              <td className="py-3 px-4">
+                {source.orders > 0 ? (
+                  <span className="font-medium">{formatNumber(source.orders)}</span>
+                ) : (
+                  <span className="text-gray-400">0</span>
+                )}
+              </td>
+              <td className="py-3 px-4 font-medium">
+                {source.revenue > 0 ? formatCurrency(source.revenue) : <span className="text-gray-400">₪0</span>}
+              </td>
+              <td className="py-3 px-4">
+                {source.isOffline ? (
+                  <span className="text-gray-400">—</span>
+                ) : source.conversionRate > 0 ? (
+                  <span className={`${source.conversionRate >= 3 ? 'text-green-600' : source.conversionRate >= 1 ? 'text-amber-600' : 'text-gray-500'}`}>
+                    {formatPercent(source.conversionRate)}
+                  </span>
+                ) : (
+                  <span className="text-gray-400">0%</span>
+                )}
               </td>
             </tr>
           ))}
         </tbody>
+        {/* Totals row */}
+        <tfoot>
+          <tr className="bg-gray-50 font-medium">
+            <td className="py-3 px-4">סה״כ</td>
+            <td className="py-3 px-4">{formatNumber(totalVisits)}</td>
+            <td className="py-3 px-4">100%</td>
+            <td className="py-3 px-4">{formatNumber(totalOrders)}</td>
+            <td className="py-3 px-4">{formatCurrency(totalRevenue)}</td>
+            <td className="py-3 px-4">
+              <span className={`${(totalOrders / totalVisits) * 100 >= 3 ? 'text-green-600' : 'text-gray-600'}`}>
+                {totalVisits > 0 ? formatPercent((totalOrders / totalVisits) * 100) : '0%'}
+              </span>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
@@ -283,53 +348,66 @@ function ConversionFunnel({
   );
 }
 
-// Redis Traffic Sources Component
-function RedisTrafficSourcesList({ 
-  sources 
-}: { 
-  sources: Array<{ source: string; visits: number }> 
-}) {
-  if (!sources.length) {
-    return <p className="text-gray-500 text-center py-8">אין נתוני ביקורים</p>;
+// Merge Redis visits with Orders data
+function mergeTrafficData(
+  redisSources: Array<{ source: string; visits: number }> | null,
+  orderSources: Array<{ source: string; sessions: number; orders: number; revenue: number; conversionRate: number }>
+) {
+  const mergedMap = new Map<string, {
+    source: string;
+    visits: number;
+    orders: number;
+    revenue: number;
+    conversionRate: number;
+    isOffline: boolean;
+  }>();
+
+  // First, add all Redis sources (website visits)
+  if (redisSources) {
+    for (const rs of redisSources) {
+      mergedMap.set(rs.source, {
+        source: rs.source,
+        visits: rs.visits,
+        orders: 0,
+        revenue: 0,
+        conversionRate: 0,
+        isOffline: false,
+      });
+    }
   }
 
-  const sourceLabels: Record<string, string> = {
-    google: 'Google',
-    facebook: 'Facebook',
-    instagram: 'Instagram',
-    tiktok: 'TikTok',
-    email: 'אימייל',
-    direct: 'ישיר',
-    referral: 'הפניות',
-  };
+  // Then, merge/add order sources
+  for (const os of orderSources) {
+    const existing = mergedMap.get(os.source);
+    const isOffline = offlineSourcesSet.has(os.source);
+    
+    if (existing) {
+      // Update existing with order data
+      existing.orders = os.orders;
+      existing.revenue = os.revenue;
+      existing.conversionRate = existing.visits > 0 ? (os.orders / existing.visits) * 100 : 0;
+    } else {
+      // Add new source from orders
+      mergedMap.set(os.source, {
+        source: os.source,
+        visits: isOffline ? 0 : os.sessions, // Use estimated sessions only for online sources
+        orders: os.orders,
+        revenue: os.revenue,
+        conversionRate: isOffline ? 0 : os.conversionRate,
+        isOffline,
+      });
+    }
+  }
 
-  const totalVisits = sources.reduce((sum, s) => sum + s.visits, 0);
-
-  return (
-    <div className="space-y-3">
-      {sources.slice(0, 10).map((source, i) => {
-        const percentage = totalVisits > 0 ? (source.visits / totalVisits) * 100 : 0;
-        return (
-          <div key={source.source} className="flex items-center gap-4">
-            <span className="w-5 text-xs font-bold text-gray-400">#{i + 1}</span>
-            <div className="flex-1">
-              <div className="flex justify-between mb-1">
-                <span className="font-medium">{sourceLabels[source.source] || source.source}</span>
-                <span className="text-gray-600">{formatNumber(source.visits)} ביקורים</span>
-              </div>
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-blue-500 transition-all duration-500"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-              <span className="text-xs text-gray-500">{formatPercent(percentage)}</span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+  // Convert to array and sort by visits (online first), then by orders
+  return Array.from(mergedMap.values()).sort((a, b) => {
+    // Offline sources go last
+    if (a.isOffline !== b.isOffline) return a.isOffline ? 1 : -1;
+    // Then sort by visits
+    if (b.visits !== a.visits) return b.visits - a.visits;
+    // Then by orders
+    return b.orders - a.orders;
+  });
 }
 
 // Content Component
@@ -366,7 +444,7 @@ async function TrafficContent({
   const dateRange = getDateRange();
 
   // Parallel data fetching (including Redis traffic sources)
-  const [sources, devices, landingPages, funnel, utmStats, redisTrafficSources] = await Promise.all([
+  const [orderSources, devices, landingPages, funnel, utmStats, redisSources] = await Promise.all([
     getTrafficSources(storeId, period, customRange),
     getDeviceStats(storeId, period, customRange),
     getLandingPages(storeId, period, 10, customRange),
@@ -375,62 +453,46 @@ async function TrafficContent({
     getRedisTrafficSources(storeId, dateRange.from, dateRange.to),
   ]);
 
-  // Calculate totals from PostgreSQL sources
-  const totalSessions = sources.reduce((sum, s) => sum + s.sessions, 0);
-  const totalOrders = sources.reduce((sum, s) => sum + s.orders, 0);
-  const totalRevenue = sources.reduce((sum, s) => sum + s.revenue, 0);
+  // Merge Redis visits with order conversions
+  const unifiedSources = mergeTrafficData(redisSources, orderSources);
   
-  // Calculate total visits from Redis
-  const totalVisits = redisTrafficSources?.reduce((sum, s) => sum + s.visits, 0) || 0;
+  // Calculate totals
+  const totalVisits = unifiedSources.filter(s => !s.isOffline).reduce((sum, s) => sum + s.visits, 0);
+  const totalOrders = unifiedSources.reduce((sum, s) => sum + s.orders, 0);
+  const totalRevenue = unifiedSources.reduce((sum, s) => sum + s.revenue, 0);
+  const onlineOrders = unifiedSources.filter(s => !s.isOffline).reduce((sum, s) => sum + s.orders, 0);
 
   return (
     <>
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">סה״כ ביקורים</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(totalVisits > 0 ? totalVisits : totalSessions)}</p>
-          {totalVisits > 0 && totalSessions > 0 && totalVisits !== totalSessions && (
-            <p className="text-xs text-gray-400 mt-1">Sessions: {formatNumber(totalSessions)}</p>
+          <p className="text-sm text-gray-500">ביקורים באתר</p>
+          <p className="text-2xl font-medium mt-1">{formatNumber(totalVisits)}</p>
+        </div>
+        <div className="bg-white border border-gray-200 p-6">
+          <p className="text-sm text-gray-500">סה״כ הזמנות</p>
+          <p className="text-2xl font-medium mt-1">{formatNumber(totalOrders)}</p>
+          {totalOrders !== onlineOrders && (
+            <p className="text-xs text-gray-400 mt-1">{formatNumber(onlineOrders)} מהאתר</p>
           )}
         </div>
         <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">הזמנות</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(totalOrders)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">שיעור המרה כולל</p>
+          <p className="text-sm text-gray-500">שיעור המרה (אתר)</p>
           <p className="text-2xl font-medium mt-1">
-            {formatPercent((totalVisits > 0 ? totalVisits : totalSessions) > 0 ? (totalOrders / (totalVisits > 0 ? totalVisits : totalSessions)) * 100 : 0)}
+            {formatPercent(totalVisits > 0 ? (onlineOrders / totalVisits) * 100 : 0)}
           </p>
         </div>
         <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">הכנסות מתנועה</p>
+          <p className="text-sm text-gray-500">סה״כ הכנסות</p>
           <p className="text-2xl font-medium mt-1">{formatCurrency(totalRevenue)}</p>
         </div>
       </div>
 
-      {/* Traffic Sources - Redis (realtime visits) */}
-      {redisTrafficSources && redisTrafficSources.length > 0 && (
-        <div className="bg-white border border-gray-200 p-6 mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-medium">מקורות תנועה (ביקורים)</h2>
-            <span className="text-xs text-gray-400 flex items-center gap-1">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              זמן אמת
-            </span>
-          </div>
-          <RedisTrafficSourcesList sources={redisTrafficSources} />
-        </div>
-      )}
-
-      {/* Traffic Sources - PostgreSQL (with conversions) */}
+      {/* Unified Traffic Sources Table */}
       <div className="bg-white border border-gray-200 p-6 mb-8">
-        <h2 className="font-medium mb-4">מקורות תנועה (עם המרות)</h2>
-        <TrafficSourcesTable sources={sources} />
+        <h2 className="font-medium mb-4">מקורות תנועה והמרות</h2>
+        <UnifiedTrafficSourcesTable sources={unifiedSources} />
       </div>
 
       {/* UTM Stats Section */}
@@ -549,4 +611,3 @@ export default async function TrafficReportPage({
     </div>
   );
 }
-
