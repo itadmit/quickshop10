@@ -67,7 +67,7 @@ export default async function InfluencerLoginPage({ params }: LoginPageProps) {
             href={basePath || '/'}
             className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
           >
-            ← חזרה לחנות
+            חזרה לחנות →
           </Link>
         </div>
       </div>

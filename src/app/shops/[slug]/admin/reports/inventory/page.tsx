@@ -345,7 +345,7 @@ export default async function InventoryReportPage({
             href={`/shops/${slug}/admin/reports`}
             className="text-gray-400 hover:text-black"
           >
-            ← חזרה
+            חזרה →
           </Link>
           <div>
             <h1 className="text-2xl font-medium">דוח מלאי</h1>

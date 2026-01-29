@@ -23,7 +23,7 @@ export function ReportHeader({
             href={backHref}
             className="text-gray-400 hover:text-black transition-colors"
           >
-            ← חזרה
+            חזרה →
           </Link>
         )}
         <div>

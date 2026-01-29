@@ -205,7 +205,7 @@ export function CheckoutAnimation() {
         >
           {/* Header */}
           <div className="text-center py-2">
-            <div className="text-xs text-gray-400">← חזרה</div>
+            <div className="text-xs text-gray-400">חזרה →</div>
           </div>
 
           {/* Price */}

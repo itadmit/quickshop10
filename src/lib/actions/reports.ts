@@ -456,6 +456,7 @@ export const getTrafficSources = cache(async (
     .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`));
 
   // If no analytics data, create fallback from order data (grouped by utm_source)
+  // Combined with Redis traffic data for accurate session counts
   if (sessions.length === 0) {
     // Get order stats grouped by UTM source (only paid orders)
     const ordersBySource = await db
@@ -475,18 +476,30 @@ export const getTrafficSources = cache(async (
       .orderBy(desc(sql`COUNT(*)`));
 
     if (ordersBySource.length > 0) {
+      // Try to get real session counts from Redis
+      let redisSessionMap = new Map<string, number>();
+      try {
+        const { getTrafficSourcesForRange } = await import('@/lib/upstash/page-stats');
+        const redisSources = await getTrafficSourcesForRange(storeId, from, to);
+        redisSessionMap = new Map(redisSources.map(s => [s.source, s.visits]));
+      } catch {
+        // Redis not available - will use estimates
+      }
+
       return ordersBySource.map(src => {
         const orderCount = Number(src.totalOrders);
         const revenue = Number(src.totalRevenue);
-        // Estimate sessions based on typical conversion rate (~2-3%)
-        const estimatedSessions = Math.round(orderCount * 40); // ~2.5% conversion
+        
+        // Use real Redis sessions if available, otherwise estimate
+        const realSessions = redisSessionMap.get(src.source) || redisSessionMap.get('direct');
+        const sessions = realSessions || Math.round(orderCount * 40); // fallback estimate
         
         return {
           source: src.source,
-          sessions: estimatedSessions,
+          sessions: sessions,
           orders: orderCount,
           revenue: revenue,
-          conversionRate: estimatedSessions > 0 ? (orderCount / estimatedSessions) * 100 : 0,
+          conversionRate: sessions > 0 ? (orderCount / sessions) * 100 : 0,
         };
       });
     }

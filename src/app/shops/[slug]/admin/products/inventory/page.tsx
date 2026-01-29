@@ -165,7 +165,7 @@ export default async function InventoryPage({ params, searchParams }: InventoryP
           href={`/shops/${slug}/admin/products`}
           className="text-xs sm:text-sm text-gray-600 hover:text-gray-900"
         >
-          ← חזרה למוצרים
+          חזרה למוצרים →
         </Link>
       </div>
 
