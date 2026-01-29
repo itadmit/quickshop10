@@ -14,6 +14,8 @@ import {
   MonitorIcon,
   TabletIcon,
 } from '@/components/admin/icons';
+import { TrafficSourcesTable } from '@/components/admin/traffic-sources-table';
+import { TrafficReportExport } from './traffic-export';
 
 // Redis traffic sources (realtime data)
 async function getRedisTrafficSources(storeId: string, from: Date, to: Date) {
@@ -74,121 +76,6 @@ const sourceLabels: Record<string, string> = {
 
 // Sources that don't have website visits (manual entry)
 const offlineSourcesSet = new Set(['pos', 'manual']);
-
-// Combined Traffic Sources Table - unified data from Redis + Orders
-function UnifiedTrafficSourcesTable({ 
-  sources 
-}: { 
-  sources: Array<{ 
-    source: string; 
-    visits: number; 
-    orders: number; 
-    revenue: number; 
-    conversionRate: number;
-    isOffline: boolean;
-  }> 
-}) {
-  if (!sources.length) {
-    return <p className="text-gray-500 text-center py-12">אין נתוני תנועה לתקופה זו</p>;
-  }
-
-  const totalVisits = sources.filter(s => !s.isOffline).reduce((sum, s) => sum + s.visits, 0);
-  const totalOrders = sources.reduce((sum, s) => sum + s.orders, 0);
-  const totalRevenue = sources.reduce((sum, s) => sum + s.revenue, 0);
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-200 text-right">
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">מקור</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">ביקורים</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">% מסה״כ</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">הזמנות</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">הכנסות</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">שיעור המרה</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-gray-100">
-          {sources.map((source) => (
-            <tr key={source.source} className="hover:bg-gray-50">
-              <td className="py-3 px-4 font-medium">
-                <div className="flex items-center gap-2">
-                  {sourceLabels[source.source] || source.source}
-                  {source.isOffline && (
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded">
-                      לא באתר
-                    </span>
-                  )}
-                </div>
-              </td>
-              <td className="py-3 px-4">
-                {source.isOffline ? (
-                  <span className="text-gray-400">—</span>
-                ) : (
-                  formatNumber(source.visits)
-                )}
-              </td>
-              <td className="py-3 px-4">
-                {source.isOffline ? (
-                  <span className="text-gray-400">—</span>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 h-2 bg-gray-100 max-w-20">
-                      <div 
-                        className="h-full bg-blue-500"
-                        style={{ width: `${totalVisits > 0 ? (source.visits / totalVisits) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <span className="text-sm text-gray-500">
-                      {totalVisits > 0 ? ((source.visits / totalVisits) * 100).toFixed(1) : 0}%
-                    </span>
-                  </div>
-                )}
-              </td>
-              <td className="py-3 px-4">
-                {source.orders > 0 ? (
-                  <span className="font-medium">{formatNumber(source.orders)}</span>
-                ) : (
-                  <span className="text-gray-400">0</span>
-                )}
-              </td>
-              <td className="py-3 px-4 font-medium">
-                {source.revenue > 0 ? formatCurrency(source.revenue) : <span className="text-gray-400">₪0</span>}
-              </td>
-              <td className="py-3 px-4">
-                {source.isOffline ? (
-                  <span className="text-gray-400">—</span>
-                ) : source.conversionRate > 0 ? (
-                  <span className={`${source.conversionRate >= 3 ? 'text-green-600' : source.conversionRate >= 1 ? 'text-amber-600' : 'text-gray-500'}`}>
-                    {formatPercent(source.conversionRate)}
-                  </span>
-                ) : (
-                  <span className="text-gray-400">0%</span>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-        {/* Totals row */}
-        <tfoot>
-          <tr className="bg-gray-50 font-medium">
-            <td className="py-3 px-4">סה״כ</td>
-            <td className="py-3 px-4">{formatNumber(totalVisits)}</td>
-            <td className="py-3 px-4">100%</td>
-            <td className="py-3 px-4">{formatNumber(totalOrders)}</td>
-            <td className="py-3 px-4">{formatCurrency(totalRevenue)}</td>
-            <td className="py-3 px-4">
-              <span className={`${(totalOrders / totalVisits) * 100 >= 3 ? 'text-green-600' : 'text-gray-600'}`}>
-                {totalVisits > 0 ? formatPercent((totalOrders / totalVisits) * 100) : '0%'}
-              </span>
-            </td>
-          </tr>
-        </tfoot>
-      </table>
-    </div>
-  );
-}
 
 // Device Stats Component
 function DeviceStats({ 
@@ -410,6 +297,14 @@ function mergeTrafficData(
   });
 }
 
+// Period labels
+const periodLabels: Record<string, string> = {
+  '7d': '7 ימים אחרונים',
+  '30d': '30 ימים אחרונים',
+  '90d': '90 ימים אחרונים',
+  'custom': 'טווח מותאם',
+};
+
 // Content Component
 async function TrafficContent({ 
   storeId, 
@@ -462,8 +357,40 @@ async function TrafficContent({
   const totalRevenue = unifiedSources.reduce((sum, s) => sum + s.revenue, 0);
   const onlineOrders = unifiedSources.filter(s => !s.isOffline).reduce((sum, s) => sum + s.orders, 0);
 
+  // Prepare export data for client component
+  const exportData = {
+    sources: unifiedSources,
+    devices: devices.map(d => ({
+      deviceType: d.deviceType,
+      sessions: d.sessions,
+    })),
+    utmMedium: utmStats.byMedium,
+    utmCampaign: utmStats.byCampaign,
+    utmContent: utmStats.byContent,
+    landingPages: landingPages.map(p => ({
+      page: p.page,
+      sessions: p.sessions,
+    })),
+    funnel: funnel,
+    totals: {
+      visits: totalVisits,
+      orders: totalOrders,
+      revenue: totalRevenue,
+      conversionRate: totalVisits > 0 ? (onlineOrders / totalVisits) * 100 : 0,
+    },
+  };
+
   return (
     <>
+      {/* Export Button */}
+      <div className="flex justify-end mb-4">
+        <TrafficReportExport 
+          data={exportData}
+          period={periodLabels[period]}
+          sourceLabels={sourceLabels}
+        />
+      </div>
+
       {/* Stats Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white border border-gray-200 p-6">
@@ -489,10 +416,10 @@ async function TrafficContent({
         </div>
       </div>
 
-      {/* Unified Traffic Sources Table */}
+      {/* Unified Traffic Sources Table - Client Component with sorting */}
       <div className="bg-white border border-gray-200 p-6 mb-8">
         <h2 className="font-medium mb-4">מקורות תנועה והמרות</h2>
-        <UnifiedTrafficSourcesTable sources={unifiedSources} />
+        <TrafficSourcesTable sources={unifiedSources} sourceLabels={sourceLabels} />
       </div>
 
       {/* UTM Stats Section */}
