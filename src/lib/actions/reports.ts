@@ -533,6 +533,7 @@ export const getDeviceStats = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
+  // First try analytics_events (PostgreSQL)
   const result = await db
     .select({
       deviceType: analyticsEvents.deviceType,
@@ -548,11 +549,82 @@ export const getDeviceStats = cache(async (
     ))
     .groupBy(analyticsEvents.deviceType);
 
-  return result.map(r => ({
-    deviceType: r.deviceType || 'unknown',
-    sessions: Number(r.sessions),
-    pageViews: Number(r.pageViews),
-  }));
+  // If we have data from analytics_events, use it
+  if (result.length > 0) {
+    return result.map(r => ({
+      deviceType: r.deviceType || 'unknown',
+      sessions: Number(r.sessions),
+      pageViews: Number(r.pageViews),
+    }));
+  }
+
+  // Fallback 1: Try Redis (per-day counters)
+  try {
+    const { getDeviceBreakdown } = await import('@/lib/upstash/page-stats');
+    
+    const deviceTotals = { desktop: 0, mobile: 0, tablet: 0 };
+    const current = new Date(from);
+    
+    while (current <= to) {
+      const dateKey = current.toISOString().split('T')[0];
+      try {
+        const dayData = await getDeviceBreakdown(storeId, dateKey);
+        deviceTotals.desktop += dayData.desktop;
+        deviceTotals.mobile += dayData.mobile;
+        deviceTotals.tablet += dayData.tablet;
+      } catch {
+        // Ignore Redis errors for specific days
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    const redisTotal = deviceTotals.desktop + deviceTotals.mobile + deviceTotals.tablet;
+    
+    if (redisTotal > 0) {
+      const devices: Array<{ deviceType: string; sessions: number; pageViews: number }> = [];
+      
+      if (deviceTotals.mobile > 0) {
+        devices.push({ deviceType: 'mobile', sessions: deviceTotals.mobile, pageViews: deviceTotals.mobile });
+      }
+      if (deviceTotals.desktop > 0) {
+        devices.push({ deviceType: 'desktop', sessions: deviceTotals.desktop, pageViews: deviceTotals.desktop });
+      }
+      if (deviceTotals.tablet > 0) {
+        devices.push({ deviceType: 'tablet', sessions: deviceTotals.tablet, pageViews: deviceTotals.tablet });
+      }
+
+      return devices.sort((a, b) => b.sessions - a.sessions);
+    }
+  } catch {
+    // Redis not configured or error - continue to orders fallback
+  }
+
+  // Fallback 2: Use orders data (shows conversions by device, not sessions)
+  const orderDevices = await db
+    .select({
+      deviceType: orders.deviceType,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      isNotNull(orders.deviceType)
+    ))
+    .groupBy(orders.deviceType)
+    .orderBy(desc(sql`COUNT(*)`));
+
+  if (orderDevices.length > 0) {
+    return orderDevices.map(d => ({
+      deviceType: d.deviceType || 'unknown',
+      sessions: Number(d.count), // Actually orders, but same metric name for UI
+      pageViews: Number(d.count),
+    }));
+  }
+
+  return [];
 });
 
 export const getLandingPages = cache(async (

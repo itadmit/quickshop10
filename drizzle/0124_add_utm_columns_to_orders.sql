@@ -6,6 +6,10 @@ ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "utm_campaign" varchar(255);
 ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "utm_content" varchar(255);
 ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "utm_term" varchar(255);
 
--- Create index for UTM reporting
+-- Add device type tracking
+ALTER TABLE "orders" ADD COLUMN IF NOT EXISTS "device_type" device_type;
+
+-- Create indexes for reporting
 CREATE INDEX IF NOT EXISTS "idx_orders_utm_full" ON "orders" ("store_id", "utm_source", "utm_medium", "utm_campaign");
+CREATE INDEX IF NOT EXISTS "idx_orders_device" ON "orders" ("store_id", "device_type");
 

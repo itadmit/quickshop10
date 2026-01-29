@@ -584,6 +584,14 @@ export async function POST(request: NextRequest) {
       utmContent: (body.orderData as { utmData?: { content?: string } })?.utmData?.content || null,
       utmTerm: (body.orderData as { utmData?: { term?: string } })?.utmData?.term || null,
       
+      // Device type - detect from User-Agent
+      deviceType: (() => {
+        const ua = request.headers.get('user-agent') || '';
+        if (/Tablet|iPad/i.test(ua)) return 'tablet';
+        if (/Mobile|Android|iPhone/i.test(ua)) return 'mobile';
+        return 'desktop';
+      })(),
+      
       // Note: paymentMethod and paymentDetails will be updated after payment
     }).returning();
 

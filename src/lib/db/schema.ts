@@ -1008,6 +1008,9 @@ export const orders = pgTable('orders', {
   utmContent: varchar('utm_content', { length: 255 }), // ad variant, button type
   utmTerm: varchar('utm_term', { length: 255 }), // paid search keywords
   
+  // Device tracking
+  deviceType: deviceTypeEnum('device_type'), // mobile, desktop, tablet
+  
   // Notes
   note: text('note'),
   internalNote: text('internal_note'),
