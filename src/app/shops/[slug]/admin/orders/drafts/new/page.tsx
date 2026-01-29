@@ -13,6 +13,7 @@ interface ShippingAddress {
   apartment?: string;
   floor?: string;
   zipCode?: string;
+  [key: string]: string | undefined;
 }
 
 interface DraftItem {
@@ -155,7 +156,7 @@ export default function NewDraftOrderPage() {
         items,
         notes,
         shipping,
-        shippingAddress: shippingMethod === 'delivery' ? shippingAddress as Record<string, unknown> : undefined,
+        shippingAddress: shippingMethod === 'delivery' ? shippingAddress : undefined,
       });
 
       if (!draftResult.success) {
