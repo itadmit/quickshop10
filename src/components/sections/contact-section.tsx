@@ -152,8 +152,9 @@ export function ContactSection({
   // Default content values for display
   const displayTitle = title || 'צור קשר';
   const displaySubtitle = subtitle || '';
-  const displayEmail = content.email || 'info@example.com';
-  const displayPhone = content.phone || '03-1234567';
+  // Only show default values if content has them, otherwise empty = hidden
+  const displayEmail = content.email || '';
+  const displayPhone = content.phone || '';
   const displayAddress = content.address || '';
   const displayHours = content.hours || '';
 

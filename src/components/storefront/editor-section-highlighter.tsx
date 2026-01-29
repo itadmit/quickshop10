@@ -3516,8 +3516,9 @@ export function EditorSectionHighlighter() {
           case 'contact':
             placeholder.className = 'py-16 px-4';
             placeholder.style.backgroundColor = '#f9fafb';
-            const contactEmail = content?.email || 'info@example.com';
-            const contactPhone = content?.phone || '03-1234567';
+            // No default values - empty means hidden
+            const contactEmail = content?.email || '';
+            const contactPhone = content?.phone || '';
             const contactAddress = content?.address || '';
             const contactHours = content?.hours || '';
             const showForm = content?.showForm !== false; // Default true

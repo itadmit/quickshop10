@@ -105,6 +105,7 @@ export default async function ComingSoonPage({ params }: ComingSoonPageProps) {
                 titleColor: (settings as { titleColor?: string }).titleColor,
                 titleSize: (settings as { titleSize?: number }).titleSize,
                 subtitleColor: (settings as { subtitleColor?: string }).subtitleColor,
+                backgroundMaxWidth: (settings as { backgroundMaxWidth?: number }).backgroundMaxWidth,
               }}
               basePath={basePath}
             />

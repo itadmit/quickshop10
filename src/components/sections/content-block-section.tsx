@@ -47,6 +47,7 @@ interface ContentBlockSectionProps {
     backgroundVideo?: string;
     backgroundSize?: string;
     backgroundPosition?: string;
+    backgroundMaxWidth?: number; // רוחב מירבי לתמונת רקע עם margin auto
     overlay?: number;
     showGradient?: boolean;
     gradientDirection?: 'top' | 'bottom' | 'left' | 'right';
@@ -293,12 +294,37 @@ export function ContentBlockSection({
       {hasDesktopImage && !hasDesktopVideo && (
         <>
           {/* Desktop Image */}
-          <div 
-            className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
-            style={{ backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")` }}
-            data-bg-desktop
-            data-bg-type="image"
-          />
+          {settings.backgroundMaxWidth && settings.backgroundMaxWidth > 0 ? (
+            // With max-width: wrapper with background color + centered image
+            <div 
+              className={`absolute inset-0 ${hasMobileImage ? 'hidden md:block' : ''}`}
+              style={{ backgroundColor: backgroundColor }}
+              data-bg-desktop-wrapper
+            >
+              <div 
+                className="absolute bg-cover bg-center bg-no-repeat"
+                style={{ 
+                  backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
+                  top: 0,
+                  bottom: 0,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '100%',
+                  maxWidth: `${settings.backgroundMaxWidth}px`,
+                }}
+                data-bg-desktop
+                data-bg-type="image"
+              />
+            </div>
+          ) : (
+            // Full width (default)
+            <div 
+              className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
+              style={{ backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")` }}
+              data-bg-desktop
+              data-bg-type="image"
+            />
+          )}
           {/* Mobile Image */}
           {hasMobileImage && (
             <div 

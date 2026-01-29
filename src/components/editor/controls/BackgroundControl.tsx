@@ -61,6 +61,7 @@ export function FullBackgroundControl({
   const overlay = (settings.overlay as number) || 0;
   const backgroundSize = (settings.backgroundSize as string) || 'cover';
   const backgroundPosition = (settings.backgroundPosition as string) || 'center';
+  const backgroundMaxWidth = (settings.backgroundMaxWidth as number) || 0;
 
   const handleTypeChange = (type: BackgroundType) => {
     setBgType(type);
@@ -237,6 +238,24 @@ export function FullBackgroundControl({
             ]}
             onChange={(v) => onChange('backgroundPosition', v)}
           />
+
+          {/* Max Width for Background Image */}
+          <div>
+            <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">רוחב מירבי (px)</label>
+            <input
+              type="number"
+              value={backgroundMaxWidth || ''}
+              onChange={(e) => onChange('backgroundMaxWidth', e.target.value ? Number(e.target.value) : 0)}
+              placeholder="ללא הגבלה"
+              className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                         rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+              dir="ltr"
+              min={0}
+            />
+            <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">
+              הגדר רוחב מירבי לתמונה עם יישור אוטומטי למרכז (השאר ריק ללא הגבלה)
+            </p>
+          </div>
         </div>
       )}
 

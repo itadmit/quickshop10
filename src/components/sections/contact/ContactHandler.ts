@@ -98,13 +98,13 @@ export function handleContactUpdate(element: Element, updates: Partial<Section>)
   if (updates.content?.email !== undefined) {
     const emailEl = el.querySelector('[data-contact-email]') as HTMLAnchorElement;
     const emailWrapper = el.querySelector('[data-contact-email-wrapper]') as HTMLElement;
+    const email = updates.content.email as string;
     if (emailEl) {
-      const email = updates.content.email as string;
-      emailEl.textContent = email || 'info@example.com';
-      emailEl.href = `mailto:${email || 'info@example.com'}`;
+      emailEl.textContent = email;
+      emailEl.href = email ? `mailto:${email}` : '';
     }
     if (emailWrapper) {
-      emailWrapper.style.display = updates.content.email ? 'block' : 'none';
+      emailWrapper.style.display = email ? 'block' : 'none';
     }
   }
   
@@ -114,13 +114,13 @@ export function handleContactUpdate(element: Element, updates: Partial<Section>)
   if (updates.content?.phone !== undefined) {
     const phoneEl = el.querySelector('[data-contact-phone]') as HTMLAnchorElement;
     const phoneWrapper = el.querySelector('[data-contact-phone-wrapper]') as HTMLElement;
+    const phone = updates.content.phone as string;
     if (phoneEl) {
-      const phone = updates.content.phone as string;
-      phoneEl.textContent = phone || '03-1234567';
-      phoneEl.href = `tel:${phone || '03-1234567'}`;
+      phoneEl.textContent = phone;
+      phoneEl.href = phone ? `tel:${phone}` : '';
     }
     if (phoneWrapper) {
-      phoneWrapper.style.display = updates.content.phone ? 'block' : 'none';
+      phoneWrapper.style.display = phone ? 'block' : 'none';
     }
   }
   

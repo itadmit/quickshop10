@@ -32,6 +32,7 @@ interface QuoteBannerSectionProps {
     overlay?: number;
     textStyle?: 'serif' | 'sans' | 'italic';
     parallax?: boolean;
+    backgroundMaxWidth?: number; // רוחב מירבי לתמונת רקע עם margin auto
   };
   sectionId?: string;
 }
@@ -47,6 +48,7 @@ export function QuoteBannerSection({
   const textStyle = settings.textStyle || 'italic';
   const useParallax = settings.parallax !== false;
   const mediaType = content.mediaType || (content.videoUrl ? 'video' : 'image');
+  const backgroundMaxWidth = settings.backgroundMaxWidth || 0;
 
   const fontClass = textStyle === 'serif' 
     ? 'font-serif' 
@@ -69,15 +71,40 @@ export function QuoteBannerSection({
     >
       {/* ==================== IMAGE BACKGROUNDS ==================== */}
       {/* Desktop Image - always rendered, hidden when video selected */}
-      <div 
-        className={`absolute inset-0 bg-cover bg-center ${isVideo ? 'hidden' : ''} ${hasMobileMedia && !isVideo ? 'hidden md:block' : ''}`}
-        style={{ 
-          backgroundImage: content.imageUrl ? `url("${content.imageUrl}")` : 'none',
-          backgroundAttachment: useParallax ? 'fixed' : 'scroll',
-        }}
-        data-bg-desktop
-        data-bg-type="image"
-      />
+      {backgroundMaxWidth > 0 ? (
+        // With max-width: wrapper with background color + centered image
+        <div 
+          className={`absolute inset-0 bg-gray-900 ${isVideo ? 'hidden' : ''} ${hasMobileMedia && !isVideo ? 'hidden md:block' : ''}`}
+          data-bg-desktop-wrapper
+        >
+          <div 
+            className="absolute bg-cover bg-center"
+            style={{ 
+              backgroundImage: content.imageUrl ? `url("${content.imageUrl}")` : 'none',
+              backgroundAttachment: useParallax ? 'fixed' : 'scroll',
+              top: 0,
+              bottom: 0,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '100%',
+              maxWidth: `${backgroundMaxWidth}px`,
+            }}
+            data-bg-desktop
+            data-bg-type="image"
+          />
+        </div>
+      ) : (
+        // Full width (default)
+        <div 
+          className={`absolute inset-0 bg-cover bg-center ${isVideo ? 'hidden' : ''} ${hasMobileMedia && !isVideo ? 'hidden md:block' : ''}`}
+          style={{ 
+            backgroundImage: content.imageUrl ? `url("${content.imageUrl}")` : 'none',
+            backgroundAttachment: useParallax ? 'fixed' : 'scroll',
+          }}
+          data-bg-desktop
+          data-bg-type="image"
+        />
+      )}
       {/* Mobile Image - always rendered */}
       <div 
         className={`absolute inset-0 bg-cover bg-center md:hidden ${isVideo ? 'hidden' : ''}`}

@@ -219,6 +219,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               zIndex: (settings as { zIndex?: number }).zIndex,
               customClass: (settings as { customClass?: string }).customClass,
               customId: (settings as { customId?: string }).customId,
+              backgroundMaxWidth: (settings as { backgroundMaxWidth?: number }).backgroundMaxWidth,
             }}
             basePath={basePath}
           />
@@ -545,6 +546,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               zIndex: (settings as { zIndex?: number }).zIndex,
               customClass: (settings as { customClass?: string }).customClass,
               customId: (settings as { customId?: string }).customId,
+              backgroundMaxWidth: (settings as { backgroundMaxWidth?: number }).backgroundMaxWidth,
             }}
             basePath={basePath}
           />
@@ -841,6 +843,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               hideOnMobile: (settings as { hideOnMobile?: boolean }).hideOnMobile,
               hideOnDesktop: (settings as { hideOnDesktop?: boolean }).hideOnDesktop,
               showScrollArrow: (settings as { showScrollArrow?: boolean }).showScrollArrow,
+              backgroundMaxWidth: (settings as { backgroundMaxWidth?: number }).backgroundMaxWidth,
             }}
             basePath={basePath}
           />
@@ -874,6 +877,29 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             basePath={basePath}
             sectionId={section.id}
           />
+        );
+        break;
+
+      case 'custom':
+        // Custom HTML section - render user's HTML code directly
+        const customHtml = (content as { html?: string }).html || '';
+        sectionElement = (
+          <section
+            data-section-id={section.id}
+            data-section-type="custom"
+            data-section-name="קוד מותאם אישית"
+            className={`${(settings as { hideOnMobile?: boolean }).hideOnMobile ? 'max-md:hidden' : ''} ${(settings as { hideOnDesktop?: boolean }).hideOnDesktop ? 'md:hidden' : ''}`}
+            style={{
+              backgroundColor: (settings as { backgroundColor?: string }).backgroundColor,
+              paddingTop: (settings as { paddingTop?: number }).paddingTop ? `${(settings as { paddingTop?: number }).paddingTop}px` : undefined,
+              paddingBottom: (settings as { paddingBottom?: number }).paddingBottom ? `${(settings as { paddingBottom?: number }).paddingBottom}px` : undefined,
+            }}
+          >
+            <div 
+              data-custom-html
+              dangerouslySetInnerHTML={{ __html: customHtml }}
+            />
+          </section>
         );
         break;
 

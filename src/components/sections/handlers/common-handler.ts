@@ -143,6 +143,11 @@ export function applyCommonUpdates(
   
   if (updates.settings?.backgroundColor !== undefined) {
     el.style.backgroundColor = updates.settings.backgroundColor as string;
+    // Also update background wrapper if exists (for backgroundMaxWidth)
+    const bgWrapper = el.querySelector('[data-bg-desktop-wrapper]') as HTMLElement;
+    if (bgWrapper) {
+      bgWrapper.style.backgroundColor = updates.settings.backgroundColor as string;
+    }
   }
 
   // Get units (default to px)
@@ -560,6 +565,59 @@ export function applyCommonUpdates(
 
   if (updates.settings?.backgroundPosition !== undefined) {
     el.style.backgroundPosition = updates.settings.backgroundPosition as string;
+  }
+
+  // Background Max Width - for image background with margin auto centering
+  if (updates.settings?.backgroundMaxWidth !== undefined) {
+    const bgDesktop = el.querySelector('[data-bg-desktop]') as HTMLElement;
+    let bgWrapper = el.querySelector('[data-bg-desktop-wrapper]') as HTMLElement;
+    const maxWidth = updates.settings.backgroundMaxWidth as number;
+    
+    if (maxWidth > 0) {
+      // Need wrapper for background color + centered image
+      if (!bgWrapper && bgDesktop) {
+        // Create wrapper
+        bgWrapper = document.createElement('div');
+        bgWrapper.setAttribute('data-bg-desktop-wrapper', '');
+        bgWrapper.style.cssText = 'position:absolute;inset:0;';
+        bgWrapper.style.backgroundColor = el.style.backgroundColor || '#ffffff';
+        bgDesktop.parentNode?.insertBefore(bgWrapper, bgDesktop);
+        bgWrapper.appendChild(bgDesktop);
+      }
+      
+      if (bgDesktop) {
+        // Apply max-width with centering
+        bgDesktop.style.position = 'absolute';
+        bgDesktop.style.top = '0';
+        bgDesktop.style.bottom = '0';
+        bgDesktop.style.left = '50%';
+        bgDesktop.style.transform = 'translateX(-50%)';
+        bgDesktop.style.right = 'auto';
+        bgDesktop.style.width = '100%';
+        bgDesktop.style.maxWidth = `${maxWidth}px`;
+      }
+      
+      if (bgWrapper) {
+        bgWrapper.style.display = '';
+      }
+    } else {
+      // Reset to full width (inset-0) - remove wrapper if exists
+      if (bgWrapper && bgDesktop) {
+        bgWrapper.parentNode?.insertBefore(bgDesktop, bgWrapper);
+        bgWrapper.remove();
+      }
+      
+      if (bgDesktop) {
+        bgDesktop.style.position = 'absolute';
+        bgDesktop.style.top = '0';
+        bgDesktop.style.bottom = '0';
+        bgDesktop.style.left = '0';
+        bgDesktop.style.right = '0';
+        bgDesktop.style.transform = '';
+        bgDesktop.style.width = '';
+        bgDesktop.style.maxWidth = '';
+      }
+    }
   }
 
   // =====================================================
