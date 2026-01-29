@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Google Places API key not configured' }, { status: 500 });
     }
 
-    // Fetch place details with reviews - request Hebrew, include originalText for reviews
-    const response = await fetch(`${PLACES_API_URL}/${placeId}?languageCode=iw`, {
+    // Fetch place details with reviews - don't specify language to get original text
+    const response = await fetch(`${PLACES_API_URL}/${placeId}`, {
       method: 'GET',
       headers: {
         'X-Goog-Api-Key': apiKey,

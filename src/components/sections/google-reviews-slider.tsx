@@ -173,15 +173,19 @@ function ReviewCard({
 }
 
 export function GoogleReviewsSlider({ reviews, settings, sectionId }: GoogleReviewsSliderProps) {
+  // Only show slider arrows if there are more reviews than columns
+  const columns = settings.columns || 3;
+  const showSliderArrows = reviews.length > columns && settings.showArrows !== false;
+  
   const sliderSettings: Partial<SliderSettings> = {
-    itemsPerView: settings.columns || 3,
+    itemsPerView: columns,
     itemsPerViewMobile: settings.mobileColumns || 1,
     itemsPerViewTablet: 2,
     scrollBy: 1,
-    showArrows: settings.showArrows !== false,
-    showDots: settings.showDots !== false,
-    arrowPosition: 'outside',
-    arrowStyle: 'minimal',
+    showArrows: showSliderArrows,
+    showDots: reviews.length > columns && settings.showDots !== false,
+    arrowPosition: 'inside',
+    arrowStyle: 'circle',
     dotsPosition: 'bottom',
     dotsStyle: 'dots',
     gap: 16,
@@ -189,12 +193,13 @@ export function GoogleReviewsSlider({ reviews, settings, sectionId }: GoogleRevi
     autoplayInterval: settings.autoplayInterval || 5000,
     loop: true,
   };
+  
 
   return (
     <AutoSlider 
       settings={sliderSettings}
       data-slider-id={sectionId}
-      className="relative"
+      className="relative z-10"
     >
       {reviews.map((review, index) => (
         <div key={review.id || index} className="h-full">

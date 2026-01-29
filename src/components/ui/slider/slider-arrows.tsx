@@ -55,16 +55,16 @@ const stylePresets = {
 // Position presets
 const positionPresets = {
   inside: {
-    container: 'absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 pointer-events-none',
-    button: 'pointer-events-auto',
+    container: 'absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 pointer-events-none z-20',
+    button: 'pointer-events-auto cursor-pointer',
   },
   outside: {
-    container: 'absolute inset-y-0 -left-14 -right-14 flex items-center justify-between pointer-events-none',
-    button: 'pointer-events-auto',
+    container: 'absolute inset-y-0 -left-14 -right-14 flex items-center justify-between pointer-events-none z-20',
+    button: 'pointer-events-auto cursor-pointer',
   },
   bottom: {
-    container: 'flex items-center justify-center gap-4 mt-4',
-    button: '',
+    container: 'flex items-center justify-center gap-4 mt-4 z-20',
+    button: 'cursor-pointer',
   },
 };
 
@@ -94,7 +94,12 @@ export function SliderArrows({
     >
       {/* Previous Button */}
       <button
-        onClick={goPrev}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          goPrev();
+        }}
         disabled={prevDisabled}
         className={`
           ${stylePreset.base}
@@ -105,12 +110,17 @@ export function SliderArrows({
         aria-label="הקודם"
         data-slider-prev
       >
-        <ChevronRight className="w-5 h-5" />
+        <ChevronRight className="w-5 h-5 pointer-events-none" />
       </button>
 
       {/* Next Button */}
       <button
-        onClick={goNext}
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          goNext();
+        }}
         disabled={nextDisabled}
         className={`
           ${stylePreset.base}
@@ -121,7 +131,7 @@ export function SliderArrows({
         aria-label="הבא"
         data-slider-next
       >
-        <ChevronLeft className="w-5 h-5" />
+        <ChevronLeft className="w-5 h-5 pointer-events-none" />
       </button>
     </div>
   );

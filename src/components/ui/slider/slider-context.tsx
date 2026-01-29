@@ -79,13 +79,15 @@ export function SliderProvider({ children, settings, onSlideChange }: SliderProv
 
     // Calculate scroll position
     const items = container.querySelectorAll('[data-slider-item]');
+    
     if (items[targetIndex]) {
       const item = items[targetIndex] as HTMLElement;
-      const scrollLeft = item.offsetLeft - (settings.gap || 0);
       
-      container.scrollTo({
-        left: scrollLeft,
+      // Use scrollIntoView for better RTL support
+      item.scrollIntoView({
         behavior: 'smooth',
+        block: 'nearest',
+        inline: 'start',
       });
     }
 

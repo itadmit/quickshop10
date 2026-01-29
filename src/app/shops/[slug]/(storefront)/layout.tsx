@@ -156,8 +156,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   const pathname = headersList.get('x-pathname') || '';
   const isCheckoutPage = pathname.includes('/checkout');
 
-  // Check if we should show header (only if there's content)
-  const showHeader = categories.length > 0;
+  // Always show header - categories/menu items are optional
+  // Header contains logo, cart, search etc. which should always be visible
+  const showHeader = true;
 
   // Build tracking configuration from store settings
   const storeSettings = (store.settings as Record<string, unknown>) || {};

@@ -241,7 +241,7 @@ export function GoogleReviewsSection({
           </div>
 
           {/* Reviews Slider - Right Side */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 overflow-visible">
             <GoogleReviewsSlider
               reviews={reviews}
               settings={{

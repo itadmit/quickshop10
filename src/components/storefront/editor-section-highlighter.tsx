@@ -3844,8 +3844,19 @@ export function EditorSectionHighlighter() {
     };
 
     const handleClick = (e: MouseEvent) => {
+      const clickedElement = e.target as HTMLElement;
+      
+      // Allow clicks on interactive elements (slider arrows, buttons, etc.)
+      const isInteractive = clickedElement.closest(
+        'button, [data-slider-prev], [data-slider-next], [data-slider-dot], input, select, textarea, [role="button"]'
+      );
+      if (isInteractive) {
+        // Don't intercept - let the button handle it
+        return;
+      }
+      
       // Stop propagation to prevent parent sections from also being selected
-      const target = (e.target as HTMLElement).closest('[data-section-id]') as HTMLElement;
+      const target = clickedElement.closest('[data-section-id]') as HTMLElement;
       if (target) {
         const sectionId = target.dataset.sectionId;
         if (sectionId) {
@@ -3879,6 +3890,12 @@ export function EditorSectionHighlighter() {
       a {
         pointer-events: none !important;
         cursor: default !important;
+      }
+      
+      /* But allow clicks on buttons and interactive elements */
+      button, [data-slider-prev], [data-slider-next], [data-slider-dot], [role="button"] {
+        pointer-events: auto !important;
+        cursor: pointer !important;
       }
       
       /* But allow clicks on sections */
