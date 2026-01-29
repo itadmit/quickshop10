@@ -122,7 +122,8 @@ export async function GET(request: NextRequest) {
     // Exchange code for tokens
     const clientId = process.env.GOOGLE_CLIENT_ID!;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET!;
-    const redirectUri = `${process.env.NEXTAUTH_URL}/api/google-business/callback`;
+    const baseUrl = (process.env.NEXTAUTH_URL || '').replace(/\/$/, ''); // Remove trailing slash
+    const redirectUri = `${baseUrl}/api/google-business/callback`;
 
     const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
       method: 'POST',
