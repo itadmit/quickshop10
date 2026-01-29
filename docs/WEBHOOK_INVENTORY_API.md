@@ -324,3 +324,7 @@ const onBarcodeScanned = async (barcode, action) => {
 
 
 
+
+
+
+

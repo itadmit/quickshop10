@@ -741,3 +741,7 @@ export function SoundAlert({ enabled, volume, newOrderIds, lastPlayedIds, onPlay
 - [ ] בדיקה על מסך מגע
 - [ ] בדיקת מצב כהה
 
+
+
+
+

@@ -30,6 +30,8 @@ const settingsTabs = [
   { id: 'email', label: 'דיוור', path: '/email' },
   { id: 'languages', label: 'שפות', path: '/languages' },
   { id: 'gdpr', label: 'עוגיות', path: '/gdpr' },
+  { id: 'webhooks', label: 'Webhooks', path: '/webhooks' },
+  { id: 'api', label: 'API', path: '/api' },
   { id: 'advanced', label: 'מתקדם', path: '/advanced' },
 ];
 

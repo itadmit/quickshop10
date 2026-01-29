@@ -4041,7 +4041,7 @@ export const apiKeys = pgTable('api_keys', {
   
   // Key info
   name: varchar('name', { length: 255 }).notNull(),
-  keyPrefix: varchar('key_prefix', { length: 10 }).notNull(), // qs_live_xxxx
+  keyPrefix: varchar('key_prefix', { length: 20 }).notNull(), // qs_live_xxxx (12 chars)
   keyHash: varchar('key_hash', { length: 255 }).notNull(), // SHA256
   lastFour: varchar('last_four', { length: 4 }).notNull(),
   

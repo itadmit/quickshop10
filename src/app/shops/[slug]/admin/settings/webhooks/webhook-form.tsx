@@ -107,16 +107,19 @@ export function WebhookForm({ storeId, slug, availableEvents }: WebhookFormProps
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setShowAdvanced(!showAdvanced)}
-        className="text-sm text-gray-500 hover:text-gray-700"
-      >
-        {showAdvanced ? '- הסתר הגדרות מתקדמות' : '+ הגדרות מתקדמות'}
-      </button>
+      {/* Advanced Settings Toggle */}
+      <div className="pt-2">
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          {showAdvanced ? '- הסתר הגדרות מתקדמות' : '+ הגדרות מתקדמות'}
+        </button>
+      </div>
 
       {showAdvanced && (
-        <div>
+        <div className="border-t border-gray-100 pt-4 mt-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Secret (לאימות חתימה)
           </label>
@@ -137,13 +140,16 @@ export function WebhookForm({ storeId, slug, availableEvents }: WebhookFormProps
         <p className="text-sm text-red-600">{error}</p>
       )}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer"
-      >
-        {isPending ? 'יוצר...' : 'צור Webhook'}
-      </button>
+      {/* Submit Button */}
+      <div className="flex justify-start pt-4 border-t border-gray-100 mt-4">
+        <button
+          type="submit"
+          disabled={isPending}
+          className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 cursor-pointer font-medium"
+        >
+          {isPending ? 'יוצר...' : 'צור Webhook'}
+        </button>
+      </div>
     </form>
   );
 }

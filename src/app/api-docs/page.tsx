@@ -46,6 +46,7 @@ const endpoints = [
     color: "bg-emerald-500",
     items: [
       { method: "GET", path: "/api/v1/products", desc: "רשימת מוצרים" },
+      { method: "POST", path: "/api/v1/products", desc: "יצירת מוצר" },
       { method: "GET", path: "/api/v1/products/{id}", desc: "פרטי מוצר" },
       { method: "PATCH", path: "/api/v1/products/{id}", desc: "עדכון מוצר" },
     ]
@@ -65,21 +66,24 @@ const endpoints = [
     color: "bg-purple-500",
     items: [
       { method: "GET", path: "/api/v1/customers", desc: "רשימת לקוחות" },
-      { method: "GET", path: "/api/v1/customers/{id}", desc: "פרטי לקוח" },
     ]
   },
 ]
 
 const scopes = [
-  { scope: "orders:read", desc: "צפייה בהזמנות" },
-  { scope: "orders:write", desc: "עדכון הזמנות" },
-  { scope: "products:read", desc: "צפייה במוצרים" },
-  { scope: "products:write", desc: "יצירה/עריכה/מחיקת מוצרים" },
-  { scope: "customers:read", desc: "צפייה בלקוחות" },
-  { scope: "inventory:read", desc: "צפייה במלאי" },
-  { scope: "inventory:write", desc: "עדכון מלאי" },
-  { scope: "analytics:read", desc: "צפייה באנליטיקס" },
-  { scope: "webhooks:write", desc: "ניהול וובהוקים" },
+  { scope: "orders:read", desc: "צפייה בהזמנות", active: true },
+  { scope: "orders:write", desc: "עדכון הזמנות", active: true },
+  { scope: "products:read", desc: "צפייה במוצרים", active: true },
+  { scope: "products:write", desc: "עריכת מוצרים", active: true },
+  { scope: "customers:read", desc: "צפייה בלקוחות", active: true },
+  { scope: "inventory:read", desc: "צפייה במלאי", active: true },
+  { scope: "inventory:write", desc: "עדכון מלאי", active: true },
+  // Future scopes - no public endpoints yet
+  { scope: "discounts:read", desc: "צפייה בהנחות וקופונים", active: false },
+  { scope: "discounts:write", desc: "ניהול הנחות וקופונים", active: false },
+  { scope: "analytics:read", desc: "צפייה באנליטיקס", active: false },
+  { scope: "webhooks:read", desc: "צפייה בוובהוקים", active: false },
+  { scope: "webhooks:write", desc: "ניהול וובהוקים", active: false },
 ]
 
 const errorCodes = [
@@ -200,7 +204,12 @@ export default function ApiDocsPage() {
               <div className="space-y-3">
                 {scopes.map((item) => (
                   <div key={item.scope} className="flex items-center justify-between py-2 border-b border-slate-800 last:border-0">
-                    <code className="text-sm font-mono text-emerald-400">{item.scope}</code>
+                    <div className="flex items-center gap-2">
+                      <code className={`text-sm font-mono ${item.active ? 'text-emerald-400' : 'text-gray-500'}`}>{item.scope}</code>
+                      {!item.active && (
+                        <span className="text-xs bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded">בקרוב</span>
+                      )}
+                    </div>
                     <span className="text-sm text-gray-400">{item.desc}</span>
                   </div>
                 ))}
@@ -352,6 +361,67 @@ def update_order_status(order_id, status):
                 </code>
               </pre>
             </div>
+          </div>
+
+          {/* Create Product Example */}
+          <div className="mt-10 max-w-5xl mx-auto">
+            <h3 className="text-xl font-semibold mb-4 text-center">יצירת מוצר עם תמונות</h3>
+            <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+              <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
+                <PackageIcon className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-mono text-gray-400">POST /api/v1/products</span>
+              </div>
+              <pre className="p-6 overflow-x-auto text-sm" dir="ltr">
+                <code className="text-gray-300">
+{`// יצירת מוצר חדש עם הורדת תמונות לשרת
+const response = await fetch('https://my-quickshop.com/api/v1/products', {
+  method: 'POST',
+  headers: {
+    'X-API-Key': API_KEY,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: "מוצר לדוגמא",
+    slug: "sample-product",
+    description: "תיאור המוצר",
+    price: "99.90",
+    compare_price: "149.90",
+    inventory: 100,
+    track_inventory: true,
+    category_ids: ["cat_123"],
+    
+    // תמונות - URL חיצוני
+    images: [
+      { url: "https://example.com/image1.jpg", alt: "תמונה ראשית", is_primary: true },
+      { url: "https://example.com/image2.jpg" }
+    ],
+    
+    // download_images: true = הורד וממיר ל-WebP ב-Vercel Blob
+    // download_images: false (ברירת מחדל) = שמור URL כמו שהוא
+    download_images: true
+  })
+});
+
+// Response
+{
+  "success": true,
+  "data": {
+    "id": "prod_xxx",
+    "name": "מוצר לדוגמא",
+    "slug": "sample-product",
+    "images": [
+      { "id": "img_1", "url": "https://xxx.blob.vercel-storage.com/...", "is_primary": true }
+    ]
+  }
+}`}
+                </code>
+              </pre>
+            </div>
+            <p className="text-center text-gray-500 mt-4 text-sm">
+              💡 עם <code className="text-emerald-400">download_images: true</code>, תמונות יורדות → ממירות ל-WebP → עולות ל-Vercel Blob.
+              <br />
+              🎥 וידאו (<code className="text-emerald-400">media_type: &quot;video&quot;</code>) נשמר כ-URL כפי שהוא - שלחו URL מ-Cloudinary או מקור אחר.
+            </p>
           </div>
         </div>
       </section>

@@ -12,3 +12,7 @@ ALTER TABLE "discounts" ADD COLUMN IF NOT EXISTS "trigger_coupon_codes" jsonb DE
 
 
 
+
+
+
+
