@@ -33,9 +33,24 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
     where: eq(storeSubscriptions.storeId, store.id),
   });
 
-  // Calculate transaction fees for this billing period (last 2 weeks)
-  const twoWeeksAgo = new Date();
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  // Find the last paid transaction_fee invoice to calculate from
+  const lastFeeInvoice = await db.select({
+    periodEnd: platformInvoices.periodEnd,
+  })
+    .from(platformInvoices)
+    .where(
+      and(
+        eq(platformInvoices.storeId, store.id),
+        eq(platformInvoices.type, 'transaction_fee'),
+        eq(platformInvoices.status, 'paid')
+      )
+    )
+    .orderBy(desc(platformInvoices.createdAt))
+    .limit(1);
+
+  // Calculate pending fees from the last charge date (or subscription start)
+  // This ensures we only count orders that haven't been charged yet
+  const lastChargeDate = lastFeeInvoice[0]?.periodEnd || subscription?.createdAt || new Date(0);
   
   const periodTransactions = await db.select({
     total: sql<string>`COALESCE(SUM(${orders.total}), 0)`,
@@ -45,12 +60,12 @@ export default async function SubscriptionPage({ params, searchParams }: Subscri
       and(
         eq(orders.storeId, store.id),
         eq(orders.financialStatus, 'paid'),
-        gte(orders.createdAt, twoWeeksAgo)
+        gte(orders.paidAt, lastChargeDate)
       )
     );
 
   const periodTotal = parseFloat(periodTransactions[0]?.total || '0');
-  const pendingFees = periodTotal * 0.005 * 1.18; // 0.5% + VAT
+  const pendingFees = periodTotal * 0.005 * 1.18; // 0.5% + VAT (כולל מע"מ)
 
   // Calculate trial period transaction fees (for showing before activation)
   // Use createdAt instead of paidAt to match dashboard calculations

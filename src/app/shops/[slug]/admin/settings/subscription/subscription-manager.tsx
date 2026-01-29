@@ -1003,8 +1003,11 @@ export function SubscriptionManager({ store, subscription, billing, invoices, pr
                   <td className="px-6 py-4 text-sm text-gray-600">
                     {invoiceTypeLabels[invoice.type]}
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                    {formatCurrency(invoice.amount)}
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-medium text-gray-900">
+                      {formatCurrency(invoice.amount)}
+                    </div>
+                    <div className="text-xs text-gray-400">כולל מע״מ</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className={`

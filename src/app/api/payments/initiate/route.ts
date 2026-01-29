@@ -575,8 +575,14 @@ export async function POST(request: NextRequest) {
       // Influencer
       influencerId: body.influencerId,
       
-      // 📊 UTM Source for traffic attribution
-      utmSource: (body.orderData as { utmSource?: string })?.utmSource || null,
+      // 📊 UTM tracking for traffic attribution
+      utmSource: (body.orderData as { utmSource?: string; utmData?: { source?: string; medium?: string; campaign?: string; content?: string; term?: string } })?.utmSource 
+        || (body.orderData as { utmData?: { source?: string } })?.utmData?.source 
+        || null,
+      utmMedium: (body.orderData as { utmData?: { medium?: string } })?.utmData?.medium || null,
+      utmCampaign: (body.orderData as { utmData?: { campaign?: string } })?.utmData?.campaign || null,
+      utmContent: (body.orderData as { utmData?: { content?: string } })?.utmData?.content || null,
+      utmTerm: (body.orderData as { utmData?: { term?: string } })?.utmData?.term || null,
       
       // Note: paymentMethod and paymentDetails will be updated after payment
     }).returning();

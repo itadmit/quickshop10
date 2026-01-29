@@ -455,11 +455,12 @@ export const getTrafficSources = cache(async (
     .groupBy(sql`COALESCE(${analyticsEvents.utmSource}, 'direct')`)
     .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`));
 
-  // If no analytics data, create fallback from order data
+  // If no analytics data, create fallback from order data (grouped by utm_source)
   if (sessions.length === 0) {
-    // Get order stats as fallback - group by UTM source if available in metadata (only paid orders)
+    // Get order stats grouped by UTM source (only paid orders)
     const ordersBySource = await db
       .select({
+        source: sql<string>`COALESCE(${orders.utmSource}, 'direct')`,
         totalOrders: sql<number>`COUNT(*)`,
         totalRevenue: sql<number>`COALESCE(SUM(${orders.total}::numeric), 0)`,
       })
@@ -469,23 +470,25 @@ export const getTrafficSources = cache(async (
         eq(orders.financialStatus, 'paid'),
         gte(orders.createdAt, from),
         lte(orders.createdAt, to)
-      ));
+      ))
+      .groupBy(sql`COALESCE(${orders.utmSource}, 'direct')`)
+      .orderBy(desc(sql`COUNT(*)`));
 
-    const totalOrders = Number(ordersBySource[0]?.totalOrders || 0);
-    const totalRevenue = Number(ordersBySource[0]?.totalRevenue || 0);
-
-    if (totalOrders > 0) {
-      // Return a single "direct" source with all orders
-      // Estimate sessions based on typical conversion rate (~2-3%)
-      const estimatedSessions = Math.round(totalOrders * 40); // ~2.5% conversion
-      
-      return [{
-        source: 'direct',
-        sessions: estimatedSessions,
-        orders: totalOrders,
-        revenue: totalRevenue,
-        conversionRate: (totalOrders / estimatedSessions) * 100,
-      }];
+    if (ordersBySource.length > 0) {
+      return ordersBySource.map(src => {
+        const orderCount = Number(src.totalOrders);
+        const revenue = Number(src.totalRevenue);
+        // Estimate sessions based on typical conversion rate (~2-3%)
+        const estimatedSessions = Math.round(orderCount * 40); // ~2.5% conversion
+        
+        return {
+          source: src.source,
+          sessions: estimatedSessions,
+          orders: orderCount,
+          revenue: revenue,
+          conversionRate: estimatedSessions > 0 ? (orderCount / estimatedSessions) * 100 : 0,
+        };
+      });
     }
 
     return [];
@@ -584,6 +587,7 @@ export const getLandingPages = cache(async (
 });
 
 // UTM Campaign Stats - for traffic report
+// Uses analytics_events if available, falls back to orders data
 export const getUtmStats = cache(async (
   storeId: string,
   period: '7d' | '30d' | '90d' | 'custom' = '30d',
@@ -591,71 +595,152 @@ export const getUtmStats = cache(async (
 ) => {
   const { from, to } = getDateRange(period, customRange);
 
-  // Get UTM Medium stats
-  const mediumResult = await db
-    .select({
-      utmMedium: sql<string>`COALESCE(${analyticsEvents.utmMedium}, 'direct')`,
-      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
-    })
+  // First try analytics_events
+  const analyticsCount = await db
+    .select({ count: sql<number>`COUNT(*)` })
     .from(analyticsEvents)
     .where(and(
       eq(analyticsEvents.storeId, storeId),
       eq(analyticsEvents.eventType, 'page_view'),
       gte(analyticsEvents.createdAt, from),
       lte(analyticsEvents.createdAt, to)
+    ));
+
+  const hasAnalyticsData = Number(analyticsCount[0]?.count || 0) > 0;
+
+  if (hasAnalyticsData) {
+    // Use analytics_events for more accurate session data
+    const mediumResult = await db
+      .select({
+        utmMedium: sql<string>`COALESCE(${analyticsEvents.utmMedium}, 'direct')`,
+        sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      })
+      .from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.storeId, storeId),
+        eq(analyticsEvents.eventType, 'page_view'),
+        gte(analyticsEvents.createdAt, from),
+        lte(analyticsEvents.createdAt, to)
+      ))
+      .groupBy(sql`COALESCE(${analyticsEvents.utmMedium}, 'direct')`)
+      .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+      .limit(10);
+
+    const campaignResult = await db
+      .select({
+        utmCampaign: analyticsEvents.utmCampaign,
+        sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      })
+      .from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.storeId, storeId),
+        eq(analyticsEvents.eventType, 'page_view'),
+        gte(analyticsEvents.createdAt, from),
+        lte(analyticsEvents.createdAt, to),
+        sql`${analyticsEvents.utmCampaign} IS NOT NULL`
+      ))
+      .groupBy(analyticsEvents.utmCampaign)
+      .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+      .limit(10);
+
+    const contentResult = await db
+      .select({
+        utmContent: analyticsEvents.utmContent,
+        sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      })
+      .from(analyticsEvents)
+      .where(and(
+        eq(analyticsEvents.storeId, storeId),
+        eq(analyticsEvents.eventType, 'page_view'),
+        gte(analyticsEvents.createdAt, from),
+        lte(analyticsEvents.createdAt, to),
+        sql`${analyticsEvents.utmContent} IS NOT NULL`
+      ))
+      .groupBy(analyticsEvents.utmContent)
+      .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+      .limit(10);
+
+    return {
+      byMedium: mediumResult.map(r => ({
+        medium: String(r.utmMedium),
+        sessions: Number(r.sessions),
+      })),
+      byCampaign: campaignResult.map(r => ({
+        campaign: r.utmCampaign || 'unknown',
+        sessions: Number(r.sessions),
+      })),
+      byContent: contentResult.map(r => ({
+        content: r.utmContent || 'unknown',
+        sessions: Number(r.sessions),
+      })),
+    };
+  }
+
+  // Fallback: Use orders data for UTM stats (shows conversions, not sessions)
+  const mediumFromOrders = await db
+    .select({
+      utmMedium: sql<string>`COALESCE(${orders.utmMedium}, 'direct')`,
+      count: sql<number>`COUNT(*)`,
+    })
+    .from(orders)
+    .where(and(
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to)
     ))
-    .groupBy(sql`COALESCE(${analyticsEvents.utmMedium}, 'direct')`)
-    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .groupBy(sql`COALESCE(${orders.utmMedium}, 'direct')`)
+    .orderBy(desc(sql`COUNT(*)`))
     .limit(10);
 
-  // Get UTM Campaign stats
-  const campaignResult = await db
+  const campaignFromOrders = await db
     .select({
-      utmCampaign: analyticsEvents.utmCampaign,
-      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      utmCampaign: orders.utmCampaign,
+      count: sql<number>`COUNT(*)`,
     })
-    .from(analyticsEvents)
+    .from(orders)
     .where(and(
-      eq(analyticsEvents.storeId, storeId),
-      eq(analyticsEvents.eventType, 'page_view'),
-      gte(analyticsEvents.createdAt, from),
-      lte(analyticsEvents.createdAt, to),
-      sql`${analyticsEvents.utmCampaign} IS NOT NULL`
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      sql`${orders.utmCampaign} IS NOT NULL`
     ))
-    .groupBy(analyticsEvents.utmCampaign)
-    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .groupBy(orders.utmCampaign)
+    .orderBy(desc(sql`COUNT(*)`))
     .limit(10);
 
-  // Get UTM Content stats
-  const contentResult = await db
+  const contentFromOrders = await db
     .select({
-      utmContent: analyticsEvents.utmContent,
-      sessions: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+      utmContent: orders.utmContent,
+      count: sql<number>`COUNT(*)`,
     })
-    .from(analyticsEvents)
+    .from(orders)
     .where(and(
-      eq(analyticsEvents.storeId, storeId),
-      eq(analyticsEvents.eventType, 'page_view'),
-      gte(analyticsEvents.createdAt, from),
-      lte(analyticsEvents.createdAt, to),
-      sql`${analyticsEvents.utmContent} IS NOT NULL`
+      eq(orders.storeId, storeId),
+      eq(orders.financialStatus, 'paid'),
+      gte(orders.createdAt, from),
+      lte(orders.createdAt, to),
+      sql`${orders.utmContent} IS NOT NULL`
     ))
-    .groupBy(analyticsEvents.utmContent)
-    .orderBy(desc(sql`COUNT(DISTINCT ${analyticsEvents.sessionId})`))
+    .groupBy(orders.utmContent)
+    .orderBy(desc(sql`COUNT(*)`))
     .limit(10);
 
   return {
-    byMedium: mediumResult.map(r => ({
-      medium: String(r.utmMedium),
-      sessions: Number(r.sessions),
-    })),
-    byCampaign: campaignResult.map(r => ({
+    byMedium: mediumFromOrders
+      .filter(r => String(r.utmMedium) !== 'direct' || mediumFromOrders.length === 1)
+      .map(r => ({
+        medium: String(r.utmMedium),
+        sessions: Number(r.count), // Actually orders, but using same field name
+      })),
+    byCampaign: campaignFromOrders.map(r => ({
       campaign: r.utmCampaign || 'unknown',
-      sessions: Number(r.sessions),
+      sessions: Number(r.count),
     })),
-    byContent: contentResult.map(r => ({
+    byContent: contentFromOrders.map(r => ({
       content: r.utmContent || 'unknown',
-      sessions: Number(r.sessions),
+      sessions: Number(r.count),
     })),
   };
 });

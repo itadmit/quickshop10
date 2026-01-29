@@ -1003,6 +1003,10 @@ export const orders = pgTable('orders', {
   
   // Traffic source tracking (UTM)
   utmSource: varchar('utm_source', { length: 100 }), // google, facebook, instagram, etc.
+  utmMedium: varchar('utm_medium', { length: 100 }), // cpc, organic, social, email
+  utmCampaign: varchar('utm_campaign', { length: 255 }), // summer_sale, black_friday
+  utmContent: varchar('utm_content', { length: 255 }), // ad variant, button type
+  utmTerm: varchar('utm_term', { length: 255 }), // paid search keywords
   
   // Notes
   note: text('note'),

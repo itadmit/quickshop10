@@ -42,17 +42,28 @@ interface GenerateLinkResponse {
 }
 
 interface ChargeResponse {
-  transaction_uid: string;
-  transaction_number: string;
-  status_code: string;
-  four_digits: string;
-  brand_name: string;
-  expiry_month: string;
-  expiry_year: string;
-  customer_uid: string;
+  transaction: {
+    uid: string;
+    number: string;
+    status_code: string;
+  };
+  data: {
+    customer_uid: string;
+    card_information: {
+      four_digits: string;
+      brand_id: number;
+      expiry_month: string;
+      expiry_year: string;
+    };
+  };
+  invoice?: {
+    uuid: string;
+    docu_number: string;
+    original_url: string;
+    copy_url: string;
+    status: string;
+  };
   token_uid?: string;
-  invoice_number?: string;
-  invoice_link?: string;
 }
 
 interface CustomerResponse {
@@ -372,9 +383,9 @@ export async function chargeWithToken(
 
     return {
       success: true,
-      transactionUid: response.data?.transaction_uid,
-      invoiceNumber: response.data?.invoice_number,
-      invoiceUrl: response.data?.invoice_link,
+      transactionUid: response.data?.transaction?.uid,
+      invoiceNumber: response.data?.invoice?.docu_number,
+      invoiceUrl: response.data?.invoice?.original_url,
     };
   } catch (error) {
     console.error('[PayPlus Billing] Error charging with token:', error);
