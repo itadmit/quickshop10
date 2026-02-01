@@ -1427,6 +1427,20 @@ export function ThemeEditor({
 
           <div className="w-px h-6 bg-white/10" />
 
+          {/* View Site Button */}
+          <a
+            href={store.customDomain ? `https://${store.customDomain}` : `/shops/${slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+            title="צפייה באתר"
+          >
+            <ExternalLinkIcon />
+            <span>צפה באתר</span>
+          </a>
+
+          <div className="w-px h-6 bg-white/10" />
+
           {/* Save Button */}
           <button
             onClick={handleSave}
@@ -1972,7 +1986,7 @@ function getSectionDefaultTitle(type: string): string {
     product_description: 'תיאור מוצר',
     product_reviews: 'ביקורות',
     product_related: 'אולי יעניין אותך',
-    product_upsells: 'מוצרים נוספים',
+    product_upsells: 'מוצרים משלימים',
     // Utility sections
     accordion: 'אקורדיון',
     tabs: 'טאבים',
@@ -2364,7 +2378,9 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       showIfEmpty: false,
     },
     product_upsells: {
-      count: 4,
+      count: 8,
+      useSlider: true,
+      showIfEmpty: false,
     },
     accordion: {
       allowMultiple: false,
@@ -2661,6 +2677,16 @@ function TemplateIcon() {
       <rect x="14" y="3" width="7" height="4" />
       <rect x="14" y="10" width="7" height="11" />
       <rect x="3" y="13" width="7" height="8" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+      <polyline points="15 3 21 3 21 9" />
+      <line x1="10" y1="14" x2="21" y2="3" />
     </svg>
   );
 }

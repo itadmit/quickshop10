@@ -6832,7 +6832,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
     product_description: 'תיאור מוצר',
     product_reviews: 'ביקורות',
     product_related: 'אולי יעניין אותך',
-    product_upsells: 'מוצרי אפסייל',
+    product_upsells: 'מוצרים משלימים',
     product_story_stats: 'סטטיסטיקות סטורי',
     // Legacy
     product_info: 'מידע מוצר (Legacy)',
@@ -7344,13 +7344,13 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
                 value={(section.settings.count as number) || 4}
                 min={2}
                 max={8}
-                onChange={(v) => updateSettings({ count: v })}
+                onChange={(v) => onUpdate({ settings: { ...section.settings, count: v } })}
               />
               
               <SwitchField
                 label="הצג גם כשאין מוצרים"
                 value={(section.settings.showIfEmpty as boolean) ?? false}
-                onChange={(v) => updateSettings({ showIfEmpty: v })}
+                onChange={(v) => onUpdate({ settings: { ...section.settings, showIfEmpty: v } })}
               />
             </SettingsGroup>
           </>
@@ -7359,47 +7359,43 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
         {/* Product Upsells Settings */}
         {section.type === 'product_upsells' && (
           <>
-            <SettingsGroup title="מוצרי אפסייל">
+            <SettingsGroup title="מוצרים משלימים">
               <TextField
                 label="כותרת"
-                value={section.title || 'לקוחות גם קנו'}
+                value={section.title || 'מוצרים משלימים'}
                 onChange={(v) => onUpdate({ title: v })}
               />
               
               <TextField
                 label="תת-כותרת"
-                value={section.subtitle || ''}
+                value={section.subtitle || 'לקוחות שקנו מוצר זה קנו גם'}
                 onChange={(v) => onUpdate({ subtitle: v })}
               />
               
               <SliderField
                 label="כמות מוצרים"
-                value={(section.settings.count as number) || 4}
+                value={(section.settings.count as number) || 8}
                 min={2}
-                max={6}
-                onChange={(v) => updateSettings({ count: v })}
+                max={12}
+                onChange={(v) => onUpdate({ settings: { ...section.settings, count: v } })}
               />
               
               <p className="text-xs text-gray-500 mt-3">
-                💡 מוצרי אפסייל מוגדרים בעריכת מוצר
+                💡 מוצרים משלימים מוגדרים בעריכת מוצר
               </p>
             </SettingsGroup>
             
             <SettingsGroup title="סגנון">
-              <SelectField
-                label="פריסה"
-                value={(section.settings.layout as string) || 'grid'}
-                options={[
-                  { value: 'grid', label: 'רשת' },
-                  { value: 'carousel', label: 'קרוסלה' },
-                ]}
-                onChange={(v) => updateSettings({ layout: v })}
+              <SwitchField
+                label="הפעל סליידר (מעל 4 מוצרים)"
+                value={(section.settings.useSlider as boolean) ?? true}
+                onChange={(v) => onUpdate({ settings: { ...section.settings, useSlider: v } })}
               />
               
               <SwitchField
-                label="הצג גם כשאין אפסיילים"
+                label="הצג גם כשאין מוצרים משלימים"
                 value={(section.settings.showIfEmpty as boolean) ?? false}
-                onChange={(v) => updateSettings({ showIfEmpty: v })}
+                onChange={(v) => onUpdate({ settings: { ...section.settings, showIfEmpty: v } })}
               />
             </SettingsGroup>
           </>

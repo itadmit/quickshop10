@@ -30,7 +30,7 @@ export type ProductSectionType =
   | 'product_description'   // תיאור מלא
   | 'product_reviews'       // ביקורות
   | 'product_related'       // מוצרים דומים
-  | 'product_upsells'       // מוצרי אפסייל
+  | 'product_upsells'       // מוצרים משלימים
   | 'product_story_stats'   // סטטיסטיקות סטורי (לייקים, צפיות, תגובות) - רק אם תוסף פעיל
   // Legacy - תאימות לאחור
   | 'product_info'          // [DEPRECATED] משמש למיגרציה בלבד
@@ -186,6 +186,18 @@ export interface RelatedSectionSettings {
   count: number;             // Number of products to show
   source: 'same_category' | 'manual' | 'bestsellers';
   showIfEmpty: boolean;
+}
+
+// Upsells (Complementary Products) Section - מוצרים משלימים
+export interface UpsellsSectionContent {
+  // Content is dynamic - fetched from product.upsellProductIds
+}
+
+export interface UpsellsSectionSettings {
+  count: number;              // Number of products to show
+  showIfEmpty: boolean;       // Show section even if no upsells defined
+  useSlider: boolean;         // Use slider when more than 4 products
+  sliderAutoplay: boolean;    // Auto-advance slider
 }
 
 // Reviews Section
@@ -406,6 +418,21 @@ export const defaultProductPageSections: ProductPageSection[] = [
     isActive: true,
   },
   {
+    id: 'upsells',
+    type: 'product_upsells',
+    title: 'מוצרים משלימים',
+    subtitle: 'לקוחות שקנו מוצר זה קנו גם',
+    content: {},
+    settings: {
+      count: 8,
+      showIfEmpty: false,
+      useSlider: true,
+      sliderAutoplay: false,
+    } satisfies UpsellsSectionSettings as Record<string, unknown>,
+    sortOrder: 11,
+    isActive: true,
+  },
+  {
     id: 'related',
     type: 'product_related',
     title: 'אולי יעניין אותך',
@@ -416,7 +443,7 @@ export const defaultProductPageSections: ProductPageSection[] = [
       source: 'same_category',
       showIfEmpty: false,
     } satisfies RelatedSectionSettings as Record<string, unknown>,
-    sortOrder: 11,
+    sortOrder: 12,
     isActive: true,
   },
 ];
@@ -591,7 +618,7 @@ export const sectionTypeLabels: Record<ProductSectionType, string> = {
   product_description: 'תיאור מוצר',
   product_reviews: 'ביקורות',
   product_related: 'אולי יעניין אותך',
-  product_upsells: 'מוצרי אפסייל',
+  product_upsells: 'מוצרים משלימים',
   product_story_stats: 'סטטיסטיקות סטורי',
   // Legacy
   product_info: 'מידע מוצר (Legacy)',
@@ -621,7 +648,7 @@ export const addableSectionTypes: { type: ProductSectionType; label: string; ico
   { type: 'product_description', label: 'תיאור מוצר', icon: 'description', category: 'מוצר' },
   { type: 'product_reviews', label: 'ביקורות', icon: 'reviews', category: 'מוצר' },
   { type: 'product_related', label: 'מוצרים דומים', icon: 'related', category: 'מוצר' },
-  { type: 'product_upsells', label: 'מוצרי אפסייל', icon: 'upsell', category: 'מוצר' },
+  { type: 'product_upsells', label: 'מוצרים משלימים', icon: 'upsell', category: 'מוצר' },
   { type: 'product_story_stats', label: 'סטטיסטיקות סטורי', icon: 'heart', category: 'מוצר', pluginRequired: 'product-stories' },
   // Layout
   { type: 'breadcrumb', label: 'ניווט', icon: 'breadcrumb', category: 'פריסה' },

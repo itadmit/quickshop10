@@ -210,23 +210,24 @@ export function QuickAddModal({
     
     // Color type
     if (option.displayType === 'color' && metadata?.color) {
-      // בדיקה אם הערך הוא קוד צבע - אם כן, נציג את שם האופציה כ-tooltip
-      const isColorCode = /^(rgb|rgba|hsl|hsla)\(|^#[0-9a-f]{3,8}$/i.test(val.value);
-      const colorTooltip = isColorCode ? option.name : val.value;
       return (
-        <button
-          key={val.id}
-          onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
-          className={`${baseClasses} w-8 h-8 rounded-full border border-gray-200`}
-          style={{ backgroundColor: metadata.color }}
-          title={colorTooltip}
-          aria-label={colorTooltip}
-          disabled={isOutOfStock}
-        >
-          {isSelected && (
-            <Check className="w-4 h-4 text-white drop-shadow-md" />
-          )}
-        </button>
+        <div key={val.id} className="relative group">
+          <button
+            onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
+            className={`${baseClasses} w-8 h-8 rounded-full border border-gray-200`}
+            style={{ backgroundColor: metadata.color }}
+            aria-label={val.value}
+            disabled={isOutOfStock}
+          >
+            {isSelected && (
+              <Check className="w-4 h-4 text-white drop-shadow-md" />
+            )}
+          </button>
+          {/* Custom Tooltip */}
+          <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+            {val.value}
+          </span>
+        </div>
       );
     }
     

@@ -265,32 +265,32 @@ export function VariantSelector({
 
               // Render based on displayType
               if (displayType === 'color' && meta?.color) {
-                // בדיקה אם הערך הוא קוד צבע - אם כן, נציג את שם האופציה כ-tooltip
-                const isColorCode = /^(rgb|rgba|hsl|hsla)\(|^#[0-9a-f]{3,8}$/i.test(val.value);
-                const colorTooltip = isColorCode ? option.name : val.value;
                 return (
-                  <button
-                    key={val.id}
-                    onClick={() => handleOptionChange(optIndex, val.value, option)}
-                    disabled={!isAvailable}
-                    title={colorTooltip}
-                    aria-label={colorTooltip}
-                    className={`
-                      relative w-8 h-8 rounded-full transition-all cursor-pointer
-                      ${isSelected 
-                        ? 'ring-2 ring-offset-2 ring-black' 
-                        : 'hover:ring-1 hover:ring-offset-1 hover:ring-gray-400'
-                      }
-                      ${!isAvailable ? 'opacity-30 !cursor-not-allowed' : ''}
-                    `}
-                    style={{ backgroundColor: meta.color }}
-                  >
-                    {!isAvailable && (
-                      <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="w-full h-0.5 bg-gray-500 rotate-45 absolute"></span>
-                      </span>
-                    )}
-                  </button>
+                  <div key={val.id} className="relative group">
+                    <button
+                      onClick={() => handleOptionChange(optIndex, val.value, option)}
+                      aria-label={val.value}
+                      className={`
+                        relative w-8 h-8 rounded-full transition-all cursor-pointer
+                        ${isSelected 
+                          ? 'ring-2 ring-offset-2 ring-black' 
+                          : 'hover:ring-1 hover:ring-offset-1 hover:ring-gray-400'
+                        }
+                        ${!isAvailable ? 'opacity-50' : ''}
+                      `}
+                      style={{ backgroundColor: meta.color }}
+                    >
+                      {!isAvailable && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="w-full h-0.5 bg-gray-500 rotate-45 absolute"></span>
+                        </span>
+                      )}
+                    </button>
+                    {/* Custom Tooltip */}
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      {val.value}
+                    </span>
+                  </div>
                 );
               }
 
@@ -299,7 +299,6 @@ export function VariantSelector({
                   <button
                     key={val.id}
                     onClick={() => handleOptionChange(optIndex, val.value, option)}
-                    disabled={!isAvailable}
                     title={val.value}
                     className={`
                       relative w-10 h-10 rounded border transition-all cursor-pointer
@@ -307,7 +306,7 @@ export function VariantSelector({
                         ? 'ring-2 ring-offset-2 ring-black border-black' 
                         : 'border-gray-200 hover:border-black'
                       }
-                      ${!isAvailable ? 'opacity-30 !cursor-not-allowed' : ''}
+                      ${!isAvailable ? 'opacity-50' : ''}
                     `}
                     style={getPatternStyle(meta.pattern, meta.color)}
                   >
@@ -325,7 +324,6 @@ export function VariantSelector({
                   <button
                     key={val.id}
                     onClick={() => handleOptionChange(optIndex, val.value, option)}
-                    disabled={!isAvailable}
                     title={val.value}
                     className={`
                       relative w-12 h-12 rounded overflow-hidden transition-all cursor-pointer
@@ -333,7 +331,7 @@ export function VariantSelector({
                         ? 'ring-2 ring-offset-2 ring-black' 
                         : 'hover:ring-2 hover:ring-offset-2 hover:ring-gray-300'
                       }
-                      ${!isAvailable ? 'opacity-30 !cursor-not-allowed' : ''}
+                      ${!isAvailable ? 'opacity-50' : ''}
                     `}
                   >
                     <img 
@@ -355,14 +353,13 @@ export function VariantSelector({
                 <button
                   key={val.id}
                   onClick={() => handleOptionChange(optIndex, val.value, option)}
-                  disabled={!isAvailable}
                   className={`
                     min-w-[48px] px-4 py-3 text-sm border transition-all cursor-pointer
                     ${isSelected 
                       ? 'border-black bg-black text-white' 
                       : 'border-gray-200 hover:border-black'
                     }
-                    ${!isAvailable ? 'opacity-30 !cursor-not-allowed line-through' : ''}
+                    ${!isAvailable ? 'opacity-50 line-through' : ''}
                   `}
                 >
                   {val.value}

@@ -134,6 +134,19 @@ export function ProductPagePreviewProvider({
           return merged;
         });
       }
+      
+      // Handle features section update from editor (product page features)
+      if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
+        const { updates } = event.data;
+        // Check if this is a features section update (content.items for product page features)
+        if (updates?.content?.items) {
+          const items = updates.content.items as ProductFeature[];
+          setSettings(prev => ({
+            ...prev,
+            features: items,
+          }));
+        }
+      }
     };
 
     window.addEventListener('message', handleMessage);

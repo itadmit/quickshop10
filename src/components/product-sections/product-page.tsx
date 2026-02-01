@@ -731,27 +731,27 @@ export function ProductPage({
         return (
           <section 
             key={section.id}
-            className="py-16 px-6 bg-gray-50"
+            className="py-20 px-6 bg-gray-50"
             data-section-id={section.id}
             data-section-type={section.type}
             data-section-name="מוצרים דומים"
           >
             <div className="max-w-7xl mx-auto">
               <h2 
-                className="text-[11px] tracking-[0.2em] uppercase text-black mb-8 text-center"
+                className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest"
                 data-section-title
               >
                 {section.title || 'אולי יעניין אותך'}
               </h2>
               {section.subtitle && (
                 <p 
-                  className="text-center text-gray-500 text-sm mb-8"
+                  className="text-center text-gray-500 text-sm tracking-wide mb-12"
                   data-section-subtitle
                 >
                   {section.subtitle}
                 </p>
               )}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
                 {displayRelated.map((p) => (
                   <ProductCard
                     key={p.id}
@@ -775,58 +775,110 @@ export function ProductPage({
         );
       
       case 'product_upsells':
-        const upsellSettings = section.settings as { count?: number; showIfEmpty?: boolean };
-        const upsellCount = upsellSettings.count ?? 4;
+        const upsellSettings = section.settings as { 
+          count?: number; 
+          showIfEmpty?: boolean; 
+          useSlider?: boolean;
+          sliderAutoplay?: boolean;
+        };
+        const upsellCount = upsellSettings.count ?? 8;
         const displayUpsells = upsellProducts.slice(0, upsellCount);
+        const useSlider = (upsellSettings.useSlider ?? true) && displayUpsells.length > 4;
         
         if (displayUpsells.length === 0 && !upsellSettings.showIfEmpty) return null;
         
         return (
           <section 
             key={section.id}
-            className="py-16 px-6"
+            className="py-20 px-6"
             data-section-id={section.id}
             data-section-type={section.type}
-            data-section-name="מוצרי אפסייל"
+            data-section-name="מוצרים משלימים"
           >
             <div className="max-w-7xl mx-auto">
               <h2 
-                className="text-[11px] tracking-[0.2em] uppercase text-black mb-8 text-center"
+                className="font-display text-2xl md:text-3xl text-center mb-4 font-light tracking-widest"
                 data-section-title
               >
-                {section.title || 'לקוחות גם קנו'}
+                {section.title || 'מוצרים משלימים'}
               </h2>
               {section.subtitle && (
                 <p 
-                  className="text-center text-gray-500 text-sm mb-8"
+                  className="text-center text-gray-500 text-sm tracking-wide mb-12"
                   data-section-subtitle
                 >
                   {section.subtitle}
                 </p>
               )}
               {displayUpsells.length > 0 ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  {displayUpsells.map((p) => (
-                    <ProductCard
-                      key={p.id}
-                      id={p.id}
-                      name={p.name}
-                      slug={p.slug}
-                      price={Number(p.price)}
-                      comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
-                      image={p.images[0] || '/placeholder.svg'}
-                      basePath={basePath}
-                      showDecimalPrices={showDecimalPrices}
-                      inventory={p.inventory}
-                      trackInventory={p.trackInventory}
-                      allowBackorder={p.allowBackorder}
-                      showWishlist={showWishlist}
-                    />
-                  ))}
-                </div>
+                useSlider ? (
+                  // Slider mode for more than 4 products
+                  <div className="relative group">
+                    <div 
+                      className="flex gap-6 md:gap-10 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4 -mx-4 px-4 scrollbar-hide"
+                      style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
+                      {displayUpsells.map((p) => (
+                        <div 
+                          key={p.id} 
+                          className="shrink-0 w-[calc(50%-12px)] lg:w-[calc(25%-30px)] snap-start"
+                        >
+                          <ProductCard
+                            id={p.id}
+                            name={p.name}
+                            slug={p.slug}
+                            price={Number(p.price)}
+                            comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
+                            image={p.images[0] || '/placeholder.svg'}
+                            basePath={basePath}
+                            showDecimalPrices={showDecimalPrices}
+                            inventory={p.inventory}
+                            trackInventory={p.trackInventory}
+                            allowBackorder={p.allowBackorder}
+                            showWishlist={showWishlist}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {/* Scroll indicators */}
+                    <div className="flex justify-center gap-2 mt-4">
+                      {Array.from({ length: Math.ceil(displayUpsells.length / 4) }).map((_, i) => (
+                        <button
+                          key={i}
+                          className="w-2 h-2 rounded-full bg-gray-300 hover:bg-gray-400 transition-colors"
+                          aria-label={`Go to slide ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                    {/* Gradient fades on sides */}
+                    <div className="absolute left-0 top-0 bottom-4 w-8 bg-gradient-to-r from-white to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute right-0 top-0 bottom-4 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ) : (
+                  // Grid mode for 4 or fewer products
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-10">
+                    {displayUpsells.map((p) => (
+                      <ProductCard
+                        key={p.id}
+                        id={p.id}
+                        name={p.name}
+                        slug={p.slug}
+                        price={Number(p.price)}
+                        comparePrice={p.comparePrice ? Number(p.comparePrice) : null}
+                        image={p.images[0] || '/placeholder.svg'}
+                        basePath={basePath}
+                        showDecimalPrices={showDecimalPrices}
+                        inventory={p.inventory}
+                        trackInventory={p.trackInventory}
+                        allowBackorder={p.allowBackorder}
+                        showWishlist={showWishlist}
+                      />
+                    ))}
+                  </div>
+                )
               ) : (
                 <p className="text-center text-gray-400 text-sm">
-                  הגדר מוצרי אפסייל בעריכת המוצר
+                  הגדר מוצרים משלימים בעריכת המוצר
                 </p>
               )}
             </div>
@@ -1061,17 +1113,24 @@ export function ProductPage({
                   )}
                   
                   {/* Features - after info */}
-                  {contentSections.filter(s => s.type === 'features').map(s => (
-                    <div 
-                      key={s.id} 
-                      className="mt-8"
-                      data-section-id={s.id}
-                      data-section-type="features"
-                      data-section-name="חוזקות"
-                    >
-                      <ProductSection section={s} context={context} />
-                    </div>
-                  ))}
+                  {contentSections.filter(s => s.type === 'features').map(s => {
+                    const featureItems = (s.content.items as Array<{ id: string; icon: string; text: string; isVisible: boolean }>) || [];
+                    return (
+                      <div 
+                        key={s.id} 
+                        className="mt-8"
+                        data-section-id={s.id}
+                        data-section-type="features"
+                        data-section-name="חוזקות"
+                      >
+                        {isPreviewMode ? (
+                          <LiveFeaturesSection initialFeatures={featureItems} />
+                        ) : (
+                          <ProductSection section={s} context={context} />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
               
@@ -1263,17 +1322,24 @@ export function ProductPage({
                   )}
 
                   {/* Features - after info, only if has features section */}
-                  {contentSections.filter(s => s.type === 'features').map(s => (
-                    <div 
-                      key={s.id} 
-                      className="mt-8"
-                      data-section-id={s.id}
-                      data-section-type="features"
-                      data-section-name="חוזקות"
-                    >
-                      <ProductSection section={s} context={context} />
-                    </div>
-                  ))}
+                  {contentSections.filter(s => s.type === 'features').map(s => {
+                    const featureItems = (s.content.items as Array<{ id: string; icon: string; text: string; isVisible: boolean }>) || [];
+                    return (
+                      <div 
+                        key={s.id} 
+                        className="mt-8"
+                        data-section-id={s.id}
+                        data-section-type="features"
+                        data-section-name="חוזקות"
+                      >
+                        {isPreviewMode ? (
+                          <LiveFeaturesSection initialFeatures={featureItems} />
+                        ) : (
+                          <ProductSection section={s} context={context} />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

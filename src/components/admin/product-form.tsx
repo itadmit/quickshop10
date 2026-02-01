@@ -312,6 +312,9 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
     })) || []
   );
 
+  // State לעריכת שם ערך אופציה
+  const [editingValue, setEditingValue] = useState<{ optIndex: number; valIndex: number; value: string } | null>(null);
+
   // Auto-generate slug from name
   const handleNameChange = useCallback((value: string) => {
     setName(value);
@@ -450,6 +453,49 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
       return newOptions;
     });
   }, []);
+
+  // Update option value name (rename)
+  const updateOptionValueName = useCallback((optionIndex: number, valueIndex: number, newValue: string) => {
+    if (!newValue.trim()) return;
+    
+    // קודם נמצא את הערך הישן
+    const oldValue = options[optionIndex]?.values[valueIndex]?.value;
+    if (!oldValue || oldValue === newValue.trim()) return;
+    
+    // עדכון האופציות
+    setOptions(prev => prev.map((opt, i) => 
+      i === optionIndex 
+        ? {
+            ...opt,
+            values: opt.values.map((v, vi) => 
+              vi === valueIndex 
+                ? { ...v, value: newValue.trim() }
+                : v
+            )
+          }
+        : opt
+    ));
+    
+    // עדכון הוריאציות - גם title וגם option1/option2/option3 (בנפרד מ-setOptions)
+    const optionKey = `option${optionIndex + 1}` as 'option1' | 'option2' | 'option3';
+    setVariants(prevVariants => prevVariants.map(variant => {
+      // אם הוריאנט משתמש בערך הישן - נעדכן אותו
+      // בודקים גם את option וגם ב-title (במקרה שיש אי התאמה)
+      const variantOptionValue = variant[optionKey];
+      const titleParts = variant.title.split(' / ');
+      const hasOldValueInTitle = titleParts.includes(oldValue);
+      
+      if (variantOptionValue === oldValue || hasOldValueInTitle) {
+        const updatedParts = titleParts.map(part => part === oldValue ? newValue.trim() : part);
+        return {
+          ...variant,
+          [optionKey]: variantOptionValue === oldValue ? newValue.trim() : variantOptionValue,
+          title: updatedParts.join(' / ')
+        };
+      }
+      return variant;
+    }));
+  }, [options]);
   
   // Update option value gallery images
   const updateValueGallery = useCallback((optionIndex: number, valueIndex: number, images: string[]) => {
@@ -544,21 +590,25 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
       allowBackorder,
       hasVariants,
       options: hasVariants ? options : undefined,
-      variants: hasVariants ? variants.map(v => ({
-        id: v.id,
-        title: v.title,
-        sku: v.sku || undefined,
-        barcode: v.barcode || undefined,
-        price: v.price,
-        comparePrice: v.comparePrice || undefined,
-        cost: v.cost || undefined,
-        weight: v.weight || undefined,
-        inventory: v.inventory,
-        allowBackorder: v.allowBackorder,
-        option1: v.option1,
-        option2: v.option2,
-        option3: v.option3,
-      })) : undefined,
+      variants: hasVariants ? variants.map(v => {
+        // סנכרון option1/option2/option3 מה-title כדי להבטיח התאמה
+        const titleParts = v.title.split(' / ');
+        return {
+          id: v.id,
+          title: v.title,
+          sku: v.sku || undefined,
+          barcode: v.barcode || undefined,
+          price: v.price,
+          comparePrice: v.comparePrice || undefined,
+          cost: v.cost || undefined,
+          weight: v.weight || undefined,
+          inventory: v.inventory,
+          allowBackorder: v.allowBackorder,
+          option1: titleParts[0] || v.option1,
+          option2: titleParts[1] || v.option2,
+          option3: titleParts[2] || v.option3,
+        };
+      }) : undefined,
       categoryIds: categoryIds.length > 0 ? categoryIds : undefined,
       isActive,
       isFeatured,
@@ -611,7 +661,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <Link 
             href={`/shops/${storeSlug}/admin/products`}
             className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -632,6 +682,25 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
           >
             ביטול
           </Link>
+          {/* View Product Link - Edit mode only */}
+          {mode === 'edit' && product?.slug && (
+            <Link
+              href={customDomain 
+                ? `https://${customDomain}/product/${product.slug}`
+                : `/shops/${storeSlug}/product/${product.slug}`
+              }
+              target="_blank"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              title="צפה במוצר"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+              </svg>
+              צפה במוצר
+            </Link>
+          )}
           <button
             type="submit"
             disabled={isPending}
@@ -872,7 +941,7 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                               {option.values.map((val, valIndex) => (
                               <span 
                                 key={valIndex} 
-                                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded text-sm"
+                                  className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-gray-200 rounded text-sm group"
                               >
                                   {/* Color swatch for color type */}
                                   {option.displayType === 'color' && val.metadata?.color && (
@@ -892,7 +961,36 @@ export function ProductForm({ storeId, storeSlug, customDomain, categories, allP
                                       }}
                                     />
                                   )}
-                                  {val.value}
+                                  {/* Editable value name */}
+                                  {editingValue?.optIndex === optIndex && editingValue?.valIndex === valIndex ? (
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      defaultValue={editingValue.value}
+                                      className="w-20 px-1 py-0.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 outline-none"
+                                      onBlur={(e) => {
+                                        updateOptionValueName(optIndex, valIndex, e.target.value);
+                                        setEditingValue(null);
+                                      }}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          updateOptionValueName(optIndex, valIndex, (e.target as HTMLInputElement).value);
+                                          setEditingValue(null);
+                                        }
+                                        if (e.key === 'Escape') {
+                                          setEditingValue(null);
+                                        }
+                                      }}
+                                    />
+                                  ) : (
+                                    <span 
+                                      className="cursor-pointer hover:text-blue-600"
+                                      onClick={() => setEditingValue({ optIndex, valIndex, value: val.value })}
+                                      title="לחץ לעריכה"
+                                    >
+                                      {val.value}
+                                    </span>
+                                  )}
                                 <button
                                   type="button"
                                   onClick={() => removeOptionValue(optIndex, valIndex)}

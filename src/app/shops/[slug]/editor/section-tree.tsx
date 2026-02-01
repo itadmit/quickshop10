@@ -114,7 +114,7 @@ const productSectionTypes: Array<{ type: string; label: string; icon: SectionIco
   { type: 'product_description', label: 'תיאור מוצר', icon: FileText, category: 'מוצר' },
   { type: 'product_reviews', label: 'ביקורות', icon: Star, category: 'מוצר' },
   { type: 'product_related', label: 'אולי יעניין אותך', icon: Grid3X3, category: 'מוצר' },
-  { type: 'product_upsells', label: 'מוצרי אפסייל', icon: ShoppingBag, category: 'מוצר' },
+  { type: 'product_upsells', label: 'מוצרים משלימים', icon: ShoppingBag, category: 'מוצר' },
   // תוכן (עם תמיכה בתוכן דינמי {{product.x}})
   { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
   { type: 'accordion', label: 'אקורדיון', icon: Layers, category: 'תוכן' },
