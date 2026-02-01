@@ -30,7 +30,7 @@ const stylePresets = {
   numbers: {
     container: 'flex items-center justify-center gap-1 text-sm',
     dot: {
-      base: 'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer font-medium',
+      base: 'w-8 h-8 flex items-center justify-center transition-all duration-200 cursor-pointer font-medium',
       active: 'bg-gray-900 text-white',
       inactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
     },
@@ -90,28 +90,41 @@ export function SliderDots({
     goToSlide(dotIndex * itemsPerView);
   };
 
+  // Custom colors from settings
+  const activeColor = settings.dotsActiveColor || '#111827';
+  const inactiveColor = settings.dotsInactiveColor || '#d1d5db';
+
   return (
     <div 
       className={`${stylePreset.container} ${positionClass} ${className}`}
       data-slider-dots
       data-dots-style={style}
     >
-      {Array.from({ length: dotCount }).map((_, index) => (
-        <button
-          key={index}
-          onClick={() => handleDotClick(index)}
-          className={`
-            ${stylePreset.dot.base}
-            ${index === activeDot ? stylePreset.dot.active : stylePreset.dot.inactive}
-          `}
-          aria-label={`עבור לשקופית ${index + 1}`}
-          aria-current={index === activeDot ? 'true' : 'false'}
-          data-slider-dot={index}
-          data-active={index === activeDot}
-        >
-          {style === 'numbers' ? index + 1 : null}
-        </button>
-      ))}
+      {Array.from({ length: dotCount }).map((_, index) => {
+        const isActive = index === activeDot;
+        const dotStyle = {
+          backgroundColor: isActive ? activeColor : inactiveColor,
+          color: style === 'numbers' ? (isActive ? '#ffffff' : '#4b5563') : undefined,
+        };
+        
+        return (
+          <button
+            key={index}
+            onClick={() => handleDotClick(index)}
+            className={`
+              ${stylePreset.dot.base}
+              ${isActive ? stylePreset.dot.active : stylePreset.dot.inactive}
+            `}
+            style={dotStyle}
+            aria-label={`עבור לשקופית ${index + 1}`}
+            aria-current={isActive ? 'true' : 'false'}
+            data-slider-dot={index}
+            data-active={isActive}
+          >
+            <span className={style === 'numbers' ? '' : 'hidden'} data-dot-number>{index + 1}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

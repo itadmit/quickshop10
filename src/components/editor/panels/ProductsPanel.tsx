@@ -245,8 +245,17 @@ export function ProductsPanel({ section, onUpdate, onClose, onDelete, storeSlug 
 
                     <EditorSlider
                       label="כמות להצגה"
-                      value={(content.displayLimit as number) || (settings.displayLimit as number) || 4}
-                      onChange={(v) => updateContent('displayLimit', v)}
+                      value={(content.limit as number) || (content.displayLimit as number) || 8}
+                      onChange={(v) => {
+                        // שומר לשני השדות לתאימות מלאה
+                        onUpdate({ 
+                          content: { 
+                            ...section.content, 
+                            limit: v,
+                            displayLimit: v 
+                          } 
+                        });
+                      }}
                       min={1}
                       max={12}
                     />

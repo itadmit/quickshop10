@@ -337,8 +337,12 @@ export function CategoryPageContent({
           data-section-name={sectionNames['cp-subcategories']}
         >
           <div className="max-w-7xl mx-auto">
-            <div className={`grid ${getSubcategoryGridClasses()} gap-4`}>
+            <div className={`grid ${getSubcategoryGridClasses()} gap-4 ${settings.subcategories.shape === 'circle' ? 'justify-items-center' : ''}`}>
               {subcategories.map((sub) => {
+                // Shape and maxWidth settings
+                const isCircle = settings.subcategories.shape === 'circle';
+                const maxWidth = settings.subcategories.maxWidth || 0;
+                const itemStyle = maxWidth > 0 ? { maxWidth: `${maxWidth}px` } : {};
                 // קביעת רטיו - רספונסיבי או אחיד
                 const useResponsive = settings.subcategories.useResponsiveRatio;
                 const desktopRatio = (settings.subcategories.desktopAspectRatio || '4:3') as keyof typeof aspectRatioClasses;
@@ -351,61 +355,62 @@ export function CategoryPageContent({
                     <Link
                       key={sub.id}
                       href={`${basePath}/category/${sub.slug}`}
-                      className="group relative bg-gray-100 overflow-hidden block"
+                      className={`group relative bg-gray-100 overflow-hidden block w-full ${isCircle ? 'rounded-full' : ''}`}
+                      style={itemStyle}
                     >
                       {/* Mobile version */}
-                      <div className={`md:hidden ${aspectRatioClasses[mobileRatio] || 'aspect-square'}`}>
+                      <div className={`md:hidden ${isCircle ? 'aspect-square rounded-full' : aspectRatioClasses[mobileRatio] || 'aspect-square'} relative overflow-hidden`}>
                         {sub.imageUrl ? (
                           <img
                             src={sub.imageUrl}
                             alt={sub.name}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isCircle ? 'rounded-full' : ''}`}
                           />
                         ) : (
-                          <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200" />
+                          <div className={`absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200 ${isCircle ? 'rounded-full' : ''}`} />
                         )}
                         {settings.subcategories.showOverlay && (
                           <div 
-                            className="absolute inset-0 flex items-center justify-center"
+                            className={`absolute inset-0 flex items-center justify-center ${isCircle ? 'rounded-full' : ''}`}
                             style={{ backgroundColor: `rgba(0,0,0,${settings.subcategories.overlayOpacity / 100})` }}
                           >
-                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light text-center px-2">
                               {sub.name}
                             </span>
                           </div>
                         )}
                         {!settings.subcategories.showOverlay && (
-                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                          <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent ${isCircle ? 'rounded-b-full' : ''}`}>
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light text-center block">
                               {sub.name}
                             </span>
                           </div>
                         )}
                       </div>
                       {/* Desktop version */}
-                      <div className={`hidden md:block ${aspectRatioClasses[desktopRatio] || 'aspect-[4/3]'}`}>
+                      <div className={`hidden md:block ${isCircle ? 'aspect-square rounded-full' : aspectRatioClasses[desktopRatio] || 'aspect-[4/3]'} relative overflow-hidden`}>
                         {sub.imageUrl ? (
                           <img
                             src={sub.imageUrl}
                             alt={sub.name}
-                            className="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isCircle ? 'rounded-full' : ''}`}
                           />
                         ) : (
-                          <div className="absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200" />
+                          <div className={`absolute inset-0 bg-gradient-to-b from-gray-100 to-gray-200 ${isCircle ? 'rounded-full' : ''}`} />
                         )}
                         {settings.subcategories.showOverlay && (
                           <div 
-                            className="absolute inset-0 flex items-center justify-center"
+                            className={`absolute inset-0 flex items-center justify-center ${isCircle ? 'rounded-full' : ''}`}
                             style={{ backgroundColor: `rgba(0,0,0,${settings.subcategories.overlayOpacity / 100})` }}
                           >
-                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light text-center px-2">
                               {sub.name}
                             </span>
                           </div>
                         )}
                         {!settings.subcategories.showOverlay && (
-                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                          <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent ${isCircle ? 'rounded-b-full' : ''}`}>
+                            <span className="text-white text-sm tracking-[0.2em] uppercase font-light text-center block">
                               {sub.name}
                             </span>
                           </div>
@@ -420,32 +425,33 @@ export function CategoryPageContent({
                 <Link
                   key={sub.id}
                   href={`${basePath}/category/${sub.slug}`}
-                  className={`group relative bg-gray-100 overflow-hidden ${aspectRatioClasses[uniformRatio] || 'aspect-[4/3]'}`}
+                  className={`group relative bg-gray-100 overflow-hidden w-full ${isCircle ? 'aspect-square rounded-full' : aspectRatioClasses[uniformRatio] || 'aspect-[4/3]'}`}
+                  style={itemStyle}
                 >
                   {sub.imageUrl ? (
                     <img
                       src={sub.imageUrl}
                       alt={sub.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${isCircle ? 'rounded-full' : ''}`}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-b from-gray-100 to-gray-200" />
+                    <div className={`w-full h-full bg-gradient-to-b from-gray-100 to-gray-200 ${isCircle ? 'rounded-full' : ''}`} />
                   )}
                   {settings.subcategories.showOverlay && (
                     <div 
-                      className="absolute inset-0 transition-colors flex items-center justify-center"
+                      className={`absolute inset-0 transition-colors flex items-center justify-center ${isCircle ? 'rounded-full' : ''}`}
                       style={{ 
                         backgroundColor: `rgba(0,0,0,${settings.subcategories.overlayOpacity / 100})`,
                       }}
                     >
-                      <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                      <span className="text-white text-sm tracking-[0.2em] uppercase font-light text-center px-2">
                         {sub.name}
                       </span>
                     </div>
                   )}
                   {!settings.subcategories.showOverlay && (
-                    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                      <span className="text-white text-sm tracking-[0.2em] uppercase font-light">
+                    <div className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent ${isCircle ? 'rounded-b-full' : ''}`}>
+                      <span className="text-white text-sm tracking-[0.2em] uppercase font-light text-center block">
                         {sub.name}
                       </span>
                     </div>

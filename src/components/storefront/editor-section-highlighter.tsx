@@ -186,6 +186,46 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // Handle global fonts
+        if (settings.headingFont !== undefined || settings.bodyFont !== undefined) {
+          // Inject or update global font styles
+          let fontStyleEl = document.getElementById('editor-global-fonts');
+          if (!fontStyleEl) {
+            fontStyleEl = document.createElement('style');
+            fontStyleEl.id = 'editor-global-fonts';
+            document.head.appendChild(fontStyleEl);
+          }
+          
+          const headingFont = settings.headingFont || 'Noto Sans Hebrew';
+          const bodyFont = settings.bodyFont || 'Assistant';
+          
+          // Load Google Fonts if not already loaded
+          const fontsToLoad = [headingFont, bodyFont].filter((f, i, arr) => arr.indexOf(f) === i);
+          fontsToLoad.forEach(font => {
+            const fontId = `google-font-${font.replace(/\s+/g, '-')}`;
+            if (!document.getElementById(fontId)) {
+              const link = document.createElement('link');
+              link.id = fontId;
+              link.rel = 'stylesheet';
+              link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@300;400;500;600;700&display=swap`;
+              document.head.appendChild(link);
+            }
+          });
+          
+          fontStyleEl.textContent = `
+            :root {
+              --font-display: '${headingFont}', sans-serif !important;
+              --font-sans: '${bodyFont}', sans-serif !important;
+            }
+            body {
+              font-family: '${bodyFont}', sans-serif !important;
+            }
+            h1, h2, h3, h4, h5, h6, .font-display {
+              font-family: '${headingFont}', sans-serif !important;
+            }
+          `;
+        }
+        
         // Also handled by PreviewSettingsProvider for header settings
       }
       if (event.data?.type === 'SECTION_CONTENT_UPDATE') {
@@ -1328,6 +1368,15 @@ export function EditorSectionHighlighter() {
           }
         }
         
+        // Title font family override
+        if (updates.settings?.titleFontFamily !== undefined) {
+          const titleEl = element.querySelector('[data-section-title]') as HTMLElement;
+          if (titleEl) {
+            const fontFamily = updates.settings.titleFontFamily as string;
+            titleEl.style.fontFamily = fontFamily ? `'${fontFamily}', sans-serif` : '';
+          }
+        }
+        
         // Subtitle styling
         if (updates.settings?.subtitleColor !== undefined) {
           const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
@@ -1370,6 +1419,15 @@ export function EditorSectionHighlighter() {
           if (subtitleEl) {
             subtitleEl.classList.remove('font-light', 'font-normal', 'font-medium', 'font-semibold', 'font-bold', 'font-extrabold');
             subtitleEl.classList.add(`font-${updates.settings.subtitleWeight}`);
+          }
+        }
+        
+        // Subtitle font family override
+        if (updates.settings?.subtitleFontFamily !== undefined) {
+          const subtitleEl = element.querySelector('[data-section-subtitle]') as HTMLElement;
+          if (subtitleEl) {
+            const fontFamily = updates.settings.subtitleFontFamily as string;
+            subtitleEl.style.fontFamily = fontFamily ? `'${fontFamily}', sans-serif` : '';
           }
         }
         
@@ -2147,10 +2205,10 @@ export function EditorSectionHighlighter() {
         }
         
         // =====================================================
-        // PRODUCT LIMIT UPDATES
+        // PRODUCT LIMIT UPDATES (תומך בשני השדות לתאימות)
         // =====================================================
-          if (updates.content?.limit !== undefined) {
-            const limit = updates.content.limit as number;
+          if (updates.content?.limit !== undefined || updates.content?.displayLimit !== undefined) {
+            const limit = (updates.content?.limit || updates.content?.displayLimit) as number;
             const productElements = element.querySelectorAll('[data-product-index]');
             productElements.forEach((prodEl) => {
               const index = parseInt((prodEl as HTMLElement).dataset.productIndex || '0', 10);
@@ -2733,6 +2791,9 @@ export function EditorSectionHighlighter() {
             const prodMobileColumns = (event.data.settings?.mobileColumns as number) || 2;
             const prodGap = (event.data.settings?.gap as number) || 24;
             const prodDisplayLimit = (content?.displayLimit as number) || 8;
+            const prodShowDivider = event.data.settings?.showDivider !== false;
+            const prodDividerColor = (event.data.settings?.dividerColor as string) || '#C9A962';
+            const prodDividerHeight = (event.data.settings?.dividerHeight as number) || 2;
             
             placeholder.className = 'py-16 bg-white';
             placeholder.dataset.sectionName = 'מוצרים';
@@ -2760,7 +2821,7 @@ export function EditorSectionHighlighter() {
               <div class="max-w-7xl mx-auto px-6" data-content-wrapper>
                 <p class="text-center text-gray-400 text-xs tracking-[0.2em] uppercase mb-4 ${subtitle ? '' : 'hidden'}" data-section-subtitle>${subtitle || ''}</p>
                 <h2 class="font-display text-2xl md:text-3xl text-center font-light tracking-[0.15em] uppercase ${title ? '' : 'hidden'}" data-section-title>${title || 'מוצרים'}</h2>
-                <div class="w-16 h-0.5 mt-6 mb-8 mx-auto ${title ? '' : 'hidden'}" style="background-color: #C9A962" data-section-divider></div>
+                <div class="w-16 mt-6 mb-8 mx-auto ${!title || !prodShowDivider ? 'hidden' : ''}" style="background-color: ${prodDividerColor}; height: ${prodDividerHeight}px" data-section-divider></div>
                 <div class="grid mt-12" style="gap: ${prodGap}px" data-products-grid data-columns="${prodColumns}" data-mobile-columns="${prodMobileColumns}">
                   ${Array.from({length: Math.min(prodDisplayLimit, 8)}, (_, i) => `
                     <div class="group" data-product-index="${i}">

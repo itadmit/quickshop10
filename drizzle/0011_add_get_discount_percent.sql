@@ -15,3 +15,4 @@ ALTER TABLE "automatic_discounts" ADD COLUMN IF NOT EXISTS "get_discount_percent
 
 
 
+

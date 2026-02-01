@@ -4,6 +4,7 @@ export { ContentBlockSection } from './content-block-section';
 // סקשנים נוספים
 export { CategoriesSection } from './categories-section';
 export { ProductsSection } from './products-section';
+export { ProductsSliderSection } from './products-slider-section';
 export { VideoBannerSection } from './video-banner-section';
 export { SplitBannerSection } from './split-banner-section';
 export { NewsletterSection } from './newsletter-section';

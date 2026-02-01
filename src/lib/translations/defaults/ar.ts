@@ -178,6 +178,7 @@ export const arabicTranslations: UITranslations = {
   product: {
     addToCart: "أضف إلى السلة",
     addedToCart: "تمت الإضافة ✓",
+    selectOptions: "اختر الخيارات",
     buyNow: "اشتر الآن",
     outOfStock: "غير متوفر",
     inStock: "متوفر",

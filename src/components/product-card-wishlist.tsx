@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWishlistOptional } from './wishlist-provider';
 
 interface ProductCardWishlistProps {
@@ -11,13 +11,20 @@ interface ProductCardWishlistProps {
 export function ProductCardWishlist({ productId, variantId }: ProductCardWishlistProps) {
   const wishlist = useWishlistOptional();
   const [isAnimating, setIsAnimating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Fix hydration mismatch - only check wishlist after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // If no wishlist context, don't render
   if (!wishlist) {
     return null;
   }
 
-  const isActive = wishlist.isInWishlist(productId);
+  // Before mount, always show inactive state to match server render
+  const isActive = mounted ? wishlist.isInWishlist(productId) : false;
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();

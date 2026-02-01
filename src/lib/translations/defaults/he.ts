@@ -186,6 +186,7 @@ export const hebrewTranslations: UITranslations = {
   product: {
     addToCart: "הוסף לסל",
     addedToCart: "נוסף לסל ✓",
+    selectOptions: "בחר אפשרויות",
     buyNow: "קנה עכשיו",
     outOfStock: "אזל מהמלאי",
     inStock: "במלאי",

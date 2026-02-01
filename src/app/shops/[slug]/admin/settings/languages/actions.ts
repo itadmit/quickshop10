@@ -3,7 +3,7 @@
 import { db } from '@/lib/db';
 import { stores, storeTranslations } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import type { SupportedLocale, UITranslations } from '@/lib/translations/types';
 import { getDefaultTranslations } from '@/lib/translations';
 
@@ -218,6 +218,9 @@ export async function updateStoreTranslations(
       })
       .where(eq(stores.id, storeId));
 
+    // Clear translation cache (critical for Hebrew stores with custom translations!)
+    revalidateTag('translations', { expire: 0 });
+    
     revalidatePath('/shops/[slug]/admin/settings/languages', 'page');
     revalidatePath('/shops/[slug]', 'layout');
 
@@ -307,3 +310,35 @@ export async function toggleLanguageSwitcher(
   }
 }
 
+/**
+ * Toggle custom translations for a store
+ * When enabled, custom translations will be loaded from the database
+ */
+export async function toggleCustomTranslations(
+  storeId: string,
+  enabled: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await db
+      .update(stores)
+      .set({
+        hasCustomTranslations: enabled,
+        updatedAt: new Date(),
+      })
+      .where(eq(stores.id, storeId));
+
+    // Clear translation cache AND store cache
+    revalidateTag('translations', { expire: 0 });
+    revalidateTag('store', { expire: 0 });
+    
+    revalidatePath('/shops/[slug]/admin/settings/languages', 'page');
+    revalidatePath('/shops/[slug]', 'layout');
+    // Force full storefront revalidation
+    revalidatePath('/', 'layout');
+
+    return { success: true };
+  } catch (error) {
+    console.error('[Languages] Error toggling custom translations:', error);
+    return { success: false, error: 'שגיאה בעדכון הגדרות' };
+  }
+}

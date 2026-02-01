@@ -18,8 +18,12 @@ export interface SliderSettings {
   showDots: boolean;
   arrowPosition?: 'inside' | 'outside' | 'bottom';
   arrowStyle?: 'circle' | 'square' | 'minimal';
+  arrowBgColor?: string;
+  arrowColor?: string;
   dotsPosition?: 'bottom' | 'inside-bottom';
   dotsStyle?: 'dots' | 'lines' | 'numbers';
+  dotsActiveColor?: string;
+  dotsInactiveColor?: string;
   
   // Behavior
   loop?: boolean;

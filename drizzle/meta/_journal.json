@@ -148,6 +148,13 @@
       "when": 1768558624975,
       "tag": "0020_custom_fee_percentage",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1769960751531,
+      "tag": "0021_add_products_slider_type",
+      "breakpoints": true
     }
   ]
 }

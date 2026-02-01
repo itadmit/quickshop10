@@ -2,7 +2,8 @@ import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesB
 import { 
   ContentBlockSection,
   CategoriesSection, 
-  ProductsSection, 
+  ProductsSection,
+  ProductsSliderSection,
   VideoBannerSection, 
   SplitBannerSection, 
   NewsletterSection,
@@ -127,7 +128,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   const productsSectionsFetches: Promise<{ sectionId: string; products: BasicProduct[] }>[] = [];
   
   for (const section of sections) {
-    if (section.type === 'products') {
+    // Pre-fetch products for both grid and slider sections
+    if (section.type === 'products' || section.type === 'products_slider') {
       const content = section.content as Record<string, unknown>;
       const productType = content.type as string | undefined;
       
@@ -278,11 +280,13 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
       case 'products':
         const productContent = content as { 
           type?: string; 
-          limit?: number; 
+          limit?: number;
+          displayLimit?: number;
           categoryId?: string;
           productIds?: string[];
         };
-        const productLimit = productContent.limit || 8;
+        // תומך בשני השדות לתאימות - displayLimit חדש, limit ישן
+        const productLimit = productContent.limit || productContent.displayLimit || 8;
         
         // Determine which products to show based on type
         // Uses pre-fetched data from sectionProductsMap for category/specific types
@@ -316,6 +320,64 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             showDecimalPrices={showDecimalPrices}
             sectionId={section.id}
             displayLimit={isPreviewMode && productContent.type !== 'specific' ? productLimit : undefined}
+            discountsMap={discountsMap}
+            badgesMap={badgesMap}
+            storeSlug={slug}
+            showWishlist={Boolean(storeSettings.headerShowWishlist)}
+          />
+        );
+        break;
+
+      case 'products_slider':
+        const sliderContent = content as { 
+          type?: string; 
+          limit?: number;
+          displayLimit?: number;
+          categoryId?: string;
+          productIds?: string[];
+        };
+        const sliderLimit = sliderContent.limit || sliderContent.displayLimit || 8;
+        
+        let sliderProductsToShow: BasicProduct[] = [];
+        
+        if (sliderContent.type === 'featured') {
+          sliderProductsToShow = featuredProducts as BasicProduct[];
+        } else if (sliderContent.type === 'category' || sliderContent.type === 'specific') {
+          sliderProductsToShow = sectionProductsMap.get(section.id) || [];
+        } else {
+          sliderProductsToShow = allProducts as BasicProduct[];
+        }
+        
+        const sliderProducts = isPreviewMode 
+          ? sliderProductsToShow 
+          : sliderContent.type === 'specific' 
+          ? sliderProductsToShow 
+          : sliderProductsToShow.slice(0, sliderLimit);
+        
+        sectionElement = (
+          <ProductsSliderSection
+            title={section.title}
+            subtitle={section.subtitle}
+            products={sliderProducts}
+            settings={settings as { 
+              columns?: number; 
+              mobileColumns?: number;
+              gap?: number; 
+              showCount?: boolean; 
+              textAlign?: 'right' | 'center' | 'left'; 
+              showAddToCart?: boolean;
+              showArrows?: boolean;
+              showDots?: boolean;
+              arrowStyle?: 'circle' | 'square' | 'minimal';
+              dotsStyle?: 'dots' | 'lines' | 'numbers';
+              autoplay?: boolean;
+              autoplayInterval?: number;
+              loop?: boolean;
+            }}
+            basePath={basePath}
+            showDecimalPrices={showDecimalPrices}
+            sectionId={section.id}
+            displayLimit={isPreviewMode && sliderContent.type !== 'specific' ? sliderLimit : undefined}
             discountsMap={discountsMap}
             badgesMap={badgesMap}
             storeSlug={slug}

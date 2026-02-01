@@ -25,6 +25,7 @@ export default async function LanguagesPage({ params }: LanguagesPageProps) {
       slug: stores.slug,
       defaultLocale: stores.defaultLocale,
       supportedLocales: stores.supportedLocales,
+      hasCustomTranslations: stores.hasCustomTranslations,
     })
     .from(stores)
     .where(eq(stores.slug, slug))
@@ -51,6 +52,7 @@ export default async function LanguagesPage({ params }: LanguagesPageProps) {
           storeSlug={store.slug}
           defaultLocale={(store.defaultLocale as SupportedLocale) || 'he'}
           supportedLocales={(store.supportedLocales as SupportedLocale[]) || ['he']}
+          hasCustomTranslations={store.hasCustomTranslations}
         />
       </div>
     </SettingsWrapper>

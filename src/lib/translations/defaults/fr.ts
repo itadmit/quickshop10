@@ -178,6 +178,7 @@ export const frenchTranslations: UITranslations = {
   product: {
     addToCart: "Ajouter au panier",
     addedToCart: "Ajouté ✓",
+    selectOptions: "Choisir les options",
     buyNow: "Acheter maintenant",
     outOfStock: "Rupture de stock",
     inStock: "En stock",

@@ -5,6 +5,7 @@ import { useStoreOptional } from '@/lib/store-context';
 import { isOutOfStock } from '@/lib/inventory';
 import { tracker } from '@/lib/tracking';
 import { QuickAddModal } from './quick-add-modal';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 // ============================================
 // Product Card Add to Cart Button
@@ -53,6 +54,13 @@ export function ProductCardAddToCart({
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { t } = useTranslations();
+  
+  // Use translations from context (defaults to Hebrew if no Provider)
+  const addToCartText = t.product.addToCart;
+  const outOfStockText = t.product.outOfStock;
+  const addedText = t.product.addedToCart;
+  const selectOptionsText = t.product.selectOptions || 'בחר אפשרויות';
   
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
 
@@ -64,7 +72,7 @@ export function ProductCardAddToCart({
           disabled 
           className={`btn-primary opacity-50 cursor-not-allowed ${className}`}
         >
-          {outOfStock ? 'אזל מהמלאי' : 'הוסף לעגלה'}
+          {outOfStock ? outOfStockText : addToCartText}
         </button>
       </>
     );
@@ -110,11 +118,12 @@ export function ProductCardAddToCart({
 
   // Container classes based on position mode
   // 🔧 pointer-events-none on mobile prevents accidental clicks on hidden button
+  // z-20 ensures hover button is above overlay content (z-10)
   const containerClasses = positionBelow
     ? '' // Below card - no absolute positioning
     : showAlways
-      ? 'absolute bottom-0 left-0 right-0 p-4' // Always visible on image
-      : 'absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none md:pointer-events-auto'; // Hover only - disabled on mobile
+      ? 'absolute bottom-0 left-0 right-0 p-4 z-20' // Always visible on image
+      : 'absolute bottom-0 left-0 right-0 p-4 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 pointer-events-none md:pointer-events-auto z-20'; // Hover only - disabled on mobile
 
   return (
     <>
@@ -137,7 +146,7 @@ export function ProductCardAddToCart({
             ${className}
           `}
         >
-          {added ? 'נוסף לעגלה ✓' : outOfStock ? 'אזל מהמלאי' : hasVariants ? 'בחר אפשרויות' : 'הוסף לעגלה'}
+          {added ? addedText : outOfStock ? outOfStockText : hasVariants ? selectOptionsText : addToCartText}
         </button>
       </div>
       

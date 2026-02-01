@@ -178,6 +178,7 @@ export const russianTranslations: UITranslations = {
   product: {
     addToCart: "В корзину",
     addedToCart: "Добавлено ✓",
+    selectOptions: "Выбрать варианты",
     buyNow: "Купить сейчас",
     outOfStock: "Нет в наличии",
     inStock: "В наличии",

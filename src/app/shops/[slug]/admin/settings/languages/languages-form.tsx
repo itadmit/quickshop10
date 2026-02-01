@@ -18,6 +18,7 @@ import {
   addStoreLanguage,
   removeStoreLanguage,
   setDefaultLanguage,
+  toggleCustomTranslations,
 } from './actions';
 import type { SupportedLocale } from '@/lib/translations/types';
 import { SUPPORTED_LOCALES, LOCALE_NAMES, LOCALE_DIRECTIONS } from '@/lib/translations/types';
@@ -27,6 +28,7 @@ interface LanguagesFormProps {
   storeSlug: string;
   defaultLocale: SupportedLocale;
   supportedLocales: SupportedLocale[];
+  hasCustomTranslations: boolean;
 }
 
 // Language metadata with flags
@@ -43,11 +45,13 @@ export function LanguagesForm({
   storeSlug,
   defaultLocale,
   supportedLocales,
+  hasCustomTranslations,
 }: LanguagesFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isAddingLanguage, setIsAddingLanguage] = useState(false);
+  const [customTranslationsEnabled, setCustomTranslationsEnabled] = useState(hasCustomTranslations);
   const router = useRouter();
 
   // Available locales that can be added
@@ -112,6 +116,25 @@ export function LanguagesForm({
     });
   };
 
+  const handleToggleCustomTranslations = async () => {
+    setError(null);
+    setSuccess(null);
+    
+    const newValue = !customTranslationsEnabled;
+    setCustomTranslationsEnabled(newValue);
+
+    startTransition(async () => {
+      const result = await toggleCustomTranslations(storeId, newValue);
+      if (result.success) {
+        setSuccess(newValue ? 'תרגומים מותאמים הופעלו' : 'תרגומים מותאמים כובו');
+        router.refresh();
+      } else {
+        setCustomTranslationsEnabled(!newValue); // Revert
+        setError(result.error || 'שגיאה בעדכון הגדרות');
+      }
+    });
+  };
+
   return (
     <div className="space-y-8">
       {/* Status Messages */}
@@ -130,17 +153,61 @@ export function LanguagesForm({
       )}
 
       {/* Performance Notice */}
-      {supportedLocales.length === 1 && (
+      {supportedLocales.length === 1 && !customTranslationsEnabled && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
           <Sparkles className="w-5 h-5 text-blue-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-blue-900">מצב מהירות מלאה ⚡</p>
             <p className="text-sm text-blue-700 mt-1">
-              כאשר יש רק שפה אחת, החנות עובדת במהירות מקסימלית ללא טעינת תרגומים נוספים.
+              כאשר יש רק שפה אחת ותרגומים מותאמים כבויים, החנות עובדת במהירות מקסימלית ללא טעינת תרגומים נוספים.
             </p>
           </div>
         </div>
       )}
+
+      {/* Custom Translations Toggle */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-start gap-3">
+            <Edit3 className="w-5 h-5 text-purple-500 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-medium text-gray-900">הפעל תרגומים מותאמים</h4>
+              <p className="text-sm text-gray-500 mt-1">
+                כשמופעל, טקסטים שתערוך בעמוד התרגומים יחליפו את ברירת המחדל בחנות.
+                <br />
+                <span className="text-xs text-gray-400">
+                  לדוגמה: לשנות "הוסף לסל" ל"קנה עכשיו", או "בחר אפשרויות" ל"בחר מידה"
+                </span>
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleToggleCustomTranslations}
+            disabled={isPending}
+            className={`
+              relative w-14 h-7 rounded-full transition-colors duration-200 ease-in-out
+              ${customTranslationsEnabled ? 'bg-purple-600' : 'bg-gray-300'}
+              ${isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            `}
+          >
+            <span
+              className={`
+                absolute top-0.5 w-6 h-6 rounded-full bg-white shadow-md transition-transform duration-200 ease-in-out
+                ${customTranslationsEnabled ? 'right-0.5' : 'right-7'}
+              `}
+            />
+          </button>
+        </div>
+        
+        {customTranslationsEnabled && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-green-600 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              תרגומים מותאמים פעילים - שינויים שתעשה בעורך יופיעו בחנות
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Active Languages */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

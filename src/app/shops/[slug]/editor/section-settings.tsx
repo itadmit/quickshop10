@@ -129,6 +129,14 @@ interface ThemeSettings {
   
   // Product page settings
   productPageSettings?: Record<string, unknown>;
+  
+  // Global Typography
+  headingFont?: string;
+  bodyFont?: string;
+  
+  // SEO
+  siteTitle?: string;
+  siteDescription?: string;
 }
 
 interface Category {
@@ -211,6 +219,110 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     };
     return titles[section.type] || 'סקשן';
   };
+
+  // Special handling for global settings
+  if (section.type === 'global-settings') {
+    return (
+      <div className="flex flex-col h-full" dir="rtl">
+        <div className="p-4 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">הגדרות כלליות</h3>
+          <p className="text-xs text-gray-500 mt-1">הגדרות שמשפיעות על כל האתר</p>
+        </div>
+
+        <div className="flex-1 overflow-auto p-4 space-y-6">
+          {/* SEO Settings */}
+          <SettingsGroup title="SEO">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">כותרת האתר (Tagline)</label>
+                <input
+                  type="text"
+                  value={settings.siteTitle || ''}
+                  onChange={(e) => updateSettings({ siteTitle: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  placeholder="לדוגמה: אופנה בסגנון"
+                  maxLength={60}
+                  dir="rtl"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">יופיע בטאב הדפדפן</p>
+                  <span className="text-xs text-gray-400">{(settings.siteTitle as string || '').length}/60</span>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">תיאור האתר</label>
+                <textarea
+                  value={settings.siteDescription || ''}
+                  onChange={(e) => updateSettings({ siteDescription: e.target.value })}
+                  rows={3}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  placeholder="תיאור קצר לתוצאות החיפוש"
+                  maxLength={160}
+                  dir="rtl"
+                />
+                <div className="flex justify-between mt-1">
+                  <p className="text-xs text-gray-500">מומלץ 120-160 תווים</p>
+                  <span className="text-xs text-gray-400">{(settings.siteDescription as string || '').length}/160</span>
+                </div>
+              </div>
+            </div>
+          </SettingsGroup>
+
+          {/* Global Typography */}
+          <SettingsGroup title="טיפוגרפיה">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">פונט כותרות</label>
+                <select
+                  value={settings.headingFont || 'Noto Sans Hebrew'}
+                  onChange={(e) => updateSettings({ headingFont: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="Noto Sans Hebrew">Noto Sans Hebrew</option>
+                  <option value="Noto Rashi Hebrew">Noto Rashi Hebrew</option>
+                  <option value="Assistant">Assistant</option>
+                  <option value="Heebo">Heebo</option>
+                  <option value="Rubik">Rubik</option>
+                  <option value="Open Sans">Open Sans</option>
+                  <option value="Alef">Alef</option>
+                  <option value="Arimo">Arimo</option>
+                  <option value="Varela Round">Varela Round</option>
+                  <option value="IBM Plex Sans Hebrew">IBM Plex Sans Hebrew</option>
+                  <option value="Pacifico">Pacifico (לוגו/דקורטיבי)</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">פונט לכותרות ותפריטים</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">פונט גוף טקסט</label>
+                <select
+                  value={settings.bodyFont || 'Assistant'}
+                  onChange={(e) => updateSettings({ bodyFont: e.target.value })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                >
+                  <option value="Assistant">Assistant</option>
+                  <option value="Noto Sans Hebrew">Noto Sans Hebrew</option>
+                  <option value="Noto Rashi Hebrew">Noto Rashi Hebrew</option>
+                  <option value="Heebo">Heebo</option>
+                  <option value="Rubik">Rubik</option>
+                  <option value="Open Sans">Open Sans</option>
+                  <option value="Alef">Alef</option>
+                  <option value="Arimo">Arimo</option>
+                  <option value="Varela Round">Varela Round</option>
+                  <option value="IBM Plex Sans Hebrew">IBM Plex Sans Hebrew</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">פונט לתוכן וטקסט רגיל</p>
+              </div>
+            </div>
+          </SettingsGroup>
+          
+          {/* Template Selection - Coming Soon */}
+          {/* <SettingsGroup title="תבנית">
+            <p className="text-xs text-gray-500">בחירת תבנית תהיה זמינה בקרוב</p>
+          </SettingsGroup> */}
+        </div>
+      </div>
+    );
+  }
 
   // Special handling for header settings
   if (section.type === 'header') {
@@ -656,7 +768,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
     'content_block', 'text_block', 'hero', 'hero_premium', 'hero_slider',
     'reviews', 'features', 'faq', 'newsletter', 'contact', 
     'logos', 'gallery', 'image_text', 'banner_small', 
-    'video_banner', 'split_banner', 'products', 
+    'video_banner', 'split_banner', 'products', 'products_slider',
     'categories', 'featured_items', 'series_grid', 'custom'
   ];
   
@@ -3619,10 +3731,19 @@ function ProductsContentSettings({
       {selectedType !== 'specific' && (
       <SliderField
         label="כמות להצגה"
-        value={(section.content.limit as number) || 8}
+        value={(section.content.limit as number) || (section.content.displayLimit as number) || 8}
         min={1}
         max={24}
-        onChange={(v) => updateContent('limit', v)}
+        onChange={(v) => {
+          // שומר לשני השדות לתאימות מלאה
+          onUpdate({ 
+            content: { 
+              ...section.content, 
+              limit: v,
+              displayLimit: v 
+            } 
+          });
+        }}
       />
       )}
     </SettingsGroup>
@@ -8402,6 +8523,32 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                       })}
                     />
                   )}
+                  
+                  <SelectField
+                    label="צורה"
+                    value={categorySettings.subcategories.shape || 'square'}
+                    options={[
+                      { value: 'square', label: 'ריבוע' },
+                      { value: 'circle', label: 'עיגול' },
+                    ]}
+                    onChange={(v) => updateCategorySettings({ 
+                      subcategories: { ...categorySettings.subcategories, shape: v as 'square' | 'circle' } 
+                    })}
+                  />
+                  
+                  <SliderField
+                    label="מקסימום רוחב (px)"
+                    value={categorySettings.subcategories.maxWidth || 0}
+                    min={0}
+                    max={400}
+                    suffix="px"
+                    onChange={(v) => updateCategorySettings({ 
+                      subcategories: { ...categorySettings.subcategories, maxWidth: v } 
+                    })}
+                  />
+                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                    0 = ללא הגבלה (מתפרס למלוא העמודה)
+                  </p>
                 </>
               )}
             </SettingsGroup>

@@ -46,6 +46,7 @@ interface ThemeSettings {
   headerShowSearch?: boolean;
   headerShowCart?: boolean;
   headerShowAccount?: boolean;
+  headerShowWishlist?: boolean;
   headerShowLanguageSwitcher?: boolean;
   headerNavigationMode?: 'menu' | 'categories'; // 'menu' = show custom menus, 'categories' = show all categories
   // Mobile menu settings
@@ -53,6 +54,12 @@ interface ThemeSettings {
   mobileMenuImageStyle?: 'fullRow' | 'square';
   mobileMenuBgColor?: string;
   megaMenuBgColor?: string;
+  // Global Typography
+  headingFont?: string;
+  bodyFont?: string;
+  // SEO
+  siteTitle?: string;
+  siteDescription?: string;
   // Logo & Favicon (direct store fields)
   logoUrl?: string;
   faviconUrl?: string;
@@ -60,6 +67,9 @@ interface ThemeSettings {
   announcementEnabled?: boolean;
   announcementText?: string;
   announcementLink?: string;
+  announcementCountdownEnabled?: boolean;
+  announcementCountdownDate?: string;
+  announcementCountdownTime?: string;
   announcementBgColor?: string;
   announcementTextColor?: string;
   footerShowLogo?: boolean;
@@ -458,6 +468,18 @@ export function ThemeEditor({
 
   // Get selected section - handle special sections like header, footer, product-page
   const getSelectedSection = (): Section | null => {
+    if (selectedSectionId === 'global-settings') {
+      return {
+        id: 'global-settings',
+        type: 'global-settings',
+        title: 'הגדרות כלליות',
+        subtitle: null,
+        content: {},
+        settings: {},
+        sortOrder: -2,
+        isActive: true,
+      };
+    }
     if (selectedSectionId === 'header') {
       return {
         id: 'header',
@@ -1176,6 +1198,22 @@ export function ThemeEditor({
 
         {/* Center - Page Selector Dropdown (Absolutely Centered) */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-2">
+          {/* Global Settings Button */}
+          <button
+            onClick={() => setSelectedSectionId('global-settings')}
+            className={`p-2 rounded-full transition-colors cursor-pointer ${
+              selectedSectionId === 'global-settings' 
+                ? 'bg-white/20 text-white' 
+                : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'
+            }`}
+            title="הגדרות כלליות"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+          
         <div className="relative">
           <button
             onClick={() => setShowPageDropdown(!showPageDropdown)}
@@ -1905,6 +1943,7 @@ function getSectionDefaultTitle(type: string): string {
     hero: 'באנר ראשי',
     categories: 'קטגוריות',
     products: 'מוצרים',
+    products_slider: 'סליידר מוצרים',
     newsletter: 'ניוזלטר',
     video_banner: 'באנר וידאו',
     split_banner: 'באנר מפוצל',
@@ -1961,8 +2000,9 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
       buttonText: 'קנה עכשיו',
       buttonLink: '/products'
     },
-    categories: { limit: 6 },
-    products: { type: 'all', limit: 8 },
+    categories: { limit: 6, displayLimit: 6 },
+    products: { type: 'all', limit: 8, displayLimit: 8 },
+    products_slider: { type: 'all', limit: 8, displayLimit: 8 },
     newsletter: { 
       placeholder: 'כתובת אימייל', 
       buttonText: 'הרשמה',
@@ -2215,7 +2255,32 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       paddingBottom: 64,
     },
     categories: { columns: 4, gap: 8 },
-    products: { columns: 4, gap: 8, showCount: false },
+    products: { columns: 4, gap: 8, showCount: false, productNameLines: 2, showDivider: true, dividerColor: '#C9A962', dividerHeight: 2 },
+    products_slider: { 
+      columns: 4, 
+      mobileColumns: 2,
+      gap: 24, 
+      showCount: false,
+      showArrows: true,
+      showDots: true,
+      arrowStyle: 'circle',
+      arrowBgColor: '#ffffff',
+      arrowColor: '#374151',
+      dotsStyle: 'dots',
+      dotsActiveColor: '#111827',
+      dotsInactiveColor: '#d1d5db',
+      autoplay: false,
+      autoplayInterval: 5000,
+      loop: true,
+      cardStyle: 'standard',
+      imageAspectRatio: 'portrait',
+      imagePosition: 'center',
+      imageFit: 'cover',
+      productNameLines: 2,
+      showDivider: true,
+      dividerColor: '#C9A962',
+      dividerHeight: 2,
+    },
     newsletter: { maxWidth: '600px' },
     image_text: {
       imagePosition: 'right',

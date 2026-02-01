@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store-context';
 import { ProductWaitlistForm } from './product-waitlist-form';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 interface OptionValueMetadata {
   color?: string;      // for color type
@@ -79,13 +80,19 @@ export function VariantSelector({
   categoryIds,
   onOptionChange,
   storeSlug,
-  buttonText = 'הוסף לעגלה',
-  outOfStockText = 'אזל מהמלאי',
+  buttonText,
+  outOfStockText,
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
+  const { t } = useTranslations();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [added, setAdded] = useState(false);
+  
+  // Use translations from context, fall back to props
+  const addToCartLabel = buttonText || t.product.addToCart;
+  const outOfStockLabel = outOfStockText || t.product.outOfStock;
+  const addedLabel = t.product.addedToCart;
 
   // 🆕 חישוב מחיר מוזל לפי פרטי ההנחות (לא לפי אחוז כולל!)
   const calculateDiscountedPrice = useCallback((price: number): number => {
@@ -258,17 +265,21 @@ export function VariantSelector({
 
               // Render based on displayType
               if (displayType === 'color' && meta?.color) {
+                // בדיקה אם הערך הוא קוד צבע - אם כן, נציג את שם האופציה כ-tooltip
+                const isColorCode = /^(rgb|rgba|hsl|hsla)\(|^#[0-9a-f]{3,8}$/i.test(val.value);
+                const colorTooltip = isColorCode ? option.name : val.value;
                 return (
                   <button
                     key={val.id}
                     onClick={() => handleOptionChange(optIndex, val.value, option)}
                     disabled={!isAvailable}
-                    title={val.value}
+                    title={colorTooltip}
+                    aria-label={colorTooltip}
                     className={`
-                      relative w-10 h-10 rounded-full transition-all cursor-pointer
+                      relative w-8 h-8 rounded-full transition-all cursor-pointer
                       ${isSelected 
                         ? 'ring-2 ring-offset-2 ring-black' 
-                        : 'hover:ring-2 hover:ring-offset-2 hover:ring-gray-300'
+                        : 'hover:ring-1 hover:ring-offset-1 hover:ring-gray-400'
                       }
                       ${!isAvailable ? 'opacity-30 !cursor-not-allowed' : ''}
                     `}
@@ -382,7 +393,7 @@ export function VariantSelector({
             disabled:cursor-not-allowed
           `}
         >
-          {added ? 'נוסף לעגלה ✓' : buttonText}
+          {added ? addedLabel : addToCartLabel}
         </button>
       )}
 

@@ -57,6 +57,14 @@ interface ProductCardProps {
   cardStyle?: 'standard' | 'minimal' | 'overlay';
   // 📐 Text alignment in card
   cardTextAlign?: 'left' | 'center' | 'right';
+  // 📷 Image aspect ratio
+  imageAspectRatio?: 'square' | 'portrait' | 'portrait-tall' | 'landscape';
+  // 📍 Image position (where to focus when cropping)
+  imagePosition?: 'top' | 'center' | 'bottom';
+  // 🔍 Image fit mode
+  imageFit?: 'cover' | 'contain' | 'fill';
+  // 📝 Maximum lines for product name (0 = unlimited)
+  productNameLines?: number;
 }
 
 export function ProductCard({ 
@@ -83,6 +91,10 @@ export function ProductCard({
   showWishlist = false,
   cardStyle = 'standard',
   cardTextAlign = 'center',
+  imageAspectRatio = 'portrait',
+  imagePosition = 'center',
+  imageFit = 'cover',
+  productNameLines = 2,
 }: ProductCardProps) {
   // Use video thumbnail (cardImage) if available, otherwise use regular image
   // If cardImage is a video URL, generate a thumbnail from it
@@ -109,11 +121,36 @@ export function ProductCard({
   const isOverlay = cardStyle === 'overlay';
   const isMinimal = cardStyle === 'minimal';
   
+  // Aspect ratio class mapping
+  const aspectRatioClasses: Record<string, string> = {
+    'square': 'aspect-square',
+    'portrait': 'aspect-[3/4]',
+    'portrait-tall': 'aspect-[2/3]',
+    'landscape': 'aspect-video',
+  };
+  const aspectClass = aspectRatioClasses[imageAspectRatio] || 'aspect-[3/4]';
+  
+  // Image position class mapping
+  const imagePositionClasses: Record<string, string> = {
+    'top': 'object-top',
+    'center': 'object-center',
+    'bottom': 'object-bottom',
+  };
+  const positionClass = imagePositionClasses[imagePosition] || 'object-center';
+  
+  // Image fit class
+  const fitClass = imageFit === 'contain' ? 'object-contain' : imageFit === 'fill' ? 'object-fill' : 'object-cover';
+  
+  // Product name line clamp class
+  const nameLineClampClass = productNameLines === 0 ? '' : 
+    productNameLines === 1 ? 'line-clamp-1' :
+    productNameLines === 3 ? 'line-clamp-3' : 'line-clamp-2';
+  
   return (
     <article className={`group animate-slide-up ${showAddToCart ? 'h-full flex flex-col' : ''} ${isOverlay ? 'relative' : ''}`} dir="rtl">
       {/* Image or Video */}
       <Link href={productUrl} className={`block img-zoom ${isOverlay ? '' : 'mb-4'} flex-shrink-0`}>
-        <div className={`aspect-[3/4] relative overflow-hidden ${isMinimal ? 'bg-transparent' : 'bg-gray-50'}`}>
+        <div className={`${aspectClass} relative overflow-hidden ${isMinimal ? 'bg-transparent' : 'bg-gray-50'}`} data-product-image-container data-image-fit={imageFit}>
           {isVideoCard ? (
             // Autoplay muted video for video cards
             <video
@@ -123,13 +160,13 @@ export function ProductCard({
               muted
               loop
               playsInline
-              className={`w-full h-full object-cover ${outOfStock ? 'opacity-60' : ''}`}
+              className={`w-full h-full ${fitClass} ${positionClass} ${outOfStock ? 'opacity-60' : ''}`}
             />
           ) : (
             <ProductImage 
               src={displayImage} 
               alt={name}
-              className={outOfStock ? 'opacity-60' : ''}
+              className={`${fitClass} ${positionClass} ${outOfStock ? 'opacity-60' : ''}`}
               loading="lazy"
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             />
@@ -205,7 +242,8 @@ export function ProductCard({
           {!showAddToCart && !outOfStock && !hasVariants && (
             // Simple product - hover only
             // 🔧 pointer-events-none on mobile prevents accidental clicks on hidden button
-            <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none md:pointer-events-auto">
+            // z-20 ensures it's above overlay content (z-10)
+            <div className="absolute bottom-0 left-0 right-0 p-4 transition-all duration-300 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 pointer-events-none md:pointer-events-auto z-20">
               <AddToCartButton 
                 productId={id}
                 name={name}
@@ -225,12 +263,15 @@ export function ProductCard({
 
       {/* Content - overlay style puts content inside image */}
       {isOverlay ? (
-        <Link href={productUrl} className="absolute inset-0 flex items-end">
-          <div className="w-full p-4 bg-gradient-to-t from-black/70 via-black/30 to-transparent">
-            <h3 className="text-sm font-medium text-white mb-1 group-hover:underline underline-offset-4 transition-all">
-              {name}
-            </h3>
-            <div className="flex items-center justify-center gap-3">
+        <div className="absolute inset-0 flex flex-col justify-end z-10">
+          <Link href={productUrl} className="flex-1" />
+          <div className={`w-full p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent ${cardTextAlign === 'center' ? 'text-center' : cardTextAlign === 'right' ? 'text-right' : 'text-left'}`}>
+            <Link href={productUrl}>
+              <h3 className={`text-sm font-medium text-white mb-1 group-hover:underline underline-offset-4 transition-all ${nameLineClampClass}`} data-product-name>
+                {name}
+              </h3>
+            </Link>
+            <div className={`flex items-center gap-3 ${cardTextAlign === 'center' ? 'justify-center' : cardTextAlign === 'right' ? 'justify-start' : 'justify-end'}`}>
               <span className={`text-sm ${hasAutoDiscount ? 'text-green-300 font-medium' : 'text-white'}`}>
                 {format(finalPrice)}
               </span>
@@ -238,12 +279,49 @@ export function ProductCard({
                 <span className="text-sm text-white/60 line-through">{format(originalPrice)}</span>
               )}
             </div>
+            {/* Add to Cart for overlay - white button on dark background */}
+            {showAddToCart && !outOfStock && (
+              <div className="mt-3" data-add-to-cart-container>
+                {hasVariants && storeSlug ? (
+                  <ProductCardAddToCart
+                    productId={id}
+                    name={name}
+                    price={price}
+                    image={image}
+                    inventory={inventory}
+                    trackInventory={trackInventory}
+                    allowBackorder={allowBackorder}
+                    hasVariants={true}
+                    storeSlug={storeSlug}
+                    showAlways={true}
+                    automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                    categoryIds={automaticDiscount?.categoryIds}
+                    positionBelow={true}
+                    buttonStyle="filled"
+                  />
+                ) : (
+                  <AddToCartButton 
+                    productId={id}
+                    name={name}
+                    price={price}
+                    image={image}
+                    inventory={inventory}
+                    trackInventory={trackInventory}
+                    allowBackorder={allowBackorder}
+                    className="w-full !bg-white !text-black hover:!bg-gray-100 !border-white"
+                    variant="outline"
+                    automaticDiscountName={automaticDiscount?.names?.join(' + ') || automaticDiscount?.name}
+                    categoryIds={automaticDiscount?.categoryIds}
+                  />
+                )}
+              </div>
+            )}
           </div>
-        </Link>
+        </div>
       ) : (
         <div className={`${cardTextAlign === 'center' ? 'text-center' : cardTextAlign === 'right' ? 'text-right' : 'text-left'} ${showAddToCart ? 'flex-1 flex flex-col' : ''}`}>
           <Link href={productUrl}>
-            <h3 className={`text-sm font-medium mb-2 group-hover:underline underline-offset-4 transition-all ${outOfStock ? 'text-gray-400' : 'text-black'}`}>
+            <h3 className={`text-sm font-medium mb-2 group-hover:underline underline-offset-4 transition-all ${outOfStock ? 'text-gray-400' : 'text-black'} ${nameLineClampClass}`} data-product-name>
               {name}
             </h3>
           </Link>
@@ -260,7 +338,7 @@ export function ProductCard({
         
           {/* Add to Cart Button - BELOW the card (when showAddToCart is ON) */}
           {showAddToCart && !outOfStock && (
-            <div className="mt-auto pt-3">
+            <div className="mt-auto pt-3" data-add-to-cart-container>
               {hasVariants && storeSlug ? (
                 <ProductCardAddToCart
                   productId={id}

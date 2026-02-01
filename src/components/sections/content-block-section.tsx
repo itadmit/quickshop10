@@ -395,7 +395,8 @@ export function ContentBlockSection({
           {/* Title - Always render for live editing */}
           <h2 
             className={`leading-tight ${hasMedia ? 'font-display tracking-[0.3em] uppercase mb-6' : 'mb-4'}`}
-            style={{ display: title ? '' : 'none' }}
+            style={{ display: title ? '' : 'none', direction: 'rtl' }}
+            dir="rtl"
             data-section-title
           >
             {title || ''}
@@ -403,8 +404,11 @@ export function ContentBlockSection({
 
           {/* Subtitle - Always render for live editing */}
           <p 
-            className={`mb-4 ${hasMedia ? 'tracking-[0.4em] uppercase mb-12' : ''}`}
-            style={{ display: subtitle ? '' : 'none' }}
+            className={`mb-4 ${hasMedia ? 'tracking-[0.2em] mb-12' : ''}`}
+            style={{ 
+              display: subtitle ? '' : 'none',
+              unicodeBidi: 'plaintext',
+            }}
             data-section-subtitle
           >
             {subtitle || ''}

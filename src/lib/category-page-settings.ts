@@ -37,6 +37,8 @@ export interface CategoryPageSettings {
     useResponsiveRatio: boolean;      // האם להשתמש ברטיו נפרד למובייל
     showOverlay: boolean;        // הצג שכבת כיהוי
     overlayOpacity: number;      // שקיפות הכיהוי
+    shape: 'square' | 'circle';  // צורה - ריבוע או עיגול
+    maxWidth: number;            // מקסימום רוחב בפיקסלים (0 = ללא הגבלה)
   };
   
   // Products grid settings
@@ -78,6 +80,8 @@ export const defaultCategoryPageSettings: CategoryPageSettings = {
     useResponsiveRatio: false, // ברירת מחדל: רטיו אחיד
     showOverlay: true,
     overlayOpacity: 20,
+    shape: 'square',           // ברירת מחדל: ריבוע
+    maxWidth: 0,               // ברירת מחדל: ללא הגבלה
   },
   
   products: {

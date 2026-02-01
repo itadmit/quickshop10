@@ -70,6 +70,19 @@ export function handleProductsUpdate(
       titleEl.style.fontWeight = weightMap[updates.settings.titleWeight as string] || '400';
     }
   }
+  
+  // Title font family override
+  if (updates.settings?.titleFontFamily !== undefined) {
+    const titleEl = el.querySelector('[data-section-title]') as HTMLElement;
+    if (titleEl) {
+      const fontFamily = updates.settings.titleFontFamily as string;
+      if (fontFamily) {
+        titleEl.style.setProperty('font-family', `'${fontFamily}', sans-serif`, 'important');
+      } else {
+        titleEl.style.removeProperty('font-family');
+      }
+    }
+  }
 
   // =====================================================
   // SUBTITLE UPDATES
@@ -100,15 +113,43 @@ export function handleProductsUpdate(
       }
     }
   }
+  
+  // Subtitle font family override
+  if (updates.settings?.subtitleFontFamily !== undefined) {
+    const subtitleEl = el.querySelector('[data-section-subtitle]') as HTMLElement;
+    if (subtitleEl) {
+      const fontFamily = updates.settings.subtitleFontFamily as string;
+      if (fontFamily) {
+        subtitleEl.style.setProperty('font-family', `'${fontFamily}', sans-serif`, 'important');
+      } else {
+        subtitleEl.style.removeProperty('font-family');
+      }
+    }
+  }
 
   // =====================================================
   // DIVIDER UPDATES
   // =====================================================
   
+  if (updates.settings?.showDivider !== undefined) {
+    const dividerEl = el.querySelector('[data-section-divider]') as HTMLElement;
+    if (dividerEl) {
+      dividerEl.style.display = updates.settings.showDivider === false ? 'none' : '';
+      dividerEl.classList.toggle('hidden', updates.settings.showDivider === false);
+    }
+  }
+  
   if (updates.settings?.dividerColor !== undefined) {
     const dividerEl = el.querySelector('[data-section-divider]') as HTMLElement;
     if (dividerEl) {
       dividerEl.style.backgroundColor = updates.settings.dividerColor as string;
+    }
+  }
+  
+  if (updates.settings?.dividerHeight !== undefined) {
+    const dividerEl = el.querySelector('[data-section-divider]') as HTMLElement;
+    if (dividerEl) {
+      dividerEl.style.height = `${updates.settings.dividerHeight}px`;
     }
   }
 
@@ -296,6 +337,161 @@ export function handleProductsUpdate(
     }
   }
 
+  // Show/hide add to cart button - live update
+  if (updates.settings?.showAddToCart !== undefined) {
+    const showCart = updates.settings.showAddToCart as boolean;
+    el.setAttribute('data-show-add-to-cart', String(showCart));
+    
+    if (sectionId) {
+      const styleId = `products-add-to-cart-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      if (showCart) {
+        styleEl.textContent = `
+          [data-section-id="${sectionId}"] [data-add-to-cart-container] {
+            display: flex !important;
+          }
+        `;
+      } else {
+        styleEl.textContent = `
+          [data-section-id="${sectionId}"] [data-add-to-cart-container] {
+            display: none !important;
+          }
+        `;
+      }
+    }
+  }
+
+  // Product name lines - live update
+  if (updates.settings?.productNameLines !== undefined) {
+    const lines = updates.settings.productNameLines as number;
+    el.setAttribute('data-product-name-lines', String(lines));
+    
+    if (sectionId) {
+      const styleId = `products-name-lines-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      let lineClampCSS = '';
+      if (lines === 0) {
+        lineClampCSS = `
+          [data-section-id="${sectionId}"] [data-product-name] {
+            -webkit-line-clamp: unset !important;
+            display: block !important;
+          }
+        `;
+      } else {
+        lineClampCSS = `
+          [data-section-id="${sectionId}"] [data-product-name] {
+            display: -webkit-box !important;
+            -webkit-line-clamp: ${lines} !important;
+            -webkit-box-orient: vertical !important;
+            overflow: hidden !important;
+          }
+        `;
+      }
+      
+      styleEl.textContent = lineClampCSS;
+    }
+  }
+
+  // Image aspect ratio - inject CSS for real-time update
+  if (updates.settings?.imageAspectRatio !== undefined) {
+    const aspectRatio = updates.settings.imageAspectRatio as string;
+    el.setAttribute('data-image-aspect-ratio', aspectRatio);
+    
+    // Inject scoped CSS for aspect ratio
+    if (sectionId) {
+      const styleId = `products-aspect-ratio-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      // Map aspect ratio to CSS
+      const aspectMap: Record<string, string> = {
+        'square': '1 / 1',
+        'portrait': '3 / 4',
+        'portrait-tall': '2 / 3',
+        'landscape': '16 / 9',
+      };
+      const aspectValue = aspectMap[aspectRatio] || '3 / 4';
+      
+      styleEl.textContent = `
+        [data-section-id="${sectionId}"] [data-product-image-container] {
+          aspect-ratio: ${aspectValue} !important;
+        }
+      `;
+    }
+  }
+  
+  // Image position - inject CSS for real-time update
+  if (updates.settings?.imagePosition !== undefined) {
+    const imagePosition = updates.settings.imagePosition as string;
+    el.setAttribute('data-image-position', imagePosition);
+    
+    // Inject scoped CSS for image position
+    if (sectionId) {
+      const styleId = `products-image-position-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      // Map position to CSS object-position
+      const positionMap: Record<string, string> = {
+        'top': 'top',
+        'center': 'center',
+        'bottom': 'bottom',
+      };
+      const positionValue = positionMap[imagePosition] || 'center';
+      
+      styleEl.textContent = `
+        [data-section-id="${sectionId}"] [data-product-image-container] img,
+        [data-section-id="${sectionId}"] [data-product-image-container] video {
+          object-position: ${positionValue} !important;
+        }
+      `;
+    }
+  }
+  
+  // Image fit - inject CSS for real-time update
+  if (updates.settings?.imageFit !== undefined) {
+    const imageFit = updates.settings.imageFit as string;
+    el.setAttribute('data-image-fit', imageFit);
+    
+    // Inject scoped CSS for image fit
+    if (sectionId) {
+      const styleId = `products-image-fit-${sectionId}`;
+      let styleEl = document.getElementById(styleId);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = styleId;
+        document.head.appendChild(styleEl);
+      }
+      
+      styleEl.textContent = `
+        [data-section-id="${sectionId}"] [data-product-image-container] img,
+        [data-section-id="${sectionId}"] [data-product-image-container] video {
+          object-fit: ${imageFit} !important;
+        }
+      `;
+    }
+  }
+
   // Card text alignment - inject CSS for real-time update
   if (updates.settings?.cardTextAlign !== undefined || updates.settings?.textAlign !== undefined) {
     const align = (updates.settings?.cardTextAlign || updates.settings?.textAlign) as string;
@@ -316,10 +512,18 @@ export function handleProductsUpdate(
       const justifyCSS = align === 'center' ? 'center' : align === 'right' ? 'flex-start' : 'flex-end';
       
       styleEl.textContent = `
+        /* Standard card alignment */
         [data-section-id="${sectionId}"] [data-product-id] article > div:last-child {
           text-align: ${textAlignCSS} !important;
         }
         [data-section-id="${sectionId}"] [data-product-id] article > div:last-child > div {
+          justify-content: ${justifyCSS} !important;
+        }
+        /* Overlay card alignment - the gradient div inside absolute container */
+        [data-section-id="${sectionId}"] [data-product-id] article > .absolute > div {
+          text-align: ${textAlignCSS} !important;
+        }
+        [data-section-id="${sectionId}"] [data-product-id] article > .absolute > div > div {
           justify-content: ${justifyCSS} !important;
         }
       `;
@@ -379,6 +583,10 @@ export const defaultSettings = {
   hoverEffect: 'scale',
   showAddToCart: false,
   addToCartStyle: 'outline',
+  imageAspectRatio: 'portrait',
+  imagePosition: 'center',
+  imageFit: 'cover',
+  productNameLines: 2,
   
   // Visibility
   hideOnMobile: false,

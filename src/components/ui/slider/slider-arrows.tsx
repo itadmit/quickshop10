@@ -41,7 +41,7 @@ const stylePresets = {
     disabled: 'bg-gray-100 text-gray-300 cursor-not-allowed',
   },
   square: {
-    base: 'w-10 h-10 rounded-lg flex items-center justify-center transition-all duration-200',
+    base: 'w-10 h-10 flex items-center justify-center transition-all duration-200',
     enabled: 'bg-white shadow-md hover:shadow-lg text-gray-700 hover:text-gray-900 hover:bg-gray-50',
     disabled: 'bg-gray-100 text-gray-300 cursor-not-allowed',
   },
@@ -52,14 +52,14 @@ const stylePresets = {
   },
 };
 
-// Position presets
+// Position presets - inside מיקום החצים במרכז התמונה (לא במרכז הסקשן)
 const positionPresets = {
   inside: {
-    container: 'absolute inset-y-0 left-0 right-0 flex items-center justify-between px-2 pointer-events-none z-20',
+    container: 'absolute top-[35%] -translate-y-1/2 left-0 right-0 flex items-center justify-between px-2 pointer-events-none z-20',
     button: 'pointer-events-auto cursor-pointer',
   },
   outside: {
-    container: 'absolute inset-y-0 -left-14 -right-14 flex items-center justify-between pointer-events-none z-20',
+    container: 'absolute top-[35%] -translate-y-1/2 -left-14 -right-14 flex items-center justify-between pointer-events-none z-20',
     button: 'pointer-events-auto cursor-pointer',
   },
   bottom: {
@@ -83,8 +83,20 @@ export function SliderArrows({
   const prevDisabled = !settings.loop && state.isAtStart;
   const nextDisabled = !settings.loop && state.isAtEnd;
 
+  // Custom colors from settings
+  const bgColor = settings.arrowBgColor || '#ffffff';
+  const iconColor = settings.arrowColor || '#374151';
+
   // Don't render if only one "page" of items
   if (state.totalItems <= 1) return null;
+
+  // Custom styles for non-minimal style
+  const customStyle = style !== 'minimal' ? {
+    backgroundColor: prevDisabled ? undefined : bgColor,
+    color: iconColor,
+  } : {
+    color: iconColor,
+  };
 
   return (
     <div 
@@ -107,6 +119,7 @@ export function SliderArrows({
           ${positionPreset.button}
           ${prevClassName}
         `}
+        style={prevDisabled ? undefined : customStyle}
         aria-label="הקודם"
         data-slider-prev
       >
@@ -128,6 +141,7 @@ export function SliderArrows({
           ${positionPreset.button}
           ${nextClassName}
         `}
+        style={nextDisabled ? undefined : customStyle}
         aria-label="הבא"
         data-slider-next
       >

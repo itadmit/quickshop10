@@ -18,6 +18,7 @@ import { handler as bannerSmallHandler } from '../banner-small';
 import { handler as videoBannerHandler } from '../video-banner';
 import { handler as splitBannerHandler } from '../split-banner';
 import { handler as productsHandler } from '../products';
+import { handler as productsSliderHandler } from '../products-slider';
 import { handler as categoriesHandler } from '../categories';
 import { handler as featuredItemsHandler } from '../featured-items';
 import { handler as seriesGridHandler } from '../series-grid';
@@ -48,6 +49,7 @@ export const sectionHandlers: SectionHandlers = {
   video_banner: videoBannerHandler,
   split_banner: splitBannerHandler,
   products: productsHandler,
+  products_slider: productsSliderHandler,
   categories: categoriesHandler,
   featured_items: featuredItemsHandler,
   series_grid: seriesGridHandler,

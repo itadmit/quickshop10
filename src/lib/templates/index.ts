@@ -86,7 +86,7 @@ export const templates: Template[] = [
       {
         type: 'hero',
         title: 'NOIR',
-        subtitle: 'קולקציית סתיו-חורף 2025!',
+        subtitle: 'קולקציית סתיו-חורף 2025',
         content: {
           imageUrl: 'https://static.zara.net/assets/public/7d17/93b6/642f4cafb9ab/b570acca9761/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0/image-landscape-d9c8c30a-51dc-4c2c-a132-17471fd14151-default_0.jpg?ts=1760467352233&w=3420',
           buttonText: 'גלה את הקולקציה',

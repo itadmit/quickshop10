@@ -179,6 +179,7 @@ export const englishTranslations: UITranslations = {
   product: {
     addToCart: "Add to Cart",
     addedToCart: "Added to Cart ✓",
+    selectOptions: "Select Options",
     buyNow: "Buy Now",
     outOfStock: "Out of Stock",
     inStock: "In Stock",

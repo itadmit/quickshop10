@@ -55,11 +55,15 @@ interface ProductsSectionProps {
     titleSize?: number;
     titleSizeMobile?: number;
     titleWeight?: string;
+    titleFontFamily?: string;
     subtitleColor?: string;
     subtitleSize?: number;
     subtitleSizeMobile?: number;
+    subtitleFontFamily?: string;
     // Divider
+    showDivider?: boolean;
     dividerColor?: string;
+    dividerHeight?: number;
     // Background
     backgroundColor?: string;
     // Spacing
@@ -80,6 +84,14 @@ interface ProductsSectionProps {
     // Card styling
     cardStyle?: 'standard' | 'minimal' | 'overlay';
     hoverEffect?: 'none' | 'scale' | 'zoom';
+    // Image aspect ratio
+    imageAspectRatio?: 'square' | 'portrait' | 'portrait-tall' | 'landscape';
+    // Image position (where to focus when cropping)
+    imagePosition?: 'top' | 'center' | 'bottom';
+    // Image fit mode
+    imageFit?: 'cover' | 'contain' | 'fill';
+    // Product name lines
+    productNameLines?: number;
     // Visibility
     hideOnMobile?: boolean;
     hideOnDesktop?: boolean;
@@ -177,6 +189,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
           style={{
             color: settings.subtitleColor || '#9ca3af',
             fontSize: settings.subtitleSize ? `${settings.subtitleSize}px` : '12px',
+            fontFamily: settings.subtitleFontFamily ? `'${settings.subtitleFontFamily}', sans-serif` : undefined,
           }}
         >
           {subtitle || ''}
@@ -190,6 +203,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
             color: settings.titleColor || '#000000',
             fontSize: settings.titleSize ? `${settings.titleSize}px` : undefined,
             fontWeight: settings.titleWeight === 'bold' ? '700' : settings.titleWeight === 'semibold' ? '600' : settings.titleWeight === 'medium' ? '500' : settings.titleWeight === 'light' ? '300' : '400',
+            fontFamily: settings.titleFontFamily ? `'${settings.titleFontFamily}', sans-serif` : undefined,
           }}
         >
           {title || ''}
@@ -197,9 +211,10 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
         
         {/* Divider - gold line under title */}
         <div 
-          className={`w-16 h-0.5 mt-6 mb-8 ${!title ? 'hidden' : ''}`}
+          className={`w-16 mt-6 mb-8 ${!title || settings.showDivider === false ? 'hidden' : ''}`}
           style={{ 
             backgroundColor: settings.dividerColor || '#C9A962',
+            height: `${settings.dividerHeight || 2}px`,
             marginInlineStart: textAlign === 'center' ? 'auto' : textAlign === 'left' ? '0' : 'auto',
             marginInlineEnd: textAlign === 'center' ? 'auto' : textAlign === 'left' ? 'auto' : '0',
           }}
@@ -248,6 +263,10 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
                 showWishlist={showWishlist}
                 cardStyle={settings.cardStyle}
                 cardTextAlign={settings.textAlign}
+                imageAspectRatio={settings.imageAspectRatio}
+                imagePosition={settings.imagePosition}
+                imageFit={settings.imageFit}
+                productNameLines={settings.productNameLines}
               />
             </div>
           ))}

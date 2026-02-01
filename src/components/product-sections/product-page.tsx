@@ -1062,7 +1062,13 @@ export function ProductPage({
                   
                   {/* Features - after info */}
                   {contentSections.filter(s => s.type === 'features').map(s => (
-                    <div key={s.id} className="mt-8">
+                    <div 
+                      key={s.id} 
+                      className="mt-8"
+                      data-section-id={s.id}
+                      data-section-type="features"
+                      data-section-name="חוזקות"
+                    >
                       <ProductSection section={s} context={context} />
                     </div>
                   ))}
@@ -1256,14 +1262,16 @@ export function ProductPage({
                     </div>
                   )}
 
-                  {/* Features - after info, only if has features section (legacy) */}
+                  {/* Features - after info, only if has features section */}
                   {contentSections.filter(s => s.type === 'features').map(s => (
-                    <div key={s.id} className="mt-8">
-                      {isPreviewMode ? (
-                        <LiveFeaturesSection initialFeatures={v1Features} />
-                      ) : (
-                        <ProductSection section={s} context={context} />
-                      )}
+                    <div 
+                      key={s.id} 
+                      className="mt-8"
+                      data-section-id={s.id}
+                      data-section-type="features"
+                      data-section-name="חוזקות"
+                    >
+                      <ProductSection section={s} context={context} />
                     </div>
                   ))}
                 </div>

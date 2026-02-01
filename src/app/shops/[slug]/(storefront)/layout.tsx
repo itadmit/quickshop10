@@ -8,6 +8,7 @@ import { detectLocaleWithGeo, getUITranslations } from '@/lib/translations';
 import { TranslationsProvider } from '@/lib/translations/use-translations';
 import { isRTL, getDirection } from '@/lib/translations';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
+import { WhatsAppFloatButton, type WhatsAppFloatConfig } from '@/components/storefront/whatsapp-float-button';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
 import { PopupDisplay } from '@/components/storefront/popup-display';
@@ -64,7 +65,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   // Fetch categories, customer, plugin data, menus, and popups in parallel (server-side)
   const now = new Date();
-  const [categories, mainMenu, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns] = await Promise.all([
+  const [categories, mainMenu, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns, whatsappFloatEnabled, whatsappFloatPlugin] = await Promise.all([
     getCategoriesByStore(store.id),
     getMainMenuWithItems(store.id),
     getCurrentCustomer(),
@@ -94,6 +95,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         or(isNull(gamificationCampaigns.endDate), gte(gamificationCampaigns.endDate, now))
       ),
     }),
+    // WhatsApp Float plugin
+    isPluginActive(store.id, 'whatsapp-float'),
+    getStorePlugin(store.id, 'whatsapp-float'),
   ]);
   
   // Fetch wishlist items for logged-in customers
@@ -243,7 +247,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   const hasMultipleLanguages = supportedLocales.length > 1;
   const shouldLoadTranslations = hasMultipleLanguages || store.hasCustomTranslations || currentLocale !== 'he';
   const translations = shouldLoadTranslations 
-    ? await getUITranslations(store.id, currentLocale)
+    ? await getUITranslations(store.id, currentLocale, hasMultipleLanguages, store.hasCustomTranslations ?? false)
     : null;
   
   // Get direction (RTL/LTR) for current locale
@@ -355,13 +359,35 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   const customHeadCode = (storeSettings.customHeadCode as string) || '';
   const customBodyStartCode = (storeSettings.customBodyStartCode as string) || '';
   const customBodyEndCode = (storeSettings.customBodyEndCode as string) || '';
+  
+  // Global typography settings
+  const headingFont = (storeSettings.headingFont as string) || 'Noto Sans Hebrew';
+  const bodyFont = (storeSettings.bodyFont as string) || 'Assistant';
 
   return (
     <StoreProvider storeSlug={slug}>
+      {/* Google Fonts Preconnect */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      
+      {/* Google Fonts - Hebrew fonts bundle */}
+      <link 
+        rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Arimo:ital,wght@0,400..700;1,400..700&family=Assistant:wght@200..800&family=Heebo:wght@100..900&family=IBM+Plex+Sans+Hebrew:wght@100;200;300;400;500;600;700&family=Noto+Rashi+Hebrew:wght@100..900&family=Noto+Sans+Hebrew:wght@100..900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Pacifico&family=Rubik:ital,wght@0,300..900;1,300..900&family=Varela+Round&display=swap"
+      />
+      
       {/* Template CSS Variables - Server-Side (Zero JS!) */}
       <style dangerouslySetInnerHTML={{ __html: `
         :root {
           ${cssVariables}
+          --font-display: '${headingFont}', sans-serif;
+          --font-sans: '${bodyFont}', sans-serif;
+        }
+        body {
+          font-family: '${bodyFont}', sans-serif;
+        }
+        h1, h2, h3, h4, h5, h6, .font-display {
+          font-family: '${headingFont}', sans-serif;
         }
         ${customCss}
       ` }} />
@@ -458,6 +484,26 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
                   />
                 )}
 
+                {/* WhatsApp Float Button - Renders only if plugin is active (not on checkout) */}
+                {!isCheckoutPage && whatsappFloatEnabled && whatsappFloatPlugin && (
+                  <WhatsAppFloatButton 
+                    config={{
+                      phoneNumber: String((whatsappFloatPlugin.config as Record<string, unknown>)?.phoneNumber || ''),
+                      buttonColor: String((whatsappFloatPlugin.config as Record<string, unknown>)?.buttonColor || '#25D366'),
+                      position: ((whatsappFloatPlugin.config as Record<string, unknown>)?.position as 'left' | 'right') || 'left',
+                      showBubble: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showBubble ?? true),
+                      bubbleText: String((whatsappFloatPlugin.config as Record<string, unknown>)?.bubbleText || 'היי! איך אפשר לעזור? 👋'),
+                      bubbleDelaySeconds: Number((whatsappFloatPlugin.config as Record<string, unknown>)?.bubbleDelaySeconds || 3),
+                      defaultMessage: String((whatsappFloatPlugin.config as Record<string, unknown>)?.defaultMessage || 'שלום, הגעתי דרך האתר ואשמח לקבל עזרה'),
+                      showOnMobile: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showOnMobile ?? true),
+                      showOnDesktop: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showOnDesktop ?? true),
+                      showPulse: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showPulse ?? true),
+                      bottomOffset: Number((whatsappFloatPlugin.config as Record<string, unknown>)?.bottomOffset || 20),
+                      sideOffset: Number((whatsappFloatPlugin.config as Record<string, unknown>)?.sideOffset || 20),
+                    }}
+                  />
+                )}
+
                 {/* Cookie Consent Banner - GDPR Compliance */}
                 {gdprSettings?.enabled && (
                   <CookieBanner settings={gdprSettings} storeSlug={slug} />
@@ -531,6 +577,26 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
                   storeName={store.name}
                   wheelEnabled={wheelEnabled}
                   scratchEnabled={scratchEnabled}
+                />
+              )}
+
+              {/* WhatsApp Float Button - Renders only if plugin is active (not on checkout) */}
+              {!isCheckoutPage && whatsappFloatEnabled && whatsappFloatPlugin && (
+                <WhatsAppFloatButton 
+                  config={{
+                    phoneNumber: String((whatsappFloatPlugin.config as Record<string, unknown>)?.phoneNumber || ''),
+                    buttonColor: String((whatsappFloatPlugin.config as Record<string, unknown>)?.buttonColor || '#25D366'),
+                    position: ((whatsappFloatPlugin.config as Record<string, unknown>)?.position as 'left' | 'right') || 'left',
+                    showBubble: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showBubble ?? true),
+                    bubbleText: String((whatsappFloatPlugin.config as Record<string, unknown>)?.bubbleText || 'היי! איך אפשר לעזור? 👋'),
+                    bubbleDelaySeconds: Number((whatsappFloatPlugin.config as Record<string, unknown>)?.bubbleDelaySeconds || 3),
+                    defaultMessage: String((whatsappFloatPlugin.config as Record<string, unknown>)?.defaultMessage || 'שלום, הגעתי דרך האתר ואשמח לקבל עזרה'),
+                    showOnMobile: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showOnMobile ?? true),
+                    showOnDesktop: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showOnDesktop ?? true),
+                    showPulse: Boolean((whatsappFloatPlugin.config as Record<string, unknown>)?.showPulse ?? true),
+                    bottomOffset: Number((whatsappFloatPlugin.config as Record<string, unknown>)?.bottomOffset || 20),
+                    sideOffset: Number((whatsappFloatPlugin.config as Record<string, unknown>)?.sideOffset || 20),
+                  }}
                 />
               )}
 

@@ -35,6 +35,7 @@ export function EditorSelect({
 }: EditorSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close on outside click
   useEffect(() => {
@@ -46,6 +47,16 @@ export function EditorSelect({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Scroll selected item into view when dropdown opens
+  useEffect(() => {
+    if (isOpen && dropdownRef.current) {
+      const selectedEl = dropdownRef.current.querySelector('[data-selected="true"]');
+      if (selectedEl) {
+        selectedEl.scrollIntoView({ block: 'center' });
+      }
+    }
+  }, [isOpen]);
 
   const selectedOption = options.find(o => o.value === value);
 
@@ -68,11 +79,15 @@ export function EditorSelect({
 
         {/* Dropdown for compact */}
         {isOpen && (
-          <div className="absolute right-0 top-full mt-1 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
-                          border border-[var(--editor-border-default)] shadow-lg py-1 min-w-16 max-h-48 overflow-auto">
+          <div 
+            ref={dropdownRef}
+            className="absolute right-0 top-full mt-1 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
+                          border border-[var(--editor-border-default)] shadow-lg py-1 min-w-16 max-h-52 overflow-y-auto"
+          >
             {options.map((option) => (
               <button
                 key={option.value}
+                data-selected={value === option.value}
                 onClick={() => {
                   onChange(option.value);
                   setIsOpen(false);
@@ -118,11 +133,15 @@ export function EditorSelect({
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
-                        border border-[var(--editor-border-default)] shadow-lg py-1 min-w-32 max-h-48 overflow-auto">
+        <div 
+          ref={dropdownRef}
+          className="absolute left-0 top-full mt-1 z-50 bg-[var(--editor-bg-secondary)] rounded-lg 
+                        border border-[var(--editor-border-default)] shadow-lg py-1 min-w-32 max-h-52 overflow-y-auto"
+        >
           {options.map((option) => (
             <button
               key={option.value}
+              data-selected={value === option.value}
               onClick={() => {
                 onChange(option.value);
                 setIsOpen(false);

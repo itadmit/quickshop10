@@ -205,6 +205,7 @@ export interface CartTranslations {
 export interface ProductTranslations {
   addToCart: string;
   addedToCart: string;
+  selectOptions: string;
   buyNow: string;
   outOfStock: string;
   inStock: string;

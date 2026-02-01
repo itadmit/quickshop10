@@ -354,9 +354,9 @@ function ProductsPreview({
   previewMode: string;
 }) {
   const settings = section.settings as { columns?: number };
-  const content = section.content as { limit?: number };
+  const content = section.content as { limit?: number; displayLimit?: number };
   const cols = previewMode === 'mobile' ? 2 : (settings.columns || 4);
-  const limit = content.limit || 8;
+  const limit = content.limit || content.displayLimit || 8;
 
   return (
     <div className="py-16 px-6 bg-white border-t border-gray-100">

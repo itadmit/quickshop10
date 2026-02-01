@@ -13,6 +13,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import { useStoreOptional } from '@/lib/store-context';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 interface UpsellProduct {
   id: string;
@@ -41,6 +42,7 @@ interface CartUpsellsProps {
 
 export function CartUpsells({ storeSlug }: CartUpsellsProps) {
   const store = useStoreOptional();
+  const { t } = useTranslations();
   const [upsells, setUpsells] = useState<UpsellProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({});
@@ -240,7 +242,7 @@ export function CartUpsells({ storeSlug }: CartUpsellsProps) {
                     : 'bg-black text-white hover:bg-gray-800 disabled:opacity-50'
                 }`}
               >
-                {isProductOutOfStock(product) ? 'אזל מהמלאי' : 'הוסף לסל'}
+                {isProductOutOfStock(product) ? t.product.outOfStock : t.product.addToCart}
               </button>
             </div>
           </div>

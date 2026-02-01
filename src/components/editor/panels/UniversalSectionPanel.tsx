@@ -15,6 +15,7 @@ import {
   EditorSlider,
   EditorSelect,
   EditorToggle,
+  EditorColorPicker,
   EditorThemeProvider,
   ThemeToggle,
 } from '../ui';
@@ -93,7 +94,8 @@ const SECTION_NAMES: Record<string, string> = {
   hero: 'באנר ראשי',
   hero_premium: 'באנר פרימיום',
   hero_slider: 'סליידר הירו',
-  products: 'מוצרים נבחרים',
+  products: 'מוצרים (גריד)',
+  products_slider: 'מוצרים (סליידר)',
   categories: 'קטגוריות',
   reviews: 'ביקורות',
   features: 'חוזקות',
@@ -164,6 +166,13 @@ const DESIGN_CONFIG: Record<string, DesignConfig> = {
     paddingDefaults: { top: 0, bottom: 0, left: 0, right: 0 },
   },
   products: {
+    showGrid: true,
+    showCards: true,
+    titleDefaults: { size: 28, sizeMobile: 22, weight: 'light', color: '#000000' },
+    subtitleDefaults: { size: 12, sizeMobile: 10, weight: 'normal', color: '#9ca3af' },
+    paddingDefaults: { top: 80, bottom: 80, left: 24, right: 24 },
+  },
+  products_slider: {
     showGrid: true,
     showCards: true,
     titleDefaults: { size: 28, sizeMobile: 22, weight: 'light', color: '#000000' },
@@ -572,20 +581,23 @@ export function UniversalSectionPanel({
 
                 {/* גריד/סליידר - רק לסקשנים עם גריד */}
                 {designConfig.showGrid && (
-                  <MiniAccordion title={settings.layout === 'slider' ? 'סליידר' : 'גריד'} defaultOpen={true}>
+                  <MiniAccordion title={sectionType === 'products_slider' ? 'סליידר' : 'גריד'} defaultOpen={true}>
                     <div className="space-y-3">
-                      <EditorSelect
-                        label="פריסה"
-                        value={(settings.layout as string) || 'grid'}
-                        options={[
-                          { value: 'grid', label: 'גריד' },
-                          { value: 'slider', label: 'סליידר' },
-                        ]}
-                        onChange={(v) => updateSettings('layout', v)}
-                      />
+                      {/* בורר פריסה - לא מציגים בסקשני מוצרים כי יש סקשנים נפרדים */}
+                      {!['products', 'products_slider'].includes(sectionType) && (
+                        <EditorSelect
+                          label="פריסה"
+                          value={(settings.layout as string) || 'grid'}
+                          options={[
+                            { value: 'grid', label: 'גריד' },
+                            { value: 'slider', label: 'סליידר' },
+                          ]}
+                          onChange={(v) => updateSettings('layout', v)}
+                        />
+                      )}
                       
-                      {/* הגדרות גריד - רק במצב גריד */}
-                      {settings.layout !== 'slider' && (
+                      {/* הגדרות עמודות - לכל סקשני גריד (לא סליידר רגיל) */}
+                      {(settings.layout !== 'slider' || ['products', 'products_slider'].includes(sectionType)) && (
                         <>
                           <EditorSlider
                             label="עמודות (מחשב)"
@@ -607,8 +619,8 @@ export function UniversalSectionPanel({
                         </>
                       )}
                       
-                      {/* הגדרות סליידר - רק במצב סליידר */}
-                      {settings.layout === 'slider' && (
+                      {/* הגדרות סליידר - רק למצב סליידר (לא לסקשני products) */}
+                      {settings.layout === 'slider' && !['products', 'products_slider'].includes(sectionType) && (
                         <>
                           <EditorSlider
                             label="רוחב כרטיס"
@@ -765,6 +777,38 @@ export function UniversalSectionPanel({
                   </MiniAccordion>
                 )}
 
+                {/* מפריד - רק לסקשנים products ו-products_slider */}
+                {['products', 'products_slider'].includes(sectionType) && (
+                  <MiniAccordion title="מפריד" defaultOpen={false}>
+                    <div className="space-y-3">
+                      <EditorToggle
+                        label="הפעל מפריד"
+                        value={(settings.showDivider as boolean) !== false}
+                        onChange={(v) => updateSettings('showDivider', v)}
+                      />
+                      
+                      {(settings.showDivider as boolean) !== false && (
+                        <>
+                          <EditorColorPicker
+                            label="צבע מפריד"
+                            value={(settings.dividerColor as string) || '#C9A962'}
+                            onChange={(v) => updateSettings('dividerColor', v)}
+                          />
+                          
+                          <EditorSlider
+                            label="עובי מפריד"
+                            value={(settings.dividerHeight as number) || 2}
+                            onChange={(v) => updateSettings('dividerHeight', v)}
+                            min={1}
+                            max={8}
+                            suffix="px"
+                          />
+                        </>
+                      )}
+                    </div>
+                  </MiniAccordion>
+                )}
+
                 {/* כרטיסים - רק לסקשנים עם כרטיסים */}
                 {designConfig.showCards && (
                   <MiniAccordion title="כרטיסים" defaultOpen={false}>
@@ -803,6 +847,18 @@ export function UniversalSectionPanel({
                           { value: 'left', label: 'שמאל' },
                         ]}
                         onChange={(v) => updateSettings('cardTextAlign', v)}
+                      />
+                      
+                      <EditorSelect
+                        label="מקסימום שורות לשם מוצר"
+                        value={String((settings.productNameLines as number) || 2)}
+                        options={[
+                          { value: '1', label: 'שורה אחת' },
+                          { value: '2', label: '2 שורות' },
+                          { value: '3', label: '3 שורות' },
+                          { value: 'none', label: 'ללא הגבלה' },
+                        ]}
+                        onChange={(v) => updateSettings('productNameLines', v === 'none' ? 0 : parseInt(v))}
                       />
                     </div>
                   </MiniAccordion>
@@ -948,9 +1004,11 @@ function SectionContentEditor({
 
 
     // ==========================================
-    // מוצרים נבחרים
+    // מוצרים נבחרים (גריד או סליידר)
     // ==========================================
-    case 'products': {
+    case 'products':
+    case 'products_slider': {
+      const isSliderSection = sectionType === 'products_slider';
       const selectedProducts = (content.selectedProducts as Array<{id: string; name: string; imageUrl?: string}>) || [];
       const displayType = (content.type as string) || (content.displayBy as string) || 'all';
       
@@ -1127,20 +1185,146 @@ function SectionContentEditor({
                 label="כמות להצגה"
                 value={(content.limit as number) || (content.displayLimit as number) || 8}
                 onChange={(v) => {
-                  updateContent('limit', v);
-                  updateContent('displayLimit', v);
+                  // חייב לשמור לשני השדות בקריאה אחת כדי שלא יידרסו
+                  updateMultipleContent({ limit: v, displayLimit: v });
                 }}
                 min={1}
                 max={24}
                 suffix=""
               />
             )}
+            
+            <EditorSelect
+              label="יחס תמונה"
+              value={(settings.imageAspectRatio as string) || 'portrait'}
+              options={[
+                { value: 'square', label: 'ריבוע (1:1)' },
+                { value: 'portrait', label: 'פורטרט (3:4)' },
+                { value: 'portrait-tall', label: 'פורטרט גבוה (2:3)' },
+                { value: 'landscape', label: 'לנדסקייפ (16:9)' },
+              ]}
+              onChange={(v) => updateSettings('imageAspectRatio', v)}
+            />
+            
+            <EditorSelect
+              label="מיקום תמונה"
+              value={(settings.imagePosition as string) || 'center'}
+              options={[
+                { value: 'top', label: 'למעלה (פנים/ראש)' },
+                { value: 'center', label: 'מרכז' },
+                { value: 'bottom', label: 'למטה (רגליים)' },
+              ]}
+              onChange={(v) => updateSettings('imagePosition', v)}
+            />
+            
+            <EditorSelect
+              label="התאמת תמונה"
+              value={(settings.imageFit as string) || 'cover'}
+              options={[
+                { value: 'cover', label: 'ממלא (חותך)' },
+                { value: 'contain', label: 'מתאים (מראה הכל)' },
+                { value: 'fill', label: 'מותח (עלול לעוות)' },
+              ]}
+              onChange={(v) => updateSettings('imageFit', v)}
+            />
 
             <EditorToggle
               label="הצג כפתור הוספה לסל"
               value={(settings.showAddToCart as boolean) || false}
               onChange={(v) => updateSettings('showAddToCart', v)}
             />
+            
+            {/* Slider-specific settings */}
+            {isSliderSection && (
+              <>
+                <div className="pt-3 border-t border-[var(--editor-border-default)]">
+                  <span className="text-xs font-medium text-[var(--editor-text-muted)]">הגדרות סליידר</span>
+                </div>
+                
+                <EditorToggle
+                  label="הצג חצים"
+                  value={(settings.showArrows as boolean) !== false}
+                  onChange={(v) => updateSettings('showArrows', v)}
+                />
+                
+                <EditorToggle
+                  label="הצג נקודות"
+                  value={(settings.showDots as boolean) !== false}
+                  onChange={(v) => updateSettings('showDots', v)}
+                />
+                
+                <EditorSelect
+                  label="סגנון חצים"
+                  value={(settings.arrowStyle as string) || 'circle'}
+                  options={[
+                    { value: 'circle', label: 'עיגול' },
+                    { value: 'square', label: 'ריבוע' },
+                    { value: 'minimal', label: 'מינימלי' },
+                  ]}
+                  onChange={(v) => updateSettings('arrowStyle', v)}
+                />
+                
+                {(settings.arrowStyle as string) !== 'minimal' && (
+                  <>
+                    <EditorColorPicker
+                      label="צבע רקע חצים"
+                      value={(settings.arrowBgColor as string) || '#ffffff'}
+                      onChange={(v) => updateSettings('arrowBgColor', v)}
+                    />
+                    <EditorColorPicker
+                      label="צבע חץ"
+                      value={(settings.arrowColor as string) || '#374151'}
+                      onChange={(v) => updateSettings('arrowColor', v)}
+                    />
+                  </>
+                )}
+                
+                <EditorSelect
+                  label="סגנון נקודות"
+                  value={(settings.dotsStyle as string) || 'dots'}
+                  options={[
+                    { value: 'dots', label: 'נקודות' },
+                    { value: 'lines', label: 'קווים' },
+                    { value: 'numbers', label: 'מספרים' },
+                  ]}
+                  onChange={(v) => updateSettings('dotsStyle', v)}
+                />
+                
+                <EditorColorPicker
+                  label="צבע נקודות פעילות"
+                  value={(settings.dotsActiveColor as string) || '#111827'}
+                  onChange={(v) => updateSettings('dotsActiveColor', v)}
+                />
+                <EditorColorPicker
+                  label="צבע נקודות לא פעילות"
+                  value={(settings.dotsInactiveColor as string) || '#d1d5db'}
+                  onChange={(v) => updateSettings('dotsInactiveColor', v)}
+                />
+                
+                <EditorToggle
+                  label="הפעלה אוטומטית"
+                  value={(settings.autoplay as boolean) || false}
+                  onChange={(v) => updateSettings('autoplay', v)}
+                />
+                
+                {(settings.autoplay as boolean) && (
+                  <EditorSlider
+                    label="מהירות (שניות)"
+                    value={((settings.autoplayInterval as number) || 5000) / 1000}
+                    min={2}
+                    max={10}
+                    suffix="שניות"
+                    onChange={(v) => updateSettings('autoplayInterval', v * 1000)}
+                  />
+                )}
+                
+                <EditorToggle
+                  label="לופ אינסופי"
+                  value={(settings.loop as boolean) !== false}
+                  onChange={(v) => updateSettings('loop', v)}
+                />
+              </>
+            )}
           </div>
         </MiniAccordion>
       );

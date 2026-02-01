@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useStoreOptional } from '@/lib/store-context';
 import { tracker } from '@/lib/tracking';
 import { X, ShoppingBag, Check } from 'lucide-react';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 // ============================================
 // Quick Add Modal - לבחירת וריאנט מהכרטיס
@@ -66,6 +67,7 @@ export function QuickAddModal({
   categoryIds,
 }: QuickAddModalProps) {
   const store = useStoreOptional();
+  const { t } = useTranslations();
   const [options, setOptions] = useState<Option[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
@@ -208,13 +210,17 @@ export function QuickAddModal({
     
     // Color type
     if (option.displayType === 'color' && metadata?.color) {
+      // בדיקה אם הערך הוא קוד צבע - אם כן, נציג את שם האופציה כ-tooltip
+      const isColorCode = /^(rgb|rgba|hsl|hsla)\(|^#[0-9a-f]{3,8}$/i.test(val.value);
+      const colorTooltip = isColorCode ? option.name : val.value;
       return (
         <button
           key={val.id}
           onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
           className={`${baseClasses} w-8 h-8 rounded-full border border-gray-200`}
           style={{ backgroundColor: metadata.color }}
-          title={val.value}
+          title={colorTooltip}
+          aria-label={colorTooltip}
           disabled={isOutOfStock}
         >
           {isSelected && (
@@ -249,7 +255,7 @@ export function QuickAddModal({
         onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
         className={`
           ${baseClasses}
-          px-3 py-1.5 text-xs border rounded-md
+          px-3 py-1.5 text-xs border
           ${isSelected 
             ? 'bg-black text-white border-black' 
             : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
@@ -349,7 +355,7 @@ export function QuickAddModal({
             onClick={handleAddToCart}
             disabled={!selectedVariant || isOutOfStock || added || !store}
             className={`
-              w-full py-3 px-4 rounded-lg font-medium text-sm flex items-center justify-center gap-2 transition-all
+              w-full py-3 px-4 font-medium text-sm flex items-center justify-center gap-2 transition-all
               ${added 
                 ? 'bg-green-500 text-white' 
                 : isOutOfStock
@@ -362,14 +368,14 @@ export function QuickAddModal({
             {added ? (
               <>
                 <Check className="w-4 h-4" />
-                נוסף לסל!
+                {t.product.addedToCart}
               </>
             ) : isOutOfStock ? (
-              'אזל מהמלאי'
+              t.product.outOfStock
             ) : (
               <>
                 <ShoppingBag className="w-4 h-4" />
-                הוסף לסל
+                {t.product.addToCart}
               </>
             )}
           </button>

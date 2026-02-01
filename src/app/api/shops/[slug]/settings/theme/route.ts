@@ -19,6 +19,12 @@ const STORE_DIRECT_FIELDS = ['logoUrl', 'faviconUrl'];
 
 // Valid theme settings keys (stored in settings jsonb)
 const VALID_SETTINGS_KEYS = [
+  // Global Settings
+  'headingFont',
+  'bodyFont',
+  'siteTitle',
+  'siteDescription',
+  
   // Header
   'headerLayout',
   'headerSticky',

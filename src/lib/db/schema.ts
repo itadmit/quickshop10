@@ -87,7 +87,9 @@ export const sectionTypeEnum = pgEnum('section_type', [
   'hero_premium',   // הירו פרימיום עם גרדיאנט
   'series_grid',    // גריד סדרות מוצרים
   'quote_banner',   // באנר ציטוט עם פרלקס
-  'featured_items'  // פריטים מובילים - תמונה + שם + לינק
+  'featured_items', // פריטים מובילים - תמונה + שם + לינק
+  // Products slider
+  'products_slider' // סליידר מוצרים
 ]);
 
 export const creditTransactionTypeEnum = pgEnum('credit_transaction_type', [

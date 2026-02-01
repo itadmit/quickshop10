@@ -10,3 +10,4 @@ ALTER TABLE "product_images" ADD COLUMN IF NOT EXISTS "display_as_card" boolean 
 
 
 
+

@@ -4,6 +4,7 @@ import { useStoreOptional } from '@/lib/store-context';
 import { useState } from 'react';
 import { tracker } from '@/lib/tracking';
 import { isOutOfStock } from '@/lib/inventory';
+import { useTranslations } from '@/lib/translations/use-translations';
 
 // Re-export for backwards compatibility
 export { isOutOfStock } from '@/lib/inventory';
@@ -57,8 +58,8 @@ export function AddToCartButton({
   automaticDiscountName,
   discountedPrice,
   categoryIds,
-  buttonText = 'הוסף לעגלה',
-  outOfStockText = 'אזל מהמלאי',
+  buttonText,
+  outOfStockText,
   buttonStyle = 'filled',
   fullWidth = true,
   isBundle = false,
@@ -66,6 +67,12 @@ export function AddToCartButton({
 }: AddToCartButtonProps) {
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
+  const { t } = useTranslations();
+  
+  // Use translations from context, fall back to props, then to hardcoded Hebrew
+  const addToCartText = buttonText || t.product.addToCart || 'הוסף לעגלה';
+  const outOfStockLabel = outOfStockText || t.product.outOfStock || 'אזל מהמלאי';
+  const addedText = t.product.addedToCart || 'נוסף לסל ✓';
   
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
 
@@ -74,7 +81,7 @@ export function AddToCartButton({
     const baseStyles = variant === 'primary' ? 'btn-primary' : 'btn-secondary';
     return (
       <button disabled className={`${baseStyles} opacity-50 cursor-not-allowed ${className}`}>
-        {outOfStock ? outOfStockText : buttonText}
+        {outOfStock ? outOfStockLabel : addToCartText}
       </button>
     );
   }
@@ -190,7 +197,7 @@ export function AddToCartButton({
         ${className}
       `}
     >
-      {added ? 'נוסף לעגלה ✓' : outOfStock ? outOfStockText : buttonText}
+      {added ? addedText : outOfStock ? outOfStockLabel : addToCartText}
     </button>
   );
 }

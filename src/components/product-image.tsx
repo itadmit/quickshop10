@@ -87,13 +87,17 @@ export function ProductImage({
     setIsLoaded(true);
   };
 
+  // Check if className already has object-fit specified
+  const hasObjectFit = className.includes('object-cover') || className.includes('object-contain') || className.includes('object-fill');
+  const defaultObjectFit = hasObjectFit ? '' : 'object-cover';
+
   // If no src or has error, show placeholder with regular img
   if (!src || hasError) {
     return (
       <img 
         src={PLACEHOLDER_SVG}
         alt={alt}
-        className={`${className} object-cover`}
+        className={`${className} ${defaultObjectFit}`}
         loading={loading}
       />
     );
@@ -106,8 +110,8 @@ export function ProductImage({
         ref={imgRef}
         src={imgSrc}
         alt={alt}
-        className={`${className} object-cover w-full h-full transition-all duration-700 ease-out ${
-          showImage ? 'blur-0 opacity-100 scale-100' : 'blur-md opacity-0 scale-105'
+        className={`${className} ${defaultObjectFit} w-full h-full transition-[filter,opacity] duration-500 ease-out ${
+          showImage ? 'blur-0 opacity-100' : 'blur-sm opacity-0'
         }`}
         loading={loading}
         onError={handleError}
@@ -122,8 +126,8 @@ export function ProductImage({
       src={imgSrc}
       alt={alt}
       fill
-      className={`${className} object-cover transition-all duration-700 ease-out ${
-        showImage ? 'blur-0 opacity-100 scale-100' : 'blur-md opacity-0 scale-105'
+      className={`${className} ${defaultObjectFit} transition-[filter,opacity] duration-500 ease-out ${
+        showImage ? 'blur-0 opacity-100' : 'blur-sm opacity-0'
       }`}
       loading={priority ? undefined : loading}
       priority={priority}

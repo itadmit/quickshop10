@@ -357,7 +357,7 @@ export function LiveGallerySection({
           return (
             <div 
               key={img.id} 
-              className={`${aspectClass} bg-gray-50 overflow-hidden ${!isCurrentVideo && enableZoom ? 'cursor-zoom-in' : ''}`}
+              className={`${aspectClass} bg-gray-50 overflow-hidden relative ${!isCurrentVideo && enableZoom ? 'cursor-zoom-in' : ''}`}
               onClick={!isCurrentVideo && enableZoom ? () => setIsZoomOpen(true) : undefined}
             >
               {isCurrentVideo ? (
@@ -407,7 +407,7 @@ export function LiveGallerySection({
             return (
               <div 
                 key={img.id} 
-                className={`h-full flex-shrink-0 ${!isCurrentVideo && enableZoom ? 'cursor-zoom-in' : ''}`}
+                className={`h-full flex-shrink-0 relative ${!isCurrentVideo && enableZoom ? 'cursor-zoom-in' : ''}`}
                 style={{ width: `${100 / images.length}%` }}
                 onClick={!isCurrentVideo && enableZoom ? () => setIsZoomOpen(true) : undefined}
                 title={!isCurrentVideo && enableZoom ? 'לחץ להגדלה' : undefined}

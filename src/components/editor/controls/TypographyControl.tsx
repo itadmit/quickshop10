@@ -22,6 +22,22 @@ const FONT_WEIGHTS = [
   { value: 'extrabold', label: 'מודגש מאוד' },
 ];
 
+// Hebrew fonts from Google Fonts
+const FONT_FAMILIES = [
+  { value: '', label: 'ברירת מחדל (גלובלי)' },
+  { value: 'Noto Sans Hebrew', label: 'Noto Sans Hebrew' },
+  { value: 'Noto Rashi Hebrew', label: 'Noto Rashi Hebrew' },
+  { value: 'Assistant', label: 'Assistant' },
+  { value: 'Heebo', label: 'Heebo' },
+  { value: 'Rubik', label: 'Rubik' },
+  { value: 'Open Sans', label: 'Open Sans' },
+  { value: 'Alef', label: 'Alef' },
+  { value: 'Arimo', label: 'Arimo' },
+  { value: 'Varela Round', label: 'Varela Round' },
+  { value: 'IBM Plex Sans Hebrew', label: 'IBM Plex Sans Hebrew' },
+  { value: 'Pacifico', label: 'Pacifico (דקורטיבי)' },
+];
+
 interface TypographyControlProps {
   label: string;
   prefix: string;  // e.g., 'title', 'subtitle', 'text'
@@ -32,6 +48,7 @@ interface TypographyControlProps {
   defaultColor?: string;
   defaultWeight?: string;
   showMobileSize?: boolean;
+  showFontFamily?: boolean;  // Show font family selector
   minSize?: number;
   maxSize?: number;
 }
@@ -46,6 +63,7 @@ export function TypographyControl({
   defaultColor = '#000000',
   defaultWeight = 'normal',
   showMobileSize = true,
+  showFontFamily = true,
   minSize = 10,
   maxSize = 120,
 }: TypographyControlProps) {
@@ -58,6 +76,7 @@ export function TypographyControl({
   const sizeMobile = (settings[`${prefix}SizeMobile`] as number) || defaultSizeMobile || size;
   const color = (settings[`${prefix}Color`] as string) || defaultColor;
   const weight = (settings[`${prefix}Weight`] as string) || defaultWeight;
+  const fontFamily = (settings[`${prefix}FontFamily`] as string) || '';
 
   // Close on outside click
   useEffect(() => {
@@ -80,6 +99,7 @@ export function TypographyControl({
   const updateSizeMobile = (value: number) => onChange(`${prefix}SizeMobile`, value);
   const updateColor = (value: string) => onChange(`${prefix}Color`, value);
   const updateWeight = (value: string) => onChange(`${prefix}Weight`, value);
+  const updateFontFamily = (value: string) => onChange(`${prefix}FontFamily`, value);
 
   return (
     <div className="relative py-2 group">
@@ -144,6 +164,16 @@ export function TypographyControl({
               min={minSize}
               max={maxSize}
               suffix="px"
+            />
+          )}
+
+          {/* Font Family - optional override */}
+          {showFontFamily && (
+            <EditorSelect
+              label="פונט (דריסה)"
+              value={fontFamily}
+              options={FONT_FAMILIES}
+              onChange={updateFontFamily}
             />
           )}
 

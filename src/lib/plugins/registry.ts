@@ -423,6 +423,53 @@ export const pluginRegistry: PluginDefinition[] = [
   },
 
   // ============================================
+  // 💬 WHATSAPP FLOAT - כפתור וואטסאפ צף
+  // ============================================
+  {
+    slug: 'whatsapp-float',
+    name: 'כפתור וואטסאפ צף',
+    description: 'כפתור וואטסאפ צף שמאפשר ללקוחות לשלוח הודעה ישירה לוואטסאפ עם הודעה מוכנה מראש',
+    type: 'core',
+    category: 'communication',
+    version: '1.0.0',
+    icon: 'message-circle',
+    author: 'QuickShop',
+    isFree: true,
+    defaultConfig: {
+      enabled: true,
+      phoneNumber: '', // מספר הוואטסאפ (עם קידומת מדינה)
+      buttonColor: '#25D366', // צבע ברירת מחדל של וואטסאפ
+      position: 'left', // 'left' | 'right'
+      showBubble: true, // האם להציג בועית הודעה
+      bubbleText: 'היי! איך אפשר לעזור? 👋', // טקסט הבועית
+      bubbleDelaySeconds: 3, // אחרי כמה שניות להציג את הבועית
+      defaultMessage: 'שלום, הגעתי דרך האתר ואשמח לקבל עזרה', // הודעת ברירת מחדל
+      showOnMobile: true,
+      showOnDesktop: true,
+      showPulse: true, // האם להציג אנימציית הבהוב
+      bottomOffset: 20, // מרחק מהתחתית (px)
+      sideOffset: 20, // מרחק מהצד (px)
+    },
+    metadata: {
+      menuItem: {
+        icon: 'MessageCircle',
+        label: 'כפתור וואטסאפ',
+        href: '/plugins/whatsapp-float',
+        section: 'addons',
+      },
+      features: [
+        'כפתור וואטסאפ צף בפינת המסך',
+        'בועית הודעה מותאמת אישית',
+        'הודעה מוכנה מראש',
+        'בחירת צבע',
+        'מיקום גמיש (ימין/שמאל)',
+        'תמיכה במובייל ודסקטופ',
+      ],
+      screenshots: [],
+    },
+  },
+
+  // ============================================
   // ⭐ REVIEWS - ביקורות
   // ============================================
   {
