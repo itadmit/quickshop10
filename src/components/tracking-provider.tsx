@@ -60,7 +60,13 @@ export function TrackingProvider({ config, children }: TrackingProviderProps) {
     const utmTerm = searchParams?.get('utm_term');
     
     // Also check for shorthand params (common in social media)
-    const source = utmSource || searchParams?.get('source') || searchParams?.get('ref');
+    // But IGNORE `ref` if it's just a number (order number from thank-you page)
+    const refParam = searchParams?.get('ref');
+    const sourceParam = searchParams?.get('source');
+    
+    // ref is only valid as UTM if it's NOT purely numeric (order numbers are numeric)
+    const isRefNumeric = refParam && /^\d+$/.test(refParam);
+    const source = utmSource || sourceParam || (isRefNumeric ? null : refParam);
     
     // If any UTM param exists, save to localStorage
     if (source || utmMedium || utmCampaign || utmContent || utmTerm) {

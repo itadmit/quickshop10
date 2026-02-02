@@ -46,8 +46,8 @@ export function SettingsWrapper({ children, storeSlug, activeTab = 'general' }: 
       />
 
       {/* Navigation Tabs */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <nav className="flex border-b border-gray-200 px-2 sm:px-4 overflow-x-auto scrollbar-hide">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden min-w-0">
+        <nav className="flex border-b border-gray-200 px-2 sm:px-4 overflow-x-auto scrollbar-hide -webkit-overflow-scrolling-touch">
           {settingsTabs.map((tab) => (
             <Link
               key={tab.id}

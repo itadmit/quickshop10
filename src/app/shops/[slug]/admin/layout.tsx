@@ -138,7 +138,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900" dir="rtl">
+    <div className="min-h-screen bg-gray-50 text-gray-900 overflow-x-hidden" dir="rtl">
       {/* Welcome Modal for new stores */}
       <WelcomeModal storeName={store.name} storeSlug={slug} />
       
@@ -159,7 +159,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
         trialDaysRemaining={trialDaysRemaining}
       />
       
-      <div className="flex">
+      <div className="flex overflow-x-hidden">
         {/* Sidebar - Hidden on mobile */}
         <AdminSidebar 
           storeSlug={slug} 
@@ -168,7 +168,7 @@ export default async function AdminLayout({ children, params }: AdminLayoutProps
         />
         
         {/* Main Content - Full width on mobile */}
-        <main className="flex-1 md:mr-64 mt-14 transition-all duration-300">
+        <main className="flex-1 md:mr-64 mt-14 transition-all duration-300 min-w-0">
           <div className="max-w-[1400px] mx-auto p-4 sm:p-6 lg:p-8">
             {/* 🚫 Subscription Blocked Banner - shows above content when blocked */}
             {isBlocked && (
