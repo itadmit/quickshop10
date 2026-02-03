@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createCoupon, updateCoupon } from './actions';
-import { ArrowRight, Search, X, ChevronDown, Plus, Sparkles, Link2, Copy, Check } from 'lucide-react';
+import { createCoupon, updateCoupon, getDiscountHistory } from './actions';
+import { ArrowRight, Search, X, ChevronDown, Plus, Sparkles, Link2, Copy, Check, History, Clock, User, ToggleRight, Calendar, DollarSign } from 'lucide-react';
 
 // Copy Link Component for coupon URL
 function CouponLinkCopy({ storeSlug, couponCode }: { storeSlug: string; couponCode: string }) {
@@ -139,6 +139,36 @@ interface OtherCoupon {
   title: string | null;
 }
 
+interface DiscountChange {
+  id: string;
+  action: 'created' | 'updated' | 'activated' | 'deactivated' | 'extended' | 'expired';
+  fieldName: string | null;
+  oldValue: string | null;
+  newValue: string | null;
+  description: string | null;
+  userName: string | null;
+  createdAt: Date;
+}
+
+// Action icons mapping
+const actionIcons: Record<string, React.ReactNode> = {
+  created: <Plus className="w-3.5 h-3.5" />,
+  activated: <ToggleRight className="w-3.5 h-3.5" />,
+  deactivated: <ToggleRight className="w-3.5 h-3.5 opacity-50" />,
+  extended: <Calendar className="w-3.5 h-3.5" />,
+  updated: <DollarSign className="w-3.5 h-3.5" />,
+  expired: <Clock className="w-3.5 h-3.5" />,
+};
+
+const actionColors: Record<string, string> = {
+  created: 'bg-green-100 text-green-700 border-green-200',
+  activated: 'bg-blue-100 text-blue-700 border-blue-200',
+  deactivated: 'bg-red-100 text-red-700 border-red-200',
+  extended: 'bg-purple-100 text-purple-700 border-purple-200',
+  updated: 'bg-amber-100 text-amber-700 border-amber-200',
+  expired: 'bg-gray-100 text-gray-700 border-gray-200',
+};
+
 interface CouponFormPageProps {
   storeSlug: string;
   storeId: string;
@@ -163,6 +193,24 @@ export function CouponFormPage({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
+  // History state (for edit mode)
+  const [history, setHistory] = useState<DiscountChange[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Load history when viewing in edit mode
+  useEffect(() => {
+    if (mode === 'edit' && coupon?.id) {
+      setHistoryLoading(true);
+      getDiscountHistory(coupon.id).then((result) => {
+        if (result.success && result.history) {
+          setHistory(result.history as unknown as DiscountChange[]);
+        }
+        setHistoryLoading(false);
+      });
+    }
+  }, [mode, coupon?.id]);
 
   // Search states
   const [categorySearch, setCategorySearch] = useState('');
@@ -474,6 +522,81 @@ export function CouponFormPage({
               {/* Coupon Link (only in edit mode) */}
               {mode === 'edit' && formData.code && (
                 <CouponLinkCopy storeSlug={storeSlug} couponCode={formData.code} />
+              )}
+
+              {/* History Timeline (only in edit mode) */}
+              {mode === 'edit' && coupon?.id && (
+                <div className="bg-gradient-to-br from-slate-50 to-gray-50 border border-gray-100 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setShowHistory(!showHistory)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-white/50 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                      <History className="w-4 h-4" />
+                      <span>היסטוריית שינויים</span>
+                      {history.length > 0 && (
+                        <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full">
+                          {history.length}
+                        </span>
+                      )}
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showHistory && (
+                    <div className="px-4 pb-4 border-t border-gray-100">
+                      {historyLoading ? (
+                        <div className="py-8 text-center text-sm text-gray-400">טוען...</div>
+                      ) : history.length === 0 ? (
+                        <div className="py-8 text-center text-sm text-gray-400">
+                          אין היסטוריית שינויים עדיין
+                        </div>
+                      ) : (
+                        <div className="mt-4 space-y-3 max-h-64 overflow-y-auto">
+                          {history.map((change, idx) => (
+                            <div key={change.id} className="flex items-start gap-3 group">
+                              {/* Timeline line */}
+                              <div className="relative flex flex-col items-center">
+                                <div className={`w-7 h-7 rounded-full flex items-center justify-center border ${actionColors[change.action] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                                  {actionIcons[change.action] || <Clock className="w-3.5 h-3.5" />}
+                                </div>
+                                {idx < history.length - 1 && (
+                                  <div className="w-0.5 h-full bg-gray-200 absolute top-7" />
+                                )}
+                              </div>
+                              
+                              {/* Content */}
+                              <div className="flex-1 min-w-0 pb-3">
+                                <p className="text-sm text-gray-800">
+                                  {change.description || `${change.action}`}
+                                </p>
+                                <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
+                                  {change.userName && (
+                                    <>
+                                      <User className="w-3 h-3" />
+                                      <span>{change.userName}</span>
+                                      <span>•</span>
+                                    </>
+                                  )}
+                                  <span>
+                                    {new Date(change.createdAt).toLocaleString('he-IL', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: '2-digit',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Title */}

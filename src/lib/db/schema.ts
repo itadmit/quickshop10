@@ -1129,6 +1129,8 @@ export const discounts = pgTable('discounts', {
   activatesCouponCodes: jsonb('activates_coupon_codes').default([]), // רשימת קודי קופונים שהקופון הזה מפעיל
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id), // מי עדכן לאחרונה
 }, (table) => [
   uniqueIndex('idx_discounts_store_code').on(table.storeId, table.code),
   index('idx_discounts_store').on(table.storeId),
@@ -1191,9 +1193,52 @@ export const automaticDiscounts = pgTable('automatic_discounts', {
   
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedBy: uuid('updated_by').references(() => users.id), // מי עדכן לאחרונה
 }, (table) => [
   index('idx_automatic_discounts_store').on(table.storeId),
   index('idx_automatic_discounts_applies_to').on(table.storeId, table.appliesTo),
+]);
+
+// ============ DISCOUNT CHANGES (Audit Trail) ============
+
+export const discountChangeActionEnum = pgEnum('discount_change_action', [
+  'created',      // נוצר
+  'updated',      // עודכן
+  'activated',    // הופעל
+  'deactivated',  // כובה
+  'extended',     // הוארך
+  'expired'       // פג תוקף (אוטומטי)
+]);
+
+// טבלת היסטוריה לשינויים בקופונים והנחות אוטומטיות
+export const discountChanges = pgTable('discount_changes', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  storeId: uuid('store_id').references(() => stores.id, { onDelete: 'cascade' }).notNull(),
+  
+  // Reference to discount (one of these will be set)
+  discountId: uuid('discount_id').references(() => discounts.id, { onDelete: 'cascade' }),
+  automaticDiscountId: uuid('automatic_discount_id').references(() => automaticDiscounts.id, { onDelete: 'cascade' }),
+  
+  // Who made the change
+  userId: uuid('user_id').references(() => users.id),
+  userName: varchar('user_name', { length: 255 }), // Denormalized for display
+  
+  // What changed
+  action: discountChangeActionEnum('action').notNull(),
+  fieldName: varchar('field_name', { length: 100 }), // e.g., 'is_active', 'ends_at', 'value'
+  oldValue: text('old_value'), // JSON stringified
+  newValue: text('new_value'), // JSON stringified
+  
+  // Human-readable description
+  description: text('description'), // e.g., "כיבה את הקופון", "שינה תאריך סיום מ-31/1 ל-15/2"
+  
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_discount_changes_discount').on(table.discountId),
+  index('idx_discount_changes_auto_discount').on(table.automaticDiscountId),
+  index('idx_discount_changes_store').on(table.storeId),
+  index('idx_discount_changes_created').on(table.createdAt),
 ]);
 
 // ============ STORE EVENTS (for automations & tracking) ============
