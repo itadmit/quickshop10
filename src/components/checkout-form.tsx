@@ -346,6 +346,59 @@ export function CheckoutForm({
     applyCouponFromUrl();
   }, [isHydrated, urlCouponApplied, cart, storeId, searchParams, cartOriginalTotal, appliedCoupons, addCoupon, router]);
   
+  // 🔒 CRITICAL: Re-validate coupons loaded from localStorage on mount
+  // This prevents using expired/inactive coupons that were saved before deactivation
+  const couponsValidatedRef = useRef(false);
+  useEffect(() => {
+    if (!isHydrated || couponsValidatedRef.current || appliedCoupons.length === 0 || !storeId || cart.length === 0) {
+      return;
+    }
+    
+    couponsValidatedRef.current = true;
+    
+    const validateStoredCoupons = async () => {
+      const { validateCoupon } = await import('@/app/actions/coupon');
+      const invalidCoupons: AppliedCoupon[] = [];
+      
+      // Validate each coupon
+      // Note: We don't use email here since formData might not be defined yet
+      // Email validation is only needed for first-order-only coupons, which is rare
+      for (const coupon of appliedCoupons) {
+        try {
+          const result = await validateCoupon(
+            storeId,
+            coupon.code,
+            cartOriginalTotal,
+            undefined, // Email not available at this stage
+            cart.map(item => ({ productId: item.productId, quantity: item.quantity }))
+          );
+          
+          if (!result.success) {
+            invalidCoupons.push(coupon);
+          }
+        } catch (error) {
+          console.error(`Failed to validate coupon ${coupon.code}:`, error);
+          invalidCoupons.push(coupon);
+        }
+      }
+      
+      // Remove invalid coupons
+      if (invalidCoupons.length > 0) {
+        const removedCodes = invalidCoupons.map(c => c.code).join(', ');
+        setCouponWarning(
+          invalidCoupons.length === 1
+            ? `הקופון ${removedCodes} הוסר - הקופון כבר אינו בתוקף`
+            : `הקופונים ${removedCodes} הוסרו - הקופונים כבר אינם בתוקף`
+        );
+        setTimeout(() => setCouponWarning(null), 5000);
+        
+        invalidCoupons.forEach(coupon => removeCoupon(coupon.id));
+      }
+    };
+    
+    validateStoredCoupons();
+  }, [isHydrated, appliedCoupons, storeId, cart, cartOriginalTotal, removeCoupon]);
+  
   // Re-validate coupons when cart total DECREASES (use original price)
   const prevCartTotalRef = useRef(cartOriginalTotal);
   const couponsCheckedRef = useRef<string[]>([]); // מניעת בדיקה כפולה

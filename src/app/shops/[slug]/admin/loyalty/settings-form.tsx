@@ -306,28 +306,28 @@ export function LoyaltySettingsForm({ program, storeSlug }: Props) {
         <div className="space-y-4">
           <div>
             <label className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={formData.showProgressBar}
-                onChange={(e) => setFormData(prev => ({ ...prev, showProgressBar: e.target.checked }))}
+            <input
+              type="checkbox"
+              checked={formData.showProgressBar}
+              onChange={(e) => setFormData(prev => ({ ...prev, showProgressBar: e.target.checked }))}
                 className="w-5 h-5 rounded-md border-2 border-gray-300 bg-white checked:bg-blue-500 checked:border-blue-500 transition-all cursor-pointer accent-blue-500"
-              />
+            />
               <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">הצג סרגל התקדמות לרמה הבאה באיזור האישי</span>
-            </label>
+          </label>
             <p className="text-xs text-gray-400 mr-8 mt-1">יוצג רק אם יש יותר מרמה אחת</p>
           </div>
           
           {/* Show points in header - only relevant when points are enabled */}
           {formData.pointsEnabled && (
             <label className="flex items-center gap-3 cursor-pointer group">
-              <input
-                type="checkbox"
-                checked={formData.showPointsInHeader}
-                onChange={(e) => setFormData(prev => ({ ...prev, showPointsInHeader: e.target.checked }))}
+            <input
+              type="checkbox"
+              checked={formData.showPointsInHeader}
+              onChange={(e) => setFormData(prev => ({ ...prev, showPointsInHeader: e.target.checked }))}
                 className="w-5 h-5 rounded-md border-2 border-gray-300 bg-white checked:bg-blue-500 checked:border-blue-500 transition-all cursor-pointer accent-blue-500"
-              />
+            />
               <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">הצג נקודות בהדר (ליד העגלה)</span>
-            </label>
+          </label>
           )}
         </div>
       </div>

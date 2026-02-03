@@ -61,29 +61,29 @@ export async function createLoyaltyProgram(storeId: string, name: string = 'מו
   }
   
   try {
-    // Create program
-    const [program] = await db.insert(loyaltyPrograms).values({
-      storeId,
-      name,
-      isEnabled: false,
-    }).returning();
-    
-    // Create default tier
-    await db.insert(loyaltyTiers).values({
-      programId: program.id,
-      name: 'חבר',
-      slug: 'member',
-      level: 1,
-      color: '#6B7280',
-      icon: 'user',
-      minValue: '0',
-      pointsMultiplier: '1.0',
-      discountPercentage: '0',
-      isDefault: true,
-      benefitsList: ['צבירת נקודות על כל רכישה'],
-    });
-    
-    return { success: true, program };
+  // Create program
+  const [program] = await db.insert(loyaltyPrograms).values({
+    storeId,
+    name,
+    isEnabled: false,
+  }).returning();
+  
+  // Create default tier
+  await db.insert(loyaltyTiers).values({
+    programId: program.id,
+    name: 'חבר',
+    slug: 'member',
+    level: 1,
+    color: '#6B7280',
+    icon: 'user',
+    minValue: '0',
+    pointsMultiplier: '1.0',
+    discountPercentage: '0',
+    isDefault: true,
+    benefitsList: ['צבירת נקודות על כל רכישה'],
+  });
+  
+  return { success: true, program };
   } catch (error: unknown) {
     // Handle race condition - duplicate key error
     if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {

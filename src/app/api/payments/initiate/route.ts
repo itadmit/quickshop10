@@ -8,8 +8,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, productVariants, contacts } from '@/lib/db/schema';
-import { eq, and, sql, inArray } from 'drizzle-orm';
+import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, productVariants, contacts, discounts } from '@/lib/db/schema';
+import { eq, and, sql, inArray, or, lte, gte, isNull } from 'drizzle-orm';
 import { isOutOfStock } from '@/lib/inventory';
 import { getConfiguredProvider, getDefaultProvider } from '@/lib/payments';
 import type { InitiatePaymentRequest, PaymentProviderType } from '@/lib/payments/types';
@@ -535,9 +535,75 @@ export async function POST(request: NextRequest) {
     // Calculate totals (orderNumber already generated above)
     const subtotal = cartItemsForOrder.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     const shippingCost = body.shipping?.cost || 0;
-    const discountAmount = body.discountAmount || 0;
     const creditUsed = Number((body.orderData as { creditUsed?: number })?.creditUsed) || 0;
-    const totalAmount = subtotal + shippingCost - discountAmount - creditUsed;
+    
+    // 🔒 CRITICAL: Validate coupon server-side before creating order
+    let validatedDiscountAmount = 0;
+    let validatedDiscountCode: string | null = null;
+    let validatedDiscountDetails = body.discountDetails || [];
+    
+    if (body.discountCode) {
+      const now = new Date();
+      const normalizedCode = body.discountCode.toUpperCase().trim();
+      
+      // Validate coupon exists, is active, and within date range
+      const [dbCoupon] = await db
+        .select()
+        .from(discounts)
+        .where(and(
+          eq(discounts.storeId, store.id),
+          eq(discounts.code, normalizedCode),
+          eq(discounts.isActive, true),
+          or(isNull(discounts.startsAt), lte(discounts.startsAt, now)),
+          or(isNull(discounts.endsAt), gte(discounts.endsAt, now))
+        ))
+        .limit(1);
+      
+      if (!dbCoupon) {
+        // Coupon is invalid - reject the request
+        return NextResponse.json(
+          { success: false, error: 'הקופון כבר אינו בתוקף' },
+          { status: 400 }
+        );
+      }
+      
+      // Check usage limit
+      if (dbCoupon.usageLimit && dbCoupon.usageCount && dbCoupon.usageCount >= dbCoupon.usageLimit) {
+        return NextResponse.json(
+          { success: false, error: 'קופון זה כבר אינו בתוקף' },
+          { status: 400 }
+        );
+      }
+      
+      // Check minimum amount
+      const minAmount = dbCoupon.minimumAmount ? Number(dbCoupon.minimumAmount) : 0;
+      if (subtotal < minAmount) {
+        return NextResponse.json(
+          { success: false, error: `סכום ההזמנה נמוך מהמינימום הנדרש לקופון זה (₪${minAmount})` },
+          { status: 400 }
+        );
+      }
+      
+      // Calculate discount based on validated coupon
+      if (dbCoupon.type === 'percentage') {
+        validatedDiscountAmount = (subtotal * Number(dbCoupon.value)) / 100;
+      } else if (dbCoupon.type === 'fixed_amount') {
+        validatedDiscountAmount = Math.min(Number(dbCoupon.value), subtotal);
+      }
+      
+      validatedDiscountCode = dbCoupon.code;
+      
+      // Rebuild discountDetails with validated data
+      validatedDiscountDetails = [{
+        type: 'coupon' as const,
+        code: dbCoupon.code,
+        name: dbCoupon.title || dbCoupon.code,
+        amount: validatedDiscountAmount,
+        description: dbCoupon.type === 'percentage' ? `${dbCoupon.value}% הנחה` : `₪${validatedDiscountAmount.toFixed(2)} הנחה`,
+      }];
+    }
+    
+    const totalAmount = subtotal + shippingCost - validatedDiscountAmount - creditUsed;
 
     // Create order with PENDING financial status
     const [newOrder] = await db.insert(orders).values({
@@ -548,7 +614,7 @@ export async function POST(request: NextRequest) {
       financialStatus: 'pending', // Payment not yet received
       fulfillmentStatus: 'unfulfilled',
       subtotal: String(subtotal),
-      discountAmount: String(discountAmount),
+      discountAmount: String(validatedDiscountAmount),
       creditUsed: String(creditUsed),
       shippingAmount: String(shippingCost),
       taxAmount: '0',
@@ -568,9 +634,9 @@ export async function POST(request: NextRequest) {
       },
       billingAddress: body.orderData?.billingAddress as Record<string, unknown> || {},
       
-      // Discount
-      discountCode: body.discountCode,
-      discountDetails: body.discountDetails || [],
+      // Discount (using validated values)
+      discountCode: validatedDiscountCode,
+      discountDetails: validatedDiscountDetails.length > 0 ? validatedDiscountDetails : null,
       
       // Influencer
       influencerId: body.influencerId,
@@ -596,6 +662,26 @@ export async function POST(request: NextRequest) {
     }).returning();
 
     console.log(`[Payment Initiate] Created order #${orderNumber} with pending status`);
+
+    // 🔒 Update coupon usage count (atomic increment to prevent race conditions)
+    if (validatedDiscountCode) {
+      try {
+        await db.update(discounts)
+          .set({ usageCount: sql`COALESCE(${discounts.usageCount}, 0) + 1` })
+          .where(and(
+            eq(discounts.storeId, store.id),
+            eq(discounts.code, validatedDiscountCode),
+            // Only increment if still under limit (or no limit)
+            or(
+              isNull(discounts.usageLimit),
+              sql`COALESCE(${discounts.usageCount}, 0) < ${discounts.usageLimit}`
+            )
+          ));
+      } catch (error) {
+        console.error('[Payment Initiate] Failed to update coupon usage count:', error);
+        // Don't fail the order creation if usage count update fails
+      }
+    }
 
     // Create order items
     if (cartItemsForOrder.length > 0) {
