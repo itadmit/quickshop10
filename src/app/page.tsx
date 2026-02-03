@@ -45,6 +45,60 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "קוויק שופ - הלקוחות שלנו מוכרים יותר | פלטפורמה לחנויות אונליין",
   description: "אנחנו לא רק בונים חנויות - אנחנו בונים עסקים מצליחים. מהירות שמשפרת המרות, אינטגרציות לכל ספק ישראלי, ותמיכה שעוזרת לכם לצמוח. הצטרפו למצליחים!",
+  keywords: [
+    "חנות אונליין",
+    "פלטפורמה לחנויות אונליין",
+    "בניית חנות אונליין",
+    "חנות וירטואלית",
+    "מכירות אונליין",
+    "איקומרס ישראל",
+    "פלטפורמת מסחר אלקטרוני",
+    "בניית אתר מכירות",
+    "חנות דיגיטלית",
+    "מערכת ניהול חנות",
+    "סליקה אונליין",
+    "תשלום אונליין",
+    "משלוחים אונליין",
+    "ניהול מלאי",
+    "קופונים ומבצעים",
+    "מועדון לקוחות",
+    "תמיכה בעברית",
+    "Drag and Drop",
+    "עיצוב חנות",
+    "שופיפיי חלופה",
+    "וויקס חלופה",
+    "חנות אונליין ישראל",
+    "פלטפורמה ישראלית",
+    "Quick Shop",
+    "קוויק שופ"
+  ],
+  openGraph: {
+    title: "קוויק שופ - הלקוחות שלנו מוכרים יותר | פלטפורמה לחנויות אונליין",
+    description: "אנחנו לא רק בונים חנויות - אנחנו בונים עסקים מצליחים. מהירות שמשפרת המרות, אינטגרציות לכל ספק ישראלי, ותמיכה שעוזרת לכם לצמוח.",
+    type: "website",
+    locale: "he_IL",
+    siteName: "קוויק שופ",
+    url: "https://quickshop.co.il",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "קוויק שופ - הלקוחות שלנו מוכרים יותר",
+    description: "פלטפורמה לחנויות אונליין - הכל בעברית, הכל פשוט, והכל עובד",
+  },
+  alternates: {
+    canonical: "https://quickshop.co.il",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 }
 
 // Feature data - static, no runtime cost
@@ -187,8 +241,41 @@ function getColorClasses(color: string) {
 }
 
 export default function HomePage() {
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "קוויק שופ",
+    "applicationCategory": "ECommercePlatform",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "399",
+      "priceCurrency": "ILS",
+      "availability": "https://schema.org/InStock"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "ratingCount": "1000"
+    },
+    "description": "פלטפורמה לחנויות אונליין - הכל בעברית, הכל פשוט, והכל עובד. בניית חנות אונליין עם Drag & Drop, תמיכה בעברית, אינטגרציות ישראליות וכל הכלים להצלחה.",
+    "featureList": [
+      "עיצוב Drag & Drop",
+      "תמיכה בעברית",
+      "סליקה אונליין",
+      "ניהול מלאי",
+      "קופונים ומבצעים",
+      "מועדון לקוחות",
+      "אינטגרציות ישראליות"
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans text-gray-900" dir="rtl">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
       <LandingHeader />
 
       {/* Hero Section */}
