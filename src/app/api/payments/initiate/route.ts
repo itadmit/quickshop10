@@ -749,11 +749,11 @@ export async function POST(request: NextRequest) {
       cartItems: cartItemsForOrder,
       customerEmail: body.customer.email,
       customerId,
-      amount: String(body.amount),
+      amount: String(totalAmount), // Use validated total amount
       currency: body.currency || 'ILS',
       status: 'pending',
-      discountCode: body.discountCode,
-      discountAmount: body.discountAmount ? String(body.discountAmount) : '0',
+      discountCode: validatedDiscountCode, // Use validated discount code
+      discountAmount: String(validatedDiscountAmount), // Use validated discount amount
       influencerId: body.influencerId,
       expiresAt,
     });
