@@ -11,7 +11,7 @@ import type { ShippingProviderType } from '@/lib/shipping/types';
  */
 
 // Valid provider types
-const VALID_PROVIDERS: ShippingProviderType[] = ['focus', 'cheetah', 'hfd', 'boxit', 'baldar', 'manual'];
+const VALID_PROVIDERS: ShippingProviderType[] = ['focus', 'cargo', 'cheetah', 'hfd', 'boxit', 'baldar', 'manual'];
 
 // Helper to verify store access
 async function verifyStoreAccess(slug: string, userId: string) {

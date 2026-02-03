@@ -89,6 +89,7 @@ export function ShippingProvidersManager({
   const getProviderStyles = (type: ShippingProviderType) => {
     const styles: Record<ShippingProviderType, { bg: string; text: string }> = {
       focus: { bg: 'bg-blue-100', text: 'text-blue-600' },
+      cargo: { bg: 'bg-red-100', text: 'text-red-600' },
       cheetah: { bg: 'bg-yellow-100', text: 'text-yellow-600' },
       hfd: { bg: 'bg-green-100', text: 'text-green-600' },
       boxit: { bg: 'bg-purple-100', text: 'text-purple-600' },

@@ -29,6 +29,26 @@ export const SHIPPING_PROVIDER_INFO: Record<ShippingProviderType, ShippingProvid
       { key: 'token', label: 'API Token', labelHe: 'טוקן API (אופציונלי)', type: 'password', required: false, placeholder: 'רק אם פוקוס דרשו' },
     ],
   },
+  cargo: {
+    type: 'cargo',
+    name: 'Cargo',
+    nameHe: 'קרגו משלוחים',
+    description: 'Israeli courier service with box shipments and express delivery',
+    descriptionHe: 'שירות משלוחים ישראלי עם משלוחי בוקס ואקספרס',
+    website: 'https://cargo.co.il',
+    supportedFeatures: {
+      tracking: true,
+      labels: true,
+      pickupPoints: true,
+      cod: true,
+      returns: true,
+      scheduling: false,
+    },
+    requiredCredentials: [
+      { key: 'apiToken', label: 'API Token', labelHe: 'טוקן API', type: 'password', required: true, placeholder: 'טוקן שקיבלת מקרגו' },
+      { key: 'customerCode', label: 'Customer Code', labelHe: 'קוד לקוח', type: 'text', required: true, placeholder: 'קוד הלקוח שלך בקרגו' },
+    ],
+  },
   cheetah: {
     type: 'cheetah',
     name: 'Cheetah',

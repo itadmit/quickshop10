@@ -1924,7 +1924,7 @@ export const pickupLocationsRelations = relations(pickupLocations, ({ one }) => 
 
 // Shipping provider enum
 export const shippingProviderEnum = pgEnum('shipping_provider', [
-  'focus', 'cheetah', 'hfd', 'boxit', 'baldar', 'manual'
+  'focus', 'cargo', 'cheetah', 'hfd', 'boxit', 'baldar', 'manual'
 ]);
 
 // Shipment status enum

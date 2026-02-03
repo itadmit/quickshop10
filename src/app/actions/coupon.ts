@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { discounts, customers, orders, giftCards, productCategories } from '@/lib/db/schema';
-import { eq, and, gt, inArray } from 'drizzle-orm';
+import { eq, and, gt, inArray, or, lte, gte, isNull } from 'drizzle-orm';
 
 type DiscountType = 
   | 'percentage' 
@@ -98,14 +98,17 @@ export async function validateCoupon(
 
   const normalizedCode = code.toUpperCase().trim();
 
-  // Find the discount
+  // Find the discount (with date validation!)
+  const now = new Date();
   const [discount] = await db
     .select()
     .from(discounts)
     .where(and(
       eq(discounts.storeId, storeId),
       eq(discounts.code, normalizedCode),
-      eq(discounts.isActive, true)
+      eq(discounts.isActive, true),
+      or(isNull(discounts.startsAt), lte(discounts.startsAt, now)),
+      or(isNull(discounts.endsAt), gte(discounts.endsAt, now))
     ))
     .limit(1);
 
@@ -146,6 +149,22 @@ export async function validateCoupon(
       };
     }
 
+    // Check if coupon exists but is inactive or expired
+    const [rawCoupon] = await db
+      .select({ isActive: discounts.isActive, endsAt: discounts.endsAt })
+      .from(discounts)
+      .where(and(eq(discounts.storeId, storeId), eq(discounts.code, normalizedCode)))
+      .limit(1);
+    
+    if (rawCoupon) {
+      if (!rawCoupon.isActive) {
+        return { success: false, error: 'קופון זה כבר אינו בתוקף' };
+      }
+      if (rawCoupon.endsAt && rawCoupon.endsAt < now) {
+        return { success: false, error: 'קופון זה פג תוקף' };
+      }
+    }
+    
     return { success: false, error: 'קוד קופון לא תקין' };
   }
 
@@ -154,7 +173,7 @@ export async function validateCoupon(
     return { success: false, error: 'קופון זה כבר אינו בתוקף' };
   }
 
-  // Check start date
+  // Check start date (already validated in main query, but keeping for explicit error message)
   if (discount.startsAt && new Date(discount.startsAt) > new Date()) {
     return { success: false, error: 'קופון זה עדיין לא פעיל' };
   }
