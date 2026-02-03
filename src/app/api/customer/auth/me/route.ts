@@ -37,13 +37,16 @@ export async function GET() {
     if (clubMemberContact) {
       // Check if loyalty program is enabled for this store
       const [program] = await db
-        .select({ isEnabled: loyaltyPrograms.isEnabled })
+        .select({ 
+          id: loyaltyPrograms.id,
+          isEnabled: loyaltyPrograms.isEnabled 
+        })
         .from(loyaltyPrograms)
         .where(eq(loyaltyPrograms.storeId, customer.storeId))
         .limit(1);
       
       if (program?.isEnabled) {
-        // Get member's current tier
+        // Get member's current tier (if exists in loyaltyMembers)
         const [member] = await db
           .select({
             tierId: loyaltyMembers.currentTierId,
@@ -57,7 +60,31 @@ export async function GET() {
           )
           .limit(1);
         
+        let tierToCheck: string | null = null;
+        
         if (member?.tierId) {
+          // Member has a specific tier
+          tierToCheck = member.tierId;
+        } else {
+          // Club member but not in loyaltyMembers = default tier (level 1)
+          const [defaultTier] = await db
+            .select({ id: loyaltyTiers.id })
+            .from(loyaltyTiers)
+            .where(
+              and(
+                eq(loyaltyTiers.programId, program.id),
+                eq(loyaltyTiers.isDefault, true),
+                eq(loyaltyTiers.isActive, true)
+              )
+            )
+            .limit(1);
+          
+          if (defaultTier) {
+            tierToCheck = defaultTier.id;
+          }
+        }
+        
+        if (tierToCheck) {
           // Get tier discount percentage
           const [tier] = await db
             .select({
@@ -67,7 +94,7 @@ export async function GET() {
             .from(loyaltyTiers)
             .where(
               and(
-                eq(loyaltyTiers.id, member.tierId),
+                eq(loyaltyTiers.id, tierToCheck),
                 eq(loyaltyTiers.isActive, true)
               )
             )
