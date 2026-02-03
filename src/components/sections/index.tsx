@@ -16,6 +16,7 @@ export { GallerySection } from './gallery-section';
 export { LogosSection } from './logos-section';
 export { FAQSection } from './faq-section';
 export { HeroSliderSection } from './hero-slider-section';
+export { ContentSliderSection } from './content-slider-section';
 export { SeriesGridSection } from './series-grid-section';
 export { QuoteBannerSection } from './quote-banner-section';
 export { FeaturedItemsSection } from './featured-items-section';

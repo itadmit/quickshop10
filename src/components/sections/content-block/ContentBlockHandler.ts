@@ -78,17 +78,94 @@ export function handleContentBlockUpdate(
 
   // Desktop Image
   if (updates.content?.imageUrl !== undefined) {
-    const imgEl = el.querySelector('[data-bg-desktop][data-bg-type="image"]') as HTMLElement;
-    if (imgEl) {
-      imgEl.style.backgroundImage = updates.content.imageUrl ? `url("${updates.content.imageUrl}")` : 'none';
+    let imgEl = el.querySelector('[data-bg-desktop][data-bg-type="image"]') as HTMLElement;
+    const mobileImgEl = el.querySelector('[data-bg-mobile][data-bg-type="image"]') as HTMLElement;
+    const sectionId = el.getAttribute('data-section-id');
+    
+    if (updates.content.imageUrl) {
+      // Create desktop image element if doesn't exist
+      if (!imgEl) {
+        imgEl = document.createElement('div');
+        imgEl.className = 'absolute inset-0 bg-cover bg-center bg-no-repeat';
+        imgEl.setAttribute('data-bg-desktop', '');
+        imgEl.setAttribute('data-bg-type', 'image');
+        el.insertBefore(imgEl, el.firstChild);
+        
+        // If mobile image exists, inject style to hide desktop on mobile
+        if (mobileImgEl && sectionId) {
+          let styleEl = document.getElementById(`mobile-image-style-${sectionId}`);
+          if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = `mobile-image-style-${sectionId}`;
+            document.head.appendChild(styleEl);
+          }
+          styleEl.textContent = `
+            @media (max-width: 767px) {
+              [data-section-id="${sectionId}"] [data-bg-desktop] { display: none !important; }
+            }
+          `;
+        }
+      }
+      imgEl.style.backgroundImage = `url("${updates.content.imageUrl}")`;
+      imgEl.style.display = '';
+    } else if (imgEl) {
+      imgEl.style.display = 'none';
     }
   }
 
   // Mobile Image
   if (updates.content?.mobileImageUrl !== undefined) {
-    const imgEl = el.querySelector('[data-bg-mobile][data-bg-type="image"]') as HTMLElement;
-    if (imgEl) {
-      imgEl.style.backgroundImage = updates.content.mobileImageUrl ? `url("${updates.content.mobileImageUrl}")` : 'none';
+    let imgEl = el.querySelector('[data-bg-mobile][data-bg-type="image"]') as HTMLElement;
+    const desktopImgEl = el.querySelector('[data-bg-desktop][data-bg-type="image"]') as HTMLElement;
+    const sectionId = el.getAttribute('data-section-id');
+    
+    if (updates.content.mobileImageUrl) {
+      // First, inject the style tag BEFORE creating the element
+      // This ensures no flash occurs
+      if (sectionId) {
+        let styleEl = document.getElementById(`mobile-image-style-${sectionId}`);
+        if (!styleEl) {
+          styleEl = document.createElement('style');
+          styleEl.id = `mobile-image-style-${sectionId}`;
+          document.head.appendChild(styleEl);
+        }
+        // Hide mobile image on desktop (>=768px), hide desktop image on mobile (<768px)
+        styleEl.textContent = `
+          @media (min-width: 768px) {
+            [data-section-id="${sectionId}"] [data-bg-mobile] { display: none !important; }
+          }
+          @media (max-width: 767px) {
+            [data-section-id="${sectionId}"] [data-bg-desktop] { display: none !important; }
+          }
+        `;
+      }
+      
+      // Create mobile image element if doesn't exist
+      if (!imgEl) {
+        imgEl = document.createElement('div');
+        // Don't use md:hidden class - use style tag instead
+        imgEl.className = 'absolute inset-0 bg-cover bg-center bg-no-repeat';
+        imgEl.setAttribute('data-bg-mobile', '');
+        imgEl.setAttribute('data-bg-type', 'image');
+        // Insert after desktop image or at beginning
+        if (desktopImgEl) {
+          desktopImgEl.insertAdjacentElement('afterend', imgEl);
+        } else {
+          el.insertBefore(imgEl, el.firstChild);
+        }
+      }
+      imgEl.style.backgroundImage = `url("${updates.content.mobileImageUrl}")`;
+      imgEl.style.display = '';
+    } else {
+      // Remove mobile image
+      if (imgEl) {
+        imgEl.style.display = 'none';
+      }
+      // Remove the mobile-hiding style for desktop image
+      if (sectionId) {
+        const styleEl = document.getElementById(`mobile-image-style-${sectionId}`);
+        if (styleEl) styleEl.remove();
+      }
     }
   }
 

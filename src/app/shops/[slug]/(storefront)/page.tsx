@@ -17,6 +17,7 @@ import {
   LogosSection,
   FAQSection,
   HeroSliderSection,
+  ContentSliderSection,
   SeriesGridSection,
   QuoteBannerSection,
   FeaturedItemsSection,
@@ -62,8 +63,12 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
   const showDecimalPrices = Boolean(storeSettings.showDecimalPrices);
 
   // Parallel data fetching - maximum speed! ⚡
+  // In preview mode: use non-cached query to always get latest data
+  // In production: use cached version for performance
   const [sections, categories, featuredProducts, allProducts, footerMenuItems] = await Promise.all([
-    getPageSectionsCached(store.id, 'home'),
+    isPreviewMode 
+      ? getPageSections(store.id, 'home') 
+      : getPageSectionsCached(store.id, 'home'),
     getCategoriesByStore(store.id),
     getFeaturedProducts(store.id, 4),
     getProductsByStore(store.id, 12),
@@ -733,6 +738,86 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               buttonBorderColor?: string;
               dotsColor?: string;
               dotsActiveColor?: string;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+              customClass?: string;
+              customId?: string;
+            }}
+            basePath={basePath}
+          />
+        );
+        break;
+
+      case 'content_slider':
+        sectionElement = (
+          <ContentSliderSection
+            sectionId={section.id}
+            title={section.title}
+            subtitle={section.subtitle}
+            content={content as { 
+              items?: Array<{ 
+                id: string; 
+                title?: string;
+                subtitle?: string;
+                description?: string;
+                buttonText?: string;
+                buttonLink?: string;
+                imageUrl?: string;
+                mobileImageUrl?: string;
+                videoUrl?: string;
+                textAlign?: 'right' | 'center' | 'left';
+                overlay?: number;
+                backgroundColor?: string;
+              }>;
+            }}
+            settings={settings as {
+              columns?: number;
+              mobileColumns?: number;
+              gap?: number;
+              aspectRatio?: 'square' | 'portrait' | 'landscape' | '16:9';
+              itemHeight?: number;
+              backgroundColor?: string;
+              paddingTop?: number;
+              paddingBottom?: number;
+              paddingLeft?: number;
+              paddingRight?: number;
+              sectionWidth?: 'full' | 'boxed';
+              contentWidth?: number;
+              autoplay?: boolean;
+              autoplayInterval?: number;
+              loop?: boolean;
+              showDots?: boolean;
+              showDotsOnMobile?: boolean;
+              showArrows?: boolean;
+              showArrowsOnMobile?: boolean;
+              showTitle?: boolean;
+              textAlign?: 'right' | 'center' | 'left';
+              titleColor?: string;
+              titleSize?: number;
+              titleSizeMobile?: number;
+              titleWeight?: string;
+              subtitleColor?: string;
+              subtitleSize?: number;
+              itemTitleColor?: string;
+              itemTitleSize?: number;
+              itemSubtitleColor?: string;
+              itemDescriptionColor?: string;
+              itemOverlay?: number;
+              itemBorderRadius?: number;
+              itemTextPosition?: 'inside-bottom' | 'inside-center' | 'outside-bottom';
+              buttonStyle?: 'filled' | 'outline' | 'underline';
+              buttonTextColor?: string;
+              buttonBackgroundColor?: string;
+              buttonBorderColor?: string;
+              arrowStyle?: 'circle' | 'square' | 'minimal';
+              arrowBgColor?: string;
+              arrowColor?: string;
+              dotsStyle?: 'dots' | 'lines';
+              dotsActiveColor?: string;
+              dotsInactiveColor?: string;
+              showDivider?: boolean;
+              dividerColor?: string;
+              dividerHeight?: number;
               hideOnMobile?: boolean;
               hideOnDesktop?: boolean;
               customClass?: string;

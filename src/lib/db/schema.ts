@@ -972,9 +972,9 @@ export const orders = pgTable('orders', {
   discountCode: varchar('discount_code', { length: 50 }),
   discountAmount: decimal('discount_amount', { precision: 10, scale: 2 }).default('0'),
   // Detailed breakdown of all discounts applied
-  // Array of { type: 'coupon'|'auto'|'gift_card'|'credit'|'member', code?: string, name: string, description?: string, amount: number }
+  // Array of { type: 'coupon'|'auto'|'gift_card'|'credit'|'member'|'loyalty_tier', code?: string, name: string, description?: string, amount: number }
   discountDetails: jsonb('discount_details').$type<Array<{
-    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
     code?: string;
     name: string;
     description?: string;

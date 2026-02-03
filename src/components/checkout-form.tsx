@@ -62,6 +62,8 @@ interface LoggedInCustomer {
   hasPassword?: boolean;
   isClubMember?: boolean; // true if has active club_member contact
   creditBalance?: number;
+  loyaltyTierDiscount?: number; // percentage discount from loyalty tier (0 if none)
+  loyaltyTierName?: string | null; // tier name for display
 }
 
 const ORDER_STORAGE_KEY = 'quickshop_last_order';
@@ -803,12 +805,20 @@ export function CheckoutForm({
   // Calculate coupon discount (all coupon types)
   const couponDiscount = couponDiscountResults.reduce((sum, d) => sum + d.amount, 0);
   
+  // 🎯 Calculate loyalty tier discount (separate from auto discounts - always stacks!)
+  // This is based on customer's loyalty tier, not automatic discounts
+  const loyaltyTierDiscountPercent = loggedInCustomer?.loyaltyTierDiscount || 0;
+  const loyaltyTierDiscountAmount = loyaltyTierDiscountPercent > 0
+    ? Math.round((cartOriginalTotal * loyaltyTierDiscountPercent) / 100 * 100) / 100
+    : 0;
+  
   // Handle gift cards separately (they're not in the engine)
   const giftCardCoupon = appliedCoupons.find(c => c.type === 'gift_card');
   let giftCardAmount = 0;
   if (giftCardCoupon) {
     // Use cartOriginalTotal for correct calculation (discounts are applied to original price)
-    const afterAllDiscounts = cartOriginalTotal - memberDiscount - autoProductDiscount - couponDiscount;
+    // Include loyalty tier discount in the calculation
+    const afterAllDiscounts = cartOriginalTotal - memberDiscount - autoProductDiscount - couponDiscount - loyaltyTierDiscountAmount;
     giftCardAmount = Math.min(giftCardCoupon.value, afterAllDiscounts);
   }
   
@@ -831,7 +841,8 @@ export function CheckoutForm({
         ? selectedMethod.price 
         : (cartOriginalTotal >= freeShippingThreshold ? 0 : baseShippingRate));
   const shippingAfterDiscount = hasFreeShipping || isVirtualCartOnly ? 0 : shipping;
-  const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount + giftCardAmount;
+  // Include loyalty tier discount in total (stacks with everything!)
+  const totalDiscount = memberDiscount + autoProductDiscount + couponDiscount + loyaltyTierDiscountAmount + giftCardAmount;
   // ⚠️ CRITICAL: Use cartOriginalTotal - discounts are calculated from original price!
   const subtotalAfterDiscount = cartOriginalTotal - totalDiscount + shippingAfterDiscount;
   // Calculate credit to use (max available or max needed)
@@ -921,21 +932,31 @@ export function CheckoutForm({
       try {
         // Build discount details breakdown for real payment flow
         const buildDiscountDetails = (): Array<{
-          type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+          type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
           code?: string;
           name: string;
           description?: string;
           amount: number;
         }> => {
           const details: Array<{
-            type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+            type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
             code?: string;
             name: string;
             description?: string;
             amount: number;
           }> = [];
           
-          // Add member discount
+          // Add loyalty tier discount (always stacks with everything!)
+          if (loyaltyTierDiscountAmount > 0) {
+            details.push({
+              type: 'loyalty_tier',
+              name: `הנחת ${loggedInCustomer?.loyaltyTierName || 'חבר מועדון'}`,
+              description: `${loyaltyTierDiscountPercent}% הנחה`,
+              amount: loyaltyTierDiscountAmount,
+            });
+          }
+          
+          // Add member discount (from automatic discounts with appliesTo='member')
           if (memberDiscount > 0) {
             details.push({
               type: 'member',
@@ -1398,14 +1419,24 @@ export function CheckoutForm({
           
           // Build discount details breakdown
           const discountDetailsArray: Array<{
-            type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+            type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
             code?: string;
             name: string;
             description?: string;
             amount: number;
           }> = [];
           
-          // Add member discount
+          // Add loyalty tier discount (always stacks with everything!)
+          if (loyaltyTierDiscountAmount > 0) {
+            discountDetailsArray.push({
+              type: 'loyalty_tier',
+              name: `הנחת ${loggedInCustomer?.loyaltyTierName || 'חבר מועדון'}`,
+              description: `${loyaltyTierDiscountPercent}% הנחה`,
+              amount: loyaltyTierDiscountAmount,
+            });
+          }
+          
+          // Add member discount (from automatic discounts with appliesTo='member')
           if (memberDiscount > 0) {
             discountDetailsArray.push({
               type: 'member',
@@ -2518,7 +2549,20 @@ export function CheckoutForm({
                   <span>{formatPrice(cartOriginalTotal)}</span>
                 </div>
                 
-                {/* Member Discount */}
+                {/* Loyalty Tier Discount - Always stacks with everything! */}
+                {loyaltyTierDiscountAmount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span className="flex items-center gap-1">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                      הנחת {loggedInCustomer?.loyaltyTierName || 'חבר מועדון'} ({loyaltyTierDiscountPercent}%)
+                    </span>
+                    <span>-{formatPrice(loyaltyTierDiscountAmount)}</span>
+                  </div>
+                )}
+                
+                {/* Member Discount (from automatic discounts) */}
                 {memberDiscount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>{t.summary.memberDiscount} (5%)</span>

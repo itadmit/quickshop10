@@ -189,7 +189,7 @@ interface OrderItem {
 
 // Type for discount details in email
 interface DiscountDetailEmail {
-  type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+  type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
   code?: string;
   name: string;
   description?: string;
@@ -427,14 +427,15 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
                 </tr>
                 ${discountDetails.length > 0 ? discountDetails.map(d => `
                 <tr>
-                  <td style="padding: 12px 0; color: ${d.type === 'gift_card' ? '#9333ea' : d.type === 'credit' ? '#2563eb' : '#16a34a'}; text-align: right;">
+                  <td style="padding: 12px 0; color: ${d.type === 'gift_card' ? '#9333ea' : d.type === 'credit' ? '#2563eb' : d.type === 'loyalty_tier' ? '#7c3aed' : '#16a34a'}; text-align: right;">
                     ${d.type === 'coupon' ? `קופון ${d.code}${d.description ? ` (${d.description})` : ''}` :
                       d.type === 'gift_card' ? `גיפט קארד ${d.code}` :
                       d.type === 'auto' ? `הנחה אוטומטית: ${d.name}` :
                       d.type === 'member' ? 'הנחת חברי מועדון' :
+                      d.type === 'loyalty_tier' ? `הנחת ${d.name}${d.description ? ` (${d.description})` : ''}` :
                       d.type === 'credit' ? 'קרדיט' : d.name}
                   </td>
-                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: ${d.type === 'gift_card' ? '#9333ea' : d.type === 'credit' ? '#2563eb' : '#16a34a'};">
+                  <td style="padding: 12px 0; text-align: left; font-weight: 500; color: ${d.type === 'gift_card' ? '#9333ea' : d.type === 'credit' ? '#2563eb' : d.type === 'loyalty_tier' ? '#7c3aed' : '#16a34a'};">
                     -₪${d.amount.toFixed(2)}
                   </td>
                 </tr>

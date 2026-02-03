@@ -605,7 +605,7 @@ async function sendConfirmationEmail(params: PostPaymentParams): Promise<void> {
   
   // Calculate per-item discounts for email display
   const discountDetails = order.discountDetails as Array<{
-    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
     code?: string;
     name: string;
     description?: string;

@@ -1109,36 +1109,43 @@ export function ThemeEditor({
     });
   };
 
-  // Reorder sections - swap sortOrder values between two sections
-  // Save happens when user clicks "שמור"
-  // fromSortOrder and toSortOrder are the sortOrder values of the sections being swapped
-  const reorderSections = (fromSortOrder: number, toSortOrder: number) => {
-    // Find the two sections to swap
-    const fromSection = sections.find(s => s.sortOrder === fromSortOrder);
-    const toSection = sections.find(s => s.sortOrder === toSortOrder);
+  // Reorder sections - move a section to a new position (insert, not swap)
+  // sectionId: the ID of the section being moved
+  // newIndex: the new position index in the sorted array
+  const reorderSections = (sectionId: string, newIndex: number) => {
+    // Get current sorted sections
+    const sortedSections = [...sections].sort((a, b) => a.sortOrder - b.sortOrder);
     
-    if (!fromSection || !toSection) return;
+    // Find the section being moved
+    const sectionIndex = sortedSections.findIndex(s => s.id === sectionId);
+    if (sectionIndex === -1) return;
     
-    // Swap their sortOrder values
-    const updatedSections = sections.map(s => {
-      if (s.id === fromSection.id) {
-        return { ...s, sortOrder: toSortOrder };
-      }
-      if (s.id === toSection.id) {
-        return { ...s, sortOrder: fromSortOrder };
-      }
-      return s;
+    // Don't do anything if moving to same position
+    if (sectionIndex === newIndex) return;
+    
+    // Remove the section from its current position
+    const [movedSection] = sortedSections.splice(sectionIndex, 1);
+    
+    // Insert at new position
+    sortedSections.splice(newIndex, 0, movedSection);
+    
+    // Reassign sortOrder values based on new positions
+    const updatedSections = sections.map(section => {
+      const newSortOrder = sortedSections.findIndex(s => s.id === section.id);
+      return { ...section, sortOrder: newSortOrder };
     });
     
     setSections(updatedSections);
     setHasChanges(true);
     
-    // Send swap message to iframe for live preview
+    // Send reorder message to iframe for live preview
+    // Include the new order of all section IDs
     if (iframeRef.current?.contentWindow) {
+      const newOrder = sortedSections.map(s => s.id);
       iframeRef.current.contentWindow.postMessage({
-        type: 'SECTION_SWAP',
-        fromId: fromSection.id,
-        toId: toSection.id,
+        type: 'SECTIONS_REORDER',
+        sectionOrder: newOrder,
+        movedSectionId: sectionId,
       }, '*');
     }
   };
@@ -1976,6 +1983,7 @@ function getSectionDefaultTitle(type: string): string {
     banner_small: 'באנר קטן',
     // Argania Premium sections
     hero_slider: 'סליידר הירו',
+    content_slider: 'סליידר תוכן',
     hero_premium: 'הירו פרימיום',
     series_grid: 'גריד סדרות',
     quote_banner: 'באנר ציטוט',
@@ -2017,6 +2025,15 @@ function getSectionDefaultContent(type: string): Record<string, unknown> {
     categories: { limit: 6, displayLimit: 6 },
     products: { type: 'all', limit: 8, displayLimit: 8 },
     products_slider: { type: 'all', limit: 8, displayLimit: 8 },
+    content_slider: {
+      items: [
+        { id: '1', title: 'פריט 1', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800', buttonText: 'קרא עוד', buttonLink: '#' },
+        { id: '2', title: 'פריט 2', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800', buttonText: 'קרא עוד', buttonLink: '#' },
+        { id: '3', title: 'פריט 3', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800', buttonText: 'קרא עוד', buttonLink: '#' },
+        { id: '4', title: 'פריט 4', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=800', buttonText: 'קרא עוד', buttonLink: '#' },
+        { id: '5', title: 'פריט 5', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=800', buttonText: 'קרא עוד', buttonLink: '#' },
+      ]
+    },
     newsletter: { 
       placeholder: 'כתובת אימייל', 
       buttonText: 'הרשמה',
@@ -2486,6 +2503,57 @@ function getSectionDefaultSettings(type: string): Record<string, unknown> {
       buttonTextColor: '#000000',
       buttonBackgroundColor: '#ffffff',
       buttonBorderColor: '#ffffff',
+    },
+    content_slider: {
+      // Layout
+      columns: 4,
+      mobileColumns: 1,
+      gap: 16,
+      aspectRatio: 'portrait',
+      
+      // Section
+      backgroundColor: '#ffffff',
+      paddingTop: 64,
+      paddingBottom: 64,
+      paddingLeft: 16,
+      paddingRight: 16,
+      sectionWidth: 'full',
+      
+      // Slider
+      autoplay: false,
+      autoplayInterval: 5000,
+      loop: true,
+      showDots: true,
+      showDotsOnMobile: true,
+      showArrows: true,
+      showArrowsOnMobile: false,
+      
+      // Title
+      showTitle: true,
+      textAlign: 'center',
+      titleColor: '#000000',
+      titleSize: 32,
+      titleSizeMobile: 24,
+      titleWeight: 'light',
+      subtitleColor: '#6b7280',
+      
+      // Item styling
+      itemOverlay: 0.3,
+      itemBorderRadius: 0,
+      itemTextPosition: 'inside-bottom',
+      itemTitleColor: '#ffffff',
+      itemTitleSize: 20,
+      
+      // Divider
+      showDivider: false,
+      dividerColor: '#C9A962',
+      
+      // Arrows/Dots
+      arrowStyle: 'circle',
+      arrowBgColor: '#ffffff',
+      arrowColor: '#374151',
+      dotsActiveColor: '#111827',
+      dotsInactiveColor: '#d1d5db',
     },
     // Content sections with columns
     reviews: {

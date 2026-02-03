@@ -148,6 +148,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     inventory: product.inventory,
     trackInventory: product.trackInventory,
     allowBackorder: product.allowBackorder,
+    hasVariants: product.hasVariants,
     automaticDiscount: discountsMap.get(product.id) || null,
     badges: badgesMap.get(product.id) || [],
   }));

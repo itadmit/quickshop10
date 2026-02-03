@@ -56,32 +56,44 @@ export async function createLoyaltyProgram(storeId: string, name: string = 'מו
   // Check if already exists
   const existing = await getLoyaltyProgram(storeId);
   if (existing) {
-    return { success: false, error: 'תוכנית נאמנות כבר קיימת' };
+    // Return existing program instead of error (handles race conditions)
+    return { success: true, program: existing };
   }
   
-  // Create program
-  const [program] = await db.insert(loyaltyPrograms).values({
-    storeId,
-    name,
-    isEnabled: false,
-  }).returning();
-  
-  // Create default tier
-  await db.insert(loyaltyTiers).values({
-    programId: program.id,
-    name: 'חבר',
-    slug: 'member',
-    level: 1,
-    color: '#6B7280',
-    icon: 'user',
-    minValue: '0',
-    pointsMultiplier: '1.0',
-    discountPercentage: '0',
-    isDefault: true,
-    benefitsList: ['צבירת נקודות על כל רכישה'],
-  });
-  
-  return { success: true, program };
+  try {
+    // Create program
+    const [program] = await db.insert(loyaltyPrograms).values({
+      storeId,
+      name,
+      isEnabled: false,
+    }).returning();
+    
+    // Create default tier
+    await db.insert(loyaltyTiers).values({
+      programId: program.id,
+      name: 'חבר',
+      slug: 'member',
+      level: 1,
+      color: '#6B7280',
+      icon: 'user',
+      minValue: '0',
+      pointsMultiplier: '1.0',
+      discountPercentage: '0',
+      isDefault: true,
+      benefitsList: ['צבירת נקודות על כל רכישה'],
+    });
+    
+    return { success: true, program };
+  } catch (error: unknown) {
+    // Handle race condition - duplicate key error
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
+      const existingProgram = await getLoyaltyProgram(storeId);
+      if (existingProgram) {
+        return { success: true, program: existingProgram };
+      }
+    }
+    throw error;
+  }
 }
 
 /**
@@ -610,23 +622,66 @@ export async function getLoyaltyStats(storeId: string) {
   const program = await getLoyaltyProgram(storeId);
   if (!program) return null;
   
-  // Count members by tier
-  const membersByTier = await db
+  // Get default tier (level 1)
+  const [defaultTier] = await db
+    .select()
+    .from(loyaltyTiers)
+    .where(and(
+      eq(loyaltyTiers.programId, program.id),
+      eq(loyaltyTiers.isDefault, true)
+    ))
+    .limit(1);
+  
+  // Count club members from contacts table (type = 'club_member')
+  const [clubMemberCount] = await db
+    .select({
+      total: sql<number>`count(*)::int`,
+    })
+    .from(contacts)
+    .where(and(
+      eq(contacts.storeId, storeId),
+      eq(contacts.type, 'club_member')
+    ));
+  
+  const totalClubMembers = clubMemberCount?.total || 0;
+  
+  // Count members in higher tiers (in loyaltyMembers table)
+  const higherTierMembers = await db
     .select({
       tierId: loyaltyMembers.currentTierId,
       tierName: loyaltyTiers.name,
       tierColor: loyaltyTiers.color,
+      tierLevel: loyaltyTiers.level,
       count: sql<number>`count(*)::int`,
     })
     .from(loyaltyMembers)
-    .leftJoin(loyaltyTiers, eq(loyaltyMembers.currentTierId, loyaltyTiers.id))
+    .innerJoin(loyaltyTiers, eq(loyaltyMembers.currentTierId, loyaltyTiers.id))
     .where(eq(loyaltyMembers.storeId, storeId))
-    .groupBy(loyaltyMembers.currentTierId, loyaltyTiers.name, loyaltyTiers.color);
+    .groupBy(loyaltyMembers.currentTierId, loyaltyTiers.name, loyaltyTiers.color, loyaltyTiers.level);
   
-  // Total stats
-  const [totals] = await db
+  // Calculate level 1 members = total club members - those in higher tiers
+  const higherTierCount = higherTierMembers.reduce((sum, t) => sum + t.count, 0);
+  const level1Count = totalClubMembers - higherTierCount;
+  
+  // Build membersByTier with level 1 first
+  const membersByTier = [
+    {
+      tierId: defaultTier?.id || null,
+      tierName: defaultTier?.name || 'חבר',
+      tierColor: defaultTier?.color || '#6B7280',
+      count: level1Count,
+    },
+    ...higherTierMembers.map(t => ({
+      tierId: t.tierId,
+      tierName: t.tierName,
+      tierColor: t.tierColor,
+      count: t.count,
+    })),
+  ];
+  
+  // Points stats (only from loyaltyMembers who earned points)
+  const [pointsStats] = await db
     .select({
-      totalMembers: sql<number>`count(*)::int`,
       totalPointsEarned: sql<string>`coalesce(sum(total_points_earned::numeric), 0)::text`,
       totalPointsRedeemed: sql<string>`coalesce(sum(total_points_redeemed::numeric), 0)::text`,
       totalPointsActive: sql<string>`coalesce(sum(current_points::numeric), 0)::text`,
@@ -637,7 +692,10 @@ export async function getLoyaltyStats(storeId: string) {
   return {
     program,
     membersByTier,
-    ...totals,
+    totalMembers: totalClubMembers,
+    totalPointsEarned: pointsStats?.totalPointsEarned || '0',
+    totalPointsRedeemed: pointsStats?.totalPointsRedeemed || '0',
+    totalPointsActive: pointsStats?.totalPointsActive || '0',
   };
 }
 

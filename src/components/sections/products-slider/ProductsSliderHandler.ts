@@ -206,15 +206,17 @@ export function handleProductsSliderUpdate(
   // CONTAINER TYPE (full/boxed)
   // =====================================================
   
-  if (updates.settings?.containerType !== undefined) {
-    const container = updates.settings.containerType as string;
+  // Handle both sectionWidth (new) and containerType (legacy)
+  if (updates.settings?.sectionWidth !== undefined || updates.settings?.containerType !== undefined) {
+    const width = (updates.settings?.sectionWidth || updates.settings?.containerType) as string;
     const contentWrapper = el.querySelector('[data-content-wrapper]') as HTMLElement;
     
     if (contentWrapper) {
-      if (container === 'full') {
+      if (width === 'full') {
         contentWrapper.classList.remove('max-w-7xl', 'mx-auto');
-        contentWrapper.classList.add('w-full', 'px-4');
+        contentWrapper.classList.add('w-full');
       } else {
+        // 'boxed' or 'container'
         contentWrapper.classList.remove('w-full');
         contentWrapper.classList.add('max-w-7xl', 'mx-auto');
       }

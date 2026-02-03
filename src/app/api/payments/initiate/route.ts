@@ -56,7 +56,7 @@ interface InitiatePaymentBody {
   discountCode?: string;
   discountAmount?: number;
   discountDetails?: Array<{
-    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+    type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
     code?: string;
     name: string;
     description?: string;

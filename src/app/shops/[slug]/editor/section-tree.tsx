@@ -48,7 +48,7 @@ interface SectionTreeProps {
   onSelectSection: (id: string) => void;
   onAddSection: (type: string, zone?: string) => void;
   onRemoveSection: (id: string) => void;
-  onReorderSections: (fromIndex: number, toIndex: number) => void;
+  onReorderSections: (sectionId: string, newIndex: number) => void;
   onApplyTemplate?: (templateId: string) => void;
   headerLayout?: 'logo-right' | 'logo-left' | 'logo-center';
   currentPage?: string;
@@ -76,6 +76,7 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   { type: 'banner_small', label: 'באנר קטן', icon: Megaphone, category: 'באנרים' },
   { type: 'quote_banner', label: 'באנר ציטוט', icon: Quote, category: 'באנרים' },
   // תוכן
+  { type: 'content_slider', label: 'סליידר תוכן', icon: Layers, category: 'תוכן' },
   { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },
   { type: 'text_block', label: 'בלוק טקסט', icon: FileText, category: 'תוכן' },
   { type: 'features', label: 'חוזקות', icon: Sparkles, category: 'תוכן' },
@@ -200,46 +201,125 @@ export function SectionTree({
 
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [draggedZone, setDraggedZone] = useState<string | null>(null);
+  const [dropPosition, setDropPosition] = useState<'before' | 'after'>('before');
   
-  const handleDragStart = (index: number, zone?: string) => {
+  const handleDragStart = (e: React.DragEvent, index: number, zone?: string) => {
     setDraggedIndex(index);
     setDraggedZone(zone || null);
     setDropTargetIndex(null);
+    // Set drag image
+    const target = e.currentTarget as HTMLElement;
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      // Create a custom drag image
+      const dragImage = target.cloneNode(true) as HTMLElement;
+      dragImage.style.opacity = '0.8';
+      dragImage.style.position = 'absolute';
+      dragImage.style.top = '-1000px';
+      document.body.appendChild(dragImage);
+      e.dataTransfer.setDragImage(dragImage, 0, 0);
+      setTimeout(() => document.body.removeChild(dragImage), 0);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent, index: number, zone?: string) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     // Only allow drop in same zone (for product page)
     if (draggedZone && zone && draggedZone !== zone) {
-      return; // Don't allow cross-zone drops
+      e.dataTransfer.dropEffect = 'none';
+      return;
     }
-    // Only update visual indicator, don't reorder yet
+    
+    e.dataTransfer.dropEffect = 'move';
+    
+    // Determine drop position (before or after) based on mouse position
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const midpoint = rect.top + rect.height / 2;
+    const position = e.clientY < midpoint ? 'before' : 'after';
+    
     if (draggedIndex !== null && draggedIndex !== index) {
       setDropTargetIndex(index);
+      setDropPosition(position);
     }
   };
 
-  const handleDragEnd = () => {
-    // Perform reorder only on drop
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
-      // Simply swap the sortOrder values of the two sections
-      // This is simpler and works correctly for zone-based ordering
       const fromSection = sortedSections[draggedIndex];
-      const toSection = sortedSections[dropTargetIndex];
       
-      if (fromSection && toSection) {
-        // Swap sortOrder values
-        onReorderSections(fromSection.sortOrder, toSection.sortOrder);
+      if (fromSection) {
+        // Calculate the actual new index based on drop position
+        let newIndex = dropTargetIndex;
+        
+        // If dropping after and the dragged item was before the target, 
+        // the target's index will shift down after removal
+        if (dropPosition === 'after') {
+          newIndex = dropTargetIndex + 1;
+        }
+        
+        // Adjust for the removal of the dragged item
+        if (draggedIndex < dropTargetIndex) {
+          newIndex = newIndex - 1;
+        }
+        
+        onReorderSections(fromSection.id, newIndex);
       }
     }
+    
+    // Reset all drag states
     setDraggedIndex(null);
     setDropTargetIndex(null);
     setDraggedZone(null);
+    setDropPosition('before');
+  };
+
+  const handleDragEnd = () => {
+    // Reset states on drag end (in case drop didn't happen)
+    setDraggedIndex(null);
+    setDropTargetIndex(null);
+    setDraggedZone(null);
+    setDropPosition('before');
   };
   
-  const handleDragLeave = () => {
-    // Clear drop target when leaving
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only clear if leaving the actual element (not its children)
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    if (
+      e.clientX < rect.left ||
+      e.clientX > rect.right ||
+      e.clientY < rect.top ||
+      e.clientY > rect.bottom
+    ) {
+      // Don't clear dropTargetIndex here to keep visual feedback
+    }
   };
+  
+  // Visual indicator for drop position - returns style object
+  const getDropIndicatorStyle = (index: number, zone?: string): React.CSSProperties => {
+    if (dropTargetIndex !== index) return {};
+    if (draggedZone && zone && draggedZone !== zone) return {};
+    
+    const indicatorColor = zone === 'top' ? '#f59e0b' : 
+                          zone === 'gallery' ? '#a855f7' : 
+                          zone === 'info' ? '#3b82f6' : 
+                          zone === 'content' ? '#22c55e' : '#3b82f6';
+    
+    if (dropPosition === 'before') {
+      return {
+        boxShadow: `inset 0 2px 0 0 ${indicatorColor}`,
+      };
+    } else {
+      return {
+        boxShadow: `inset 0 -2px 0 0 ${indicatorColor}`,
+      };
+    }
+  };
+  
 
   const getSectionLabel = (type: string): string => {
     return sectionTypes.find(s => s.type === type)?.label || type;
@@ -351,10 +431,13 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex, 'top')}
+                        onDragStart={(e) => handleDragStart(e, globalIndex, 'top')}
                         onDragOver={(e) => handleDragOver(e, globalIndex, 'top')}
+                        onDrop={handleDrop}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'top' ? 'border-t-2 border-amber-500' : ''}`}
+                        onDragLeave={handleDragLeave}
+                        className={`transition-all duration-150 ${draggedIndex === globalIndex ? 'opacity-50 scale-95' : ''}`}
+                        style={getDropIndicatorStyle(globalIndex, 'top')}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -394,10 +477,13 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex, 'gallery')}
+                        onDragStart={(e) => handleDragStart(e, globalIndex, 'gallery')}
                         onDragOver={(e) => handleDragOver(e, globalIndex, 'gallery')}
+                        onDrop={handleDrop}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'gallery' ? 'border-t-2 border-purple-500' : ''}`}
+                        onDragLeave={handleDragLeave}
+                        className={`transition-all duration-150 ${draggedIndex === globalIndex ? 'opacity-50 scale-95' : ''}`}
+                        style={getDropIndicatorStyle(globalIndex, 'gallery')}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -437,10 +523,13 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex, 'info')}
+                        onDragStart={(e) => handleDragStart(e, globalIndex, 'info')}
                         onDragOver={(e) => handleDragOver(e, globalIndex, 'info')}
+                        onDrop={handleDrop}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'info' ? 'border-t-2 border-blue-500' : ''}`}
+                        onDragLeave={handleDragLeave}
+                        className={`transition-all duration-150 ${draggedIndex === globalIndex ? 'opacity-50 scale-95' : ''}`}
+                        style={getDropIndicatorStyle(globalIndex, 'info')}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -486,10 +575,13 @@ export function SectionTree({
                       <div
                         key={section.id}
                         draggable
-                        onDragStart={() => handleDragStart(globalIndex, 'content')}
+                        onDragStart={(e) => handleDragStart(e, globalIndex, 'content')}
                         onDragOver={(e) => handleDragOver(e, globalIndex, 'content')}
+                        onDrop={handleDrop}
                         onDragEnd={handleDragEnd}
-                        className={`${draggedIndex === globalIndex ? 'opacity-50' : ''} ${dropTargetIndex === globalIndex && draggedZone === 'content' ? 'border-t-2 border-green-500' : ''}`}
+                        onDragLeave={handleDragLeave}
+                        className={`transition-all duration-150 ${draggedIndex === globalIndex ? 'opacity-50 scale-95' : ''}`}
+                        style={getDropIndicatorStyle(globalIndex, 'content')}
                       >
                         <SectionItem
                           icon={getProductSectionIcon(section.type)}
@@ -733,12 +825,40 @@ export function SectionTree({
             <div
               key={section.id}
               draggable
-              onDragStart={() => handleDragStart(index)}
-              onDragOver={(e) => handleDragOver(e, index)}
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (draggedIndex !== null && draggedIndex !== index) {
+                  setDropTargetIndex(index);
+                }
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (draggedIndex !== null && dropTargetIndex !== null && draggedIndex !== dropTargetIndex) {
+                  const fromSection = sortedSections[draggedIndex];
+                  if (fromSection) {
+                    onReorderSections(fromSection.id, dropTargetIndex);
+                  }
+                }
+                setDraggedIndex(null);
+                setDropTargetIndex(null);
+              }}
               onDragEnd={handleDragEnd}
               onDragLeave={handleDragLeave}
-              className={`${draggedIndex === index ? 'opacity-50' : ''} ${dropTargetIndex === index ? 'border-t-2 border-blue-500' : ''}`}
+              className={`
+                relative transition-all duration-150 
+                ${draggedIndex === index ? 'opacity-30 scale-[0.97]' : ''}
+              `}
             >
+              {/* Drop zone overlay - full row */}
+              {dropTargetIndex === index && draggedIndex !== null && draggedIndex !== index && (
+                <div className="absolute inset-0 z-20 pointer-events-none bg-blue-100/80 border-2 border-dashed border-blue-500 rounded-lg flex items-center justify-center">
+                  <span className="text-sm font-medium text-blue-600">שחרר כאן</span>
+                </div>
+              )}
+              
               <SectionItem
                 icon={getSectionIcon(section.type)}
                 label={section.title || getSectionLabel(section.type)}
@@ -750,6 +870,7 @@ export function SectionTree({
                 isDisabled={!section.isActive}
                 hideOnMobile={section.settings?.hideOnMobile}
                 hideOnDesktop={section.settings?.hideOnDesktop}
+                isDragTarget={dropTargetIndex === index && draggedIndex !== null && draggedIndex !== index}
               />
               
               {/* Expanded children */}
@@ -823,6 +944,7 @@ function SectionItem({
   isDisabled,
   hideOnMobile,
   hideOnDesktop,
+  isDragTarget,
 }: {
   icon: string;
   label: string;
@@ -834,18 +956,20 @@ function SectionItem({
   isDisabled?: boolean;
   hideOnMobile?: boolean;
   hideOnDesktop?: boolean;
+  isDragTarget?: boolean;
 }) {
   return (
     <div
       className={`
-        flex items-center gap-1.5 px-2 py-2 cursor-pointer transition-colors group
+        flex items-center gap-1.5 px-2 py-2.5 cursor-pointer transition-all duration-150 group
         ${isSelected ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-50'}
         ${isDisabled ? 'opacity-50' : ''}
+        ${isDragTarget ? 'bg-blue-50/50' : ''}
       `}
       onClick={onClick}
     >
       {/* Drag Handle - always visible, on the left (end in RTL) */}
-      <div className="order-last cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 mr-auto">
+      <div className="order-last cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 mr-auto p-1">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="8" cy="6" r="2"/>
           <circle cx="16" cy="6" r="2"/>

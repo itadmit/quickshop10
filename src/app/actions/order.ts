@@ -2,6 +2,7 @@
 
 import { db } from '@/lib/db';
 import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions, contacts } from '@/lib/db/schema';
+import { loyaltyMembers, loyaltyTiers, loyaltyPrograms } from '@/lib/db/schema-loyalty';
 import { eq, and, sql, gte, lte, gt, or, isNull, desc, inArray } from 'drizzle-orm';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
 
@@ -81,7 +82,7 @@ export type CreateOrderResult = {
 
 // Type for discount details breakdown
 export type DiscountDetail = {
-  type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member';
+  type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
   code?: string;
   name: string;
   description?: string;
@@ -288,8 +289,65 @@ export async function createOrder(
       }
     }
     
-    // STEP 4: Final totals
-    const totalDiscount = autoDiscountTotal + couponDiscount;
+    // STEP 4: Calculate loyalty tier discount (always stacks!)
+    // This is separate from automatic discounts - based on customer's loyalty tier
+    let loyaltyTierDiscount = 0;
+    
+    // Check for loyalty tier discount in the discountDetails from client
+    const loyaltyTierDetail = discountDetails.find(d => d.type === 'loyalty_tier');
+    if (loyaltyTierDetail && loyaltyTierDetail.amount > 0) {
+      // Validate by checking if customer exists and has a loyalty tier with discount
+      const [existingCustomer] = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(and(
+          eq(customers.storeId, store.id),
+          eq(customers.email, customerInfo.email.toLowerCase().trim())
+        ))
+        .limit(1);
+      
+      if (existingCustomer) {
+        // Check if loyalty program is enabled
+        const [program] = await db
+          .select({ isEnabled: loyaltyPrograms.isEnabled })
+          .from(loyaltyPrograms)
+          .where(eq(loyaltyPrograms.storeId, store.id))
+          .limit(1);
+        
+        if (program?.isEnabled) {
+          // Get member's current tier
+          const [member] = await db
+            .select({ tierId: loyaltyMembers.currentTierId })
+            .from(loyaltyMembers)
+            .where(and(
+              eq(loyaltyMembers.storeId, store.id),
+              eq(loyaltyMembers.customerId, existingCustomer.id)
+            ))
+            .limit(1);
+          
+          if (member?.tierId) {
+            // Get tier discount percentage
+            const [tier] = await db
+              .select({ discountPercentage: loyaltyTiers.discountPercentage })
+              .from(loyaltyTiers)
+              .where(and(
+                eq(loyaltyTiers.id, member.tierId),
+                eq(loyaltyTiers.isActive, true)
+              ))
+              .limit(1);
+            
+            if (tier && Number(tier.discountPercentage) > 0) {
+              // Calculate server-side discount
+              const tierDiscountPercent = Number(tier.discountPercentage);
+              loyaltyTierDiscount = Math.round((serverSubtotal * tierDiscountPercent) / 100 * 100) / 100;
+            }
+          }
+        }
+      }
+    }
+    
+    // STEP 5: Final totals
+    const totalDiscount = autoDiscountTotal + couponDiscount + loyaltyTierDiscount;
     const finalSubtotal = serverSubtotal;
     const finalDiscount = totalDiscount;
     const finalTotal = Math.max(finalSubtotal - finalDiscount + shipping - creditUsed, 0);

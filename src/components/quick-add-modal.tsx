@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useStoreOptional } from '@/lib/store-context';
 import { tracker } from '@/lib/tracking';
 import { X, ShoppingBag, Check } from 'lucide-react';
 import { useTranslations } from '@/lib/translations/use-translations';
+
+// Global event to close all other modals
+const CLOSE_OTHER_MODALS_EVENT = 'quickAddModal:closeOthers';
 
 // ============================================
 // Quick Add Modal - לבחירת וריאנט מהכרטיס
@@ -75,6 +78,26 @@ export function QuickAddModal({
   const [isLoading, setIsLoading] = useState(true);
   const [added, setAdded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const modalId = useRef(`modal-${productId}-${Date.now()}`);
+
+  // Close this modal when another one opens
+  useEffect(() => {
+    const handleCloseOthers = (e: CustomEvent) => {
+      if (e.detail !== modalId.current && isOpen) {
+        onClose();
+      }
+    };
+    
+    window.addEventListener(CLOSE_OTHER_MODALS_EVENT, handleCloseOthers as EventListener);
+    return () => window.removeEventListener(CLOSE_OTHER_MODALS_EVENT, handleCloseOthers as EventListener);
+  }, [isOpen, onClose]);
+
+  // When this modal opens, close all others
+  useEffect(() => {
+    if (isOpen) {
+      window.dispatchEvent(new CustomEvent(CLOSE_OTHER_MODALS_EVENT, { detail: modalId.current }));
+    }
+  }, [isOpen]);
 
   // Fetch product variants when modal opens
   useEffect(() => {
@@ -203,63 +226,59 @@ export function QuickAddModal({
                          matchingVariant.inventory <= 0;
     
     const baseClasses = `
-      relative flex items-center justify-center transition-all duration-200
+      relative flex items-center justify-center transition-all duration-150
       ${isOutOfStock ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}
       ${isSelected ? 'ring-2 ring-black ring-offset-1' : 'hover:ring-1 hover:ring-gray-300'}
     `;
     
-    // Color type
+    // Color type - compact size
     if (option.displayType === 'color' && metadata?.color) {
-      return (
-        <div key={val.id} className="relative group">
-          <button
-            onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
-            className={`${baseClasses} w-8 h-8 rounded-full border border-gray-200`}
-            style={{ backgroundColor: metadata.color }}
-            aria-label={val.value}
-            disabled={isOutOfStock}
-          >
-            {isSelected && (
-              <Check className="w-4 h-4 text-white drop-shadow-md" />
-            )}
-          </button>
-          {/* Custom Tooltip */}
-          <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-            {val.value}
-          </span>
-        </div>
-      );
-    }
-    
-    // Pattern type
-    if (option.displayType === 'pattern' && metadata?.pattern) {
       return (
         <button
           key={val.id}
           onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
-          className={`${baseClasses} w-8 h-8 rounded-full border border-gray-200`}
-          style={getPatternStyle(metadata.pattern, metadata.color)}
+          className={`${baseClasses} w-7 h-7 rounded-full border border-gray-200`}
+          style={{ backgroundColor: metadata.color }}
+          aria-label={val.value}
           title={val.value}
           disabled={isOutOfStock}
         >
           {isSelected && (
-            <Check className="w-4 h-4 text-gray-800" />
+            <Check className="w-3 h-3 text-white drop-shadow-md" />
           )}
         </button>
       );
     }
     
-    // Default button type
+    // Pattern type - compact size
+    if (option.displayType === 'pattern' && metadata?.pattern) {
+      return (
+        <button
+          key={val.id}
+          onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
+          className={`${baseClasses} w-7 h-7 rounded-full border border-gray-200`}
+          style={getPatternStyle(metadata.pattern, metadata.color)}
+          title={val.value}
+          disabled={isOutOfStock}
+        >
+          {isSelected && (
+            <Check className="w-3 h-3 text-gray-800" />
+          )}
+        </button>
+      );
+    }
+    
+    // Default button type - square, compact
     return (
       <button
         key={val.id}
         onClick={() => !isOutOfStock && handleOptionChange(optionIndex, val.value)}
         className={`
           ${baseClasses}
-          px-3 py-1.5 text-xs border
+          min-w-[32px] h-8 px-2 text-[11px] border
           ${isSelected 
             ? 'bg-black text-white border-black' 
-            : 'bg-white text-gray-700 border-gray-200 hover:border-gray-400'
+            : 'bg-white text-gray-700 border-gray-300 hover:border-gray-400'
           }
           ${isOutOfStock ? 'line-through' : ''}
         `}
@@ -277,112 +296,91 @@ export function QuickAddModal({
 
   if (!isOpen) return null;
 
+  // Prevent clicks from navigating to product page
+  const handleContainerClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
   return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className="fixed inset-0 bg-black/50 z-50 animate-in fade-in duration-200"
-        onClick={onClose}
-      />
-      
-      {/* Modal */}
-      <div 
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80vh] overflow-auto"
-        dir="rtl"
-      >
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between">
-          <h3 className="font-medium text-gray-900">בחרו אפשרויות</h3>
-          <button 
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
+    <div 
+      className="absolute bottom-0 left-0 right-0 z-30 animate-in slide-in-from-bottom-4 duration-200 p-2"
+      dir="rtl"
+      onClick={handleContainerClick}
+      onMouseDown={handleContainerClick}
+    >
+      <div className="bg-white rounded-lg shadow-lg border border-gray-100 p-3 relative">
+        {/* Close button */}
+        <button 
+          onClick={onClose}
+          className="absolute top-1.5 left-1.5 p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
 
-        {/* Content */}
-        <div className="p-4">
-          {/* Product Info */}
-          <div className="flex gap-4 mb-6">
-            <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
-              <img 
-                src={productImage || '/placeholder.svg'} 
-                alt={productName}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-gray-900 line-clamp-2">{productName}</h4>
-              <p className="text-lg font-semibold text-gray-900 mt-1">
-                ₪{currentPrice.toFixed(2)}
-              </p>
-              {selectedVariant && (
-                <p className="text-xs text-gray-500 mt-0.5">{selectedVariant.title}</p>
-              )}
-            </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="flex justify-center py-3">
+            <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
           </div>
+        )}
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="flex justify-center py-8">
-              <div className="w-6 h-6 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
-            </div>
-          )}
+        {/* Error State */}
+        {error && (
+          <div className="text-center py-2 text-red-500 text-xs">
+            {error}
+          </div>
+        )}
 
-          {/* Error State */}
-          {error && (
-            <div className="text-center py-8 text-red-500 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Options */}
-          {!isLoading && !error && options.map((option, optionIndex) => (
-            <div key={option.id} className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                {option.name}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {option.values.map((val) => renderOptionValue(option, val, optionIndex))}
+        {/* Options - Horizontal scroll, RTL */}
+        {!isLoading && !error && (
+          <div className="space-y-2">
+            {options.map((option, optionIndex) => (
+              <div key={option.id} className="flex items-center gap-2">
+                <span className="text-[10px] font-medium text-gray-500 flex-shrink-0">
+                  {option.name}
+                </span>
+                <div className="flex-1 overflow-x-auto scrollbar-hide">
+                  <div className="flex gap-1 justify-end">
+                    {option.values.map((val) => renderOptionValue(option, val, optionIndex))}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Footer - Add to Cart Button */}
-        <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4">
-          <button
-            onClick={handleAddToCart}
-            disabled={!selectedVariant || isOutOfStock || added || !store}
-            className={`
-              w-full py-3 px-4 font-medium text-sm flex items-center justify-center gap-2 transition-all
-              ${added 
-                ? 'bg-green-500 text-white' 
-                : isOutOfStock
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-black text-white hover:bg-gray-800'
-              }
-              disabled:cursor-not-allowed
-            `}
-          >
-            {added ? (
-              <>
-                <Check className="w-4 h-4" />
-                {t.product.addedToCart}
-              </>
-            ) : isOutOfStock ? (
-              t.product.outOfStock
-            ) : (
-              <>
-                <ShoppingBag className="w-4 h-4" />
-                {t.product.addToCart}
-              </>
-            )}
-          </button>
-        </div>
+            ))}
+            
+            {/* Add to Cart Button - inline */}
+            <button
+              onClick={handleAddToCart}
+              disabled={!selectedVariant || isOutOfStock || added || !store}
+              className={`
+                w-full py-2 px-3 font-medium text-xs flex items-center justify-center gap-1.5 transition-all mt-2
+                ${added 
+                  ? 'bg-green-500 text-white' 
+                  : isOutOfStock
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-black text-white hover:bg-gray-800'
+                }
+                disabled:cursor-not-allowed
+              `}
+            >
+              {added ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  {t.product.addedToCart}
+                </>
+              ) : isOutOfStock ? (
+                t.product.outOfStock
+              ) : (
+                <>
+                  <ShoppingBag className="w-3.5 h-3.5" />
+                  {t.product.addToCart}
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }
 

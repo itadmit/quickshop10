@@ -54,9 +54,9 @@ export function EditorSectionHighlighter() {
         display: block !important;
       }
       
-      /* Remove the Tailwind hiding classes effect in editor */
-      [data-editor-preview="true"] .max-md\\:hidden,
-      [data-editor-preview="true"] .md\\:hidden {
+      /* Remove the Tailwind hiding classes effect in editor - but NOT for background images */
+      [data-editor-preview="true"] .max-md\\:hidden:not([data-bg-desktop]):not([data-bg-mobile]),
+      [data-editor-preview="true"] .md\\:hidden:not([data-bg-desktop]):not([data-bg-mobile]) {
         display: block !important;
       }
     `;
@@ -679,11 +679,57 @@ export function EditorSectionHighlighter() {
         
         // Mobile image updates
         if (updates.content?.mobileImageUrl !== undefined) {
-          const bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
-          if (bgMobile) {
-            bgMobile.style.backgroundImage = updates.content.mobileImageUrl 
-              ? `url("${updates.content.mobileImageUrl}")` 
-              : 'none';
+          let bgMobile = element.querySelector('[data-bg-mobile]') as HTMLElement;
+          const bgDesktop = element.querySelector('[data-bg-desktop]') as HTMLElement;
+          const sectionId = (element as HTMLElement).getAttribute('data-section-id');
+          
+          if (updates.content.mobileImageUrl) {
+            // First, inject the style tag BEFORE creating the element
+            // This ensures no flash occurs
+            if (sectionId) {
+              let styleEl = document.getElementById(`mobile-image-style-${sectionId}`);
+              if (!styleEl) {
+                styleEl = document.createElement('style');
+                styleEl.id = `mobile-image-style-${sectionId}`;
+                document.head.appendChild(styleEl);
+              }
+              // Hide mobile image on desktop (>=768px), hide desktop image on mobile (<768px)
+              styleEl.textContent = `
+                @media (min-width: 768px) {
+                  [data-section-id="${sectionId}"] [data-bg-mobile] { display: none !important; }
+                }
+                @media (max-width: 767px) {
+                  [data-section-id="${sectionId}"] [data-bg-desktop] { display: none !important; }
+                }
+              `;
+            }
+            
+            // Create mobile image element if doesn't exist
+            if (!bgMobile) {
+              bgMobile = document.createElement('div');
+              // Don't use md:hidden class - use style tag instead
+              bgMobile.className = 'absolute inset-0 bg-cover bg-center bg-no-repeat';
+              bgMobile.setAttribute('data-bg-mobile', '');
+              bgMobile.setAttribute('data-bg-type', 'image');
+              // Insert after desktop image or at beginning
+              if (bgDesktop) {
+                bgDesktop.insertAdjacentElement('afterend', bgMobile);
+              } else {
+                element.insertBefore(bgMobile, element.firstChild);
+              }
+            }
+            bgMobile.style.backgroundImage = `url("${updates.content.mobileImageUrl}")`;
+            bgMobile.style.display = '';
+          } else {
+            // Remove mobile image
+            if (bgMobile) {
+              bgMobile.style.display = 'none';
+            }
+            // Remove the mobile-hiding style for desktop image
+            if (sectionId) {
+              const styleEl = document.getElementById(`mobile-image-style-${sectionId}`);
+              if (styleEl) styleEl.remove();
+            }
           }
           
           // Update hasImage attribute and background color
@@ -2549,7 +2595,7 @@ export function EditorSectionHighlighter() {
       // SECTION_ADD - Inject placeholder for new section
       // =====================================================
       if (event.data?.type === 'SECTION_ADD') {
-        const { sectionId, sectionType, title, subtitle, afterSectionId, content } = event.data;
+        const { sectionId, sectionType, title, subtitle, afterSectionId, content, settings } = event.data;
         console.log('[SECTION_ADD] Adding section:', sectionType, sectionId);
         
         // Create placeholder element with all data- attributes for live updates
@@ -2580,6 +2626,7 @@ export function EditorSectionHighlighter() {
           series_grid: 'גריד סדרות',
           hero_premium: 'באנר פרימיום',
           hero_slider: 'סליידר הירו',
+          content_slider: 'סליידר תוכן',
           quote_banner: 'באנר ציטוט',
           featured_items: 'פריטים מובילים',
         };
@@ -3699,6 +3746,102 @@ export function EditorSectionHighlighter() {
               </button>
             `;
             break;
+
+          case 'content_slider':
+            // Content slider with items
+            const contentItems = content?.items || [
+              { id: '1', title: 'פריט 1', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800' },
+              { id: '2', title: 'פריט 2', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800' },
+              { id: '3', title: 'פריט 3', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800' },
+              { id: '4', title: 'פריט 4', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcabd36?w=800' },
+              { id: '5', title: 'פריט 5', subtitle: 'תיאור קצר', imageUrl: 'https://images.unsplash.com/photo-1560343090-f0409e92791a?w=800' },
+            ];
+            const csColumns = (settings?.columns as number) || 4;
+            const csMobileColumns = (settings?.mobileColumns as number) || 1;
+            const csGap = (settings?.gap as number) || 16;
+            const csBgColor = (settings?.backgroundColor as string) || '#ffffff';
+            const csPaddingTop = (settings?.paddingTop as number) ?? 64;
+            const csPaddingBottom = (settings?.paddingBottom as number) ?? 64;
+            const csPaddingLeft = (settings?.paddingLeft as number) ?? 16;
+            const csPaddingRight = (settings?.paddingRight as number) ?? 16;
+            
+            placeholder.className = 'relative';
+            placeholder.style.backgroundColor = csBgColor;
+            placeholder.style.paddingTop = `${csPaddingTop}px`;
+            placeholder.style.paddingBottom = `${csPaddingBottom}px`;
+            placeholder.style.paddingLeft = `${csPaddingLeft}px`;
+            placeholder.style.paddingRight = `${csPaddingRight}px`;
+            
+            html = `
+              <style>
+                [data-section-id="${sectionId}"] [data-section-title] {
+                  font-size: 24px;
+                  color: #000000;
+                }
+                @media (min-width: 768px) {
+                  [data-section-id="${sectionId}"] [data-section-title] {
+                    font-size: 32px;
+                  }
+                }
+                [data-section-id="${sectionId}"] .embla__slide {
+                  flex: 0 0 ${100 / (csMobileColumns + 0.25)}%;
+                  padding-left: ${csGap / 2}px;
+                  padding-right: ${csGap / 2}px;
+                }
+                @media (min-width: 768px) {
+                  [data-section-id="${sectionId}"] .embla__slide {
+                    flex: 0 0 ${100 / (csColumns + 0.25)}%;
+                  }
+                }
+              </style>
+              <div class="w-full" data-content-wrapper>
+                ${title ? `
+                  <div class="mb-8 md:mb-12 px-4 text-center">
+                    ${subtitle ? `<p class="tracking-[0.2em] uppercase mb-3 text-gray-500" style="font-size: 14px;" data-section-subtitle>${subtitle}</p>` : ''}
+                    <h2 class="font-display tracking-[0.15em] uppercase font-light" data-section-title>${title}</h2>
+                  </div>
+                ` : ''}
+                <div class="relative">
+                  <div class="overflow-hidden" style="margin-left: -${csGap / 2}px; margin-right: -${csGap / 2}px;">
+                    <div class="flex" data-slider-track>
+                      ${(contentItems as Array<{id: string; title?: string; subtitle?: string; imageUrl?: string; mobileImageUrl?: string; videoUrl?: string; buttonText?: string; buttonLink?: string}>).map((item, index) => `
+                        <div class="embla__slide min-w-0" data-item-index="${index}" data-item-id="${item.id}">
+                          <div class="relative overflow-hidden h-full" style="border-radius: 0; aspect-ratio: 3 / 4;">
+                            ${item.videoUrl 
+                              ? `<video src="${item.videoUrl}" autoplay muted loop playsinline class="absolute inset-0 w-full h-full object-cover" data-item-video></video>`
+                              : item.imageUrl 
+                                ? `<img src="${item.imageUrl}" alt="${item.title || ''}" class="absolute inset-0 w-full h-full object-cover ${item.mobileImageUrl ? 'hidden md:block' : ''}" data-item-image-desktop />${item.mobileImageUrl ? `<img src="${item.mobileImageUrl}" alt="${item.title || ''}" class="absolute inset-0 w-full h-full object-cover md:hidden" data-item-image-mobile />` : ''}`
+                                : item.mobileImageUrl 
+                                  ? `<img src="${item.mobileImageUrl}" alt="${item.title || ''}" class="absolute inset-0 w-full h-full object-cover" data-item-image-mobile />`
+                                  : '<div class="absolute inset-0 w-full h-full bg-gray-200"></div>'
+                            }
+                            <div class="absolute inset-0 z-[1]" style="background-color: rgba(0,0,0,0.3);" data-item-overlay></div>
+                            <div class="absolute inset-x-0 bottom-0 h-1/2 z-[2]" style="background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);"></div>
+                            <div class="relative z-10 h-full flex flex-col justify-end p-4 md:p-6 text-center" data-item-content>
+                              ${item.subtitle ? `<p class="text-xs tracking-wider uppercase mb-2" style="color: rgba(255,255,255,0.8);" data-item-subtitle>${item.subtitle}</p>` : ''}
+                              ${item.title ? `<h3 class="font-medium mb-2" style="color: #ffffff; font-size: 20px;" data-item-title>${item.title}</h3>` : ''}
+                              ${item.buttonText ? `<div><a href="${item.buttonLink || '#'}" class="inline-block px-6 py-2 bg-white text-black text-sm font-medium tracking-wider" data-item-button>${item.buttonText}</a></div>` : ''}
+                            </div>
+                          </div>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                  <button class="absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-white shadow-lg rounded-full hidden md:flex" style="right: -20px;" aria-label="הקודם" data-slider-prev>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
+                  <button class="absolute top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center bg-white shadow-lg rounded-full hidden md:flex" style="left: -20px;" aria-label="הבא" data-slider-next>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2"><path d="M15 18l-6-6 6-6" /></svg>
+                  </button>
+                </div>
+                <div class="flex justify-center gap-2 mt-6" data-slider-dots>
+                  ${(contentItems as Array<{id: string}>).map((_, index) => `
+                    <button class="transition-all rounded-full" style="background-color: ${index === 0 ? '#111827' : '#d1d5db'}; width: ${index === 0 ? '12px' : '8px'}; height: ${index === 0 ? '12px' : '8px'};" data-active="${index === 0}"></button>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+            break;
           
           case 'custom':
             const customHtml = (content?.html as string) || '';
@@ -3781,16 +3924,15 @@ export function EditorSectionHighlighter() {
               main.appendChild(placeholder);
             }
           } else {
-            // For other pages, find last non-footer section
-            const allSections = document.querySelectorAll('[data-section-id]:not([data-section-id="footer"])');
+            // For other pages (home, etc.) - always insert BEFORE footer
+            // This ensures new sections go at the end of content, before footer
             const footer = document.querySelector('footer');
             
-            if (allSections.length > 0) {
-              const lastSection = allSections[allSections.length - 1];
-              lastSection.insertAdjacentElement('afterend', placeholder);
-            } else if (footer) {
+            if (footer) {
+              // Insert right before the footer - this is the true "end" of content
               footer.insertAdjacentElement('beforebegin', placeholder);
             } else {
+              // No footer found, append to main/body
               const main = document.querySelector('main') || document.body;
               main.appendChild(placeholder);
             }
@@ -3835,45 +3977,70 @@ export function EditorSectionHighlighter() {
       }
       
       // =====================================================
-      // SECTION_SWAP - Swap two sections in the DOM
-      // Simpler than full reorder - just swap positions of two elements
+      // SECTIONS_REORDER - Reorder sections in the DOM based on new order
+      // This properly moves sections to their new positions
       // =====================================================
-      if (event.data?.type === 'SECTION_SWAP') {
-        const { fromId, toId } = event.data as { fromId: string; toId: string };
+      if (event.data?.type === 'SECTIONS_REORDER') {
+        const { sectionOrder, movedSectionId } = event.data as { sectionOrder: string[]; movedSectionId: string };
         
-        const fromElement = document.querySelector(`[data-section-id="${fromId}"]`) as HTMLElement;
-        const toElement = document.querySelector(`[data-section-id="${toId}"]`) as HTMLElement;
+        // SIMPLE APPROACH: Only reorder sections, don't touch header/footer
+        // Header stays at top, footer stays at bottom - they are fixed
         
-        if (fromElement && toElement) {
-          // Get parents and positions
-          const fromParent = fromElement.parentElement;
-          const toParent = toElement.parentElement;
-          
-          // Only swap if both are in the same parent (same zone)
-          if (fromParent && toParent && fromParent === toParent) {
-            // Create placeholder for swap
-            const placeholder = document.createElement('div');
-            fromParent.insertBefore(placeholder, fromElement);
-            
-            // Swap positions
-            toParent.insertBefore(fromElement, toElement);
-            fromParent.insertBefore(toElement, placeholder);
-            
-            // Remove placeholder
-            placeholder.remove();
-          }
+        // Find all section elements (these are the draggable content sections)
+        const allSections = document.querySelectorAll('[data-section-id]');
+        if (allSections.length === 0) return;
+        
+        // Create a map of section ID to element
+        const sectionMap = new Map<string, Element>();
+        allSections.forEach(section => {
+          const id = section.getAttribute('data-section-id');
+          if (id) sectionMap.set(id, section);
+        });
+        
+        // Get the moved element for animation
+        const movedElement = sectionMap.get(movedSectionId) as HTMLElement;
+        
+        // Add animation to the moved element
+        if (movedElement) {
+          movedElement.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+          movedElement.style.opacity = '0.7';
+          movedElement.style.transform = 'scale(0.98)';
         }
+        
+        // Reorder by inserting each section after the previous one in the new order
+        requestAnimationFrame(() => {
+          let previousElement: Element | null = null;
+          
+          sectionOrder.forEach((sectionId) => {
+            const element = sectionMap.get(sectionId);
+            if (element) {
+              if (previousElement) {
+                // Insert after the previous element in the new order
+                previousElement.insertAdjacentElement('afterend', element);
+              }
+              previousElement = element;
+            }
+          });
+          
+          // Restore the moved element's style after animation
+          if (movedElement) {
+            setTimeout(() => {
+              movedElement.style.opacity = '1';
+              movedElement.style.transform = 'scale(1)';
+              setTimeout(() => {
+                movedElement.style.transition = '';
+              }, 300);
+            }, 50);
+          }
+        });
       }
       
       // =====================================================
-      // SECTION_REORDER - Visual feedback only (no DOM manipulation)
-      // Actual reorder happens after save + page refresh
-      // DOM manipulation was causing layout issues
+      // SECTION_SWAP - Legacy support (deprecated, use SECTIONS_REORDER)
       // =====================================================
-      if (event.data?.type === 'SECTION_REORDER') {
-        // Don't manipulate DOM - it causes layout issues with complex pages
-        // The new order is saved and will be visible after refresh/save
-        console.log('[Preview] Section reorder saved - refresh to see changes');
+      if (event.data?.type === 'SECTION_SWAP') {
+        // Redirect to new reorder method
+        console.log('[Preview] SECTION_SWAP is deprecated, use SECTIONS_REORDER');
       }
     };
 

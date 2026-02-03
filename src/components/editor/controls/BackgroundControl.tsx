@@ -340,9 +340,10 @@ export function MinHeightControl({
   settings,
   onChange,
   defaultValue = 0,
-}: MinHeightControlProps & { defaultValue?: number }) {
+  defaultUnit = 'px',
+}: MinHeightControlProps & { defaultValue?: number; defaultUnit?: 'px' | 'vh' }) {
   const minHeight = (settings.minHeight as number) ?? defaultValue;
-  const minHeightUnit = (settings.minHeightUnit as string) || 'px';
+  const minHeightUnit = (settings.minHeightUnit as string) || defaultUnit;
 
   return (
     <div className="flex items-center justify-between py-2">

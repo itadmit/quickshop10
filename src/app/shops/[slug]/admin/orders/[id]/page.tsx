@@ -99,7 +99,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       properties: item.properties as Record<string, unknown> | null,
     })),
     order.discountCode,
-    order.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member'; code?: string; name: string; description?: string; amount: number}> | null
+    order.discountDetails as Array<{type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier'; code?: string; name: string; description?: string; amount: number}> | null
   );
 
   const shippingAddress = order.shippingAddress as {
@@ -338,7 +338,8 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               {(order.discountDetails as Array<{type: string; code?: string; name: string; description?: string; amount: number}> | null)?.map((discount, idx) => (
                 <div key={idx} className={`flex justify-between ${
                   discount.type === 'gift_card' ? 'text-purple-600' : 
-                  discount.type === 'credit' ? 'text-blue-600' : 'text-emerald-600'
+                  discount.type === 'credit' ? 'text-blue-600' : 
+                  discount.type === 'loyalty_tier' ? 'text-violet-600' : 'text-emerald-600'
                 }`}>
                   <span className="flex items-center gap-1.5">
                     {discount.type === 'coupon' && (
@@ -367,6 +368,11 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                       </svg>
                     )}
+                    {discount.type === 'loyalty_tier' && (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                      </svg>
+                    )}
                     {discount.type === 'credit' && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -377,6 +383,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                      discount.type === 'gift_card' ? `גיפט קארד ${discount.code}` :
                      discount.type === 'auto' ? `הנחה אוטומטית: ${discount.name}` :
                      discount.type === 'member' ? 'הנחת חברי מועדון' :
+                     discount.type === 'loyalty_tier' ? `הנחת ${discount.name}` :
                      discount.type === 'credit' ? 'קרדיט' : discount.name}
                     {discount.description && (
                       <span className="text-xs opacity-75">({discount.description})</span>

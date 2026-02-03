@@ -179,7 +179,7 @@ export function ProductsSection({ title, subtitle, products, settings, basePath,
       data-hide-on-desktop={settings.hideOnDesktop ? 'true' : undefined}
     >
       <div 
-        className={`${settings.containerType === 'full' ? 'w-full px-4' : 'max-w-7xl mx-auto'}`}
+        className={`${settings.sectionWidth === 'full' || settings.containerType === 'full' ? 'w-full' : 'max-w-7xl mx-auto'}`}
         data-content-wrapper
       >
         {/* Subtitle (Eyebrow) - above title */}

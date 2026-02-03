@@ -191,6 +191,8 @@ export default async function ProductsPage({ params, searchParams }: ProductsPag
                     trackInventory={product.trackInventory}
                     allowBackorder={product.allowBackorder}
                     automaticDiscount={discountsMap.get(product.id) || null}
+                    hasVariants={product.hasVariants}
+                    storeSlug={slug}
                     showWishlist={Boolean(storeSettings.headerShowWishlist)}
                   />
                 </div>
