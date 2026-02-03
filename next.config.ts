@@ -93,7 +93,7 @@ const nextConfig: NextConfig = {
               // Frame ancestors - prevent embedding (clickjacking protection)
               "frame-ancestors 'self'",
               // Frames - for payment iframes (Stripe, PayPal, PayMe, Pelecard, reCAPTCHA)
-              "frame-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://*.payme.io https://gateway.pelecard.biz",
+              "frame-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://js.stripe.com https://*.stripe.com https://www.paypal.com https://*.paypal.com https://*.payme.io https://gateway.pelecard.biz https://www.youtube.com https://www.youtube-nocookie.com",
               // Workers for Next.js
               "worker-src 'self' blob:",
               // Media
