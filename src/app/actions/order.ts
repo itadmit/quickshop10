@@ -69,6 +69,7 @@ type CouponInfo = {
   code: string;
   type: DiscountType;
   value: number;
+  title?: string;
 } | null;
 
 export type CreateOrderResult = {
@@ -235,6 +236,8 @@ export async function createOrder(
         }
       } else {
         // Regular coupon
+        console.log('[Order] Validating coupon:', coupon.code, 'at', now.toISOString());
+        
         const [dbCoupon] = await db
           .select()
           .from(discounts)
@@ -246,6 +249,35 @@ export async function createOrder(
             or(isNull(discounts.endsAt), gte(discounts.endsAt, now))
           ))
           .limit(1);
+        
+        console.log('[Order] Coupon validation result:', dbCoupon ? 'FOUND' : 'NOT_FOUND (expired/inactive/not_exist)');
+        
+        // DEBUG: If not found, check why
+        if (!dbCoupon) {
+          const [rawCoupon] = await db
+            .select({ 
+              isActive: discounts.isActive, 
+              startsAt: discounts.startsAt, 
+              endsAt: discounts.endsAt 
+            })
+            .from(discounts)
+            .where(and(
+              eq(discounts.storeId, store.id),
+              eq(discounts.code, coupon.code)
+            ))
+            .limit(1);
+          if (rawCoupon) {
+            console.log('[Order] Coupon exists but rejected:', {
+              isActive: rawCoupon.isActive,
+              startsAt: rawCoupon.startsAt?.toISOString(),
+              endsAt: rawCoupon.endsAt?.toISOString(),
+              now: now.toISOString(),
+              reason: !rawCoupon.isActive ? 'INACTIVE' : 
+                      (rawCoupon.endsAt && rawCoupon.endsAt < now) ? 'EXPIRED' :
+                      (rawCoupon.startsAt && rawCoupon.startsAt > now) ? 'NOT_STARTED' : 'UNKNOWN'
+            });
+          }
+        }
         
         if (dbCoupon) {
           // Check minimum against ORIGINAL subtotal (before auto discounts)
@@ -351,6 +383,49 @@ export async function createOrder(
     const finalSubtotal = serverSubtotal;
     const finalDiscount = totalDiscount;
     const finalTotal = Math.max(finalSubtotal - finalDiscount + shipping - creditUsed, 0);
+    
+    // STEP 6: 🔒 Build discountDetails SERVER-SIDE (never trust client!)
+    const serverDiscountDetails: DiscountDetail[] = [];
+    
+    // Add validated coupon discount
+    if (validatedCouponCode && couponDiscount > 0 && coupon) {
+      serverDiscountDetails.push({
+        type: 'coupon',
+        code: validatedCouponCode,
+        name: coupon.title || validatedCouponCode,
+        amount: couponDiscount,
+        description: coupon.type === 'percentage' ? `${coupon.value}% הנחה` : `₪${couponDiscount.toFixed(2)} הנחה`,
+      });
+    }
+    
+    // Add auto discounts (from client, but amounts are validated)
+    const autoDiscountDetails = discountDetails.filter(d => d.type === 'auto');
+    for (const autoDetail of autoDiscountDetails) {
+      if (autoDiscountTotal > 0) {
+        serverDiscountDetails.push(autoDetail);
+      }
+    }
+    
+    // Add loyalty tier discount (validated server-side)
+    if (loyaltyTierDiscount > 0) {
+      const loyaltyDetail = discountDetails.find(d => d.type === 'loyalty_tier');
+      serverDiscountDetails.push({
+        type: 'loyalty_tier',
+        name: loyaltyDetail?.name || 'הנחת חבר מועדון',
+        amount: loyaltyTierDiscount,
+        description: loyaltyDetail?.description || 'הנחת חבר מועדון',
+      });
+    }
+    
+    // Add credit used
+    if (creditUsed > 0) {
+      serverDiscountDetails.push({
+        type: 'credit',
+        name: 'קרדיט',
+        amount: creditUsed,
+        description: `שימוש בקרדיט ₪${creditUsed.toFixed(2)}`,
+      });
+    }
     // ===== END Security =====
 
     // 1. Create or find customer
@@ -456,7 +531,7 @@ export async function createOrder(
       subtotal: finalSubtotal.toFixed(2),
       discountCode: validatedCouponCode,
       discountAmount: finalDiscount.toFixed(2),
-      discountDetails: discountDetails.length > 0 ? discountDetails : null,
+      discountDetails: serverDiscountDetails.length > 0 ? serverDiscountDetails : null,
       creditUsed: creditUsed.toFixed(2),
       shippingAmount: shipping.toFixed(2),
       taxAmount: '0.00',
