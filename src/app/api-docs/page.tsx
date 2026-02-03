@@ -52,6 +52,18 @@ const endpoints = [
     ]
   },
   {
+    category: "Categories",
+    icon: LayersIcon,
+    color: "bg-teal-500",
+    items: [
+      { method: "GET", path: "/api/v1/categories", desc: "רשימת קטגוריות" },
+      { method: "POST", path: "/api/v1/categories", desc: "יצירת קטגוריה" },
+      { method: "GET", path: "/api/v1/categories/{id}", desc: "פרטי קטגוריה" },
+      { method: "PATCH", path: "/api/v1/categories/{id}", desc: "עדכון קטגוריה" },
+      { method: "DELETE", path: "/api/v1/categories/{id}", desc: "מחיקת קטגוריה" },
+    ]
+  },
+  {
     category: "Inventory",
     icon: BoxIcon,
     color: "bg-orange-500",
@@ -68,22 +80,53 @@ const endpoints = [
       { method: "GET", path: "/api/v1/customers", desc: "רשימת לקוחות" },
     ]
   },
+  {
+    category: "Discounts",
+    icon: TagIcon,
+    color: "bg-pink-500",
+    items: [
+      { method: "GET", path: "/api/v1/discounts", desc: "רשימת הנחות וקופונים" },
+      { method: "POST", path: "/api/v1/discounts", desc: "יצירת הנחה/קופון" },
+      { method: "GET", path: "/api/v1/discounts/{id}", desc: "פרטי הנחה" },
+      { method: "PATCH", path: "/api/v1/discounts/{id}", desc: "עדכון הנחה" },
+      { method: "DELETE", path: "/api/v1/discounts/{id}", desc: "מחיקת הנחה" },
+    ]
+  },
+  {
+    category: "Analytics",
+    icon: SettingsIcon,
+    color: "bg-indigo-500",
+    items: [
+      { method: "GET", path: "/api/v1/analytics", desc: "סטטיסטיקות וניתוח נתונים" },
+    ]
+  },
+  {
+    category: "Webhooks",
+    icon: ZapIcon,
+    color: "bg-yellow-500",
+    items: [
+      { method: "GET", path: "/api/v1/webhooks", desc: "רשימת וובהוקים" },
+      { method: "POST", path: "/api/v1/webhooks", desc: "יצירת וובהוק" },
+      { method: "GET", path: "/api/v1/webhooks/{id}", desc: "פרטי וובהוק" },
+      { method: "PATCH", path: "/api/v1/webhooks/{id}", desc: "עדכון וובהוק" },
+      { method: "DELETE", path: "/api/v1/webhooks/{id}", desc: "מחיקת וובהוק" },
+    ]
+  },
 ]
 
 const scopes = [
   { scope: "orders:read", desc: "צפייה בהזמנות", active: true },
   { scope: "orders:write", desc: "עדכון הזמנות", active: true },
-  { scope: "products:read", desc: "צפייה במוצרים", active: true },
-  { scope: "products:write", desc: "עריכת מוצרים", active: true },
+  { scope: "products:read", desc: "צפייה במוצרים וקטגוריות", active: true },
+  { scope: "products:write", desc: "עריכת מוצרים וקטגוריות", active: true },
   { scope: "customers:read", desc: "צפייה בלקוחות", active: true },
   { scope: "inventory:read", desc: "צפייה במלאי", active: true },
   { scope: "inventory:write", desc: "עדכון מלאי", active: true },
-  // Future scopes - no public endpoints yet
-  { scope: "discounts:read", desc: "צפייה בהנחות וקופונים", active: false },
-  { scope: "discounts:write", desc: "ניהול הנחות וקופונים", active: false },
-  { scope: "analytics:read", desc: "צפייה באנליטיקס", active: false },
-  { scope: "webhooks:read", desc: "צפייה בוובהוקים", active: false },
-  { scope: "webhooks:write", desc: "ניהול וובהוקים", active: false },
+  { scope: "discounts:read", desc: "צפייה בהנחות וקופונים", active: true },
+  { scope: "discounts:write", desc: "ניהול הנחות וקופונים", active: true },
+  { scope: "analytics:read", desc: "צפייה באנליטיקס", active: true },
+  { scope: "webhooks:read", desc: "צפייה בוובהוקים", active: true },
+  { scope: "webhooks:write", desc: "ניהול וובהוקים", active: true },
 ]
 
 const errorCodes = [

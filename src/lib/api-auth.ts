@@ -305,10 +305,10 @@ export function apiError(
 /**
  * Standard API success response
  */
-export function apiSuccess<T>(data: T, meta?: Record<string, unknown>): NextResponse {
+export function apiSuccess<T>(data: T, meta?: Record<string, unknown>, status: number = 200): NextResponse {
   return NextResponse.json({
     data,
     meta,
-  });
+  }, { status });
 }
 
