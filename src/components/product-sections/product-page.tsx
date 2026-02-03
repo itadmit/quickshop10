@@ -467,10 +467,10 @@ export function ProductPage({
                 }
               }
             `}} />
-            <p 
+            <div 
               id={shortDescStyleId}
               key={section.id}
-              className="mb-6"
+              className="mb-6 prose prose-sm max-w-none"
               style={{
                 color: shortDescColor,
                 fontWeight: shortDescFontWeight,
@@ -478,9 +478,8 @@ export function ProductPage({
               data-section-id={section.id}
               data-section-type={section.type}
               data-section-name="תיאור קצר"
-            >
-              {product.shortDescription}
-            </p>
+              dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.shortDescription) }}
+            />
           </React.Fragment>
         );
         
@@ -1208,7 +1207,10 @@ export function ProductPage({
 
                   {/* Short Description */}
                   {product.shortDescription && (
-                    <p className="text-gray-600 mb-6">{product.shortDescription}</p>
+                    <div 
+                      className="text-gray-600 mb-6 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.shortDescription) }}
+                    />
                   )}
 
                   {/* Inventory Display */}

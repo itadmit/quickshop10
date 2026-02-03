@@ -815,9 +815,10 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
 
                   {/* Short Description */}
                   {product.shortDescription && (
-                    <p className="text-gray-500 mb-6">
-                      {decodeHtmlEntities(product.shortDescription)}
-                    </p>
+                    <div 
+                      className="text-gray-500 mb-6 prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: decodeHtmlEntities(product.shortDescription) }}
+                    />
                   )}
 
                   {/* Variants or Simple Add to Cart */}
