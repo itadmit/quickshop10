@@ -137,6 +137,58 @@ export function decodeHtmlEntities(text: string | null | undefined): string {
   // Also convert actual newlines to <br> tags for consistency
   result = result.replace(/\n/g, '<br>');
   
+  // Convert [embed]YouTube URL[/embed] to responsive iframe
+  result = convertYouTubeEmbeds(result);
+  
   return result;
 }
 
+/**
+ * המרת [embed]YouTube URL[/embed] ל-iframe רספונסיבי
+ * תומך בפורמטים:
+ * - https://www.youtube.com/watch?v=VIDEO_ID
+ * - https://youtu.be/VIDEO_ID
+ * - https://www.youtube.com/shorts/VIDEO_ID
+ * - https://www.youtube.com/embed/VIDEO_ID
+ */
+function convertYouTubeEmbeds(text: string): string {
+  // Pattern to match [embed]URL[/embed]
+  const embedPattern = /\[embed\](.*?)\[\/embed\]/gi;
+  
+  return text.replace(embedPattern, (match, url) => {
+    const videoId = extractYouTubeVideoId(url.trim());
+    
+    if (!videoId) {
+      // If not a valid YouTube URL, return original text without the tags
+      return url.trim();
+    }
+    
+    // Return responsive YouTube iframe
+    return '<div class="youtube-embed-container" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; margin: 1rem 0;"><iframe src="https://www.youtube.com/embed/' + videoId + '" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy" title="YouTube video"></iframe></div>';
+  });
+}
+
+/**
+ * חילוץ Video ID מ-YouTube URL
+ */
+function extractYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+  
+  // YouTube Shorts: https://www.youtube.com/shorts/VIDEO_ID
+  const shortsMatch = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
+  if (shortsMatch) return shortsMatch[1];
+  
+  // Standard YouTube: https://www.youtube.com/watch?v=VIDEO_ID
+  const watchMatch = url.match(/youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/);
+  if (watchMatch) return watchMatch[1];
+  
+  // Short URL: https://youtu.be/VIDEO_ID
+  const shortMatch = url.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+  if (shortMatch) return shortMatch[1];
+  
+  // Already embed URL: https://www.youtube.com/embed/VIDEO_ID
+  const embedMatch = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/);
+  if (embedMatch) return embedMatch[1];
+  
+  return null;
+}
