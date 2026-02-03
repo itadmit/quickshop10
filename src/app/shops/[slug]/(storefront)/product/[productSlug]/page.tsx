@@ -644,7 +644,12 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   };
   
   const pageContent = (
-    <div className="min-h-screen bg-white">
+    <div 
+      className="min-h-screen bg-white"
+      data-product-categories={productCategoryIds.join(',')}
+      data-product-category-slugs={categories.filter(c => productCategoryIds.includes(c.id)).map(c => c.slug).join(',')}
+      data-product-category-names={categories.filter(c => productCategoryIds.includes(c.id)).map(c => c.name).join(',')}
+    >
       {/* Responsive typography CSS for mobile (Server-side, zero JS) */}
       {responsiveCSS && <style dangerouslySetInnerHTML={{ __html: responsiveCSS }} />}
       

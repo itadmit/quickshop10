@@ -1,8 +1,6 @@
 import { getStoreBySlug } from '@/lib/db/queries';
 import { notFound } from 'next/navigation';
 import { CustomCodeEditor } from './custom-code-editor';
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 // ============================================
 // Custom Code Page - Server Component
@@ -31,26 +29,8 @@ export default async function CustomCodePage({ params }: CustomCodePageProps) {
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col bg-[#1e1e1e]">
-      {/* Header */}
-      <div className="bg-[#252526] border-b border-[#3c3c3c] px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link 
-            href={`/shops/${slug}/admin/design`}
-            className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-          >
-            <ArrowRight className="w-4 h-4" />
-            <span className="text-sm">חזרה לעיצוב</span>
-          </Link>
-          <div className="w-px h-5 bg-[#3c3c3c]" />
-          <h1 className="text-white font-medium">קוד מותאם</h1>
-        </div>
-        <div className="flex items-center gap-3 text-xs text-gray-500">
-          <span>הקוד מתווסף לכל דפי החנות</span>
-        </div>
-      </div>
-
-      {/* Editor */}
+    // Negative margins to override admin layout padding for full-width experience
+    <div className="-mx-4 sm:-mx-6 lg:-mx-8 -my-4 sm:-my-6 lg:-my-8 h-[calc(100vh-56px)] flex flex-col">
       <CustomCodeEditor 
         storeId={store.id}
         storeSlug={slug}
@@ -59,4 +39,3 @@ export default async function CustomCodePage({ params }: CustomCodePageProps) {
     </div>
   );
 }
-
