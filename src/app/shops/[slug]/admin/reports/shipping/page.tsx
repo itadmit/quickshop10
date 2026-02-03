@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { getStoreBySlug } from '@/lib/db/queries';
 import { getShippingStats } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 
 // Format helpers
 function formatCurrency(value: number) {
@@ -86,27 +87,47 @@ async function ShippingContent({
   return (
     <>
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">סה״כ הזמנות</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatNumber(stats.totalOrders)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">משלוחים בתשלום</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatNumber(stats.paidShippingOrders)}</p>
-          <p className="text-xs text-gray-400 mt-1">{formatCurrency(stats.totalPaidShipping)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">משלוחים חינם</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1 text-green-600">{formatNumber(stats.freeShippingOrders)}</p>
-          <p className="text-xs text-gray-400 mt-1">{formatPercent(stats.freeShippingPercentage)} מההזמנות</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">ממוצע עלות משלוח</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatCurrency(stats.averageShipping)}</p>
-          <p className="text-xs text-gray-400 mt-1">לא כולל משלוח חינם</p>
-        </div>
-      </div>
+      <StatCardGrid columns={4} className="mb-6">
+        <StatCard
+          label="סה״כ הזמנות"
+          value={formatNumber(stats.totalOrders)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="משלוחים בתשלום"
+          value={formatNumber(stats.paidShippingOrders)}
+          subtitle={formatCurrency(stats.totalPaidShipping)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="משלוחים חינם"
+          value={formatNumber(stats.freeShippingOrders)}
+          subtitle={`${formatPercent(stats.freeShippingPercentage)} מההזמנות`}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="ממוצע עלות משלוח"
+          value={formatCurrency(stats.averageShipping)}
+          subtitle="לא כולל משלוח חינם"
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+      </StatCardGrid>
 
       {/* Summary Cards */}
       <div className="grid lg:grid-cols-2 gap-6 mb-6">

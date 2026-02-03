@@ -12,6 +12,7 @@ import {
   getStoreCreditDetails
 } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 import {
   GiftIcon,
   CreditCardIcon,
@@ -56,25 +57,26 @@ function GiftCardsStats({
   stats: { totalIssued: number; totalValue: number; activeCards: number; activeBalance: number; usedValue: number } 
 }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      <div className="bg-white border border-gray-200 p-4">
-        <p className="text-sm text-gray-500">סה״כ הונפקו</p>
-        <p className="text-2xl font-medium mt-1">{formatNumber(stats.totalIssued)}</p>
-        <p className="text-xs text-gray-400 mt-1">{formatCurrency(stats.totalValue)}</p>
-      </div>
-      <div className="bg-white border border-gray-200 p-4">
-        <p className="text-sm text-gray-500">כרטיסים פעילים</p>
-        <p className="text-2xl font-medium mt-1 text-green-600">{formatNumber(stats.activeCards)}</p>
-        <p className="text-xs text-gray-400 mt-1">יתרה: {formatCurrency(stats.activeBalance)}</p>
-      </div>
-      <div className="bg-white border border-gray-200 p-4">
-        <p className="text-sm text-gray-500">שווי מומש</p>
-        <p className="text-2xl font-medium mt-1">{formatCurrency(stats.usedValue)}</p>
-        <p className="text-xs text-gray-400 mt-1">
-          {stats.totalValue > 0 ? formatPercent((stats.usedValue / stats.totalValue) * 100) : '0%'} מהסה״כ
-        </p>
-      </div>
-    </div>
+    <StatCardGrid columns={3}>
+      <StatCard
+        label="סה״כ הונפקו"
+        value={formatNumber(stats.totalIssued)}
+        subtitle={formatCurrency(stats.totalValue)}
+        icon={<GiftIcon size={20} />}
+      />
+      <StatCard
+        label="כרטיסים פעילים"
+        value={formatNumber(stats.activeCards)}
+        subtitle={`יתרה: ${formatCurrency(stats.activeBalance)}`}
+        icon={<CreditCardIcon size={20} />}
+      />
+      <StatCard
+        label="שווי מומש"
+        value={formatCurrency(stats.usedValue)}
+        subtitle={`${stats.totalValue > 0 ? formatPercent((stats.usedValue / stats.totalValue) * 100) : '0%'} מהסה״כ`}
+        icon={<ReceiptRefundIcon size={20} />}
+      />
+    </StatCardGrid>
   );
 }
 

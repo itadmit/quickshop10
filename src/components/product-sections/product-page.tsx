@@ -904,6 +904,7 @@ export function ProductPage({
       case 'accordion':
       case 'tabs':
       case 'text_block':
+      case 'image_text':
       case 'divider':
       case 'spacer':
         return (

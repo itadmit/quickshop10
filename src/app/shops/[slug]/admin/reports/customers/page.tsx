@@ -8,6 +8,7 @@ import {
   getSalesOverview 
 } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 import {
   StarIcon,
   RefreshCwIcon,
@@ -303,26 +304,46 @@ async function CustomersContent({
   return (
     <>
       {/* Overview Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">סה״כ לקוחות</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(overview.totalCustomers)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">לקוחות חדשים</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(overview.newCustomers)}</p>
-          <p className="text-xs text-gray-400 mt-1">בתקופה הנבחרת</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">חברי מועדון</p>
-          <p className="text-2xl font-medium mt-1">{formatNumber(overview.clubMembers)}</p>
-          <p className="text-xs text-gray-400 mt-1">נרשמו לאזור אישי</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-6">
-          <p className="text-sm text-gray-500">ממוצע להזמנה</p>
-          <p className="text-2xl font-medium mt-1">{formatCurrency(overview.averageOrderValue)}</p>
-        </div>
-      </div>
+      <StatCardGrid columns={4} className="mb-8">
+        <StatCard
+          label="סה״כ לקוחות"
+          value={formatNumber(overview.totalCustomers)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="לקוחות חדשים"
+          value={formatNumber(overview.newCustomers)}
+          subtitle="בתקופה הנבחרת"
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="חברי מועדון"
+          value={formatNumber(overview.clubMembers)}
+          subtitle="נרשמו לאזור אישי"
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="ממוצע להזמנה"
+          value={formatCurrency(overview.averageOrderValue)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+      </StatCardGrid>
 
       {/* Segments */}
       <div className="mb-8">

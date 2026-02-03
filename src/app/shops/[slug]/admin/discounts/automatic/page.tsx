@@ -130,11 +130,23 @@ export default async function AutoDiscountsPage({ params, searchParams }: AutoDi
         <StatCard
           label="לא פעילות"
           value={inactiveDiscounts.length}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+            </svg>
+          }
         />
         <StatCard
           label="פגי תוקף"
           value={expiredDiscounts.length}
           alert={expiredDiscounts.length > 0}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          }
         />
       </StatCardGrid>
 

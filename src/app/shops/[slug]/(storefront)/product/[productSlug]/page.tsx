@@ -145,7 +145,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   
   // Define flexible types that can be in either info or content zone
   const flexibleTypes = ['accordion', 'tabs'];
-  const contentOnlyTypes = ['text_block', 'features', 'divider', 'spacer'];
+  const contentOnlyTypes = ['text_block', 'features', 'image_text', 'divider', 'spacer'];
   
   // Filter V2 sections by zone for rendering in appropriate locations
   // Info zone sections (accordion/tabs with zone='info') - render inside product info column

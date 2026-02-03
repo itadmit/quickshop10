@@ -11,6 +11,7 @@ import {
   getDetailedProductsReport
 } from '@/lib/actions/reports';
 import { ReportHeader, getReportPeriodParams } from '@/components/admin/report-header';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 
 // Format helpers
 function formatCurrency(value: number) {
@@ -456,24 +457,44 @@ async function SalesContent({
   return (
     <>
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">סה״כ הכנסות</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatCurrency(overview.totalRevenue)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">הזמנות</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatNumber(overview.totalOrders)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">ממוצע להזמנה</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatCurrency(overview.averageOrderValue)}</p>
-        </div>
-        <div className="bg-white border border-gray-200 p-4 sm:p-6">
-          <p className="text-sm text-gray-500">לקוחות חדשים</p>
-          <p className="text-xl sm:text-2xl font-medium mt-1">{formatNumber(overview.newCustomers)}</p>
-        </div>
-      </div>
+      <StatCardGrid columns={4} className="mb-6">
+        <StatCard
+          label="סה״כ הכנסות"
+          value={formatCurrency(overview.totalRevenue)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="הזמנות"
+          value={formatNumber(overview.totalOrders)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="ממוצע להזמנה"
+          value={formatCurrency(overview.averageOrderValue)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          }
+        />
+        <StatCard
+          label="לקוחות חדשים"
+          value={formatNumber(overview.newCustomers)}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          }
+        />
+      </StatCardGrid>
 
       {/* Sales Chart */}
       <div className="bg-white border border-gray-200 p-4 sm:p-6 mb-6">

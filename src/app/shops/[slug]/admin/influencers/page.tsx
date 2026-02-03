@@ -8,7 +8,9 @@ import { CopyLoginLinkButton } from './copy-login-link-button';
 import { DateRangePicker } from '@/components/admin/date-range-picker';
 import { parseDateRange } from '@/components/admin/report-header';
 import { InfluencersDataTable } from './influencers-data-table';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 import type { Tab } from '@/components/admin/ui';
+import { Users, TrendingUp, ShoppingCart, Coins } from 'lucide-react';
 
 interface InfluencersPageProps {
   params: Promise<{ slug: string }>;
@@ -158,32 +160,32 @@ export default async function InfluencersPage({ params, searchParams }: Influenc
       </div>
 
       {/* Period Stats - filtered by date range */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">סה"כ משפיענים</p>
-          <p className="text-2xl font-bold text-gray-900">{storeInfluencers.length}</p>
-          <p className="text-xs text-gray-400 mt-1">{activeCount} פעילים</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">מכירות בתקופה</p>
-          <p className="text-2xl font-bold text-gray-900">
-            {formatCurrency(periodTotalSales)}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">{periodLabel}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">הזמנות בתקופה</p>
-          <p className="text-2xl font-bold text-blue-600">{periodTotalOrders}</p>
-          <p className="text-xs text-gray-400 mt-1">{periodLabel}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-5">
-          <p className="text-sm text-gray-500 mb-1">עמלות בתקופה</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {formatCurrency(periodTotalCommission)}
-          </p>
-          <p className="text-xs text-gray-400 mt-1">{periodLabel}</p>
-        </div>
-      </div>
+      <StatCardGrid columns={4}>
+        <StatCard
+          label="סה״כ משפיענים"
+          value={storeInfluencers.length}
+          subtitle={`${activeCount} פעילים`}
+          icon={<Users className="w-5 h-5" />}
+        />
+        <StatCard
+          label="מכירות בתקופה"
+          value={formatCurrency(periodTotalSales)}
+          subtitle={periodLabel}
+          icon={<TrendingUp className="w-5 h-5" />}
+        />
+        <StatCard
+          label="הזמנות בתקופה"
+          value={periodTotalOrders}
+          subtitle={periodLabel}
+          icon={<ShoppingCart className="w-5 h-5" />}
+        />
+        <StatCard
+          label="עמלות בתקופה"
+          value={formatCurrency(periodTotalCommission)}
+          subtitle={periodLabel}
+          icon={<Coins className="w-5 h-5" />}
+        />
+      </StatCardGrid>
 
       {/* Influencers Table with Search */}
       <InfluencersDataTable

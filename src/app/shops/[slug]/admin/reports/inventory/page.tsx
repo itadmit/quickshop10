@@ -7,6 +7,7 @@ import {
   getLowStockProducts
 } from '@/lib/actions/reports';
 import { ReportHeader } from '@/components/admin/report-header';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -38,28 +39,39 @@ function InventoryStatsCards({
   stats: { totalProducts: number; totalInventory: number; lowStock: number; outOfStock: number; tracked: number } 
 }) {
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <div className="bg-white border border-gray-200 p-6">
-        <p className="text-sm text-gray-500">סה״כ מוצרים</p>
-        <p className="text-2xl font-medium mt-1">{formatNumber(stats.totalProducts)}</p>
-      </div>
-      <div className="bg-white border border-gray-200 p-6">
-        <p className="text-sm text-gray-500">יחידות במלאי</p>
-        <p className="text-2xl font-medium mt-1">{formatNumber(stats.totalInventory)}</p>
-      </div>
-      <div className="bg-white border border-gray-200 p-6">
-        <p className="text-sm text-gray-500">עוקבים מלאי</p>
-        <p className="text-2xl font-medium mt-1">{formatNumber(stats.tracked)}</p>
-      </div>
-      <div className="bg-white border border-amber-200 p-6">
-        <p className="text-sm text-amber-600">מלאי נמוך</p>
-        <p className="text-2xl font-medium mt-1 text-amber-600">{formatNumber(stats.lowStock)}</p>
-      </div>
-      <div className="bg-white border border-red-200 p-6">
-        <p className="text-sm text-red-600">אזל מהמלאי</p>
-        <p className="text-2xl font-medium mt-1 text-red-600">{formatNumber(stats.outOfStock)}</p>
-      </div>
-    </div>
+    <StatCardGrid columns={4}>
+      <StatCard
+        label="סה״כ מוצרים"
+        value={formatNumber(stats.totalProducts)}
+        icon={
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          </svg>
+        }
+      />
+      <StatCard
+        label="יחידות במלאי"
+        value={formatNumber(stats.totalInventory)}
+        subtitle={`${formatNumber(stats.tracked)} עוקבים`}
+        icon={
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+        }
+      />
+      <StatCard
+        label="מלאי נמוך"
+        value={formatNumber(stats.lowStock)}
+        alert={stats.lowStock > 0}
+        icon={<AlertTriangleIcon size={20} />}
+      />
+      <StatCard
+        label="אזל מהמלאי"
+        value={formatNumber(stats.outOfStock)}
+        alert={stats.outOfStock > 0}
+        icon={<XCircleIcon size={20} />}
+      />
+    </StatCardGrid>
   );
 }
 

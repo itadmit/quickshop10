@@ -170,6 +170,8 @@ interface SectionSettingsProps {
   storeInfo?: StoreInfo;
   // Metafields for dynamic source picker
   metafields?: MetafieldForPicker[];
+  // Current page being edited (home, product, category)
+  currentPage?: string;
 }
 
 // Helper functions for typography settings conversion
@@ -196,7 +198,7 @@ function mapWeight(weight: unknown, defaultWeight: 'light' | 'normal' | 'medium'
   return defaultWeight;
 }
 
-export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [], storeInfo, metafields = [] }: SectionSettingsProps) {
+export function SectionSettings({ section, onUpdate, onRemove, themeSettings, onThemeSettingsChange, categories = [], storeInfo, metafields = [], currentPage = 'home' }: SectionSettingsProps) {
   const [activeTab, setActiveTab] = useState<'content' | 'design'>('content');
   const settings = themeSettings || {};
   const updateSettings = onThemeSettingsChange || (() => {});
@@ -739,9 +741,18 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
 
   // Handle NEW product page sections V2 (product_* prefix and content sections)
   // NOTE: image_text is handled separately in the regular section settings (has ImageTextContentSettings)
-  // NOTE: features is handled in regular section settings for home page (has FeaturesContentSettings with title support)
+  // NOTE: features is handled in ProductPageSectionSettingsV2 on product page (saves to section.content.items)
+  //       but in regular section settings for home page (has FeaturesContentSettings with title support, saves to section.content.features)
   // NOTE: text_block is handled in regular section settings (has TextBlockContentSettings)
-  if (section.type.startsWith('product_') || ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video'].includes(section.type)) {
+  const isProductPage = currentPage === 'product';
+  const productPageV2SectionTypes = ['accordion', 'tabs', 'breadcrumb', 'divider', 'spacer', 'video'];
+  // On product page, also route content sections to V2 settings for consistency
+  if (isProductPage) {
+    productPageV2SectionTypes.push('features');    // uses section.content.items format
+    productPageV2SectionTypes.push('text_block');  // uses section.content.text format
+    productPageV2SectionTypes.push('image_text');  // uses section.content format
+  }
+  if (section.type.startsWith('product_') || productPageV2SectionTypes.includes(section.type)) {
     return (
       <ProductPageSectionSettingsV2 
         section={section}
@@ -7667,6 +7678,93 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
               onChange={(v) => updateContent({ textAlign: v })}
             />
           </SettingsGroup>
+        )}
+
+        {/* Image + Text Settings */}
+        {section.type === 'image_text' && (
+          <>
+            <SettingsGroup title="תמונה">
+              <TextField
+                label="קישור תמונה"
+                value={(section.content.imageUrl as string) || ''}
+                onChange={(v) => updateContent({ imageUrl: v })}
+                placeholder="הזן URL של תמונה או השתמש ב-{{product.image}}"
+              />
+              
+              <SelectField
+                label="מיקום תמונה"
+                value={(section.settings.imagePosition as string) || 'right'}
+                options={[
+                  { value: 'right', label: 'ימין' },
+                  { value: 'left', label: 'שמאל' },
+                ]}
+                onChange={(v) => updateSettings({ imagePosition: v })}
+              />
+              
+              <SelectField
+                label="רוחב תמונה"
+                value={(section.settings.imageWidth as string) || '50%'}
+                options={[
+                  { value: '40%', label: '40%' },
+                  { value: '50%', label: '50%' },
+                  { value: '60%', label: '60%' },
+                ]}
+                onChange={(v) => updateSettings({ imageWidth: v })}
+              />
+              
+              <SelectField
+                label="יישור אנכי"
+                value={(section.settings.verticalAlignment as string) || 'center'}
+                options={[
+                  { value: 'top', label: 'למעלה' },
+                  { value: 'center', label: 'מרכז' },
+                  { value: 'bottom', label: 'למטה' },
+                ]}
+                onChange={(v) => updateSettings({ verticalAlignment: v })}
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="תוכן">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-gray-500">
+                  ניתן להשתמש בתוכן דינמי
+                </p>
+                <DynamicSourceButton 
+                  onSelect={(v) => updateContent({ text: ((section.content.text as string) || '') + `{{${v.path}}}` })}
+                  categories={['product', 'store', 'custom']}
+                  metafields={metafields}
+                />
+              </div>
+              <textarea
+                value={(section.content.text as string) || ''}
+                onChange={(e) => updateContent({ text: e.target.value })}
+                className="w-full h-32 text-sm resize-none border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="הזן טקסט כאן..."
+              />
+              
+              <TextField
+                label="טקסט כפתור (אופציונלי)"
+                value={(section.content.buttonText as string) || ''}
+                onChange={(v) => updateContent({ buttonText: v })}
+                placeholder="למידע נוסף"
+              />
+              
+              <TextField
+                label="קישור כפתור"
+                value={(section.content.buttonLink as string) || ''}
+                onChange={(v) => updateContent({ buttonLink: v })}
+                placeholder="/category/..."
+              />
+            </SettingsGroup>
+            
+            <SettingsGroup title="עיצוב">
+              <ColorField
+                label="צבע רקע"
+                value={(section.settings.backgroundColor as string) || ''}
+                onChange={(v) => updateSettings({ backgroundColor: v })}
+              />
+            </SettingsGroup>
+          </>
         )}
         
         {/* 🆕 Section Spacing Settings - For ALL sections */}

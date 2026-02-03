@@ -113,13 +113,13 @@ function PopupRow({ popup, storeId }: { popup: Popup; storeId: string }) {
           <button
             onClick={handleToggle}
             disabled={isPending}
-            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-              popup.isActive ? 'bg-green-600' : 'bg-gray-300'
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+              popup.isActive ? 'bg-green-600' : 'bg-gray-200'
             }`}
           >
             <span
-              className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
-                popup.isActive ? 'translate-x-1' : 'translate-x-5'
+              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ${
+                popup.isActive ? 'translate-x-[22px] rtl:-translate-x-[2px]' : 'translate-x-[2px] rtl:-translate-x-[22px]'
               }`}
             />
           </button>
@@ -130,7 +130,7 @@ function PopupRow({ popup, storeId }: { popup: Popup; storeId: string }) {
             <button
               onClick={handleDuplicate}
               disabled={isPending}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
               title="שכפל"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -140,7 +140,7 @@ function PopupRow({ popup, storeId }: { popup: Popup; storeId: string }) {
             <button
               onClick={() => setShowDeleteConfirm(true)}
               disabled={isPending}
-              className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-red-600 transition-colors"
               title="מחק"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

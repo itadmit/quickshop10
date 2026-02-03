@@ -15,6 +15,7 @@ import { loyaltyPrograms, loyaltyTiers, loyaltyMembers } from '@/lib/db/schema-l
 import { eq, asc, sql, count } from 'drizzle-orm';
 import { getLoyaltyStats, createLoyaltyProgram } from '@/lib/actions/loyalty';
 import { PageHeader } from '@/components/admin/ui/page-header';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 import { LoyaltySettingsForm } from './settings-form';
 import { LoyaltyTiersList } from './tiers-list';
 import { LoyaltyStatsCards } from './stats-cards';
@@ -117,32 +118,28 @@ export default async function LoyaltyAdminPage({ params }: Props) {
       />
       
       {/* Stats Cards - Server Component */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <StatCardGrid columns={4}>
         <StatCard
-          title="חברי מועדון"
+          label="חברי מועדון"
           value={stats?.totalMembers || 0}
           icon={<Users className="w-5 h-5" />}
-          color="blue"
         />
         <StatCard
-          title="נקודות פעילות"
+          label="נקודות פעילות"
           value={formatNumber(Number(stats?.totalPointsActive || 0))}
           icon={<Star className="w-5 h-5" />}
-          color="yellow"
         />
         <StatCard
-          title="נקודות שנצברו"
+          label="נקודות שנצברו"
           value={formatNumber(Number(stats?.totalPointsEarned || 0))}
           icon={<Coins className="w-5 h-5" />}
-          color="green"
         />
         <StatCard
-          title="נקודות שנפדו"
+          label="נקודות שנפדו"
           value={formatNumber(Number(stats?.totalPointsRedeemed || 0))}
           icon={<Gift className="w-5 h-5" />}
-          color="purple"
         />
-      </div>
+      </StatCardGrid>
       
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -215,35 +212,6 @@ export default async function LoyaltyAdminPage({ params }: Props) {
 }
 
 // ============ Helper Components ============
-
-function StatCard({ 
-  title, 
-  value, 
-  icon, 
-  color 
-}: { 
-  title: string; 
-  value: string | number; 
-  icon: React.ReactNode;
-  color: 'blue' | 'green' | 'yellow' | 'purple';
-}) {
-  const colors = {
-    blue: 'bg-blue-50 text-blue-600 border-blue-100',
-    green: 'bg-green-50 text-green-600 border-green-100',
-    yellow: 'bg-amber-50 text-amber-600 border-amber-100',
-    purple: 'bg-purple-50 text-purple-600 border-purple-100',
-  };
-  
-  return (
-    <div className={`rounded-xl border p-4 ${colors[color]}`}>
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium opacity-80">{title}</span>
-        {icon}
-      </div>
-      <p className="text-2xl font-bold">{value}</p>
-    </div>
-  );
-}
 
 function formatNumber(num: number): string {
   if (num >= 1000000) {

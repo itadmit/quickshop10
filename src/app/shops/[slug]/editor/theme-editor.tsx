@@ -1478,6 +1478,7 @@ export function ThemeEditor({
               categories={categories}
               storeInfo={storeInfo}
               metafields={metafields}
+              currentPage={currentPage}
             />
           ) : (
             <div className="p-6 text-center text-gray-400" dir="rtl">

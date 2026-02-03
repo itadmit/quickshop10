@@ -9,6 +9,7 @@ interface StatCardProps {
   label: string;
   value: string | number;
   subLabel?: string;
+  subtitle?: string;  // Alias for subLabel
   href?: string;
   /** האם להציג כהתראה */
   alert?: boolean;
@@ -18,11 +19,14 @@ interface StatCardProps {
 export function StatCard({ 
   label, 
   value, 
-  subLabel, 
+  subLabel,
+  subtitle, 
   href,
   alert,
   icon,
 }: StatCardProps) {
+  const displaySubLabel = subLabel || subtitle;
+  
   const content = (
     <>
       <div className="flex items-center justify-between mb-2 sm:mb-3">
@@ -37,8 +41,8 @@ export function StatCard({
         <span className={`text-xl sm:text-2xl font-semibold ${alert ? 'text-amber-600' : 'text-gray-900'}`}>
           {value}
         </span>
-        {subLabel && (
-          <span className="text-xs sm:text-sm text-gray-500">{subLabel}</span>
+        {displaySubLabel && (
+          <span className="text-xs sm:text-sm text-gray-500">{displaySubLabel}</span>
         )}
       </div>
       {href && (
@@ -78,9 +82,10 @@ export function StatCard({
 interface StatCardGridProps {
   children: React.ReactNode;
   columns?: 2 | 3 | 4;
+  className?: string;
 }
 
-export function StatCardGrid({ children, columns = 4 }: StatCardGridProps) {
+export function StatCardGrid({ children, columns = 4, className = '' }: StatCardGridProps) {
   const gridCols = {
     2: 'grid-cols-2',
     3: 'grid-cols-2 lg:grid-cols-3',
@@ -88,7 +93,7 @@ export function StatCardGrid({ children, columns = 4 }: StatCardGridProps) {
   };
 
   return (
-    <div className={`grid ${gridCols[columns]} gap-3 sm:gap-4`}>
+    <div className={`grid ${gridCols[columns]} gap-3 sm:gap-4 ${className}`}>
       {children}
     </div>
   );

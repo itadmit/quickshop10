@@ -13,6 +13,7 @@ import { orders, stores } from '@/lib/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { RealtimeRefresh } from './realtime-client';
 import Link from 'next/link';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -273,16 +274,27 @@ export default async function RealtimeAnalyticsPage({ params }: PageProps) {
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="text-sm text-gray-500 mb-1">צפיות בדפים היום</div>
-              <div className="text-3xl font-bold text-gray-900">{data.live.todayPageViews.toLocaleString('he-IL')}</div>
-            </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="text-sm text-gray-500 mb-1">הזמנות היום</div>
-              <div className="text-3xl font-bold text-gray-900">{data.sales.todayOrders}</div>
-            </div>
-          </div>
+          <StatCardGrid columns={2}>
+            <StatCard 
+              label="צפיות בדפים היום" 
+              value={data.live.todayPageViews.toLocaleString('he-IL')}
+              icon={
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+              }
+            />
+            <StatCard 
+              label="הזמנות היום" 
+              value={data.sales.todayOrders}
+              icon={
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              }
+            />
+          </StatCardGrid>
 
           {/* Recent Orders */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">

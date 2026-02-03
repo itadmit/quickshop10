@@ -119,7 +119,7 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
       ) : (
         <button
           onClick={() => setIsOpen(true)}
-          className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
           title="ערוך"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -370,6 +370,24 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                             />
                           </div>
+                          
+                          {/* Loyalty Club Integration */}
+                          <div className="p-4 bg-amber-50 rounded-lg border border-amber-100">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={content.addToLoyaltyClub || false}
+                                onChange={(e) => updateContent('addToLoyaltyClub', e.target.checked)}
+                                className="mt-0.5 w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                              />
+                              <div>
+                                <div className="font-medium text-amber-800">הוסף למועדון לקוחות</div>
+                                <div className="text-xs text-amber-600 mt-1">
+                                  הנרשמים יתווספו אוטומטית למועדון הלקוחות ויקבלו הטבות
+                                </div>
+                              </div>
+                            </label>
+                          </div>
                         </>
                       )}
 
@@ -486,6 +504,24 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
                                   placeholder="תודה! קוד ההנחה נשלח אליך למייל"
                                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-transparent"
                                 />
+                              </div>
+                              
+                              {/* Loyalty Club Integration */}
+                              <div className="p-3 bg-amber-50/50 rounded-lg border border-amber-100">
+                                <label className="flex items-start gap-3 cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={content.addToLoyaltyClub || false}
+                                    onChange={(e) => updateContent('addToLoyaltyClub', e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500"
+                                  />
+                                  <div>
+                                    <div className="font-medium text-amber-800 text-sm">הוסף למועדון לקוחות</div>
+                                    <div className="text-xs text-amber-600">
+                                      הנרשמים יצורפו אוטומטית למועדון
+                                    </div>
+                                  </div>
+                                </label>
                               </div>
                             </div>
                           </div>
@@ -645,13 +681,13 @@ export function PopupForm({ storeId, mode, popup }: PopupFormProps) {
                         <button
                           type="button"
                           onClick={() => setIsActive(!isActive)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            isActive ? 'bg-green-600' : 'bg-gray-300'
+                          className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+                            isActive ? 'bg-green-600' : 'bg-gray-200'
                           }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              isActive ? 'translate-x-1' : 'translate-x-6'
+                            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-1 ring-black/5 transition-transform duration-200 ${
+                              isActive ? 'translate-x-[22px] rtl:-translate-x-[2px]' : 'translate-x-[2px] rtl:-translate-x-[22px]'
                             }`}
                           />
                         </button>

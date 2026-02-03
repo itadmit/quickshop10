@@ -37,6 +37,8 @@ export function ProductSection({ section, context, children }: ProductSectionPro
       return <FeaturesSection section={section} context={context} />;
     case 'text_block':
       return <TextBlockSection section={section} context={context} />;
+    case 'image_text':
+      return <ImageTextSection section={section} context={context} />;
     case 'breadcrumb':
       return <BreadcrumbSection section={section} context={context} />;
     case 'divider':
@@ -250,6 +252,88 @@ function TextBlockSection({
         className="prose prose-sm max-w-none text-gray-600 leading-relaxed whitespace-pre-line"
         dangerouslySetInnerHTML={{ __html: resolvedText }}
       />
+    </div>
+  );
+}
+
+// ===========================================
+// Image + Text Section - Server Component
+// ===========================================
+
+function ImageTextSection({ 
+  section, 
+  context 
+}: { 
+  section: ProductPageSection; 
+  context: DynamicContentContext;
+}) {
+  const imageUrl = (section.content.imageUrl as string) || '';
+  const text = (section.content.text as string) || '';
+  const buttonText = (section.content.buttonText as string) || '';
+  const buttonLink = (section.content.buttonLink as string) || '';
+  
+  const imagePosition = (section.settings.imagePosition as string) || 'right';
+  const imageWidth = (section.settings.imageWidth as string) || '50%';
+  const verticalAlignment = (section.settings.verticalAlignment as string) || 'center';
+  const backgroundColor = (section.settings.backgroundColor as string) || '';
+  
+  const resolvedText = resolveDynamicContent(text, context);
+  
+  const alignClass = verticalAlignment === 'top' 
+    ? 'items-start' 
+    : verticalAlignment === 'bottom' 
+      ? 'items-end' 
+      : 'items-center';
+  
+  const flexDirection = imagePosition === 'left' ? 'md:flex-row-reverse' : 'md:flex-row';
+  
+  // Calculate text width based on image width
+  const textWidthMap: Record<string, string> = {
+    '40%': '60%',
+    '50%': '50%',
+    '60%': '40%',
+  };
+  const textWidth = textWidthMap[imageWidth] || '50%';
+
+  return (
+    <div 
+      className={`product-image-text my-8 flex flex-col ${flexDirection} gap-8 ${alignClass}`}
+      style={{ backgroundColor: backgroundColor || undefined }}
+      data-section-id={section.id}
+    >
+      {/* Image */}
+      {imageUrl && (
+        <div 
+          className="w-full md:flex-shrink-0"
+          style={{ width: '100%', maxWidth: imageWidth }}
+        >
+          <img 
+            src={imageUrl} 
+            alt="" 
+            className="w-full h-auto rounded-lg object-cover"
+          />
+        </div>
+      )}
+      
+      {/* Text Content */}
+      <div 
+        className="flex-1 w-full"
+        style={{ maxWidth: textWidth }}
+      >
+        <div 
+          className="prose prose-sm max-w-none text-gray-600 leading-relaxed"
+          dangerouslySetInnerHTML={{ __html: resolvedText }}
+        />
+        
+        {buttonText && buttonLink && (
+          <a 
+            href={buttonLink}
+            className="inline-block mt-4 px-6 py-2 bg-black text-white text-sm rounded-md hover:bg-gray-800 transition-colors"
+          >
+            {buttonText}
+          </a>
+        )}
+      </div>
     </div>
   );
 }

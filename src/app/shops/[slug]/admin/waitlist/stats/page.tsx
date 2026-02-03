@@ -2,7 +2,7 @@ import { db } from '@/lib/db';
 import { productWaitlist, products, productVariants, stores, productImages } from '@/lib/db/schema';
 import { eq, and, desc, count, isNull } from 'drizzle-orm';
 import { notFound } from 'next/navigation';
-import { PageHeader } from '@/components/admin/ui';
+import { PageHeader, StatCard, StatCardGrid } from '@/components/admin/ui';
 import { BarChart3, TrendingUp, Users, Bell, Package } from 'lucide-react';
 import Link from 'next/link';
 
@@ -75,43 +75,23 @@ export default async function WaitlistStatsPage({ params }: WaitlistStatsPagePro
       />
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-blue-100 rounded-full p-3">
-              <Users className="w-6 h-6 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">סה"כ ממתינים</p>
-              <p className="text-3xl font-bold text-gray-900">{totalStats.total}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-yellow-100 rounded-full p-3">
-              <Bell className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">ממתינים לעדכון</p>
-              <p className="text-3xl font-bold text-gray-900">{totalStats.pending}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center gap-4">
-            <div className="bg-green-100 rounded-full p-3">
-              <TrendingUp className="w-6 h-6 text-green-600" />
-            </div>
-            <div>
-              <p className="text-sm text-gray-600">עודכנו</p>
-              <p className="text-3xl font-bold text-gray-900">{totalStats.notified}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <StatCardGrid columns={3} className="mt-6">
+        <StatCard
+          label="סה״כ ממתינים"
+          value={totalStats.total}
+          icon={<Users className="w-5 h-5" />}
+        />
+        <StatCard
+          label="ממתינים לעדכון"
+          value={totalStats.pending}
+          icon={<Bell className="w-5 h-5" />}
+        />
+        <StatCard
+          label="עודכנו"
+          value={totalStats.notified}
+          icon={<TrendingUp className="w-5 h-5" />}
+        />
+      </StatCardGrid>
 
       {/* Top Products */}
       <div className="mt-8">

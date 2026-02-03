@@ -28,6 +28,9 @@ export interface PopupContent {
     required?: boolean;
   }>;
   successMessage?: string;
+  
+  // Loyalty club integration
+  addToLoyaltyClub?: boolean;
 }
 
 export interface PopupStyle {
@@ -242,6 +245,11 @@ export async function savePopupSubmission(
   metadata: { ipAddress?: string; userAgent?: string; pageUrl?: string; customerId?: string }
 ) {
   try {
+    // Get the popup to check if addToLoyaltyClub is enabled
+    const popup = await db.query.popups.findFirst({
+      where: eq(popups.id, popupId),
+    });
+
     await db.insert(popupSubmissions).values({
       popupId,
       storeId,
@@ -255,10 +263,60 @@ export async function savePopupSubmission(
     // Increment conversions count
     await incrementPopupStats(popupId, 'conversions');
 
+    // If addToLoyaltyClub is enabled, add contact to loyalty club
+    const content = popup?.content as PopupContent | undefined;
+    if (content?.addToLoyaltyClub && formData.email) {
+      await addContactToLoyaltyClub(storeId, formData);
+    }
+
     return { success: true };
   } catch (error) {
     console.error('Failed to save popup submission:', error);
     return { success: false, error: 'Failed to save submission' };
+  }
+}
+
+/**
+ * הוספת איש קשר למועדון לקוחות
+ */
+async function addContactToLoyaltyClub(storeId: string, formData: Record<string, string>) {
+  try {
+    const { contacts } = await import('@/lib/db/schema');
+    
+    // Check if contact already exists
+    const existingContact = await db.query.contacts.findFirst({
+      where: and(
+        eq(contacts.storeId, storeId),
+        eq(contacts.email, formData.email.toLowerCase())
+      ),
+    });
+
+    if (existingContact) {
+      // Update existing contact to club_member if not already
+      if (existingContact.type !== 'club_member') {
+        await db.update(contacts)
+          .set({ 
+            type: 'club_member',
+            firstName: formData.firstName || formData.name || existingContact.firstName,
+            phone: formData.phone || existingContact.phone,
+            updatedAt: new Date(),
+          })
+          .where(eq(contacts.id, existingContact.id));
+      }
+    } else {
+      // Create new club_member contact
+      await db.insert(contacts).values({
+        storeId,
+        email: formData.email.toLowerCase(),
+        firstName: formData.firstName || formData.name || null,
+        phone: formData.phone || null,
+        type: 'club_member',
+        source: 'popup',
+      });
+    }
+  } catch (error) {
+    console.error('Failed to add contact to loyalty club:', error);
+    // Don't throw - popup submission was already saved
   }
 }
 

@@ -12,6 +12,7 @@ import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { isPluginActive } from '@/lib/plugins/loader';
 import { CampaignsList } from './campaigns-list';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 import { Target, Ticket, Plus, BarChart3, CheckCircle, Gamepad2, TrendingUp } from 'lucide-react';
 
 interface GamificationPageProps {
@@ -147,7 +148,7 @@ export default async function GamificationPage({ params, searchParams }: Gamific
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <StatCardGrid columns={4}>
         <StatCard 
           label="קמפיינים" 
           value={totalCampaigns}
@@ -157,7 +158,6 @@ export default async function GamificationPage({ params, searchParams }: Gamific
           label="פעילים" 
           value={activeCampaigns}
           icon={<CheckCircle className="w-5 h-5" />}
-          color="green"
         />
         <StatCard 
           label="משחקים" 
@@ -168,9 +168,8 @@ export default async function GamificationPage({ params, searchParams }: Gamific
           label="המרות" 
           value={`${conversionRate}%`}
           icon={<TrendingUp className="w-5 h-5" />}
-          color="blue"
         />
-      </div>
+      </StatCardGrid>
 
       {/* Campaigns List */}
       {campaigns.length > 0 ? (
@@ -178,44 +177,6 @@ export default async function GamificationPage({ params, searchParams }: Gamific
       ) : (
         <EmptyState type={typeFilter} storeSlug={slug} />
       )}
-    </div>
-  );
-}
-
-function StatCard({ 
-  label, 
-  value, 
-  icon,
-  color = 'gray' 
-}: { 
-  label: string; 
-  value: number | string; 
-  icon: React.ReactNode;
-  color?: 'gray' | 'green' | 'blue';
-}) {
-  const colors = {
-    gray: 'bg-gray-50 border-gray-200',
-    green: 'bg-green-50 border-green-200',
-    blue: 'bg-blue-50 border-blue-200',
-  };
-
-  const iconColors = {
-    gray: 'bg-gray-100 text-gray-600',
-    green: 'bg-green-100 text-green-600',
-    blue: 'bg-blue-100 text-blue-600',
-  };
-
-  return (
-    <div className={`p-4 rounded-xl border ${colors[color]} flex items-center gap-3`}>
-      <div className={`w-10 h-10 rounded-lg ${iconColors[color]} flex items-center justify-center`}>
-        {icon}
-      </div>
-      <div>
-        <div className="text-xl font-bold text-gray-900">
-          {typeof value === 'number' ? value.toLocaleString() : value}
-        </div>
-        <div className="text-sm text-gray-600">{label}</div>
-      </div>
     </div>
   );
 }

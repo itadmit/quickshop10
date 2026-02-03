@@ -6,6 +6,7 @@ import { customers, orders, crmTasks, crmNotes, users, storeMembers } from '@/li
 import { eq, and, desc, count, sql, gte } from 'drizzle-orm';
 import Link from 'next/link';
 import { CrmNav } from './crm-nav';
+import { StatCard, StatCardGrid } from '@/components/admin/ui';
 
 // ============================================
 // CRM Dashboard - Professional Overview
@@ -245,76 +246,50 @@ export default async function CRMPage({ params }: CRMPageProps) {
       <CrmNav storeSlug={slug} />
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        {/* Customers */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-              </svg>
-            </div>
-            <Link href={`/shops/${slug}/admin/plugins/crm/customers`} className="text-xs text-indigo-600 hover:text-indigo-700">
-              הצג הכל →
-            </Link>
-          </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{customerStats[0]?.count || 0}</p>
-          <p className="text-sm text-slate-500">סה״כ לקוחות</p>
-        </div>
-
-        {/* Today Sales */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
-              </svg>
-            </div>
-            <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
-              {posStatsToday[0]?.count || 0} עסקאות
-            </span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{formatCurrency(Number(posStatsToday[0]?.total || 0))}</p>
-          <p className="text-sm text-slate-500">מכירות היום</p>
-        </div>
-
-        {/* Week Sales */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
-              </svg>
-            </div>
-            <span className="text-xs px-2 py-1 bg-violet-100 text-violet-700 rounded-full font-medium">
-              {posStatsWeek[0]?.count || 0} עסקאות
-            </span>
-          </div>
-          <p className="text-3xl font-bold text-slate-900 mb-1">{formatCurrency(Number(posStatsWeek[0]?.total || 0))}</p>
-          <p className="text-sm text-slate-500">מכירות השבוע</p>
-        </div>
-
-        {/* Tasks */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <Link href={`/shops/${slug}/admin/plugins/crm/tasks`} className="text-xs text-amber-600 hover:text-amber-700">
-              הצג הכל →
-            </Link>
-          </div>
-          <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-bold text-slate-900">{pendingTasks[0]?.count || 0}</p>
-            {(overdueTasks[0]?.count || 0) > 0 && (
-              <span className="text-sm text-red-600 font-medium">({overdueTasks[0].count} באיחור!)</span>
-            )}
-          </div>
-          <p className="text-sm text-slate-500">משימות פתוחות</p>
-        </div>
-      </div>
+      <StatCardGrid columns={4}>
+        <StatCard 
+          label="סה״כ לקוחות" 
+          value={customerStats[0]?.count || 0}
+          href={`/shops/${slug}/admin/plugins/crm/customers`}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+            </svg>
+          }
+        />
+        <StatCard 
+          label="מכירות היום" 
+          value={formatCurrency(Number(posStatsToday[0]?.total || 0))}
+          subLabel={`${posStatsToday[0]?.count || 0} עסקאות`}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z" />
+            </svg>
+          }
+        />
+        <StatCard 
+          label="מכירות השבוע" 
+          value={formatCurrency(Number(posStatsWeek[0]?.total || 0))}
+          subLabel={`${posStatsWeek[0]?.count || 0} עסקאות`}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+          }
+        />
+        <StatCard 
+          label="משימות פתוחות" 
+          value={pendingTasks[0]?.count || 0}
+          subLabel={(overdueTasks[0]?.count || 0) > 0 ? `${overdueTasks[0].count} באיחור` : undefined}
+          alert={(overdueTasks[0]?.count || 0) > 0}
+          href={`/shops/${slug}/admin/plugins/crm/tasks`}
+          icon={
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          }
+        />
+      </StatCardGrid>
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-3 gap-6">
