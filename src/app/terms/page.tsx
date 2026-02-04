@@ -145,7 +145,7 @@ export default function TermsPage() {
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-6">6.3 החזרים</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              אנו מציעים תקופת ניסיון של 14 יום. אם תבטלו את החשבון בתוך תקופת הניסיון, לא תחויבו בתשלום. לאחר תקופת הניסיון:
+              אנו מציעים תקופת ניסיון של 7 ימים. אם תבטלו את החשבון בתוך תקופת הניסיון, לא תחויבו בתשלום. לאחר תקופת הניסיון:
             </p>
             <ul className="list-disc list-inside text-gray-700 space-y-2">
               <li>החזרים יתבצעו רק במקרים חריגים ובהתאם לשיקול דעתנו</li>
@@ -182,7 +182,7 @@ export default function TermsPage() {
             
             <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-6">8.1 זמינות השירות</h3>
             <p className="text-gray-700 leading-relaxed mb-4">
-              אנו שואפים לספק שירות זמין 24/7, אך איננו יכולים להבטיח זמינות מוחלטת. השירות עשוי להיות מושעה לצורך תחזוקה, עדכונים או בשל נסיבות חריגות.
+              הפלטפורמה זמינה 24/7, אך שירות התמיכה שלנו זמין בימים א'-ה' בין השעות 09:00-18:00. השירות עשוי להיות מושעה לצורך תחזוקה, עדכונים או בשל נסיבות חריגות.
             </p>
 
             <h3 className="text-xl font-semibold text-gray-900 mb-3 mt-6">8.2 הגבלת אחריות</h3>
@@ -266,7 +266,8 @@ export default function TermsPage() {
               <p className="text-gray-700 mb-2"><strong>קוויק שופ</strong></p>
               <p className="text-gray-700 mb-2">אימייל: <a href="mailto:info@quick-shop.co.il" className="text-emerald-600 hover:underline">info@quick-shop.co.il</a></p>
               <p className="text-gray-700 mb-2">טלפון: <a href="tel:+972552554432" className="text-emerald-600 hover:underline" dir="ltr">+972-55-255-4432</a></p>
-              <p className="text-gray-700">כתובת: ישראל</p>
+              <p className="text-gray-700 mb-2">כתובת: אלי הורביץ 4 רחובות</p>
+              <p className="text-gray-700">שעות פעילות: ימים א'-ה' 09:00-18:00</p>
             </div>
           </section>
 

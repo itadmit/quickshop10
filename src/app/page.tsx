@@ -309,7 +309,7 @@ export default function HomePage() {
                 </Button>
               </div>
               <p className="mt-3 text-sm text-gray-400 text-center lg:text-right font-medium">
-                 לא נדרש כרטיס אשראי • 14 יום ניסיון חינם
+                 לא נדרש כרטיס אשראי • 7 ימים ניסיון חינם
               </p>
 
               <div className="mt-10 flex items-center gap-6 justify-center lg:justify-start text-sm font-medium text-gray-500 flex-wrap">

@@ -181,7 +181,8 @@ export default function PrivacyPage() {
               <p className="text-gray-700 mb-2"><strong>קוויק שופ</strong></p>
               <p className="text-gray-700 mb-2">אימייל: <a href="mailto:info@quick-shop.co.il" className="text-emerald-600 hover:underline">info@quick-shop.co.il</a></p>
               <p className="text-gray-700 mb-2">טלפון: <a href="tel:+972552554432" className="text-emerald-600 hover:underline" dir="ltr">+972-55-255-4432</a></p>
-              <p className="text-gray-700">כתובת: ישראל</p>
+              <p className="text-gray-700 mb-2">כתובת: אלי הורביץ 4 רחובות</p>
+              <p className="text-gray-700">שעות פעילות: ימים א'-ה' 09:00-18:00</p>
             </div>
           </section>
 
