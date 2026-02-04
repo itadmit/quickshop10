@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Use orderData.items (which has productId) instead of body.items (which doesn't)
-    // orderData.items includes: productId, variantId, variantTitle, name, quantity, price, sku, image
+    // orderData.items includes: productId, variantId, variantTitle, name, quantity, price, sku, image, addons
     // body.items includes: name, sku, quantity, price, imageUrl (no productId!)
     const cartItemsForOrder = (body.orderData?.items || body.items) as Array<{
       productId: string;
@@ -275,6 +275,22 @@ export async function POST(request: NextRequest) {
       sku?: string;
       image?: string;
       imageUrl?: string;
+      // Addons (product customizations)
+      addons?: Array<{
+        addonId: string;
+        name: string;
+        value: string;
+        displayValue: string;
+        priceAdjustment: number;
+      }>;
+      addonTotal?: number;
+      // Bundle info
+      isBundle?: boolean;
+      bundleComponents?: Array<{
+        name: string;
+        variantTitle?: string;
+        quantity: number;
+      }>;
     }>;
     
     // Validate cart items exist
@@ -705,21 +721,33 @@ export async function POST(request: NextRequest) {
         }
 
         await db.insert(orderItems).values(
-          cartItemsForOrder.map(item => ({
-            orderId: newOrder.id,
-            // Only include productId if it exists in products table
-            productId: item.productId && productNameMap.has(item.productId) 
-              ? item.productId 
-              : null,
-            // 🐛 FIX: Fallback to product name from DB if cart item has no name
-            name: item.name || (item.productId && productNameMap.get(item.productId)) || 'מוצר',
-            variantTitle: item.variantTitle || null,
-            sku: item.sku || '',
-            quantity: item.quantity,
-            price: String(item.price),
-            total: String(item.price * item.quantity),
-            imageUrl: item.image || item.imageUrl || null,
-          }))
+          cartItemsForOrder.map(item => {
+            // Calculate total including addon prices
+            const addonTotal = item.addonTotal || 0;
+            const itemTotal = (item.price + addonTotal) * item.quantity;
+            
+            return {
+              orderId: newOrder.id,
+              // Only include productId if it exists in products table
+              productId: item.productId && productNameMap.has(item.productId) 
+                ? item.productId 
+                : null,
+              // 🐛 FIX: Fallback to product name from DB if cart item has no name
+              name: item.name || (item.productId && productNameMap.get(item.productId)) || 'מוצר',
+              variantTitle: item.variantTitle || null,
+              sku: item.sku || '',
+              quantity: item.quantity,
+              price: String(item.price),
+              total: String(itemTotal),
+              imageUrl: item.image || item.imageUrl || null,
+              // 🔧 FIX: Save addons and bundle components in properties
+              properties: {
+                addons: item.addons || [],
+                addonTotal: addonTotal,
+                bundleComponents: item.bundleComponents || [],
+              },
+            };
+          })
         );
         
         console.log(`[Payment Initiate] Created ${cartItemsForOrder.length} order items for order #${orderNumber}`);
