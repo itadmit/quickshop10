@@ -12,8 +12,6 @@
 import { useState } from 'react';
 import { 
   EditorInput,
-  EditorThemeProvider,
-  ThemeToggle,
 } from '../ui';
 
 import { RichTextEditor } from '@/components/admin/rich-text-editor';

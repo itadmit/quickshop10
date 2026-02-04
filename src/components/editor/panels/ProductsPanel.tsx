@@ -15,8 +15,6 @@ import {
   EditorSlider,
   EditorSelect,
   EditorToggle,
-  EditorThemeProvider,
-  ThemeToggle,
 } from '../ui';
 
 import {

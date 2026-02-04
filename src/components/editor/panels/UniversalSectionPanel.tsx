@@ -16,8 +16,6 @@ import {
   EditorSelect,
   EditorToggle,
   EditorColorPicker,
-  EditorThemeProvider,
-  ThemeToggle,
 } from '../ui';
 
 import { RichTextEditor } from '@/components/admin/rich-text-editor';

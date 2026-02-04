@@ -8,8 +8,6 @@
 import { useState } from 'react';
 import { 
   EditorInput,
-  EditorThemeProvider,
-  ThemeToggle,
   EditorColorPicker,
   EditorSelect,
 } from '../ui';

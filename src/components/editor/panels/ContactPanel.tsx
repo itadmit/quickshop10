@@ -11,8 +11,6 @@
 import { useState } from 'react';
 import { 
   EditorInput,
-  EditorThemeProvider,
-  ThemeToggle,
   EditorColorPicker,
   EditorSlider,
 } from '../ui';
