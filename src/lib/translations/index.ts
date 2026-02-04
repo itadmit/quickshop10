@@ -77,12 +77,13 @@ export async function getUITranslations(
   hasCustomTranslations: boolean = false
 ): Promise<UITranslations> {
   // 🔑 Performance optimization:
-  // Hebrew-only stores without customization get static object - ZERO overhead!
-  if (!hasMultipleLocales && !hasCustomTranslations && locale === 'he') {
-    return hebrewTranslations;
+  // Single-locale stores without customization get static object - ZERO overhead!
+  // Works for ANY locale (Hebrew, English, etc.) - not just Hebrew
+  if (!hasMultipleLocales && !hasCustomTranslations) {
+    return defaultTranslations[locale] || hebrewTranslations;
   }
 
-  // For other cases, use cached DB query
+  // For multi-locale or customized stores, use cached DB query
   return getCachedTranslations(storeId, locale);
 }
 
