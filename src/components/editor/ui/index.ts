@@ -17,7 +17,8 @@ export {
 // Theme Provider
 export { 
   EditorThemeProvider, 
-  useEditorTheme, 
+  useEditorTheme,
+  useEditorThemeOptional,
   ThemeToggle,
   EditorPanelWrapper,
 } from './ThemeProvider';

@@ -1211,22 +1211,26 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                     
                     {/* Display addons if present */}
                     {(() => {
-                      const props = item.properties as { addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number; bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}> } | null;
+                      const props = item.properties as { addons?: Array<{name: string; value?: string; displayValue?: string; priceAdjustment: number}>; addonTotal?: number; bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}> } | null;
                       return (
                         <>
-                          {props?.addons && props.addons.length > 0 && (
+                          {props?.addons && Array.isArray(props.addons) && props.addons.length > 0 && (
                             <div className="mt-1 space-y-0.5 text-xs text-gray-500 bg-gray-50 p-1.5 rounded">
-                              {props.addons.map((addon, i) => (
-                                <div key={i} className="flex items-center justify-between">
-                                  <span>{addon.name}: <span className="text-gray-700">{addon.displayValue}</span></span>
-                                  {addon.priceAdjustment > 0 && (
-                                    <span className="text-green-600">+{format(addon.priceAdjustment)}</span>
-                                  )}
-                                </div>
-                              ))}
+                              {props.addons.map((addon, i) => {
+                                // Support both displayValue and value fields (for backwards compatibility)
+                                const displayValue = String(addon.displayValue || addon.value || '');
+                                return (
+                                  <div key={i} className="flex items-center justify-between">
+                                    <span>{addon.name}: <span className="text-gray-700">{displayValue}</span></span>
+                                    {addon.priceAdjustment > 0 && (
+                                      <span className="text-green-600">+{format(addon.priceAdjustment)}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
-                          {props?.bundleComponents && props.bundleComponents.length > 0 && (
+                          {props?.bundleComponents && Array.isArray(props.bundleComponents) && props.bundleComponents.length > 0 && (
                             <div className="mt-1 text-xs bg-gray-50 border border-gray-200 p-1.5">
                               <span className="text-gray-700 font-medium">{t.general.includes}:</span>
                               {props.bundleComponents.map((comp, i) => (

@@ -246,19 +246,22 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                     )}
                     {/* Display addons if present */}
                     {(() => {
-                      const props = item.properties as { addons?: Array<{name: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number } | null;
-                      if (props?.addons && props.addons.length > 0) {
+                      const props = item.properties as { addons?: Array<{name: string; value?: string; displayValue?: string; priceAdjustment: number}>; addonTotal?: number } | null;
+                      if (props?.addons && Array.isArray(props.addons) && props.addons.length > 0) {
                         return (
                           <div className="mt-1.5 space-y-0.5 text-xs bg-gray-50 p-1.5 rounded">
-                            {props.addons.map((addon, i) => (
-                              <div key={i} className="flex items-center gap-2 text-gray-600">
-                                <span>{addon.name}:</span>
-                                <span className="text-gray-800">{addon.displayValue}</span>
-                                {addon.priceAdjustment > 0 && (
-                                  <span className="text-green-600">(+₪{addon.priceAdjustment.toFixed(2)})</span>
-                                )}
-                              </div>
-                            ))}
+                            {props.addons.map((addon, i) => {
+                              const displayValue = String(addon.displayValue || addon.value || '');
+                              return (
+                                <div key={i} className="flex items-center gap-2 text-gray-600">
+                                  <span>{addon.name}:</span>
+                                  <span className="text-gray-800">{displayValue}</span>
+                                  {addon.priceAdjustment > 0 && (
+                                    <span className="text-green-600">(+₪{addon.priceAdjustment.toFixed(2)})</span>
+                                  )}
+                                </div>
+                              );
+                            })}
                           </div>
                         );
                       }

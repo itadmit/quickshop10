@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { ThemeMode, themes, getThemeCssVars } from './theme';
+import { ThemeMode, themes, getThemeCssVars, editorClasses } from './theme';
 import { Moon, Sun } from 'lucide-react';
 
 interface ThemeContextValue {
@@ -14,6 +14,8 @@ interface ThemeContextValue {
   setMode: (mode: ThemeMode) => void;
   toggle: () => void;
   theme: typeof themes.dark;
+  classes: typeof editorClasses;
+  isDark: boolean;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -27,6 +29,11 @@ export function useEditorTheme() {
   return context;
 }
 
+// Hook that works outside of provider (returns null if not in context)
+export function useEditorThemeOptional() {
+  return useContext(ThemeContext);
+}
+
 interface EditorThemeProviderProps {
   children: ReactNode;
   defaultMode?: ThemeMode;
@@ -34,12 +41,14 @@ interface EditorThemeProviderProps {
 
 export function EditorThemeProvider({ 
   children, 
-  defaultMode = 'light' 
+  defaultMode = 'dark' 
 }: EditorThemeProviderProps) {
   const [mode, setMode] = useState<ThemeMode>(defaultMode);
+  const [mounted, setMounted] = useState(false);
 
   // Load saved preference
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem('editor-theme') as ThemeMode;
     if (saved && (saved === 'light' || saved === 'dark')) {
       setMode(saved);
@@ -48,8 +57,10 @@ export function EditorThemeProvider({
 
   // Save preference
   useEffect(() => {
-    localStorage.setItem('editor-theme', mode);
-  }, [mode]);
+    if (mounted) {
+      localStorage.setItem('editor-theme', mode);
+    }
+  }, [mode, mounted]);
 
   const toggle = () => {
     setMode(prev => prev === 'light' ? 'dark' : 'light');
@@ -57,12 +68,14 @@ export function EditorThemeProvider({
 
   const theme = themes[mode];
   const cssVars = getThemeCssVars(mode);
+  const isDark = mode === 'dark';
 
   return (
-    <ThemeContext.Provider value={{ mode, setMode, toggle, theme }}>
+    <ThemeContext.Provider value={{ mode, setMode, toggle, theme, classes: editorClasses, isDark }}>
       <div 
         style={cssVars as React.CSSProperties}
         className="h-full"
+        data-editor-theme={mode}
       >
         {children}
       </div>
@@ -71,17 +84,42 @@ export function EditorThemeProvider({
 }
 
 // Theme toggle button
-export function ThemeToggle({ className = '' }: { className?: string }) {
+interface ThemeToggleProps {
+  className?: string;
+  variant?: 'default' | 'header';
+}
+
+export function ThemeToggle({ className = '', variant = 'default' }: ThemeToggleProps) {
   const { mode, toggle } = useEditorTheme();
+
+  if (variant === 'header') {
+    return (
+      <button
+        onClick={toggle}
+        className={`p-2 rounded-lg transition-all duration-200 cursor-pointer
+                   bg-[var(--editor-bg-tertiary)]/50 hover:bg-[var(--editor-bg-hover)]
+                   text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)]
+                   border border-[var(--editor-border-default)]
+                   ${className}`}
+        title={mode === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה'}
+      >
+        {mode === 'dark' ? (
+          <Sun className="w-4 h-4" />
+        ) : (
+          <Moon className="w-4 h-4" />
+        )}
+      </button>
+    );
+  }
 
   return (
     <button
       onClick={toggle}
-      className={`p-2 rounded-lg transition-colors
+      className={`p-2 rounded-lg transition-colors cursor-pointer
                  bg-[var(--editor-bg-tertiary)] hover:bg-[var(--editor-bg-hover)]
                  text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)]
                  ${className}`}
-      title={mode === 'dark' ? 'עבור לבהיר' : 'עבור לכהה'}
+      title={mode === 'dark' ? 'עבור למצב בהיר' : 'עבור למצב כהה'}
     >
       {mode === 'dark' ? (
         <Sun className="w-4 h-4" />

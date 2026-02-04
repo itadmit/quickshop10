@@ -8,6 +8,7 @@ import { SectionSettings } from './section-settings';
 import { LivePreview } from './live-preview';
 import { defaultProductPageSettings } from '@/lib/product-page-settings';
 import { defaultCategoryPageSettings } from '@/lib/category-page-settings';
+import { EditorThemeProvider, ThemeToggle, useEditorTheme } from '@/components/editor/ui';
 
 // ============================================
 // Theme Editor - Client Component (Shopify Style)
@@ -1151,7 +1152,8 @@ export function ThemeEditor({
   };
 
   return (
-    <div className="fixed inset-0 bg-[#1a1a2e] flex flex-col" dir="rtl">
+    <EditorThemeProvider defaultMode="dark">
+    <div className="fixed inset-0 bg-[var(--editor-bg-primary)] flex flex-col" dir="rtl">
       {/* Hidden file input for JSON import */}
       <input
         type="file"
@@ -1164,7 +1166,7 @@ export function ThemeEditor({
       {/* Import Success Toast */}
       {importSuccess.show && (
         <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] animate-in fade-in slide-in-from-top-2 duration-300">
-          <div className="bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
+          <div className="bg-[var(--editor-accent-green)] text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-3">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M20 6L9 17l-5-5" />
             </svg>
@@ -1183,21 +1185,21 @@ export function ThemeEditor({
       )}
 
       {/* Top Bar - RTL layout */}
-      <header className="h-14 bg-[#1a1a2e] border-b border-white/10 flex items-center justify-between px-4 z-50 relative" dir="rtl">
+      <header className="h-14 bg-[var(--editor-bg-primary)] border-b border-[var(--editor-border-default)] flex items-center justify-between px-4 z-50 relative" dir="rtl">
         {/* Right - Back & Store Name */}
         <div className="flex items-center gap-3">
           <Link 
             href={`/shops/${slug}/admin/design`}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-[var(--editor-bg-hover)] rounded-lg transition-colors text-[var(--editor-text-primary)]"
             title="חזרה לדשבורד"
           >
             <ArrowRightIcon />
           </Link>
-          <span className="text-white font-medium">{store.name}</span>
+          <span className="text-[var(--editor-text-primary)] font-medium">{store.name}</span>
           <span className={`px-2 py-0.5 text-[10px] font-medium rounded-full ${
             isPublished 
-              ? 'bg-green-500/20 text-green-400' 
-              : 'bg-amber-500/20 text-amber-400'
+              ? 'bg-[var(--editor-accent-green)]/20 text-[var(--editor-accent-green)]' 
+              : 'bg-[var(--editor-accent-orange)]/20 text-[var(--editor-accent-orange)]'
           }`}>
             ● {isPublished ? 'פעיל' : 'Coming Soon'}
           </span>
@@ -1210,8 +1212,8 @@ export function ThemeEditor({
             onClick={() => setSelectedSectionId('global-settings')}
             className={`p-2 rounded-full transition-colors cursor-pointer ${
               selectedSectionId === 'global-settings' 
-                ? 'bg-white/20 text-white' 
-                : 'bg-white/5 hover:bg-white/10 text-white/70 hover:text-white'
+                ? 'bg-[var(--editor-bg-panel)]/20 text-white' 
+                : 'bg-[var(--editor-bg-panel)]/5 hover:bg-[var(--editor-bg-panel)]/10 text-white/70 hover:text-white'
             }`}
             title="הגדרות כלליות"
           >
@@ -1224,7 +1226,7 @@ export function ThemeEditor({
         <div className="relative">
           <button
             onClick={() => setShowPageDropdown(!showPageDropdown)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors cursor-pointer text-white"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--editor-bg-panel)]/5 hover:bg-[var(--editor-bg-panel)]/10 transition-colors cursor-pointer text-white"
           >
               {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : currentPageInfo.icon === 'file' ? <FileIcon /> : <ClockIcon />}
             <span className="text-sm">{currentPageInfo.label}</span>
@@ -1260,8 +1262,8 @@ export function ThemeEditor({
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer ${
                         page.id === currentPage 
-                          ? 'bg-white/10 text-white' 
-                          : 'text-white/70 hover:bg-white/5 hover:text-white'
+                          ? 'bg-[var(--editor-bg-panel)]/10 text-white' 
+                          : 'text-white/70 hover:bg-[var(--editor-bg-panel)]/5 hover:text-white'
                       }`}
                     >
                       {page.icon === 'home' ? (
@@ -1301,8 +1303,8 @@ export function ThemeEditor({
                           }}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer ${
                             pageId === currentPage 
-                              ? 'bg-white/10 text-white' 
-                              : 'text-white/70 hover:bg-white/5 hover:text-white'
+                              ? 'bg-[var(--editor-bg-panel)]/10 text-white' 
+                              : 'text-white/70 hover:bg-[var(--editor-bg-panel)]/5 hover:text-white'
                           }`}
                         >
                           <FileIcon />
@@ -1326,7 +1328,7 @@ export function ThemeEditor({
                       setShowPageDropdown(false);
                       setShowNewPageModal(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-white/70 hover:bg-white/5 hover:text-white mt-1"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-white/70 hover:bg-[var(--editor-bg-panel)]/5 hover:text-white mt-1"
                   >
                     <PlusIcon />
                     <span className="text-sm">הוסף עמוד חדש</span>
@@ -1351,7 +1353,7 @@ export function ThemeEditor({
           {isInternalPage && currentInternalPage && (
             <button
               onClick={openPageSettings}
-              className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+              className="p-2 text-white/60 hover:text-white hover:bg-[var(--editor-bg-panel)]/10 rounded-lg transition-colors cursor-pointer"
               title="הגדרות עמוד"
             >
               <SettingsIcon />
@@ -1365,7 +1367,7 @@ export function ThemeEditor({
           <div className="flex items-center gap-1">
             <button
               onClick={handleImportJSON}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-xs text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
               title="ייבא תבנית"
             >
               <ImportIcon />
@@ -1373,7 +1375,7 @@ export function ThemeEditor({
             </button>
             <button
               onClick={handleExportJSON}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-xs text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
               title="ייצא תבנית"
             >
               <ExportIcon />
@@ -1381,7 +1383,7 @@ export function ThemeEditor({
             </button>
             <button
               onClick={() => setShowSaveTemplateModal(true)}
-              className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+              className="px-3 py-1.5 text-xs text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
               title="שמור כתבנית לשימוש חוזר"
             >
               <TemplateIcon />
@@ -1389,24 +1391,24 @@ export function ThemeEditor({
             </button>
           </div>
 
-          <div className="w-px h-6 bg-white/10" />
+          <div className="w-px h-6 bg-[var(--editor-border-default)]" />
 
           {/* Undo/Redo */}
           <div className="flex items-center gap-1">
-            <button className="p-2 text-white/30 cursor-not-allowed" title="בטל">
+            <button className="p-2 text-[var(--editor-text-muted)] cursor-not-allowed" title="בטל">
               <UndoIcon />
             </button>
-            <button className="p-2 text-white/30 cursor-not-allowed" title="בצע שוב">
+            <button className="p-2 text-[var(--editor-text-muted)] cursor-not-allowed" title="בצע שוב">
               <RedoIcon />
             </button>
           </div>
 
           {/* Device Toggles */}
-          <div className="flex items-center bg-white/5 rounded-lg p-1">
+          <div className="flex items-center bg-[var(--editor-bg-tertiary)]/50 rounded-lg p-1">
             <button
               onClick={() => setPreviewMode('desktop')}
               className={`p-2 rounded-md transition-colors cursor-pointer ${
-                previewMode === 'desktop' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
+                previewMode === 'desktop' ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-primary)]'
               }`}
               title="דסקטופ"
             >
@@ -1415,7 +1417,7 @@ export function ThemeEditor({
             <button
               onClick={() => setPreviewMode('tablet')}
               className={`p-2 rounded-md transition-colors cursor-pointer ${
-                previewMode === 'tablet' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
+                previewMode === 'tablet' ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-primary)]'
               }`}
               title="טאבלט"
             >
@@ -1424,7 +1426,7 @@ export function ThemeEditor({
             <button
               onClick={() => setPreviewMode('mobile')}
               className={`p-2 rounded-md transition-colors cursor-pointer ${
-                previewMode === 'mobile' ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white'
+                previewMode === 'mobile' ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' : 'text-[var(--editor-text-muted)] hover:text-[var(--editor-text-primary)]'
               }`}
               title="מובייל"
             >
@@ -1432,21 +1434,24 @@ export function ThemeEditor({
             </button>
           </div>
 
-          <div className="w-px h-6 bg-white/10" />
+          {/* Theme Toggle - Light/Dark Mode */}
+          <ThemeToggle variant="header" />
+
+          <div className="w-px h-6 bg-[var(--editor-border-default)]" />
 
           {/* View Site Button */}
           <a
             href={store.customDomain ? `https://${store.customDomain}` : `/shops/${slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 text-xs text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)] rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer"
             title="צפייה באתר"
           >
             <ExternalLinkIcon />
             <span>צפה באתר</span>
           </a>
 
-          <div className="w-px h-6 bg-white/10" />
+          <div className="w-px h-6 bg-[var(--editor-border-default)]" />
 
           {/* Save Button */}
           <button
@@ -1454,8 +1459,8 @@ export function ThemeEditor({
             disabled={!hasChanges || isSaving}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all cursor-pointer ${
               hasChanges
-                ? 'bg-green-500 text-white hover:bg-green-600'
-                : 'bg-white/10 text-white/50 cursor-not-allowed'
+                ? 'bg-[var(--editor-accent-green)] text-white hover:opacity-90'
+                : 'bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-muted)] cursor-not-allowed'
             }`}
           >
             {isSaving ? 'שומר...' : hasChanges ? 'שמור שינויים' : 'שמור'}
@@ -1466,7 +1471,7 @@ export function ThemeEditor({
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden" dir="ltr">
         {/* Left Panel - Section Settings */}
-        <div className="w-[340px] bg-white border-r border-gray-200 overflow-auto">
+        <div className="w-[340px] bg-[var(--editor-bg-panel)] border-r border-[var(--editor-border-default)] overflow-auto">
           {selectedSection ? (
             <SectionSettings
               key={selectedSection.id}
@@ -1481,14 +1486,14 @@ export function ThemeEditor({
               currentPage={currentPage}
             />
           ) : (
-            <div className="p-6 text-center text-gray-400" dir="rtl">
+            <div className="p-6 text-center text-[var(--editor-text-muted)]" dir="rtl">
               <p>בחרו סקשן לעריכה</p>
             </div>
           )}
         </div>
 
         {/* Center - Live Preview (iframe of actual storefront) */}
-        <div className="flex-1 bg-gray-200 overflow-auto flex items-start justify-center p-4">
+        <div className="flex-1 bg-[var(--editor-bg-canvas)] overflow-auto flex items-start justify-center p-4">
           <LivePreview
             storeSlug={slug}
             previewMode={previewMode}
@@ -1502,7 +1507,7 @@ export function ThemeEditor({
         </div>
 
         {/* Right Panel - Section Tree */}
-        <div className="w-[280px] bg-white border-l border-gray-200 flex flex-col overflow-hidden">
+        <div className="w-[280px] bg-[var(--editor-bg-panel)] border-l border-[var(--editor-border-default)] flex flex-col overflow-hidden">
           <SectionTree
             sections={sections}
             selectedSectionId={selectedSectionId}
@@ -1520,37 +1525,37 @@ export function ThemeEditor({
       {/* New Page Modal */}
       {showNewPageModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">עמוד חדש</h2>
+          <div className="bg-[var(--editor-bg-panel)] rounded-xl shadow-2xl w-full max-w-md p-6">
+            <h2 className="text-lg font-semibold text-[var(--editor-text-primary)] mb-4">עמוד חדש</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-1">
                   שם העמוד *
                 </label>
                 <input
                   type="text"
                   value={newPageTitle}
                   onChange={(e) => handleNewPageTitleChange(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  className="w-full px-4 py-2 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
                   placeholder="אודות, תקנון, צור קשר..."
                   autoFocus
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-1">
                   כתובת URL *
                 </label>
                 <div className="flex">
-                  <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg text-gray-500 text-sm">
+                  <span className="px-3 py-2 bg-[var(--editor-bg-tertiary)] border border-l-0 border-[var(--editor-border-default)] rounded-r-lg text-[var(--editor-text-muted)] text-sm">
                     /pages/
                   </span>
                   <input
                     type="text"
                     value={newPageSlug}
                     onChange={(e) => setNewPageSlug(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="flex-1 px-4 py-2 border border-[var(--editor-border-default)] rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black/10"
                     placeholder="about"
                     dir="ltr"
                   />
@@ -1562,7 +1567,7 @@ export function ThemeEditor({
               <button
                 onClick={handleCreatePage}
                 disabled={isCreatingPage || !newPageTitle.trim() || !newPageSlug.trim()}
-                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-4 py-2.5 bg-[var(--editor-text-primary)] text-white rounded-lg hover:bg-[var(--editor-bg-active)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {isCreatingPage ? 'יוצר...' : 'צור עמוד'}
               </button>
@@ -1572,7 +1577,7 @@ export function ThemeEditor({
                   setNewPageTitle('');
                   setNewPageSlug('');
                 }}
-                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-[var(--editor-border-default)] rounded-lg hover:bg-[var(--editor-bg-tertiary)] transition-colors"
               >
                 ביטול
               </button>
@@ -1584,52 +1589,52 @@ export function ThemeEditor({
       {/* Save as Template Modal */}
       {showSaveTemplateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
+          <div className="bg-[var(--editor-bg-panel)] rounded-xl shadow-2xl w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">שמור כתבנית</h2>
+              <h2 className="text-lg font-semibold text-[var(--editor-text-primary)]">שמור כתבנית</h2>
               <button
                 onClick={() => setShowSaveTemplateModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1 text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)] transition-colors"
               >
                 <CloseIcon />
               </button>
             </div>
             
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[var(--editor-text-secondary)] mb-4">
               שמרו את הסקשנים של העמוד הנוכחי כתבנית לשימוש חוזר בעמודים חדשים.
             </p>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-1">
                   שם התבנית *
                 </label>
                 <input
                   type="text"
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  className="w-full px-4 py-2 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
                   placeholder="לדוגמה: תבנית אודות"
                   autoFocus
                 />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-1">
                   תיאור (אופציונלי)
                 </label>
                 <textarea
                   value={templateDescription}
                   onChange={(e) => setTemplateDescription(e.target.value)}
                   rows={2}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                  className="w-full px-4 py-2 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
                   placeholder="תיאור קצר לתבנית..."
                 />
               </div>
               
-              <div className="bg-gray-50 rounded-lg p-3">
-                <p className="text-xs text-gray-500">
-                  <span className="font-medium text-gray-700">{sections.length}</span> סקשנים יישמרו בתבנית
+              <div className="bg-[var(--editor-bg-tertiary)] rounded-lg p-3">
+                <p className="text-xs text-[var(--editor-text-muted)]">
+                  <span className="font-medium text-[var(--editor-text-secondary)]">{sections.length}</span> סקשנים יישמרו בתבנית
                 </p>
               </div>
             </div>
@@ -1638,7 +1643,7 @@ export function ThemeEditor({
               <button
                 onClick={handleSaveAsTemplate}
                 disabled={isSavingTemplate || !templateName.trim()}
-                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-4 py-2.5 bg-[var(--editor-text-primary)] text-white rounded-lg hover:bg-[var(--editor-bg-active)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {isSavingTemplate ? 'שומר...' : 'שמור תבנית'}
               </button>
@@ -1648,7 +1653,7 @@ export function ThemeEditor({
                   setTemplateName('');
                   setTemplateDescription('');
                 }}
-                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-[var(--editor-border-default)] rounded-lg hover:bg-[var(--editor-bg-tertiary)] transition-colors"
               >
                 ביטול
               </button>
@@ -1660,29 +1665,29 @@ export function ThemeEditor({
       {/* Import Modal */}
       {showImportModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+          <div className="bg-[var(--editor-bg-panel)] rounded-xl shadow-2xl w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">ייבוא תבנית</h2>
+              <h2 className="text-lg font-semibold text-[var(--editor-text-primary)]">ייבוא תבנית</h2>
               <button
                 onClick={() => {
                   setShowImportModal(false);
                   setImportCode('');
                   setImportError('');
                 }}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+                className="p-1 text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)] transition-colors cursor-pointer"
               >
                 <CloseIcon />
               </button>
             </div>
             
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-[var(--editor-text-secondary)] mb-4">
               הדביקו קוד JSON של תבנית או העלו קובץ JSON
             </p>
             
             <div className="space-y-4">
               {/* Code Input */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-2">
                   הדבק קוד JSON
                 </label>
                 <textarea
@@ -1692,7 +1697,7 @@ export function ThemeEditor({
                     setImportError('');
                   }}
                   rows={8}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm font-mono bg-gray-50"
+                  className="w-full px-4 py-3 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm font-mono bg-[var(--editor-bg-tertiary)]"
                   placeholder='{"sections": [...]}'
                   dir="ltr"
                 />
@@ -1708,7 +1713,7 @@ export function ThemeEditor({
               {/* Divider */}
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-gray-200" />
-                <span className="text-xs text-gray-400">או</span>
+                <span className="text-xs text-[var(--editor-text-muted)]">או</span>
                 <div className="flex-1 h-px bg-gray-200" />
               </div>
               
@@ -1716,11 +1721,11 @@ export function ThemeEditor({
               <div>
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="w-full py-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-gray-400 hover:bg-[var(--editor-bg-tertiary)] transition-colors cursor-pointer"
                 >
                   <div className="flex flex-col items-center gap-2">
                     <ImportIcon />
-                    <span className="text-sm text-gray-600">לחץ להעלאת קובץ JSON</span>
+                    <span className="text-sm text-[var(--editor-text-secondary)]">לחץ להעלאת קובץ JSON</span>
                   </div>
                 </button>
               </div>
@@ -1730,7 +1735,7 @@ export function ThemeEditor({
               <button
                 onClick={handleImportFromCode}
                 disabled={!importCode.trim()}
-                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium cursor-pointer"
+                className="flex-1 px-4 py-2.5 bg-[var(--editor-text-primary)] text-white rounded-lg hover:bg-[var(--editor-bg-active)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium cursor-pointer"
               >
                 ייבא מקוד
               </button>
@@ -1740,7 +1745,7 @@ export function ThemeEditor({
                   setImportCode('');
                   setImportError('');
                 }}
-                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                className="px-4 py-2 border border-[var(--editor-border-default)] rounded-lg hover:bg-[var(--editor-bg-tertiary)] transition-colors cursor-pointer"
               >
                 ביטול
               </button>
@@ -1752,12 +1757,12 @@ export function ThemeEditor({
       {/* Page Settings Modal */}
       {showPageSettingsModal && currentInternalPage && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" dir="rtl">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg p-6">
+          <div className="bg-[var(--editor-bg-panel)] rounded-xl shadow-2xl w-full max-w-lg p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">הגדרות עמוד</h2>
+              <h2 className="text-lg font-semibold text-[var(--editor-text-primary)]">הגדרות עמוד</h2>
               <button
                 onClick={() => setShowPageSettingsModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                className="p-1 text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)] transition-colors"
               >
                 <CloseIcon />
               </button>
@@ -1766,44 +1771,44 @@ export function ThemeEditor({
             <div className="space-y-5">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-1">
                   שם העמוד *
                 </label>
                 <input
                   type="text"
                   value={pageSettingsForm.title}
                   onChange={(e) => setPageSettingsForm(prev => ({ ...prev, title: e.target.value }))}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                  className="w-full px-4 py-2 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10"
                   placeholder="אודות"
                 />
               </div>
               
               {/* Slug */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-1">
                   כתובת URL *
                 </label>
                 <div className="flex">
-                  <span className="px-3 py-2 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg text-gray-500 text-sm">
+                  <span className="px-3 py-2 bg-[var(--editor-bg-tertiary)] border border-l-0 border-[var(--editor-border-default)] rounded-r-lg text-[var(--editor-text-muted)] text-sm">
                     /pages/
                   </span>
                   <input
                     type="text"
                     value={pageSettingsForm.slug}
                     onChange={(e) => setPageSettingsForm(prev => ({ ...prev, slug: e.target.value }))}
-                    className="flex-1 px-4 py-2 border border-gray-200 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black/10"
+                    className="flex-1 px-4 py-2 border border-[var(--editor-border-default)] rounded-l-lg focus:outline-none focus:ring-2 focus:ring-black/10"
                     placeholder="about"
                     dir="ltr"
                   />
                 </div>
-                <p className="text-xs text-gray-400 mt-1">אפשר להשתמש גם בעברית</p>
+                <p className="text-xs text-[var(--editor-text-muted)] mt-1">אפשר להשתמש גם בעברית</p>
               </div>
               
               {/* Publish Toggle */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between p-4 bg-[var(--editor-bg-tertiary)] rounded-lg">
                 <div>
-                  <p className="text-sm font-medium text-gray-700">מצב פרסום</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-[var(--editor-text-secondary)]">מצב פרסום</p>
+                  <p className="text-xs text-[var(--editor-text-muted)]">
                     {pageSettingsForm.isPublished ? 'העמוד מפורסם ונגיש לכולם' : 'העמוד בטיוטה - לא נגיש לגולשים'}
                   </p>
                 </div>
@@ -1814,13 +1819,13 @@ export function ThemeEditor({
                     onChange={(e) => setPageSettingsForm(prev => ({ ...prev, isPublished: e.target.checked }))}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-[var(--editor-bg-panel)] after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
                 </label>
               </div>
               
               {/* Page Template */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary)] mb-2">
                   תבנית עמוד
                 </label>
                 <div className="flex gap-3">
@@ -1829,18 +1834,18 @@ export function ThemeEditor({
                     onClick={() => setPageSettingsForm(prev => ({ ...prev, template: 'default' }))}
                     className={`flex-1 p-4 rounded-lg border-2 transition-all ${
                       pageSettingsForm.template === 'default' 
-                        ? 'border-black bg-gray-50' 
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-black bg-[var(--editor-bg-tertiary)]' 
+                        : 'border-[var(--editor-border-default)] hover:border-gray-300'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       {/* Icon - page with header/footer */}
-                      <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                      <svg className="w-8 h-8 text-[var(--editor-text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" />
                         <path d="M3 7h18M3 17h18" />
                       </svg>
                       <span className="text-sm font-medium">רגיל</span>
-                      <span className="text-xs text-gray-500">עם הדר ופוטר</span>
+                      <span className="text-xs text-[var(--editor-text-muted)]">עם הדר ופוטר</span>
                     </div>
                   </button>
                   <button
@@ -1848,17 +1853,17 @@ export function ThemeEditor({
                     onClick={() => setPageSettingsForm(prev => ({ ...prev, template: 'clean' }))}
                     className={`flex-1 p-4 rounded-lg border-2 transition-all ${
                       pageSettingsForm.template === 'clean' 
-                        ? 'border-black bg-gray-50' 
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? 'border-black bg-[var(--editor-bg-tertiary)]' 
+                        : 'border-[var(--editor-border-default)] hover:border-gray-300'
                     }`}
                   >
                     <div className="flex flex-col items-center gap-2">
                       {/* Icon - clean page */}
-                      <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                      <svg className="w-8 h-8 text-[var(--editor-text-secondary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="2" />
                       </svg>
                       <span className="text-sm font-medium">נקי</span>
-                      <span className="text-xs text-gray-500">ללא הדר ופוטר</span>
+                      <span className="text-xs text-[var(--editor-text-muted)]">ללא הדר ופוטר</span>
                     </div>
                   </button>
                 </div>
@@ -1866,31 +1871,31 @@ export function ThemeEditor({
               
               {/* SEO Section */}
               <div className="border-t pt-5">
-                <p className="text-sm font-medium text-gray-700 mb-3">הגדרות SEO</p>
+                <p className="text-sm font-medium text-[var(--editor-text-secondary)] mb-3">הגדרות SEO</p>
                 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-[var(--editor-text-secondary)] mb-1">
                       כותרת SEO
                     </label>
                     <input
                       type="text"
                       value={pageSettingsForm.seoTitle}
                       onChange={(e) => setPageSettingsForm(prev => ({ ...prev, seoTitle: e.target.value }))}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                      className="w-full px-4 py-2 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
                       placeholder="כותרת שתוצג בתוצאות החיפוש (אופציונלי)"
                     />
                   </div>
                   
                   <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                    <label className="block text-xs font-medium text-[var(--editor-text-secondary)] mb-1">
                       תיאור SEO
                     </label>
                     <textarea
                       value={pageSettingsForm.seoDescription}
                       onChange={(e) => setPageSettingsForm(prev => ({ ...prev, seoDescription: e.target.value }))}
                       rows={2}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
+                      className="w-full px-4 py-2 border border-[var(--editor-border-default)] rounded-lg focus:outline-none focus:ring-2 focus:ring-black/10 text-sm"
                       placeholder="תיאור קצר שיופיע בתוצאות החיפוש (אופציונלי)"
                     />
                   </div>
@@ -1903,13 +1908,13 @@ export function ThemeEditor({
               <button
                 onClick={handleSavePageSettings}
                 disabled={isSavingPageSettings || !pageSettingsForm.title.trim() || !pageSettingsForm.slug.trim()}
-                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                className="flex-1 px-4 py-2.5 bg-[var(--editor-text-primary)] text-white rounded-lg hover:bg-[var(--editor-bg-active)] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
               >
                 {isSavingPageSettings ? 'שומר...' : 'שמור'}
               </button>
               <button
                 onClick={() => setShowPageSettingsModal(false)}
-                className="px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-[var(--editor-border-default)] rounded-lg hover:bg-[var(--editor-bg-tertiary)] transition-colors"
               >
                 ביטול
               </button>
@@ -1941,7 +1946,7 @@ export function ThemeEditor({
                     </button>
                     <button
                       onClick={() => setShowDeleteConfirm(false)}
-                      className="px-3 py-1.5 border border-gray-200 text-sm rounded-lg hover:bg-white transition-colors"
+                      className="px-3 py-1.5 border border-[var(--editor-border-default)] text-sm rounded-lg hover:bg-[var(--editor-bg-panel)] transition-colors"
                     >
                       ביטול
                     </button>
@@ -1953,6 +1958,7 @@ export function ThemeEditor({
         </div>
       )}
     </div>
+    </EditorThemeProvider>
   );
 }
 

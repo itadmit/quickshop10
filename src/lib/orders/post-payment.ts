@@ -599,6 +599,12 @@ async function deductCustomerCredit(
 async function sendConfirmationEmail(params: PostPaymentParams): Promise<void> {
   const { storeId, storeSlug, storeName, order, cartItems, orderData, discountCode, discountAmount, paymentInfo } = params;
   
+  // Safety check - cartItems may be null/undefined from old pending payments
+  if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+    console.error('[PostPayment] Cannot send email - no cart items');
+    return;
+  }
+  
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shippingCost = orderData.shipping?.cost || 0;
   const creditUsed = orderData.creditUsed || 0;

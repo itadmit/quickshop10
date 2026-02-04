@@ -29,7 +29,7 @@ export function SettingsGroup({
       <button 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full text-xs font-medium text-gray-500 uppercase tracking-wide hover:text-gray-700"
+        className="flex items-center justify-between w-full text-xs font-medium text-[var(--editor-text-muted,#94a3b8)] uppercase tracking-wide hover:text-[var(--editor-text-secondary,#475569)]"
       >
         {title}
         <span className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}>▼</span>
@@ -55,12 +55,12 @@ export function CollapsibleGroup({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-t border-gray-100 pt-4">
+    <div className="border-t border-[var(--editor-border-subtle,#f1f5f9)] pt-4">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between py-1"
       >
-        <h4 className="text-sm font-medium text-gray-900">{title}</h4>
+        <h4 className="text-sm font-medium text-[var(--editor-text-primary,#0f172a)]">{title}</h4>
         <svg
           width="16"
           height="16"
@@ -68,7 +68,7 @@ export function CollapsibleGroup({
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className={`text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-[var(--editor-text-muted,#94a3b8)] transition-transform ${isOpen ? 'rotate-180' : ''}`}
         >
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -97,13 +97,13 @@ export function TextField({
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1.5">{label}</label>
       {multiline ? (
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm resize-none h-20 focus:outline-none focus:border-blue-500"
         />
       ) : (
         <input
@@ -111,7 +111,7 @@ export function TextField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-blue-500"
+          className="w-full px-3 py-2 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm focus:outline-none focus:border-blue-500"
         />
       )}
     </div>
@@ -139,16 +139,16 @@ export function TextAreaField({
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1.5">{label}</label>
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         rows={rows}
-        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
+        className="w-full px-3 py-2 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm resize-none focus:outline-none focus:border-blue-500"
       />
       {hint && (
-        <p className="text-xs text-gray-400 mt-1">{hint}</p>
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">{hint}</p>
       )}
     </div>
   );
@@ -171,11 +171,11 @@ export function SelectField({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
+      <label className="text-sm text-[var(--editor-text-secondary,#475569)]">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm bg-white focus:outline-none focus:border-blue-500"
+        className="px-3 py-1.5 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm bg-[var(--editor-bg-panel,#fff)] focus:outline-none focus:border-blue-500"
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -202,8 +202,8 @@ export function ToggleField({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
-      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+      <label className="text-sm text-[var(--editor-text-secondary,#475569)]">{label}</label>
+      <div className="flex border border-[var(--editor-border-default,#e2e8f0)] rounded-lg overflow-hidden">
         {options.map((opt) => (
           <button
             key={opt}
@@ -211,7 +211,7 @@ export function ToggleField({
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               value === opt 
                 ? 'bg-gray-900 text-white' 
-                : 'bg-white text-gray-600 hover:bg-gray-50'
+                : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
             }`}
           >
             {opt}
@@ -240,9 +240,9 @@ export function SwitchField({
   return (
     <div className="flex items-start justify-between">
       <div>
-        <label className="text-sm text-gray-700">{label}</label>
+        <label className="text-sm text-[var(--editor-text-secondary,#475569)]">{label}</label>
         {description && (
-          <p className="text-xs text-gray-400 mt-0.5">{description}</p>
+          <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-0.5">{description}</p>
         )}
       </div>
       <button
@@ -252,7 +252,7 @@ export function SwitchField({
         }`}
       >
         <div
-          className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${
+          className={`absolute top-1 w-4 h-4 bg-[var(--editor-bg-panel,#fff)] rounded-full shadow-sm transition-transform ${
             value ? 'right-1' : 'left-1'
           }`}
         />
@@ -284,7 +284,7 @@ export function SliderField({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <label className="text-sm text-gray-700 shrink-0">{label}</label>
+      <label className="text-sm text-[var(--editor-text-secondary,#475569)] shrink-0">{label}</label>
       <div className="flex items-center gap-3 flex-1">
         <input
           type="range"
@@ -304,10 +304,10 @@ export function SliderField({
             step={step}
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
-            className="w-12 px-2 py-1 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-blue-500"
+            className="w-12 px-2 py-1 border border-[var(--editor-border-default,#e2e8f0)] rounded text-sm text-center focus:outline-none focus:border-blue-500"
             dir="ltr"
           />
-          {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
+          {suffix && <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">{suffix}</span>}
         </div>
       </div>
     </div>
@@ -333,15 +333,15 @@ export function ColorField({
   
   return (
     <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
+      <label className="text-sm text-[var(--editor-text-secondary,#475569)]">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="color"
           value={displayValue}
           onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded border border-gray-200 cursor-pointer"
+          className="w-8 h-8 rounded border border-[var(--editor-border-default,#e2e8f0)] cursor-pointer"
         />
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
           {labelValue}
         </span>
       </div>
@@ -370,7 +370,7 @@ export function NumberField({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
+      <label className="text-sm text-[var(--editor-text-secondary,#475569)]">{label}</label>
       <div className="flex items-center gap-2">
         <input
           type="number"
@@ -378,10 +378,10 @@ export function NumberField({
           onChange={(e) => onChange(Number(e.target.value))}
           min={min}
           max={max}
-          className="w-20 px-2 py-1 border border-gray-200 rounded text-sm text-center focus:outline-none focus:border-blue-500"
+          className="w-20 px-2 py-1 border border-[var(--editor-border-default,#e2e8f0)] rounded text-sm text-center focus:outline-none focus:border-blue-500"
           dir="ltr"
         />
-        {suffix && <span className="text-xs text-gray-400">{suffix}</span>}
+        {suffix && <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">{suffix}</span>}
       </div>
     </div>
   );
@@ -406,19 +406,19 @@ export function ImageField({
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1.5">{label}</label>
       {value ? (
         <div className="relative group">
           <img 
             src={value} 
             alt={label}
-            className="w-full h-32 object-cover rounded-lg border border-gray-200"
+            className="w-full h-32 object-cover rounded-lg border border-[var(--editor-border-default,#e2e8f0)]"
           />
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
             {onPickerOpen && (
               <button
                 onClick={onPickerOpen}
-                className="px-3 py-1.5 bg-white text-gray-900 rounded text-xs font-medium hover:bg-gray-100"
+                className="px-3 py-1.5 bg-[var(--editor-bg-panel,#fff)] text-[var(--editor-text-primary,#0f172a)] rounded text-xs font-medium hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]"
               >
                 החלף
               </button>
@@ -436,12 +436,12 @@ export function ImageField({
       ) : (
         <button
           onClick={onPickerOpen}
-          className="w-full h-32 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center gap-2 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+          className="w-full h-32 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg flex flex-col items-center justify-center gap-2 hover:border-[var(--editor-border-default,#e2e8f0)] hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] transition-colors"
         >
-          <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-8 h-8 text-[var(--editor-text-muted,#94a3b8)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span className="text-xs text-gray-500">בחר תמונה</span>
+          <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">בחר תמונה</span>
         </button>
       )}
     </div>
@@ -467,7 +467,7 @@ export function UrlField({
   
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1.5">{label}</label>
       <div className="relative">
         <input
           type="text"
@@ -476,7 +476,7 @@ export function UrlField({
           placeholder={placeholder}
           className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none ${
             isValidUrl 
-              ? 'border-gray-200 focus:border-blue-500' 
+              ? 'border-[var(--editor-border-default,#e2e8f0)] focus:border-blue-500' 
               : 'border-red-300 focus:border-red-500'
           }`}
           dir="ltr"
@@ -510,7 +510,7 @@ export function IconSelectField({
 }) {
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-2">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-2">{label}</label>
       <div className="grid grid-cols-4 gap-2">
         {options.map((opt) => (
           <button
@@ -519,7 +519,7 @@ export function IconSelectField({
             className={`p-2 rounded-lg border text-center transition-colors ${
               value === opt.value
                 ? 'border-blue-500 bg-blue-50 text-blue-600'
-                : 'border-gray-200 hover:border-gray-300 text-gray-600'
+                : 'border-[var(--editor-border-default,#e2e8f0)] hover:border-[var(--editor-border-default,#e2e8f0)] text-gray-600'
             }`}
             title={opt.label}
           >
@@ -546,12 +546,12 @@ export function AlignmentField({
 }) {
   return (
     <div className="flex items-center justify-between">
-      <label className="text-sm text-gray-700">{label}</label>
-      <div className="flex border border-gray-200 rounded-lg overflow-hidden">
+      <label className="text-sm text-[var(--editor-text-secondary,#475569)]">{label}</label>
+      <div className="flex border border-[var(--editor-border-default,#e2e8f0)] rounded-lg overflow-hidden">
         <button
           onClick={() => onChange('right')}
           className={`p-2 transition-colors ${
-            value === 'right' ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            value === 'right' ? 'bg-gray-900 text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
           }`}
           title="ימין"
         >
@@ -562,7 +562,7 @@ export function AlignmentField({
         <button
           onClick={() => onChange('center')}
           className={`p-2 transition-colors ${
-            value === 'center' ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            value === 'center' ? 'bg-gray-900 text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
           }`}
           title="מרכז"
         >
@@ -573,7 +573,7 @@ export function AlignmentField({
         <button
           onClick={() => onChange('left')}
           className={`p-2 transition-colors ${
-            value === 'left' ? 'bg-gray-900 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+            value === 'left' ? 'bg-gray-900 text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
           }`}
           title="שמאל"
         >
@@ -591,7 +591,7 @@ export function AlignmentField({
 // ============================================
 
 export function Divider() {
-  return <hr className="border-t border-gray-100 my-4" />;
+  return <hr className="border-t border-[var(--editor-border-subtle,#f1f5f9)] my-4" />;
 }
 
 // ============================================
@@ -606,10 +606,10 @@ export function SectionHeader({
   description?: string;
 }) {
   return (
-    <div className="pb-3 border-b border-gray-100 mb-4">
-      <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+    <div className="pb-3 border-b border-[var(--editor-border-subtle,#f1f5f9)] mb-4">
+      <h3 className="text-sm font-semibold text-[var(--editor-text-primary,#0f172a)]">{title}</h3>
       {description && (
-        <p className="text-xs text-gray-500 mt-1">{description}</p>
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">{description}</p>
       )}
     </div>
   );

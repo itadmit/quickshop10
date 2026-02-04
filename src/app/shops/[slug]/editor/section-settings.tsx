@@ -225,10 +225,10 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   // Special handling for global settings
   if (section.type === 'global-settings') {
     return (
-      <div className="flex flex-col h-full" dir="rtl">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">הגדרות כלליות</h3>
-          <p className="text-xs text-gray-500 mt-1">הגדרות שמשפיעות על כל האתר</p>
+      <div className="flex flex-col h-full bg-[var(--editor-bg-panel,#fff)] text-[var(--editor-text-primary,#0f172a)]" dir="rtl">
+        <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">הגדרות כלליות</h3>
+          <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">הגדרות שמשפיעות על כל האתר</p>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-6">
@@ -236,35 +236,35 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
           <SettingsGroup title="SEO">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">כותרת האתר (Tagline)</label>
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary,#475569)] mb-2">כותרת האתר (Tagline)</label>
                 <input
                   type="text"
                   value={settings.siteTitle || ''}
                   onChange={(e) => updateSettings({ siteTitle: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-[var(--editor-border-default,#e2e8f0)] rounded-lg px-3 py-2 text-sm"
                   placeholder="לדוגמה: אופנה בסגנון"
                   maxLength={60}
                   dir="rtl"
                 />
                 <div className="flex justify-between mt-1">
-                  <p className="text-xs text-gray-500">יופיע בטאב הדפדפן</p>
-                  <span className="text-xs text-gray-400">{(settings.siteTitle as string || '').length}/60</span>
+                  <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">יופיע בטאב הדפדפן</p>
+                  <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">{(settings.siteTitle as string || '').length}/60</span>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">תיאור האתר</label>
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary,#475569)] mb-2">תיאור האתר</label>
                 <textarea
                   value={settings.siteDescription || ''}
                   onChange={(e) => updateSettings({ siteDescription: e.target.value })}
                   rows={3}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none"
+                  className="w-full border border-[var(--editor-border-default,#e2e8f0)] rounded-lg px-3 py-2 text-sm resize-none"
                   placeholder="תיאור קצר לתוצאות החיפוש"
                   maxLength={160}
                   dir="rtl"
                 />
                 <div className="flex justify-between mt-1">
-                  <p className="text-xs text-gray-500">מומלץ 120-160 תווים</p>
-                  <span className="text-xs text-gray-400">{(settings.siteDescription as string || '').length}/160</span>
+                  <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">מומלץ 120-160 תווים</p>
+                  <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">{(settings.siteDescription as string || '').length}/160</span>
                 </div>
               </div>
             </div>
@@ -274,11 +274,11 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
           <SettingsGroup title="טיפוגרפיה">
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">פונט כותרות</label>
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary,#475569)] mb-2">פונט כותרות</label>
                 <select
                   value={settings.headingFont || 'Noto Sans Hebrew'}
                   onChange={(e) => updateSettings({ headingFont: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-[var(--editor-border-default,#e2e8f0)] rounded-lg px-3 py-2 text-sm"
                 >
                   <option value="Noto Sans Hebrew">Noto Sans Hebrew</option>
                   <option value="Noto Rashi Hebrew">Noto Rashi Hebrew</option>
@@ -292,14 +292,14 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                   <option value="IBM Plex Sans Hebrew">IBM Plex Sans Hebrew</option>
                   <option value="Pacifico">Pacifico (לוגו/דקורטיבי)</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">פונט לכותרות ותפריטים</p>
+                <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">פונט לכותרות ותפריטים</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">פונט גוף טקסט</label>
+                <label className="block text-sm font-medium text-[var(--editor-text-secondary,#475569)] mb-2">פונט גוף טקסט</label>
                 <select
                   value={settings.bodyFont || 'Assistant'}
                   onChange={(e) => updateSettings({ bodyFont: e.target.value })}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                  className="w-full border border-[var(--editor-border-default,#e2e8f0)] rounded-lg px-3 py-2 text-sm"
                 >
                   <option value="Assistant">Assistant</option>
                   <option value="Noto Sans Hebrew">Noto Sans Hebrew</option>
@@ -312,14 +312,14 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                   <option value="Varela Round">Varela Round</option>
                   <option value="IBM Plex Sans Hebrew">IBM Plex Sans Hebrew</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-1">פונט לתוכן וטקסט רגיל</p>
+                <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">פונט לתוכן וטקסט רגיל</p>
               </div>
             </div>
           </SettingsGroup>
           
           {/* Template Selection - Coming Soon */}
           {/* <SettingsGroup title="תבנית">
-            <p className="text-xs text-gray-500">בחירת תבנית תהיה זמינה בקרוב</p>
+            <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">בחירת תבנית תהיה זמינה בקרוב</p>
           </SettingsGroup> */}
         </div>
       </div>
@@ -330,8 +330,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   if (section.type === 'header') {
     return (
       <div className="flex flex-col h-full" dir="rtl">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">הגדרות הדר</h3>
+        <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">הגדרות הדר</h3>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-6">
@@ -365,9 +365,9 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
           {/* Navigation Mode */}
           <SettingsGroup title="ניווט">
             <div className="space-y-3">
-              <p className="text-xs text-gray-500">בחרו מה יוצג בתפריט הראשי</p>
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">בחרו מה יוצג בתפריט הראשי</p>
               <div className="space-y-2">
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] transition-colors" style={{
                   borderColor: (settings.headerNavigationMode || 'menu') === 'menu' ? '#000' : '#e5e7eb',
                   backgroundColor: (settings.headerNavigationMode || 'menu') === 'menu' ? '#f9fafb' : 'transparent'
                 }}>
@@ -379,11 +379,11 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                     className="w-4 h-4"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">תפריט מותאם</p>
-                    <p className="text-xs text-gray-500">הצג את התפריט שנוצר בניהול ניווט</p>
+                    <p className="text-sm font-medium text-[var(--editor-text-primary,#0f172a)]">תפריט מותאם</p>
+                    <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">הצג את התפריט שנוצר בניהול ניווט</p>
                   </div>
                 </label>
-                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] transition-colors" style={{
                   borderColor: settings.headerNavigationMode === 'categories' ? '#000' : '#e5e7eb',
                   backgroundColor: settings.headerNavigationMode === 'categories' ? '#f9fafb' : 'transparent'
                 }}>
@@ -395,8 +395,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                     className="w-4 h-4"
                   />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">כל הקטגוריות</p>
-                    <p className="text-xs text-gray-500">הצג את כל הקטגוריות אוטומטית</p>
+                    <p className="text-sm font-medium text-[var(--editor-text-primary,#0f172a)]">כל הקטגוריות</p>
+                    <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">הצג את כל הקטגוריות אוטומטית</p>
                   </div>
                 </label>
               </div>
@@ -414,9 +414,9 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
             
             {settings.mobileMenuShowImages && (
               <div className="space-y-3 mt-3">
-                <p className="text-xs text-gray-500">סגנון תמונות</p>
+                <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">סגנון תמונות</p>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] transition-colors" style={{
                     borderColor: (settings.mobileMenuImageStyle || 'square') === 'square' ? '#000' : '#e5e7eb',
                     backgroundColor: (settings.mobileMenuImageStyle || 'square') === 'square' ? '#f9fafb' : 'transparent'
                   }}>
@@ -428,11 +428,11 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                       className="w-4 h-4"
                     />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">תמונה ריבועית</p>
-                      <p className="text-xs text-gray-500">תמונה קטנה עם כיתוב לידה</p>
+                      <p className="text-sm font-medium text-[var(--editor-text-primary,#0f172a)]">תמונה ריבועית</p>
+                      <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">תמונה קטנה עם כיתוב לידה</p>
                     </div>
                   </label>
-                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-gray-50 transition-colors" style={{
+                  <label className="flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] transition-colors" style={{
                     borderColor: settings.mobileMenuImageStyle === 'fullRow' ? '#000' : '#e5e7eb',
                     backgroundColor: settings.mobileMenuImageStyle === 'fullRow' ? '#f9fafb' : 'transparent'
                   }}>
@@ -444,8 +444,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                       className="w-4 h-4"
                     />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">תמונה ברוחב מלא</p>
-                      <p className="text-xs text-gray-500">תמונה על כל השורה עם כיתוב עליה</p>
+                      <p className="text-sm font-medium text-[var(--editor-text-primary,#0f172a)]">תמונה ברוחב מלא</p>
+                      <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">תמונה על כל השורה עם כיתוב עליה</p>
                     </div>
                   </label>
                 </div>
@@ -518,8 +518,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   if (section.type === 'announcement-bar') {
     return (
       <div className="flex flex-col h-full" dir="rtl">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">פס הודעות</h3>
+        <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">פס הודעות</h3>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-6">
@@ -558,26 +558,26 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
                 {settings.announcementCountdownEnabled && (
                   <div className="space-y-3 mt-3">
                     <div>
-                      <label className="block text-sm text-gray-700 mb-1">תאריך יעד</label>
+                      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1">תאריך יעד</label>
                       <input
                         type="date"
                         value={settings.announcementCountdownDate || ''}
                         onChange={(e) => updateSettings({ announcementCountdownDate: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        className="w-full px-3 py-2 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                         dir="ltr"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-gray-700 mb-1">שעה</label>
+                      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1">שעה</label>
                       <input
                         type="time"
                         value={settings.announcementCountdownTime || '00:00'}
                         onChange={(e) => updateSettings({ announcementCountdownTime: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
+                        className="w-full px-3 py-2 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-black/10"
                         dir="ltr"
                       />
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
                       הטיימר יופיע ליד ההודעה ויספור לאחור עד לתאריך והשעה שנבחרו
                     </p>
                   </div>
@@ -607,8 +607,8 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   if (section.type === 'footer') {
     return (
       <div className="flex flex-col h-full" dir="rtl">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">הגדרות פוטר</h3>
+        <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">הגדרות פוטר</h3>
         </div>
 
         <div className="flex-1 overflow-auto p-4 space-y-6">
@@ -798,20 +798,20 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   return (
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header with tabs */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-900">{getSectionTitle()}</h3>
-          <button className="p-1 hover:bg-gray-100 rounded">
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">{getSectionTitle()}</h3>
+          <button className="p-1 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded">
             <MoreIcon />
           </button>
         </div>
         
         {/* Tab Switcher */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+        <div className="flex items-center gap-1 bg-[var(--editor-bg-tertiary,#f1f5f9)] p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('content')}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              activeTab === 'content' ? 'bg-white shadow-sm' : 'text-gray-600'
+              activeTab === 'content' ? 'bg-[var(--editor-bg-panel,#fff)] shadow-sm' : 'text-[var(--editor-text-secondary,#475569)]'
             }`}
           >
             תוכן
@@ -819,7 +819,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
           <button
             onClick={() => setActiveTab('design')}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              activeTab === 'design' ? 'bg-white shadow-sm' : 'text-gray-600'
+              activeTab === 'design' ? 'bg-[var(--editor-bg-panel,#fff)] shadow-sm' : 'text-[var(--editor-text-secondary,#475569)]'
             }`}
           >
             עיצוב
@@ -837,7 +837,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
       </div>
 
       {/* Remove Section */}
-      <div className="p-4 border-t border-gray-200">
+      <div className="p-4 border-t border-[var(--editor-border-default,#e2e8f0)]">
         <button
           onClick={onRemove}
           className="w-full flex items-center justify-center gap-2 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -2137,7 +2137,7 @@ function DesignSettings({
         {isSlider && (
           <SettingsGroup title="הגדרות סליידר">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">הצג חצים</span>
+              <span className="text-sm text-[var(--editor-text-secondary,#475569)]">הצג חצים</span>
               <input
                 type="checkbox"
                 checked={(section.settings.showArrows as boolean) !== false}
@@ -2146,7 +2146,7 @@ function DesignSettings({
               />
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">הצג נקודות</span>
+              <span className="text-sm text-[var(--editor-text-secondary,#475569)]">הצג נקודות</span>
               <input
                 type="checkbox"
                 checked={(section.settings.showDots as boolean) !== false}
@@ -2175,7 +2175,7 @@ function DesignSettings({
               onChange={(v) => updateSettings('dotsStyle', v)}
             />
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-700">הפעלה אוטומטית</span>
+              <span className="text-sm text-[var(--editor-text-secondary,#475569)]">הפעלה אוטומטית</span>
               <input
                 type="checkbox"
                 checked={(section.settings.autoplay as boolean) || false}
@@ -2307,7 +2307,7 @@ function DesignSettings({
 
         <SettingsGroup title="הגדרות סליידר">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700">הצג חצים</span>
+            <span className="text-sm text-[var(--editor-text-secondary,#475569)]">הצג חצים</span>
             <input
               type="checkbox"
               checked={(section.settings.showArrows as boolean) !== false}
@@ -2316,7 +2316,7 @@ function DesignSettings({
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700">הצג נקודות</span>
+            <span className="text-sm text-[var(--editor-text-secondary,#475569)]">הצג נקודות</span>
             <input
               type="checkbox"
               checked={(section.settings.showDots as boolean) !== false}
@@ -2325,7 +2325,7 @@ function DesignSettings({
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-700">הפעלה אוטומטית</span>
+            <span className="text-sm text-[var(--editor-text-secondary,#475569)]">הפעלה אוטומטית</span>
             <input
               type="checkbox"
               checked={(section.settings.autoplay as boolean) || false}
@@ -3303,13 +3303,13 @@ function DesignSettings({
 
       {/* Custom CSS */}
       <CollapsibleGroup title="CSS מותאם">
-        <p className="text-xs text-gray-500 mb-2">
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-2">
           הוסף סגנונות מותאמים <strong>לסקשן זה בלבד</strong>.
         </p>
         <textarea
           value={(section.settings.customCss as string) || ''}
           onChange={(e) => updateSettings('customCss', e.target.value)}
-          className="w-full h-24 p-3 text-xs font-mono bg-gray-50 border border-gray-200 rounded-lg resize-none focus:outline-none focus:border-blue-500"
+          className="w-full h-24 p-3 text-xs font-mono bg-[var(--editor-bg-tertiary,#f1f5f9)] border border-[var(--editor-border-default,#e2e8f0)] rounded-lg resize-none focus:outline-none focus:border-blue-500"
           placeholder="h2 {
   font-size: 32px;
 }"
@@ -3407,34 +3407,34 @@ function CategoriesContentSettings({
           >
             בחר הכל
           </button>
-          <span className="text-gray-300">|</span>
+          <span className="text-[var(--editor-text-muted,#94a3b8)]">|</span>
           <button 
             onClick={clearAll}
             className="text-blue-600 hover:underline"
           >
             נקה הכל
           </button>
-          <span className="text-gray-400 mr-auto">
+          <span className="text-[var(--editor-text-muted,#94a3b8)] mr-auto">
             {selectedIds.length} נבחרו
           </span>
         </div>
 
         {/* Category list with checkboxes */}
-        <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg p-2 space-y-1">
+        <div className="max-h-64 overflow-y-auto border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 space-y-1">
           {categories.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-4">
+            <p className="text-sm text-[var(--editor-text-muted,#94a3b8)] text-center py-4">
               אין קטגוריות. הוסף קטגוריות בניהול החנות.
             </p>
           ) : (
             mainCategories.map(category => (
               <div key={category.id}>
                 {/* Main category */}
-                <label className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                <label className="flex items-center gap-2 p-2 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded cursor-pointer">
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(category.id)}
                     onChange={() => toggleCategory(category.id)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-[var(--editor-border-default,#e2e8f0)] text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium">{category.name}</span>
                 </label>
@@ -3443,15 +3443,15 @@ function CategoriesContentSettings({
                 {getSubcategories(category.id).map(sub => (
                   <label 
                     key={sub.id} 
-                    className="flex items-center gap-2 p-2 pr-8 hover:bg-gray-50 rounded cursor-pointer"
+                    className="flex items-center gap-2 p-2 pr-8 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded cursor-pointer"
                   >
                     <input
                       type="checkbox"
                       checked={selectedIds.includes(sub.id)}
                       onChange={() => toggleCategory(sub.id)}
-                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      className="w-4 h-4 rounded border-[var(--editor-border-default,#e2e8f0)] text-blue-600 focus:ring-blue-500"
                     />
-                    <span className="text-sm text-gray-600">{sub.name}</span>
+                    <span className="text-sm text-[var(--editor-text-secondary,#475569)]">{sub.name}</span>
                   </label>
                 ))}
               </div>
@@ -3459,7 +3459,7 @@ function CategoriesContentSettings({
           )}
         </div>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
           {selectedIds.length === 0 
             ? 'אם לא נבחרו קטגוריות, יוצגו כל הקטגוריות'
             : 'רק הקטגוריות שנבחרו יוצגו'}
@@ -3647,7 +3647,7 @@ function ProductsContentSettings({
         />
           {isLoadingCategory && (
             <div className="absolute left-3 top-1/2 -translate-y-1/2">
-              <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-[var(--editor-border-default,#e2e8f0)] border-t-black rounded-full animate-spin" />
             </div>
           )}
         </div>
@@ -3656,7 +3656,7 @@ function ProductsContentSettings({
       {/* Product picker */}
       {selectedType === 'specific' && (
         <div className="space-y-3">
-          <label className="block text-xs font-medium text-gray-600">
+          <label className="block text-xs font-medium text-[var(--editor-text-secondary,#475569)]">
             בחר מוצרים
           </label>
           
@@ -3668,23 +3668,23 @@ function ProductsContentSettings({
               onChange={(e) => setSearchTerm(e.target.value)}
               onFocus={() => setShowResults(true)}
               placeholder="חפש מוצרים..."
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-black/5 focus:border-black"
+              className="w-full px-3 py-2 border border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm focus:ring-2 focus:ring-black/5 focus:border-black"
             />
             {isSearching && (
               <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-[var(--editor-border-default,#e2e8f0)] border-t-black rounded-full animate-spin" />
               </div>
             )}
             
             {/* Search results dropdown */}
             {showResults && searchResults.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-50 w-full mt-1 bg-[var(--editor-bg-panel,#fff)] border border-[var(--editor-border-default,#e2e8f0)] rounded-lg shadow-lg max-h-60 overflow-auto">
                 {searchResults.map(product => (
                   <button
                     key={product.id}
                     type="button"
                     onClick={() => addProduct(product)}
-                    className="w-full px-3 py-2 text-right text-sm hover:bg-gray-50 flex items-center gap-2"
+                    className="w-full px-3 py-2 text-right text-sm hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] flex items-center gap-2"
                   >
                     {product.imageUrl && (
                       <img 
@@ -3706,7 +3706,7 @@ function ProductsContentSettings({
               {selectedProducts.map(product => (
                 <div 
                   key={product.id}
-                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg"
+                  className="flex items-center gap-2 p-2 bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded-lg"
                 >
                   {product.imageUrl && (
                     <img 
@@ -3719,7 +3719,7 @@ function ProductsContentSettings({
                   <button
                     type="button"
                     onClick={() => removeProduct(product.id)}
-                    className="p-1 text-gray-400 hover:text-red-500"
+                    className="p-1 text-[var(--editor-text-muted,#94a3b8)] hover:text-red-500"
                   >
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -3731,7 +3731,7 @@ function ProductsContentSettings({
           )}
           
           {selectedProducts.length === 0 && (
-            <p className="text-xs text-gray-400 text-center py-4">
+            <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] text-center py-4">
               חפש והוסף מוצרים לתצוגה
             </p>
           )}
@@ -3996,9 +3996,9 @@ function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpd
       <SettingsGroup title="ביקורות">
         <div className="space-y-3">
           {reviews.map((review, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+            <div key={index} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">ביקורת {index + 1}</span>
+                <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">ביקורת {index + 1}</span>
                 <button
                   onClick={() => removeReview(index)}
                   className="p-1 hover:bg-red-100 text-red-600 rounded"
@@ -4011,21 +4011,21 @@ function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpd
                 type="text"
                 value={review.author || review.name || ''}
                 onChange={(e) => updateReview(index, 'author', e.target.value)}
-                className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
+                className="w-full text-sm font-medium border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1"
                 placeholder="שם"
               />
               <textarea
                 value={review.text}
                 onChange={(e) => updateReview(index, 'text', e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1 min-h-[60px]"
+                className="w-full text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1 min-h-[60px]"
                 placeholder="טקסט הביקורת"
               />
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">דירוג:</span>
+                <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">דירוג:</span>
                 <select
                   value={review.rating}
                   onChange={(e) => updateReview(index, 'rating', parseInt(e.target.value))}
-                  className="text-sm border border-gray-200 rounded px-2 py-1"
+                  className="text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1"
                 >
                   {[5, 4, 3, 2, 1].map(n => (
                     <option key={n} value={n}>{'⭐'.repeat(n)}</option>
@@ -4036,7 +4036,7 @@ function ReviewsContentSettings({ section, onUpdate }: { section: Section; onUpd
           ))}
           <button
             onClick={addReview}
-            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+            className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-muted,#94a3b8)] hover:border-[var(--editor-border-hover,#cbd5e1)] hover:text-[var(--editor-text-secondary,#475569)]"
           >
             + הוסף ביקורת
           </button>
@@ -4148,15 +4148,15 @@ function GoogleReviewsContentSettings({ section, onUpdate, storeInfo }: { sectio
             <button
               onClick={handleConnect}
               disabled={isConnecting}
-              className="w-full flex items-center justify-center gap-3 py-4 px-4 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-3 py-4 px-4 bg-[var(--editor-bg-panel,#fff)] border-2 border-[var(--editor-border-default,#e2e8f0)] rounded-lg hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] hover:border-[var(--editor-border-default,#e2e8f0)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isConnecting ? (
                 <>
-                  <svg className="animate-spin w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin w-5 h-5 text-[var(--editor-text-muted,#94a3b8)]" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  <span className="font-medium text-gray-500">מתחבר...</span>
+                  <span className="font-medium text-[var(--editor-text-muted,#94a3b8)]">מתחבר...</span>
                 </>
               ) : (
                 <>
@@ -4166,7 +4166,7 @@ function GoogleReviewsContentSettings({ section, onUpdate, storeInfo }: { sectio
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              <span className="font-medium text-gray-700">התחבר לגוגל ביזנס</span>
+              <span className="font-medium text-[var(--editor-text-secondary,#475569)]">התחבר לגוגל ביזנס</span>
                 </>
               )}
             </button>
@@ -4290,7 +4290,7 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
   // Render icon SVG by name
   const renderIcon = (iconName: string, size = 20) => {
     const iconData = FEATURE_ICONS.find(i => i.value === iconName);
-    if (!iconData) return <span className="text-gray-400">?</span>;
+    if (!iconData) return <span className="text-[var(--editor-text-muted,#94a3b8)]">?</span>;
     return (
       <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d={iconData.icon} />
@@ -4303,14 +4303,14 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
       <SettingsGroup title="חוזקות">
         <div className="space-y-3">
           {features.map((feature, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+            <div key={index} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+                <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">חוזקה {index + 1}</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => moveFeature(index, 'up')}
                     disabled={index === 0}
-                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    className="p-1 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30"
                     title="הזז למעלה"
                   >
                     ↑
@@ -4318,7 +4318,7 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
                   <button
                     onClick={() => moveFeature(index, 'down')}
                     disabled={index === features.length - 1}
-                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    className="p-1 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30"
                     title="הזז למטה"
                   >
                     ↓
@@ -4335,15 +4335,15 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
               
               {/* Icon Selector */}
               <div className="flex gap-2 items-center">
-                <label className="text-xs text-gray-500 w-12">אייקון</label>
+                <label className="text-xs text-[var(--editor-text-muted,#94a3b8)] w-12">אייקון</label>
                 <div className="flex-1 flex items-center gap-2">
-                  <div className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded bg-gray-50">
+                  <div className="w-8 h-8 flex items-center justify-center border border-[var(--editor-border-default,#e2e8f0)] rounded bg-[var(--editor-bg-tertiary,#f1f5f9)]">
                     {renderIcon(feature.icon, 18)}
                   </div>
                   <select
                     value={feature.icon}
                     onChange={(e) => updateFeature(index, 'icon', e.target.value)}
-                    className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5 bg-white"
+                    className="flex-1 text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1.5 bg-[var(--editor-bg-panel,#fff)]"
                   >
                     {FEATURE_ICONS.map((icon) => (
                       <option key={icon.value} value={icon.value}>
@@ -4356,24 +4356,24 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
               
               {/* Title */}
               <div className="flex gap-2 items-center">
-                <label className="text-xs text-gray-500 w-12">כותרת</label>
+                <label className="text-xs text-[var(--editor-text-muted,#94a3b8)] w-12">כותרת</label>
                 <input
                   type="text"
                   value={feature.title}
                   onChange={(e) => updateFeature(index, 'title', e.target.value)}
-                  className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5"
+                  className="flex-1 text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1.5"
                   placeholder="כותרת החוזקה"
                 />
               </div>
               
               {/* Description */}
               <div className="flex gap-2 items-center">
-                <label className="text-xs text-gray-500 w-12">תיאור</label>
+                <label className="text-xs text-[var(--editor-text-muted,#94a3b8)] w-12">תיאור</label>
                 <input
                   type="text"
                   value={feature.description}
                   onChange={(e) => updateFeature(index, 'description', e.target.value)}
-                  className="flex-1 text-sm border border-gray-200 rounded px-2 py-1.5"
+                  className="flex-1 text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1.5"
                   placeholder="תיאור קצר"
                 />
               </div>
@@ -4381,7 +4381,7 @@ function FeaturesContentSettings({ section, onUpdate }: { section: Section; onUp
           ))}
           <button
             onClick={addFeature}
-            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+            className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-muted,#94a3b8)] hover:border-[var(--editor-border-hover,#cbd5e1)] hover:text-[var(--editor-text-secondary,#475569)]"
           >
             + הוסף חוזקה
           </button>
@@ -4464,13 +4464,13 @@ function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Sec
       <SettingsGroup title="תמונות גלריה">
         <div className="space-y-3">
           {images.map((image, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2">
+            <div key={index} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 space-y-2">
               <div className="flex items-start gap-2">
-                <div className="w-16 h-16 bg-gray-100 rounded overflow-hidden shrink-0">
+                <div className="w-16 h-16 bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded overflow-hidden shrink-0">
                   {image.url ? (
                     <img src={image.url} alt="" className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400">📷</div>
+                    <div className="w-full h-full flex items-center justify-center text-[var(--editor-text-muted,#94a3b8)]">📷</div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -4478,7 +4478,7 @@ function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Sec
                     type="text"
                     value={image.alt || ''}
                     onChange={(e) => updateImageAlt(index, e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+                    className="w-full text-xs border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1"
                     placeholder="טקסט חלופי (alt)"
                   />
                 </div>
@@ -4486,14 +4486,14 @@ function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Sec
                   <button
                     onClick={() => moveImage(index, 'up')}
                     disabled={index === 0}
-                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                    className="p-0.5 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30 text-xs"
                   >
                     ↑
                   </button>
                   <button
                     onClick={() => moveImage(index, 'down')}
                     disabled={index === images.length - 1}
-                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                    className="p-0.5 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30 text-xs"
                   >
                     ↓
                   </button>
@@ -4509,7 +4509,7 @@ function GalleryContentSettings({ section, onUpdate, storeInfo }: { section: Sec
           ))}
           <button
             onClick={() => setShowMediaPicker(true)}
-            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+            className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-muted,#94a3b8)] hover:border-[var(--editor-border-hover,#cbd5e1)] hover:text-[var(--editor-text-secondary,#475569)]"
           >
             + הוסף תמונה
           </button>
@@ -4561,7 +4561,7 @@ function TextBlockContentSettings({ section, onUpdate, metafields = [] }: { sect
       <SettingsGroup title="תוכן">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-medium text-gray-600">טקסט</label>
+            <label className="text-xs font-medium text-[var(--editor-text-secondary,#475569)]">טקסט</label>
             <DynamicSourceButton 
               onSelect={(v) => handleInsertDynamic(`{{${v.path}}}`)}
               categories={['product', 'store', 'custom']}
@@ -4642,13 +4642,13 @@ function LogosContentSettings({ section, onUpdate, storeInfo }: { section: Secti
       <SettingsGroup title="לוגואים">
         <div className="space-y-3">
           {logos.map((logo, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-2 space-y-2">
+            <div key={index} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 space-y-2">
               <div className="flex items-start gap-2">
-                <div className="w-12 h-12 bg-gray-100 rounded overflow-hidden shrink-0 flex items-center justify-center">
+                <div className="w-12 h-12 bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded overflow-hidden shrink-0 flex items-center justify-center">
                   {logo.url ? (
                     <img src={logo.url} alt="" className="max-w-full max-h-full object-contain" />
                   ) : (
-                    <span className="text-gray-400 text-xs">לוגו</span>
+                    <span className="text-[var(--editor-text-muted,#94a3b8)] text-xs">לוגו</span>
                   )}
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
@@ -4656,14 +4656,14 @@ function LogosContentSettings({ section, onUpdate, storeInfo }: { section: Secti
                     type="text"
                     value={logo.name || ''}
                     onChange={(e) => updateLogo(index, 'name', e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+                    className="w-full text-xs border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1"
                     placeholder="שם (אופציונלי)"
                   />
                   <input
                     type="text"
                     value={logo.link || ''}
                     onChange={(e) => updateLogo(index, 'link', e.target.value)}
-                    className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+                    className="w-full text-xs border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1"
                     placeholder="קישור (אופציונלי)"
                   />
                 </div>
@@ -4671,14 +4671,14 @@ function LogosContentSettings({ section, onUpdate, storeInfo }: { section: Secti
                   <button
                     onClick={() => moveLogo(index, 'up')}
                     disabled={index === 0}
-                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                    className="p-0.5 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30 text-xs"
                   >
                     ↑
                   </button>
                   <button
                     onClick={() => moveLogo(index, 'down')}
                     disabled={index === logos.length - 1}
-                    className="p-0.5 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                    className="p-0.5 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30 text-xs"
                   >
                     ↓
                   </button>
@@ -4694,7 +4694,7 @@ function LogosContentSettings({ section, onUpdate, storeInfo }: { section: Secti
           ))}
           <button
             onClick={() => setShowMediaPicker(true)}
-            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+            className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-muted,#94a3b8)] hover:border-[var(--editor-border-hover,#cbd5e1)] hover:text-[var(--editor-text-secondary,#475569)]"
           >
             + הוסף לוגו
           </button>
@@ -4754,14 +4754,14 @@ function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate:
       <SettingsGroup title="שאלות ותשובות">
         <div className="space-y-3">
           {faqs.map((faq, index) => (
-            <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+            <div key={index} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">שאלה {index + 1}</span>
+                <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">שאלה {index + 1}</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => moveFaq(index, 'up')}
                     disabled={index === 0}
-                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    className="p-1 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30"
                     title="הזז למעלה"
                   >
                     ↑
@@ -4769,7 +4769,7 @@ function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate:
                   <button
                     onClick={() => moveFaq(index, 'down')}
                     disabled={index === faqs.length - 1}
-                    className="p-1 hover:bg-gray-100 rounded disabled:opacity-30"
+                    className="p-1 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded disabled:opacity-30"
                     title="הזז למטה"
                   >
                     ↓
@@ -4787,20 +4787,20 @@ function FAQContentSettings({ section, onUpdate }: { section: Section; onUpdate:
                 type="text"
                 value={faq.question}
                 onChange={(e) => updateFaq(index, 'question', e.target.value)}
-                className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
+                className="w-full text-sm font-medium border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1"
                 placeholder="שאלה"
               />
               <textarea
                 value={faq.answer}
                 onChange={(e) => updateFaq(index, 'answer', e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1 min-h-[60px]"
+                className="w-full text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded px-2 py-1 min-h-[60px]"
                 placeholder="תשובה"
               />
             </div>
           ))}
           <button
             onClick={addFaq}
-            className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+            className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-muted,#94a3b8)] hover:border-[var(--editor-border-hover,#cbd5e1)] hover:text-[var(--editor-text-secondary,#475569)]"
           >
             + הוסף שאלה
           </button>
@@ -4869,7 +4869,7 @@ function ContactContentSettings({ section, onUpdate }: { section: Section; onUpd
           onChange={(v) => updateContent('notificationEmail', v)}
           placeholder="הזינו אימייל לקבלת פניות (אופציונלי)"
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">
           אם ריק, ישלח לאימייל של החנות
         </p>
       </SettingsGroup>
@@ -4881,7 +4881,7 @@ function ContactContentSettings({ section, onUpdate }: { section: Section; onUpd
           onChange={(v) => updateContent('webhookUrl', v)}
           placeholder="https://..."
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">
           לחיבור ל-Zapier, Make או מערכות אחרות
         </p>
       </SettingsGroup>
@@ -5220,9 +5220,9 @@ function SeriesGridContentSettings({ section, onUpdate, storeInfo }: { section: 
       </SettingsGroup>
       
       {/* Items Editor */}
-      <div className="border-t border-gray-100 pt-4 mt-4">
+      <div className="border-t border-[var(--editor-border-subtle,#f1f5f9)] pt-4 mt-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">כרטיסים ({items.length})</h4>
+          <h4 className="text-xs font-medium text-[var(--editor-text-muted,#94a3b8)] uppercase tracking-wide">כרטיסים ({items.length})</h4>
           <button
             onClick={addItem}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -5505,9 +5505,9 @@ function FeaturedItemsContentSettings({ section, onUpdate, storeInfo }: { sectio
       </SettingsGroup>
       
       {/* Items Editor */}
-      <div className="border-t border-gray-100 pt-4 mt-4">
+      <div className="border-t border-[var(--editor-border-subtle,#f1f5f9)] pt-4 mt-4">
         <div className="flex items-center justify-between mb-3">
-          <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wide">פריטים ({items.length})</h4>
+          <h4 className="text-xs font-medium text-[var(--editor-text-muted,#94a3b8)] uppercase tracking-wide">פריטים ({items.length})</h4>
           <button
             onClick={addItem}
             className="text-xs text-blue-600 hover:text-blue-800 font-medium"
@@ -5594,26 +5594,26 @@ function ImageField({
 
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1.5">{label}</label>
       
       {value ? (
         <div className="relative group">
           <img
             src={value}
             alt=""
-            className="w-full h-32 object-cover rounded-lg border border-gray-200"
+            className="w-full h-32 object-cover rounded-lg border border-[var(--editor-border-default,#e2e8f0)]"
           />
           <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => setIsMediaPickerOpen(true)}
-              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              className="p-1.5 bg-[var(--editor-bg-panel,#fff)]/90 rounded shadow hover:bg-[var(--editor-bg-panel,#fff)]"
               title="החלף"
             >
               <EditIcon />
             </button>
             <button
               onClick={() => onChange('')}
-              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              className="p-1.5 bg-[var(--editor-bg-panel,#fff)]/90 rounded shadow hover:bg-[var(--editor-bg-panel,#fff)]"
               title="הסר"
             >
               <TrashIcon />
@@ -5623,14 +5623,14 @@ function ImageField({
       ) : (
         <button
           onClick={() => setIsMediaPickerOpen(true)}
-          className="w-full h-28 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors cursor-pointer"
+          className="w-full h-28 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg flex flex-col items-center justify-center hover:border-[var(--editor-border-default,#e2e8f0)] transition-colors cursor-pointer"
         >
           <UploadIcon />
-          <span className="text-xs text-gray-500 mt-2">בחר תמונה</span>
+          <span className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-2">בחר תמונה</span>
         </button>
       )}
       
-      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">{hint}</p>}
 
       {/* Media Picker Modal */}
       {storeId && storeSlug && (
@@ -5714,7 +5714,7 @@ function LogoUploadField({
 
   return (
     <div>
-      <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+      <label className="block text-sm text-[var(--editor-text-secondary,#475569)] mb-1.5">{label}</label>
       <input
         type="file"
         ref={fileInputRef}
@@ -5725,7 +5725,7 @@ function LogoUploadField({
       {value ? (
         <div className="relative group">
           <div 
-            className={`bg-gray-50 rounded-lg border border-gray-200 p-3 flex items-center justify-center ${
+            className={`bg-[var(--editor-bg-tertiary,#f1f5f9)] rounded-lg border border-[var(--editor-border-default,#e2e8f0)] p-3 flex items-center justify-center ${
               aspectRatio === '1:1' ? 'h-20' : 'h-24'
             }`}
           >
@@ -5740,14 +5740,14 @@ function LogoUploadField({
           <div className="absolute top-2 left-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              className="p-1.5 bg-[var(--editor-bg-panel,#fff)]/90 rounded shadow hover:bg-[var(--editor-bg-panel,#fff)]"
               title="החלף"
             >
               <EditIcon />
             </button>
             <button
               onClick={() => onChange('')}
-              className="p-1.5 bg-white/90 rounded shadow hover:bg-white"
+              className="p-1.5 bg-[var(--editor-bg-panel,#fff)]/90 rounded shadow hover:bg-[var(--editor-bg-panel,#fff)]"
               title="הסר"
             >
               <TrashIcon />
@@ -5758,20 +5758,20 @@ function LogoUploadField({
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="w-full h-20 border-2 border-dashed border-gray-200 rounded-lg flex flex-col items-center justify-center hover:border-gray-300 transition-colors cursor-pointer disabled:opacity-50"
+          className="w-full h-20 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg flex flex-col items-center justify-center hover:border-[var(--editor-border-default,#e2e8f0)] transition-colors cursor-pointer disabled:opacity-50"
         >
           {isUploading ? (
-            <div className="w-5 h-5 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-[var(--editor-border-default,#e2e8f0)] border-t-blue-500 rounded-full animate-spin" />
           ) : (
             <>
               <UploadIcon />
-              <span className="text-xs text-gray-500 mt-1">העלה {label.toLowerCase()}</span>
+              <span className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">העלה {label.toLowerCase()}</span>
             </>
           )}
         </button>
       )}
       {hint && (
-        <p className="text-xs text-gray-400 mt-1">{hint}</p>
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-1">{hint}</p>
       )}
     </div>
   );
@@ -5790,7 +5790,7 @@ function MoreIcon() {
 
 function EditIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-text-secondary,#475569)]">
       <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
@@ -5807,7 +5807,7 @@ function TrashIcon() {
 
 function UploadIcon() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--editor-text-muted,#94a3b8)]">
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" />
     </svg>
   );
@@ -5842,8 +5842,8 @@ function HeaderLayoutSettings({
   return (
     <div className="space-y-4">
       <div>
-        <h4 className="text-sm font-medium text-gray-900 mb-1">פריסת הדר</h4>
-        <p className="text-xs text-gray-500 mb-4">בחרו את סגנון פריסת ההדר לחנות שלכם</p>
+        <h4 className="text-sm font-medium text-[var(--editor-text-primary,#0f172a)] mb-1">פריסת הדר</h4>
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-4">בחרו את סגנון פריסת ההדר לחנות שלכם</p>
       </div>
       
       <div className="space-y-3">
@@ -5853,12 +5853,12 @@ function HeaderLayoutSettings({
             onClick={() => onLayoutChange(layout.id)}
             className={`w-full p-3 rounded-xl border-2 transition-all text-right ${
               currentLayout === layout.id
-                ? 'border-black bg-gray-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-black bg-[var(--editor-bg-tertiary,#f1f5f9)]'
+                : 'border-[var(--editor-border-default,#e2e8f0)] hover:border-[var(--editor-border-default,#e2e8f0)]'
             }`}
           >
             {/* Layout Preview */}
-            <div className={`bg-white rounded-lg border border-gray-100 p-2 mb-3 ${
+            <div className={`bg-[var(--editor-bg-panel,#fff)] rounded-lg border border-[var(--editor-border-subtle,#f1f5f9)] p-2 mb-3 ${
               currentLayout === layout.id ? 'ring-1 ring-black/10' : ''
             }`}>
               <HeaderLayoutPreview layout={layout.id} isSelected={currentLayout === layout.id} />
@@ -5869,7 +5869,7 @@ function HeaderLayoutSettings({
               <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 ${
                 currentLayout === layout.id 
                   ? 'border-black bg-black' 
-                  : 'border-gray-300'
+                  : 'border-[var(--editor-border-default,#e2e8f0)]'
               }`}>
                 {currentLayout === layout.id && (
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
@@ -5878,8 +5878,8 @@ function HeaderLayoutSettings({
                 )}
               </div>
               <div>
-                <p className="font-medium text-sm text-gray-900">{layout.title}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{layout.description}</p>
+                <p className="font-medium text-sm text-[var(--editor-text-primary,#0f172a)]">{layout.title}</p>
+                <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-0.5">{layout.description}</p>
               </div>
             </div>
           </button>
@@ -5891,8 +5891,8 @@ function HeaderLayoutSettings({
 
 // Header Layout Preview Component - shows visual representation
 function HeaderLayoutPreview({ layout, isSelected }: { layout: HeaderLayout; isSelected: boolean }) {
-  const dotColor = isSelected ? 'bg-gray-600' : 'bg-gray-300';
-  const barColor = isSelected ? 'bg-gray-800' : 'bg-gray-400';
+  const dotColor = isSelected ? 'bg-[var(--editor-text-secondary,#475569)]' : 'bg-[var(--editor-text-muted,#94a3b8)]';
+  const barColor = isSelected ? 'bg-[var(--editor-text-primary,#0f172a)]' : 'bg-[var(--editor-text-muted,#94a3b8)]';
   
   if (layout === 'logo-right') {
     // Logo right, menu center, icons left (RTL default)
@@ -5943,7 +5943,7 @@ function HeaderLayoutPreview({ layout, isSelected }: { layout: HeaderLayout; isS
           <div className={`w-2 h-2 ${dotColor} rounded-full`} />
         </div>
       </div>
-      <div className="flex justify-center gap-1 pt-1 border-t border-gray-100">
+      <div className="flex justify-center gap-1 pt-1 border-t border-[var(--editor-border-subtle,#f1f5f9)]">
         <div className={`w-4 h-1 ${dotColor} rounded`} />
         <div className={`w-4 h-1 ${dotColor} rounded`} />
         <div className={`w-4 h-1 ${dotColor} rounded`} />
@@ -6054,15 +6054,15 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
   return (
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="font-semibold text-gray-900 mb-3">הגדרות עמוד מוצר</h3>
+      <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
+        <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)] mb-3">הגדרות עמוד מוצר</h3>
         
         {/* Tab Switcher - No "סקשנים" tab, sections are in right sidebar */}
-        <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
+        <div className="flex items-center gap-1 bg-[var(--editor-bg-tertiary,#f1f5f9)] p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('gallery')}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              activeTab === 'gallery' ? 'bg-white shadow-sm' : 'text-gray-600'
+              activeTab === 'gallery' ? 'bg-[var(--editor-bg-panel,#fff)] shadow-sm' : 'text-[var(--editor-text-secondary,#475569)]'
             }`}
           >
             גלריה
@@ -6070,7 +6070,7 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
           <button
             onClick={() => setActiveTab('features')}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              activeTab === 'features' ? 'bg-white shadow-sm' : 'text-gray-600'
+              activeTab === 'features' ? 'bg-[var(--editor-bg-panel,#fff)] shadow-sm' : 'text-[var(--editor-text-secondary,#475569)]'
             }`}
           >
             חוזקות
@@ -6078,7 +6078,7 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
           <button
             onClick={() => setActiveTab('style')}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              activeTab === 'style' ? 'bg-white shadow-sm' : 'text-gray-600'
+              activeTab === 'style' ? 'bg-[var(--editor-bg-panel,#fff)] shadow-sm' : 'text-[var(--editor-text-secondary,#475569)]'
             }`}
           >
             עיצוב
@@ -6175,18 +6175,18 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
         {/* Features Tab */}
         {activeTab === 'features' && (
           <div className="space-y-4">
-            <p className="text-xs text-gray-500">ערוך את החוזקות המוצגות בעמוד המוצר</p>
+            <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">ערוך את החוזקות המוצגות בעמוד המוצר</p>
             
             <div className="space-y-3">
               {productSettings.features.map((feature) => (
                 <div
                   key={feature.id}
-                  className="p-3 rounded-lg border border-gray-200 bg-white space-y-3"
+                  className="p-3 rounded-lg border border-[var(--editor-border-default,#e2e8f0)] bg-[var(--editor-bg-panel,#fff)] space-y-3"
                 >
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => updateFeature(feature.id, { isVisible: !feature.isVisible })}
-                      className={`p-1 rounded ${feature.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+                      className={`p-1 rounded ${feature.isVisible ? 'text-green-600' : 'text-[var(--editor-text-muted,#94a3b8)]'}`}
                     >
                       {feature.isVisible ? <EyeIcon /> : <EyeOffIcon />}
                     </button>
@@ -6220,7 +6220,7 @@ function ProductPageSettingsUI({ settings, updateSettings, initialTab = 'gallery
             
             <button
               onClick={addFeature}
-              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-gray-400 hover:text-gray-700 transition-colors"
+              className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-secondary,#475569)] hover:border-[var(--editor-border-hover,#cbd5e1)] hover:text-[var(--editor-text-secondary,#475569)] transition-colors"
             >
               + הוסף חוזקה
             </button>
@@ -6404,18 +6404,18 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
   return (
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-gray-900">{sectionLabels[sectionType] || sectionType}</h3>
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">{sectionLabels[sectionType] || sectionType}</h3>
           <button
             onClick={toggleVisibility}
-            className={`p-2 rounded-lg transition-colors ${isVisible ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+            className={`p-2 rounded-lg transition-colors ${isVisible ? 'bg-green-50 text-green-600' : 'bg-[var(--editor-bg-tertiary,#f1f5f9)] text-[var(--editor-text-muted,#94a3b8)]'}`}
             title={isVisible ? 'מוצג' : 'מוסתר'}
           >
             {isVisible ? <EyeIcon /> : <EyeOffIcon />}
           </button>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
           {isVisible ? 'הסקשן מוצג בעמוד' : 'הסקשן מוסתר מהעמוד'}
         </p>
       </div>
@@ -6648,17 +6648,17 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
         {sectionType === 'pp-features' && (
           <>
             <SettingsGroup title="רשימת חוזקות">
-              <p className="text-xs text-gray-500 mb-3">הוסף עד 5 יתרונות שיוצגו בעמוד המוצר</p>
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-3">הוסף עד 5 יתרונות שיוצגו בעמוד המוצר</p>
               
               <div className="space-y-3">
                 {productSettings.features.map((feature, index) => (
-                  <div key={feature.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <div key={feature.id} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+                      <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">חוזקה {index + 1}</span>
                       <div className="flex gap-1">
                         <button
                           onClick={() => updateFeature(feature.id, { isVisible: !feature.isVisible })}
-                          className={`p-1 rounded ${feature.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+                          className={`p-1 rounded ${feature.isVisible ? 'text-green-600' : 'text-[var(--editor-text-muted,#94a3b8)]'}`}
                         >
                           {feature.isVisible ? <EyeIcon /> : <EyeOffIcon />}
                         </button>
@@ -6692,7 +6692,7 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
               {productSettings.features.length < 5 && (
                 <button
                   onClick={addFeature}
-                  className="w-full mt-3 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+                  className="w-full mt-3 py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-secondary,#475569)] hover:border-blue-400 hover:text-blue-600 transition-colors"
                 >
                   + הוסף חוזקה
                 </button>
@@ -6703,7 +6703,7 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
         
         {/* Description Section */}
         {sectionType === 'pp-description' && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-[var(--editor-text-muted,#94a3b8)]">
             <p className="text-sm">התיאור נלקח אוטומטית מפרטי המוצר</p>
             <p className="text-xs mt-2">ניתן לערוך בעמוד ניהול המוצרים</p>
           </div>
@@ -6711,7 +6711,7 @@ function ProductPageSectionSettings({ sectionType, settings, updateSettings }: P
         
         {/* Breadcrumb Section */}
         {sectionType === 'pp-breadcrumb' && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-[var(--editor-text-muted,#94a3b8)]">
             <p className="text-sm">הניווט נוצר אוטומטית</p>
             <p className="text-xs mt-2">מציג: חנות &gt; קטגוריה &gt; מוצר</p>
           </div>
@@ -6863,18 +6863,18 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
   return (
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="font-semibold text-gray-900">{sectionLabels[section.type] || section.type}</h3>
+          <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">{sectionLabels[section.type] || section.type}</h3>
           <button
             onClick={() => onUpdate({ isActive: !section.isActive })}
-            className={`p-2 rounded-lg transition-colors ${section.isActive ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}
+            className={`p-2 rounded-lg transition-colors ${section.isActive ? 'bg-green-50 text-green-600' : 'bg-[var(--editor-bg-tertiary,#f1f5f9)] text-[var(--editor-text-muted,#94a3b8)]'}`}
             title={section.isActive ? 'מוצג' : 'מוסתר'}
           >
             {section.isActive ? <EyeIcon /> : <EyeOffIcon />}
           </button>
         </div>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
           {section.isActive ? 'הסקשן מוצג בעמוד' : 'הסקשן מוסתר מהעמוד'}
         </p>
       </div>
@@ -6938,7 +6938,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
         {/* Product Badges Settings - NEW! */}
         {section.type === 'product_badges' && (
           <SettingsGroup title="מדבקות מבצעים">
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-3">
               מציג אוטומטית הנחות, מבצעים ותגיות &quot;מומלץ&quot;
             </p>
             <SwitchField
@@ -7071,7 +7071,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
         {/* Product Short Description - NEW! */}
         {section.type === 'product_short_desc' && (
           <SettingsGroup title="תיאור קצר">
-            <p className="text-xs text-gray-500 mb-3">
+            <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-3">
               מציג את התיאור הקצר של המוצר (אם קיים)
             </p>
             <TypographyPopover
@@ -7263,7 +7263,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
             </SettingsGroup>
             
             <SettingsGroup title="שורות מותאמות אישית">
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-3">
                 הוסף שורות מתחת למחיר (למשל: משלוח חינם, מידע חומר)
               </p>
               <CustomInfoRowsEditor
@@ -7391,7 +7391,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
                 onChange={(v) => onUpdate({ settings: { ...section.settings, count: v } })}
               />
               
-              <p className="text-xs text-gray-500 mt-3">
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mt-3">
                 💡 מוצרים משלימים מוגדרים בעריכת מוצר
               </p>
             </SettingsGroup>
@@ -7483,7 +7483,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
             </SettingsGroup>
             
             <SettingsGroup title="פריטים">
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-2">
                 ניתן להשתמש בתוכן דינמי: {"{{product.custom.xxx}}"}
               </p>
               <AccordionItemsEditor
@@ -7523,7 +7523,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
             </SettingsGroup>
             
             <SettingsGroup title="לשוניות">
-              <p className="text-xs text-gray-500 mb-2">
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] mb-2">
                 ניתן להשתמש בתוכן דינמי: {"{{product.description}}"}
               </p>
               <TabItemsEditor
@@ -7605,7 +7605,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
 
         {/* Divider Settings */}
         {section.type === 'divider' && (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-8 text-[var(--editor-text-muted,#94a3b8)]">
             <p className="text-sm">קו מפריד פשוט</p>
             <p className="text-xs mt-2">ללא הגדרות נוספות</p>
           </div>
@@ -7639,7 +7639,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
         {section.type === 'text_block' && (
           <SettingsGroup title="תוכן">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
                 ניתן להשתמש בתוכן דינמי
               </p>
               <DynamicSourceButton 
@@ -7649,7 +7649,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
               />
             </div>
             <div className={`border rounded-lg p-2 ${
-              (section.content.text as string)?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200'
+              (section.content.text as string)?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : 'border-[var(--editor-border-default,#e2e8f0)]'
             }`}>
               <textarea
                 value={(section.content.text as string) || ''}
@@ -7726,7 +7726,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
             
             <SettingsGroup title="תוכן">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
                   ניתן להשתמש בתוכן דינמי
                 </p>
                 <DynamicSourceButton 
@@ -7738,7 +7738,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
               <textarea
                 value={(section.content.text as string) || ''}
                 onChange={(e) => updateContent({ text: e.target.value })}
-                className="w-full h-32 text-sm resize-none border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full h-32 text-sm resize-none border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="הזן טקסט כאן..."
               />
               
@@ -7802,7 +7802,7 @@ function ProductPageSectionSettingsV2({ section, onUpdate, onRemove, metafields 
 
         {/* Delete Section - only for non-default sections */}
         {!isDefaultSection && (
-          <div className="pt-4 border-t border-gray-200">
+          <div className="pt-4 border-t border-[var(--editor-border-default,#e2e8f0)]">
             <button
               onClick={onRemove}
               className="w-full flex items-center justify-center gap-2 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
@@ -7843,7 +7843,7 @@ function DynamicFieldPicker({
   
   return (
     <div className="space-y-2">
-      <label className="text-xs text-gray-600 block">מידע דינמי מהמוצר</label>
+      <label className="text-xs text-[var(--editor-text-secondary,#475569)] block">מידע דינמי מהמוצר</label>
       
       {/* Selected value as blue tag */}
       {value && (
@@ -7857,7 +7857,7 @@ function DynamicFieldPicker({
           </span>
           <button
             onClick={() => onChange('')}
-            className="p-1 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+            className="p-1 text-[var(--editor-text-muted,#94a3b8)] hover:text-red-500 hover:bg-red-50 rounded transition-colors"
             title="הסר"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -7871,7 +7871,7 @@ function DynamicFieldPicker({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full text-sm border border-gray-200 rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+        className="w-full text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-[var(--editor-bg-panel,#fff)]"
       >
         <option value="">בחר שדה...</option>
         
@@ -7907,7 +7907,7 @@ function DynamicFieldPicker({
         </optgroup>
       </select>
       
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-[var(--editor-text-muted,#94a3b8)]">
         בחר שדה מהרשימה או הזן ידנית: product.custom.xxx
       </p>
     </div>
@@ -7953,13 +7953,13 @@ function CustomInfoRowsEditor({
   return (
     <div className="space-y-3">
       {rows.map((row, index) => (
-        <div key={row.id} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+        <div key={row.id} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-tertiary,#f1f5f9)]">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">שורה {index + 1}</span>
+            <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">שורה {index + 1}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => updateRow(row.id, { isVisible: !row.isVisible })}
-                className={`p-1.5 rounded transition-colors ${row.isVisible ? 'text-green-600 bg-green-50' : 'text-gray-400 bg-gray-100'}`}
+                className={`p-1.5 rounded transition-colors ${row.isVisible ? 'text-green-600 bg-green-50' : 'text-[var(--editor-text-muted,#94a3b8)] bg-[var(--editor-bg-tertiary,#f1f5f9)]'}`}
                 title={row.isVisible ? 'מוצג' : 'מוסתר'}
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -7983,21 +7983,21 @@ function CustomInfoRowsEditor({
           
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-gray-600 mb-1 block">תווית (Label)</label>
+              <label className="text-xs text-[var(--editor-text-secondary,#475569)] mb-1 block">תווית (Label)</label>
               <input
                 type="text"
                 value={row.label}
                 onChange={(e) => updateRow(row.id, { label: e.target.value })}
-                className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="משלוח"
               />
             </div>
             <div>
-              <label className="text-xs text-gray-600 mb-1 block">סוג ערך</label>
+              <label className="text-xs text-[var(--editor-text-secondary,#475569)] mb-1 block">סוג ערך</label>
               <select
                 value={row.valueSource}
                 onChange={(e) => updateRow(row.id, { valueSource: e.target.value as 'static' | 'dynamic' })}
-                className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                className="w-full text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-[var(--editor-bg-panel,#fff)]"
               >
                 <option value="static">טקסט קבוע</option>
                 <option value="dynamic">מידע דינמי</option>
@@ -8007,12 +8007,12 @@ function CustomInfoRowsEditor({
           
           {row.valueSource === 'static' ? (
             <div>
-              <label className="text-xs text-gray-600 mb-1 block">ערך</label>
+              <label className="text-xs text-[var(--editor-text-secondary,#475569)] mb-1 block">ערך</label>
               <input
                 type="text"
                 value={row.value}
                 onChange={(e) => updateRow(row.id, { value: e.target.value })}
-                className="w-full text-sm border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-sm border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 placeholder="חינם מעל ₪200"
               />
             </div>
@@ -8027,7 +8027,7 @@ function CustomInfoRowsEditor({
       
       <button
         onClick={addRow}
-        className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
+        className="w-full py-2.5 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-secondary,#475569)] hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50/50 transition-all flex items-center justify-center gap-2"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -8069,9 +8069,9 @@ function AccordionItemsEditor({
   return (
     <div className="space-y-3">
       {items.map((item, index) => (
-        <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+        <div key={item.id} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">פריט {index + 1}</span>
+            <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">פריט {index + 1}</span>
             <button
               onClick={() => removeItem(item.id)}
               className="p-1 text-red-500 hover:bg-red-50 rounded"
@@ -8088,7 +8088,7 @@ function AccordionItemsEditor({
           
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-gray-600">תוכן</label>
+              <label className="text-xs text-[var(--editor-text-secondary,#475569)]">תוכן</label>
               <DynamicSourceButton 
                 onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
                 categories={['product', 'store', 'custom']}
@@ -8123,7 +8123,7 @@ function AccordionItemsEditor({
       
       <button
         onClick={addItem}
-        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+        className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-secondary,#475569)] hover:border-blue-400 hover:text-blue-600 transition-colors"
       >
         + הוסף פריט
       </button>
@@ -8164,9 +8164,9 @@ function TabItemsEditor({
   return (
     <div className="space-y-3">
       {items.map((item, index) => (
-        <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+        <div key={item.id} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">לשונית {index + 1}</span>
+            <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">לשונית {index + 1}</span>
             {items.length > 1 && (
               <button
                 onClick={() => removeItem(item.id)}
@@ -8185,7 +8185,7 @@ function TabItemsEditor({
           
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-gray-600">תוכן</label>
+              <label className="text-xs text-[var(--editor-text-secondary,#475569)]">תוכן</label>
               <DynamicSourceButton 
                 onSelect={(v) => updateItem(item.id, { content: item.content + `{{${v.path}}}` })}
                 categories={['product', 'store', 'custom']}
@@ -8214,7 +8214,7 @@ function TabItemsEditor({
       
       <button
         onClick={addItem}
-        className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+        className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-secondary,#475569)] hover:border-blue-400 hover:text-blue-600 transition-colors"
       >
         + הוסף לשונית
       </button>
@@ -8253,13 +8253,13 @@ function FeaturesItemsEditor({
   return (
     <div className="space-y-3">
       {items.map((item, index) => (
-        <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+        <div key={item.id} className="border border-[var(--editor-border-default,#e2e8f0)] rounded-lg p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+            <span className="text-xs text-[var(--editor-text-muted,#94a3b8)]">חוזקה {index + 1}</span>
             <div className="flex gap-1">
               <button
                 onClick={() => updateItem(item.id, { isVisible: !item.isVisible })}
-                className={`p-1 rounded ${item.isVisible ? 'text-green-600' : 'text-gray-400'}`}
+                className={`p-1 rounded ${item.isVisible ? 'text-green-600' : 'text-[var(--editor-text-muted,#94a3b8)]'}`}
               >
                 {item.isVisible ? <EyeIcon /> : <EyeOffIcon />}
               </button>
@@ -8294,7 +8294,7 @@ function FeaturesItemsEditor({
           
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-gray-600">טקסט</label>
+              <label className="text-xs text-[var(--editor-text-secondary,#475569)]">טקסט</label>
               <DynamicSourceButton 
                 onSelect={(v) => updateItem(item.id, { text: item.text + `{{${v.path}}}` })}
                 categories={['product', 'store', 'custom']}
@@ -8306,7 +8306,7 @@ function FeaturesItemsEditor({
               value={item.text}
               onChange={(e) => updateItem(item.id, { text: e.target.value })}
               className={`w-full px-3 py-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-blue-500 ${
-                item.text?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : 'border-gray-200'
+                item.text?.includes('{{') ? 'border-blue-300 bg-blue-50/50' : 'border-[var(--editor-border-default,#e2e8f0)]'
               }`}
               placeholder="הזן טקסט... אפשר להשתמש ב-{{product.title}}"
             />
@@ -8325,7 +8325,7 @@ function FeaturesItemsEditor({
       {items.length < 5 && (
         <button
           onClick={addItem}
-          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-blue-400 hover:text-blue-600 transition-colors"
+          className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default,#e2e8f0)] rounded-lg text-sm text-[var(--editor-text-secondary,#475569)] hover:border-blue-400 hover:text-blue-600 transition-colors"
         >
           + הוסף חוזקה
         </button>
@@ -8383,8 +8383,8 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
   return (
     <div className="flex flex-col h-full" dir="rtl">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h3 className="font-semibold text-gray-900">{sectionLabels[sectionType] || sectionType}</h3>
+      <div className="p-4 border-b border-[var(--editor-border-default,#e2e8f0)]">
+        <h3 className="font-semibold text-[var(--editor-text-primary,#0f172a)]">{sectionLabels[sectionType] || sectionType}</h3>
       </div>
       
       {/* Section-specific settings */}
@@ -8434,7 +8434,7 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                       banner: { ...categorySettings.banner, useAspectRatio: v } 
                     })}
                   />
-                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                  <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] -mt-2 mb-2">
                     מומלץ לתמונות אופקיות/מלבניות. מונע זום מוגזם במובייל.
                   </p>
                   
@@ -8562,7 +8562,7 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                       subcategories: { ...categorySettings.subcategories, useResponsiveRatio: v } 
                     })}
                   />
-                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                  <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] -mt-2 mb-2">
                     מומלץ לתמונות אופקיות. מונע זום מוגזם במובייל.
                   </p>
                   
@@ -8640,7 +8640,7 @@ function CategoryPageSectionSettings({ sectionType, settings, updateSettings }: 
                       subcategories: { ...categorySettings.subcategories, maxWidth: v } 
                     })}
                   />
-                  <p className="text-xs text-gray-500 -mt-2 mb-2">
+                  <p className="text-xs text-[var(--editor-text-muted,#94a3b8)] -mt-2 mb-2">
                     0 = ללא הגבלה (מתפרס למלוא העמודה)
                   </p>
                 </>

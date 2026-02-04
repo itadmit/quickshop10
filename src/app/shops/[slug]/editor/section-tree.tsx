@@ -23,9 +23,11 @@ import {
   Grid3X3,
   Crown
 } from 'lucide-react';
+import { useEditorThemeOptional } from '@/components/editor/ui';
 
 // ============================================
-// Section Tree - Left Panel (Shopify Style) - עברית
+// Section Tree - Right Panel (Shopify Style) - עברית
+// Uses CSS variables for light/dark theme support
 // ============================================
 
 interface Section {
@@ -344,30 +346,30 @@ export function SectionTree({
   // ============================================
   if (isProductPage) {
     return (
-      <div className="flex flex-col h-full" dir="rtl">
+      <div className="flex flex-col h-full bg-[var(--editor-bg-panel)] text-[var(--editor-text-primary)]" dir="rtl">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="p-4 border-b border-[var(--editor-border-default)]">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+            <h2 className="text-sm font-medium text-[var(--editor-text-primary)]">{pageLabel}</h2>
             {/* Template Picker Button */}
             {onApplyTemplate && (
               <button
                 onClick={() => setShowTemplateMenu(true)}
-                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                className="text-xs text-[var(--editor-accent-blue)] hover:opacity-80 font-medium flex items-center gap-1"
               >
                 <Layers className="w-3.5 h-3.5" />
                 תבניות
               </button>
             )}
           </div>
-          <p className="text-xs text-gray-500">גרור לסידור מחדש • לחץ + להוספה</p>
+          <p className="text-xs text-[var(--editor-text-muted)]">גרור לסידור מחדש • לחץ + להוספה</p>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
           {/* Header Section (Global - not part of sections) */}
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <div className="border-b border-[var(--editor-border-subtle)]">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               כותרת עליונה
             </div>
             <SectionItem
@@ -386,8 +388,8 @@ export function SectionTree({
               onToggle={() => toggleExpand('header')}
             />
             {expandedSections.has('header') && (
-              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-                <span className="text-xs text-gray-500">
+              <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)] py-2 px-4">
+                <span className="text-xs text-[var(--editor-text-muted)]">
                   פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
                            headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
                 </span>
@@ -413,16 +415,16 @@ export function SectionTree({
             return (
               <>
                 {/* Top Zone - Breadcrumb */}
-                <div className="border-b border-gray-100">
+                <div className="border-b border-[var(--editor-border-subtle)]">
                   <div className="p-3 flex items-center gap-2">
-                    <div className="w-6 h-6 bg-amber-100 rounded flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-600">
+                    <div className="w-6 h-6 bg-[var(--editor-accent-orange)]/20 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-accent-orange)]">
                         <path d="M3 12h18M3 12l4-4M3 12l4 4M21 12l-4-4M21 12l-4 4"/>
                       </svg>
                     </div>
                     <div>
-                      <span className="text-xs font-medium text-gray-700">ראש תוכן</span>
-                      <span className="text-[10px] text-gray-400 block">פירורי לחם, ניווט</span>
+                      <span className="text-xs font-medium text-[var(--editor-text-secondary)]">ראש תוכן</span>
+                      <span className="text-[10px] text-[var(--editor-text-muted)] block">פירורי לחם, ניווט</span>
                     </div>
                   </div>
                   {topSections.map((section) => {
@@ -452,23 +454,23 @@ export function SectionTree({
                     );
                   })}
                   {topSections.length === 0 && (
-                    <div className="px-4 py-2 text-xs text-gray-400 italic">אין פירורי לחם</div>
+                    <div className="px-4 py-2 text-xs text-[var(--editor-text-muted)] italic">אין פירורי לחם</div>
                   )}
                 </div>
 
                 {/* Gallery Zone - Right Side */}
-                <div className="border-b border-gray-100">
+                <div className="border-b border-[var(--editor-border-subtle)]">
                   <div className="p-3 flex items-center gap-2">
-                    <div className="w-6 h-6 bg-purple-100 rounded flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-purple-600">
+                    <div className="w-6 h-6 bg-[var(--editor-accent-purple)]/20 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-accent-purple)]">
                         <rect x="3" y="3" width="18" height="18" rx="2"/>
                         <circle cx="8.5" cy="8.5" r="1.5"/>
                         <path d="M21 15l-5-5L5 21"/>
                       </svg>
                     </div>
                     <div>
-                      <span className="text-xs font-medium text-gray-700">אזור גלריה</span>
-                      <span className="text-[10px] text-gray-400 block">צד ימין</span>
+                      <span className="text-xs font-medium text-[var(--editor-text-secondary)]">אזור גלריה</span>
+                      <span className="text-[10px] text-[var(--editor-text-muted)] block">צד ימין</span>
                     </div>
                   </div>
                   {gallerySections.map((section) => {
@@ -498,23 +500,23 @@ export function SectionTree({
                     );
                   })}
                   {gallerySections.length === 0 && (
-                    <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדרה גלריה</div>
+                    <div className="px-4 py-2 text-xs text-[var(--editor-text-muted)] italic">לא הוגדרה גלריה</div>
                   )}
                 </div>
 
                 {/* Info Zone - Left Side of Gallery */}
-                <div className="border-b border-gray-100">
+                <div className="border-b border-[var(--editor-border-subtle)]">
                   <div className="p-3 flex items-center gap-2">
-                    <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600">
+                    <div className="w-6 h-6 bg-[var(--editor-accent-blue)]/20 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-accent-blue)]">
                         <path d="M4 4h16v16H4z"/>
                         <path d="M4 4v16"/>
                         <path d="M12 4v16"/>
                       </svg>
                     </div>
                     <div>
-                      <span className="text-xs font-medium text-gray-700">אזור מידע מוצר</span>
-                      <span className="text-[10px] text-gray-400 block">משמאל לגלריה • שם, מחיר, תיאור, חוזקות</span>
+                      <span className="text-xs font-medium text-[var(--editor-text-secondary)]">אזור מידע מוצר</span>
+                      <span className="text-[10px] text-[var(--editor-text-muted)] block">משמאל לגלריה • שם, מחיר, תיאור, חוזקות</span>
                     </div>
                   </div>
                   {infoSections.map((section) => {
@@ -544,7 +546,7 @@ export function SectionTree({
                     );
                   })}
                   {infoSections.length === 0 && (
-                    <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדרו שדות מידע</div>
+                    <div className="px-4 py-2 text-xs text-[var(--editor-text-muted)] italic">לא הוגדרו שדות מידע</div>
                   )}
                   <AddSectionButton 
                     onClick={() => {
@@ -556,17 +558,17 @@ export function SectionTree({
                 </div>
 
                 {/* Content Zone - Below Gallery+Info */}
-                <div className="border-b border-gray-100">
+                <div className="border-b border-[var(--editor-border-subtle)]">
                   <div className="p-3 flex items-center gap-2">
-                    <div className="w-6 h-6 bg-green-100 rounded flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-green-600">
+                    <div className="w-6 h-6 bg-[var(--editor-accent-green)]/20 rounded flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-accent-green)]">
                         <rect x="3" y="3" width="18" height="7" rx="1"/>
                         <rect x="3" y="14" width="18" height="7" rx="1"/>
                       </svg>
                     </div>
                     <div>
-                      <span className="text-xs font-medium text-gray-700">אזור תוכן</span>
-                      <span className="text-[10px] text-gray-400 block">מתחת לגלריה • ביקורות, מוצרים קשורים</span>
+                      <span className="text-xs font-medium text-[var(--editor-text-secondary)]">אזור תוכן</span>
+                      <span className="text-[10px] text-[var(--editor-text-muted)] block">מתחת לגלריה • ביקורות, מוצרים קשורים</span>
                     </div>
                   </div>
                   {contentSections.map((section) => {
@@ -596,7 +598,7 @@ export function SectionTree({
                     );
                   })}
                   {contentSections.length === 0 && (
-                    <div className="px-4 py-2 text-xs text-gray-400 italic">לא הוגדר תוכן נוסף</div>
+                    <div className="px-4 py-2 text-xs text-[var(--editor-text-muted)] italic">לא הוגדר תוכן נוסף</div>
                   )}
                   <AddSectionButton 
                     onClick={() => {
@@ -612,7 +614,7 @@ export function SectionTree({
 
           {/* Footer Section (Global - not part of sections) */}
           <div>
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               פוטר
             </div>
             <SectionItem
@@ -625,8 +627,8 @@ export function SectionTree({
               onToggle={() => toggleExpand('footer')}
             />
             {expandedSections.has('footer') && (
-              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-                <span className="text-xs text-gray-500">
+              <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)] py-2 px-4">
+                <span className="text-xs text-[var(--editor-text-muted)]">
                   לוגו • ניוזלטר • רשתות חברתיות
                 </span>
               </div>
@@ -676,17 +678,17 @@ export function SectionTree({
     ];
 
     return (
-      <div className="flex flex-col h-full" dir="rtl">
+      <div className="flex flex-col h-full bg-[var(--editor-bg-panel)] text-[var(--editor-text-primary)]" dir="rtl">
         {/* Header */}
-        <div className="p-4 border-b border-gray-200">
-          <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+        <div className="p-4 border-b border-[var(--editor-border-default)]">
+          <h2 className="text-sm font-medium text-[var(--editor-text-primary)]">{pageLabel}</h2>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-auto">
           {/* Header Section */}
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <div className="border-b border-[var(--editor-border-subtle)]">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               כותרת עליונה
             </div>
             <SectionItem
@@ -705,8 +707,8 @@ export function SectionTree({
               onToggle={() => toggleExpand('header')}
             />
             {expandedSections.has('header') && (
-              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-                <span className="text-xs text-gray-500">
+              <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)] py-2 px-4">
+                <span className="text-xs text-[var(--editor-text-muted)]">
                   פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
                            headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
                 </span>
@@ -715,8 +717,8 @@ export function SectionTree({
           </div>
           
           {/* Main Content Sections */}
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <div className="border-b border-[var(--editor-border-subtle)]">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               תוכן קטגוריה
             </div>
             
@@ -733,7 +735,7 @@ export function SectionTree({
 
           {/* Footer Section */}
           <div>
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               פוטר
             </div>
             <SectionItem
@@ -746,8 +748,8 @@ export function SectionTree({
               onToggle={() => toggleExpand('footer')}
             />
             {expandedSections.has('footer') && (
-              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-                <span className="text-xs text-gray-500">
+              <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)] py-2 px-4">
+                <span className="text-xs text-[var(--editor-text-muted)]">
                   לוגו • ניוזלטר • רשתות חברתיות
                 </span>
               </div>
@@ -759,18 +761,18 @@ export function SectionTree({
   }
 
   return (
-    <div className="flex flex-col h-full" dir="rtl">
+    <div className="flex flex-col h-full bg-[var(--editor-bg-panel)] text-[var(--editor-text-primary)]" dir="rtl">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200">
-        <h2 className="text-sm font-medium text-gray-900">{pageLabel}</h2>
+      <div className="p-4 border-b border-[var(--editor-border-default)]">
+        <h2 className="text-sm font-medium text-[var(--editor-text-primary)]">{pageLabel}</h2>
       </div>
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-auto">
         {/* Header Section - only for home page */}
         {!isComingSoon && (
-          <div className="border-b border-gray-100">
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+          <div className="border-b border-[var(--editor-border-subtle)]">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               כותרת עליונה
             </div>
             <SectionItem
@@ -790,8 +792,8 @@ export function SectionTree({
             />
             {/* Header layout preview when expanded */}
             {expandedSections.has('header') && (
-              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-                <span className="text-xs text-gray-500">
+              <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)] py-2 px-4">
+                <span className="text-xs text-[var(--editor-text-muted)]">
                   פריסה: {headerLayout === 'logo-left' ? 'לוגו בשמאל' : 
                            headerLayout === 'logo-center' ? 'לוגו במרכז' : 'לוגו בימין'}
                 </span>
@@ -802,22 +804,22 @@ export function SectionTree({
         )}
 
         {/* Template Sections */}
-        <div className="border-b border-gray-100">
-          <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div className="border-b border-[var(--editor-border-subtle)]">
+          <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
             {isComingSoon ? 'סקשנים' : 'תבנית'}
           </div>
           
           {/* Empty state for Coming Soon */}
           {sections.length === 0 && isComingSoon && (
             <div className="px-4 py-6 text-center">
-              <div className="w-12 h-12 mx-auto mb-3 bg-gray-100 rounded-full flex items-center justify-center">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gray-400">
+              <div className="w-12 h-12 mx-auto mb-3 bg-[var(--editor-bg-tertiary)] rounded-full flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--editor-text-muted)]">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
                   <path d="M12 8v8M8 12h8" />
                 </svg>
               </div>
-              <p className="text-sm text-gray-600 mb-1">אין עדיין סקשנים</p>
-              <p className="text-xs text-gray-400">לחץ על &quot;הוסף סקשן&quot; כדי להתחיל</p>
+              <p className="text-sm text-[var(--editor-text-secondary)] mb-1">אין עדיין סקשנים</p>
+              <p className="text-xs text-[var(--editor-text-muted)]">לחץ על &quot;הוסף סקשן&quot; כדי להתחיל</p>
             </div>
           )}
           
@@ -854,8 +856,8 @@ export function SectionTree({
             >
               {/* Drop zone overlay - full row */}
               {dropTargetIndex === index && draggedIndex !== null && draggedIndex !== index && (
-                <div className="absolute inset-0 z-20 pointer-events-none bg-blue-100/80 border-2 border-dashed border-blue-500 rounded-lg flex items-center justify-center">
-                  <span className="text-sm font-medium text-blue-600">שחרר כאן</span>
+                <div className="absolute inset-0 z-20 pointer-events-none bg-[var(--editor-accent-blue)]/20 border-2 border-dashed border-[var(--editor-accent-blue)] rounded-lg flex items-center justify-center">
+                  <span className="text-sm font-medium text-[var(--editor-accent-blue)]">שחרר כאן</span>
                 </div>
               )}
               
@@ -875,7 +877,7 @@ export function SectionTree({
               
               {/* Expanded children */}
               {expandedSections.has(section.id) && section.type === 'categories' && (
-                <div className="bg-gray-50 border-y border-gray-100">
+                <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)]">
                   <SubItem label="הוסף בלוק" isAdd />
                   <SubItem label="קטגוריה – נשים" />
                   <SubItem label="קטגוריה – גברים" />
@@ -893,7 +895,7 @@ export function SectionTree({
         {/* Footer Section - only for home page */}
         {!isComingSoon && (
           <div>
-            <div className="p-3 text-xs font-medium text-gray-500 uppercase tracking-wide">
+            <div className="p-3 text-xs font-medium text-[var(--editor-text-muted)] uppercase tracking-wide">
               פוטר
             </div>
             <SectionItem
@@ -907,8 +909,8 @@ export function SectionTree({
             />
             {/* Footer sub-items when expanded */}
             {expandedSections.has('footer') && (
-              <div className="bg-gray-50 border-y border-gray-100 py-2 px-4">
-                <span className="text-xs text-gray-500">
+              <div className="bg-[var(--editor-bg-tertiary)] border-y border-[var(--editor-border-subtle)] py-2 px-4">
+                <span className="text-xs text-[var(--editor-text-muted)]">
                   לוגו • ניוזלטר • רשתות חברתיות
                 </span>
               </div>
@@ -962,14 +964,14 @@ function SectionItem({
     <div
       className={`
         flex items-center gap-1.5 px-2 py-2.5 cursor-pointer transition-all duration-150 group
-        ${isSelected ? 'bg-blue-50 border-l-2 border-blue-500' : 'hover:bg-gray-50'}
+        ${isSelected ? 'bg-[var(--editor-accent-blue)]/10 border-l-2 border-[var(--editor-accent-blue)]' : 'hover:bg-[var(--editor-bg-hover)]'}
         ${isDisabled ? 'opacity-50' : ''}
-        ${isDragTarget ? 'bg-blue-50/50' : ''}
+        ${isDragTarget ? 'bg-[var(--editor-accent-blue)]/5' : ''}
       `}
       onClick={onClick}
     >
       {/* Drag Handle - always visible, on the left (end in RTL) */}
-      <div className="order-last cursor-grab active:cursor-grabbing text-gray-300 hover:text-gray-500 mr-auto p-1">
+      <div className="order-last cursor-grab active:cursor-grabbing text-[var(--editor-text-muted)] hover:text-[var(--editor-text-secondary)] mr-auto p-1">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="8" cy="6" r="2"/>
           <circle cx="16" cy="6" r="2"/>
@@ -987,7 +989,7 @@ function SectionItem({
             e.stopPropagation();
             onToggle?.();
           }}
-          className="p-0.5 hover:bg-gray-200 rounded"
+          className="p-0.5 hover:bg-[var(--editor-bg-hover)] rounded"
         >
           <svg
             width="12"
@@ -996,7 +998,7 @@ function SectionItem({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className={`text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+            className={`text-[var(--editor-text-muted)] transition-transform ${isExpanded ? 'rotate-90' : ''}`}
           >
             <path d="M9 18l6-6-6-6" />
           </svg>
@@ -1009,19 +1011,19 @@ function SectionItem({
       <SectionIcon type={icon} />
 
       {/* Label */}
-      <span className={`text-sm flex-1 truncate ${isSelected ? 'text-blue-700 font-medium' : 'text-gray-700'}`}>
+      <span className={`text-sm flex-1 truncate ${isSelected ? 'text-[var(--editor-accent-blue)] font-medium' : 'text-[var(--editor-text-secondary)]'}`}>
         {label}
       </span>
 
       {/* Visibility badges */}
       <div className="flex items-center gap-1">
         {hideOnMobile && (
-          <span className="px-1 py-0.5 text-[9px] bg-orange-100 text-orange-700 rounded" title="מוסתר במובייל">
+          <span className="px-1 py-0.5 text-[9px] bg-[var(--editor-accent-orange)]/20 text-[var(--editor-accent-orange)] rounded" title="מוסתר במובייל">
             📱
           </span>
         )}
         {hideOnDesktop && (
-          <span className="px-1 py-0.5 text-[9px] bg-purple-100 text-purple-700 rounded" title="מוסתר במחשב">
+          <span className="px-1 py-0.5 text-[9px] bg-[var(--editor-accent-purple)]/20 text-[var(--editor-accent-purple)] rounded" title="מוסתר במחשב">
             🖥️
           </span>
         )}
@@ -1029,7 +1031,7 @@ function SectionItem({
 
       {/* Disabled indicator */}
       {isDisabled && (
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-400">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-text-muted)]">
           <path d="M17 17l-5-5m0 0l-5-5m5 5l5-5m-5 5l-5 5" />
         </svg>
       )}
@@ -1040,19 +1042,19 @@ function SectionItem({
 // Sub Item Component (for expanded sections)
 function SubItem({ label, isAdd }: { label: string; isAdd?: boolean }) {
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 pr-10 cursor-pointer hover:bg-gray-100 transition-colors">
+    <div className="flex items-center gap-2 px-3 py-1.5 pr-10 cursor-pointer hover:bg-[var(--editor-bg-hover)] transition-colors">
       {isAdd ? (
         <>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-[var(--editor-accent-blue)]">
             <circle cx="12" cy="12" r="10" />
             <path d="M12 8v8M8 12h8" />
           </svg>
-          <span className="text-xs text-blue-500">{label}</span>
+          <span className="text-xs text-[var(--editor-accent-blue)]">{label}</span>
         </>
       ) : (
         <>
-          <div className="w-3 h-3 rounded bg-gray-300" />
-          <span className="text-xs text-gray-600">{label}</span>
+          <div className="w-3 h-3 rounded bg-[var(--editor-text-muted)]" />
+          <span className="text-xs text-[var(--editor-text-secondary)]">{label}</span>
         </>
       )}
     </div>
@@ -1065,7 +1067,7 @@ function AddSectionButton({ onClick, small, label }: { onClick: () => void; smal
     <button
       onClick={onClick}
       className={`
-        w-full flex items-center gap-2 px-3 text-blue-500 hover:bg-blue-50 transition-colors
+        w-full flex items-center gap-2 px-3 text-[var(--editor-accent-blue)] hover:bg-[var(--editor-accent-blue)]/10 transition-colors
         ${small ? 'py-1.5' : 'py-2'}
       `}
     >
@@ -1141,16 +1143,16 @@ function AddSectionModal({
       
       {/* Popover Panel - attached to sidebar, below header */}
       <div 
-        className="fixed right-[240px] top-[56px] bottom-0 w-[320px] bg-white shadow-xl z-50 flex flex-col border-l border-gray-200"
+        className="fixed right-[240px] top-[56px] bottom-0 w-[320px] bg-[var(--editor-bg-panel)] shadow-xl z-50 flex flex-col border-l border-[var(--editor-border-default)]"
         dir="rtl"
       >
         {/* Header */}
-        <div className="p-3 border-b border-gray-100">
+        <div className="p-3 border-b border-[var(--editor-border-subtle)]">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-medium text-gray-900 text-sm">הוסף סקשן</h3>
+            <h3 className="font-medium text-[var(--editor-text-primary)] text-sm">הוסף סקשן</h3>
             <button 
               onClick={onClose} 
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
+              className="p-1 hover:bg-[var(--editor-bg-hover)] rounded transition-colors text-[var(--editor-text-secondary)]"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M18 6L6 18M6 6l12 12" />
@@ -1167,7 +1169,7 @@ function AddSectionModal({
               fill="none" 
               stroke="currentColor" 
               strokeWidth="2"
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[var(--editor-text-muted)]"
             >
               <circle cx="11" cy="11" r="8" />
               <path d="M21 21l-4.35-4.35" />
@@ -1177,21 +1179,21 @@ function AddSectionModal({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="חיפוש סקשנים..."
-              className="w-full pr-8 pl-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-gray-400"
+              className="w-full pr-8 pl-2 py-1.5 border border-[var(--editor-border-default)] rounded-lg text-sm focus:outline-none focus:border-[var(--editor-accent-blue)] bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)] placeholder:text-[var(--editor-text-muted)]"
             />
           </div>
         </div>
 
         {/* Category Tabs */}
-        <div className="px-3 py-2 border-b border-gray-100 flex gap-1 overflow-x-auto scrollbar-hide">
+        <div className="px-3 py-2 border-b border-[var(--editor-border-subtle)] flex gap-1 overflow-x-auto scrollbar-hide">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
               className={`px-2.5 py-1 rounded text-xs font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === category
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-[var(--editor-accent-blue)] text-white'
+                  : 'bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-hover)]'
               }`}
             >
               {category === 'all' ? 'הכל' : category}
@@ -1202,8 +1204,8 @@ function AddSectionModal({
         {/* Sections List */}
         <div className="flex-1 overflow-y-auto p-2">
           {filteredSections.length === 0 ? (
-            <div className="text-center py-6 text-gray-500">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-2 text-gray-300">
+            <div className="text-center py-6 text-[var(--editor-text-muted)]">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="mx-auto mb-2">
                 <circle cx="11" cy="11" r="8" />
                 <path d="M21 21l-4.35-4.35" />
               </svg>
@@ -1213,7 +1215,7 @@ function AddSectionModal({
             // Grouped view when "all" is selected
             Object.entries(groupedSections).map(([category, sections]) => (
               <div key={category} className="mb-3">
-                <div className="text-xs font-medium text-gray-400 mb-1.5 px-1">
+                <div className="text-xs font-medium text-[var(--editor-text-muted)] mb-1.5 px-1">
                   {category}
                 </div>
                 <div className="space-y-1">
@@ -1258,13 +1260,13 @@ function SectionTypeButton({
   return (
     <button
       onClick={() => onAdd(section.type)}
-      className="w-full flex items-center gap-2.5 p-2 rounded-lg border border-gray-100 hover:border-gray-300 hover:bg-gray-50 transition-all text-right group"
+      className="w-full flex items-center gap-2.5 p-2 rounded-lg border border-[var(--editor-border-subtle)] hover:border-[var(--editor-border-hover)] hover:bg-[var(--editor-bg-hover)] transition-all text-right group"
     >
-      <div className="w-8 h-8 rounded bg-gray-100 group-hover:bg-gray-200 flex items-center justify-center transition-colors">
-        <IconComponent className="w-4 h-4 text-gray-500" />
+      <div className="w-8 h-8 rounded bg-[var(--editor-bg-tertiary)] group-hover:bg-[var(--editor-bg-hover)] flex items-center justify-center transition-colors">
+        <IconComponent className="w-4 h-4 text-[var(--editor-text-muted)]" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-gray-700 group-hover:text-gray-900 truncate">
+        <div className="text-sm text-[var(--editor-text-secondary)] group-hover:text-[var(--editor-text-primary)] truncate">
           {section.label}
         </div>
       </div>
@@ -1275,7 +1277,7 @@ function SectionTypeButton({
         fill="none" 
         stroke="currentColor" 
         strokeWidth="2"
-        className="text-gray-300 group-hover:text-gray-500 transition-colors"
+        className="text-[var(--editor-text-muted)] group-hover:text-[var(--editor-text-secondary)] transition-colors"
       >
         <path d="M12 5v14M5 12h14" />
       </svg>
@@ -1285,7 +1287,7 @@ function SectionTypeButton({
 
 // Section Icon Component
 function SectionIcon({ type }: { type: string }) {
-  const iconClasses = "w-5 h-5 text-gray-400";
+  const iconClasses = "w-5 h-5 text-[var(--editor-text-muted)]";
   
   switch (type) {
     case 'slideshow':
