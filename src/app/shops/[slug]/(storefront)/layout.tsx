@@ -162,6 +162,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   // 🆕 Check if we're on checkout page - no plugins/widgets should appear there
   const pathname = headersList.get('x-pathname') || '';
   const isCheckoutPage = pathname.includes('/checkout');
+  // Check if homepage (for transparent header - only on homepage)
+  const isHomePage = pathname === basePath || pathname === `/shops/${slug}` || pathname === '';
 
   // Always show header - categories/menu items are optional
   // Header contains logo, cart, search etc. which should always be visible
@@ -332,7 +334,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         customer={customerData}
         defaultLayout={headerLayout}
         defaultSticky={Boolean(storeSettings.headerSticky ?? true)}
-        defaultTransparent={Boolean(storeSettings.headerTransparent)}
+        defaultTransparent={isHomePage ? Boolean(storeSettings.headerTransparent) : false}
         defaultShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
         defaultShowCart={!shouldHideCartGlobally && Boolean(storeSettings.headerShowCart ?? true)}
         defaultShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
@@ -374,6 +376,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         showWishlist={Boolean(storeSettings.headerShowWishlist)}
         showLanguageSwitcher={showLanguageSwitcher}
         isSticky={Boolean(storeSettings.headerSticky ?? true)}
+        isTransparent={isHomePage ? Boolean(storeSettings.headerTransparent) : false}
         mobileMenuShowImages={Boolean(storeSettings.mobileMenuShowImages ?? false)}
         mobileMenuImageStyle={(storeSettings.mobileMenuImageStyle as 'fullRow' | 'square') ?? 'square'}
         mobileMenuBgColor={(storeSettings.mobileMenuBgColor as string) ?? '#f9fafb'}

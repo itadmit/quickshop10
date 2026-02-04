@@ -748,6 +748,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
           <StoreFooter 
             storeName={store.name}
             storeSlug={slug}
+            logoUrl={store.logoUrl}
             categories={categories} 
             basePath={basePath}
             settings={store.settings as Record<string, unknown>}

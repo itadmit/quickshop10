@@ -128,12 +128,19 @@ export async function POST(request: NextRequest) {
     // 🔒 ATOMIC: Generate numeric order number with atomic increment
     // This prevents race conditions when multiple orders are created simultaneously
     // We increment first, then use the NEW value as the order number
+    // IMPORTANT: Returns numeric string only (no # prefix) - # is added only in UI display
     const [updatedStore] = await db.update(stores)
       .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
       .where(eq(stores.id, store.id))
       .returning({ orderCounter: stores.orderCounter });
     
-    const orderNumber = String(updatedStore?.orderCounter ?? 1001);
+    let orderNumber = String(updatedStore?.orderCounter ?? 1001);
+    
+    // Safety check: ensure no # prefix (should never happen, but just in case)
+    if (orderNumber.startsWith('#')) {
+      console.error('[Payment Initiate] ERROR: Order number contains # prefix! This should not happen.');
+      orderNumber = orderNumber.replace(/^#+/, ''); // Remove any # prefixes
+    }
     
     // Build URLs - use custom domain if store has one, otherwise use platform URL
     const platformUrl = process.env.NEXT_PUBLIC_APP_URL;

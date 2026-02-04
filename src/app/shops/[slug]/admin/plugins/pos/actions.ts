@@ -115,6 +115,7 @@ export async function searchProducts(storeId: string, query: string): Promise<Pr
 
 /**
  * Generate a unique order number - ATOMIC to prevent race conditions
+ * IMPORTANT: Returns numeric string only (no # prefix) - # is added only in UI display
  */
 async function generateOrderNumber(storeId: string): Promise<string> {
   // 🔒 ATOMIC: Update and return in one operation to prevent duplicates
@@ -124,7 +125,15 @@ async function generateOrderNumber(storeId: string): Promise<string> {
     .where(eq(stores.id, storeId))
     .returning({ orderCounter: stores.orderCounter });
 
-  return String(updatedStore?.orderCounter ?? 1001);
+  const orderNumber = String(updatedStore?.orderCounter ?? 1001);
+  
+  // Safety check: ensure no # prefix (should never happen, but just in case)
+  if (orderNumber.startsWith('#')) {
+    console.error('[POS] ERROR: Order number contains # prefix! This should not happen.');
+    return orderNumber.replace(/^#+/, ''); // Remove any # prefixes
+  }
+  
+  return orderNumber;
 }
 
 /**

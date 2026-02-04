@@ -1074,6 +1074,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
       <StoreFooter 
         storeName={store.name}
         storeSlug={slug}
+        logoUrl={store.logoUrl}
         categories={categories} 
         basePath={basePath}
         settings={store.settings as Record<string, unknown>}

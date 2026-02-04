@@ -907,18 +907,6 @@ export function CheckoutForm({
     e.preventDefault();
     setOrderError(null);
     
-    // 🏙️ Validate city and street selection (only for physical products, not virtual cart)
-    if (!isVirtualCartOnly && !selectedMethod?.isPickup) {
-      if (!isCityValid || !selectedCity) {
-        setOrderError(t.errors?.selectCity || 'יש לבחור עיר מהרשימה');
-        return;
-      }
-      if (!isStreetValid || !formData.street) {
-        setOrderError(t.errors?.selectStreet || 'יש לבחור רחוב מהרשימה');
-        return;
-      }
-    }
-    
     // Prepare cart data for tracking
     const cartData = {
       items: cart.map(item => ({
@@ -935,6 +923,19 @@ export function CheckoutForm({
     
     // 🆕 Single-page checkout: always submit directly
     if (isSinglePage) {
+      // 🏙️ Validate city and street selection (only for physical products, not virtual cart)
+      // Only validate when actually submitting payment, not when navigating steps
+      if (!isVirtualCartOnly && !selectedMethod?.isPickup) {
+        if (!isCityValid || !selectedCity) {
+          setOrderError(t.errors?.selectCity || 'יש לבחור עיר מהרשימה');
+          return;
+        }
+        if (!isStreetValid || !formData.street) {
+          setOrderError(t.errors?.selectStreet || 'יש לבחור רחוב מהרשימה');
+          return;
+        }
+      }
+      
       // Track all events at once for single-page
       tracker.initiateCheckout(cartData);
       if (!isVirtualCartOnly) {
@@ -960,6 +961,19 @@ export function CheckoutForm({
       window.scrollTo({ top: 0, behavior: 'instant' });
       return; // Don't proceed to payment yet
     } else if (step === 'shipping') {
+      // 🏙️ Validate city and street selection when moving from shipping to payment
+      // (only for physical products, not virtual cart or pickup)
+      if (!isVirtualCartOnly && !selectedMethod?.isPickup) {
+        if (!isCityValid || !selectedCity) {
+          setOrderError(t.errors?.selectCity || 'יש לבחור עיר מהרשימה');
+          return;
+        }
+        if (!isStreetValid || !formData.street) {
+          setOrderError(t.errors?.selectStreet || 'יש לבחור רחוב מהרשימה');
+          return;
+        }
+      }
+      
       // Track AddShippingInfo when moving from shipping to payment
       tracker.addShippingInfo({
         ...cartData,
@@ -969,6 +983,19 @@ export function CheckoutForm({
       // Scroll to top so payment section is visible
       window.scrollTo({ top: 0, behavior: 'instant' });
       return; // Don't proceed to payment yet
+    }
+    
+    // 🏙️ Validate city and street selection when submitting payment
+    // (only for physical products, not virtual cart or pickup)
+    if (!isVirtualCartOnly && !selectedMethod?.isPickup) {
+      if (!isCityValid || !selectedCity) {
+        setOrderError(t.errors?.selectCity || 'יש לבחור עיר מהרשימה');
+        return;
+      }
+      if (!isStreetValid || !formData.street) {
+        setOrderError(t.errors?.selectStreet || 'יש לבחור רחוב מהרשימה');
+        return;
+      }
     }
     
     // Now proceed with payment (for single-page or when step === 'payment')

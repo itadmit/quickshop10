@@ -181,6 +181,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       isPreviewMode={isPreviewMode}
       storeName={store.name}
       storeSlug={slug}
+      logoUrl={store.logoUrl}
       allCategories={allCategories}
       footerMenuItems={footerMenuItems}
       storeSettings={storeSettings}

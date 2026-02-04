@@ -90,6 +90,7 @@ export default async function TrackingPage({ params, searchParams }: TrackPagePr
       <StoreFooter 
         storeName={store.name}
         storeSlug={slug}
+        logoUrl={store.logoUrl}
         categories={categories} 
         basePath={basePath}
         settings={storeSettings}

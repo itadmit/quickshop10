@@ -18,6 +18,8 @@ interface FooterMenuItem {
 
 interface ThemeSettings {
   footerShowLogo?: boolean;
+  footerLogoUrl?: string;
+  footerDescription?: string;
   footerShowCategories?: boolean;
   footerShowMenu?: boolean;
   footerShowNewsletter?: boolean;
@@ -38,6 +40,7 @@ interface ThemeSettings {
 interface StoreFooterProps {
   storeName: string;
   storeSlug: string;
+  logoUrl?: string | null; // Store logo URL (fallback if footerLogoUrl not set)
   categories?: Category[];
   basePath: string;
   settings?: ThemeSettings;
@@ -47,6 +50,7 @@ interface StoreFooterProps {
 export function StoreFooter({ 
   storeName, 
   storeSlug,
+  logoUrl,
   categories = [], 
   basePath,
   settings = {},
@@ -55,6 +59,8 @@ export function StoreFooter({
   // Default settings
   const {
     footerShowLogo = true,
+    footerLogoUrl,
+    footerDescription,
     footerShowCategories = true,
     footerShowMenu = true,
     footerShowNewsletter = true,
@@ -70,6 +76,9 @@ export function StoreFooter({
     socialTiktok,
     socialYoutube,
   } = settings;
+  
+  // Use footer logo if set, otherwise use store logo
+  const effectiveLogoUrl = footerLogoUrl || logoUrl;
 
   // Check if any social links exist
   const hasSocialLinks = socialFacebook || socialInstagram || socialTiktok || socialYoutube;
@@ -91,10 +100,22 @@ export function StoreFooter({
           {/* Column 1: Logo & Description */}
           {footerShowLogo && (
             <div data-footer-logo>
-              <h3 className="font-display text-2xl tracking-[0.2em] mb-4 uppercase">{storeName}</h3>
-              <p className="text-sm opacity-60 leading-relaxed">
-                אופנה מינימליסטית ואיכותית. עיצובים נצחיים שמתאימים לכל סגנון חיים.
-              </p>
+              {effectiveLogoUrl ? (
+                <Link href={basePath || '/'} className="block mb-4">
+                  <img 
+                    src={effectiveLogoUrl} 
+                    alt={storeName}
+                    className="h-12 w-auto object-contain"
+                  />
+                </Link>
+              ) : (
+                <h3 className="font-display text-2xl tracking-[0.2em] mb-4 uppercase">{storeName}</h3>
+              )}
+              {footerDescription && (
+                <p className="text-sm opacity-60 leading-relaxed">
+                  {footerDescription}
+                </p>
+              )}
             </div>
           )}
           

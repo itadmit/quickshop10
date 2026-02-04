@@ -109,6 +109,8 @@ interface ThemeSettings {
   
   // Footer settings
   footerShowLogo?: boolean;
+  footerLogoUrl?: string; // Logo URL for footer (uses store logo if not set)
+  footerDescription?: string; // Footer description text (editable)
   footerShowCategories?: boolean;
   footerShowMenu?: boolean;
   footerShowNewsletter?: boolean;
@@ -619,6 +621,25 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
               value={settings.footerShowLogo ?? true}
               onChange={(v) => updateSettings({ footerShowLogo: v })}
             />
+            {settings.footerShowLogo && (
+              <>
+                <LogoUploadField
+                  label="לוגו פוטר"
+                  value={settings.footerLogoUrl || storeInfo?.logoUrl || ''}
+                  onChange={(url) => updateSettings({ footerLogoUrl: url })}
+                  storeId={storeInfo?.id}
+                  storeSlug={storeInfo?.slug}
+                  hint="אם לא נבחר, יוצג הלוגו של החנות"
+                />
+                <TextField
+                  label="תיאור"
+                  value={settings.footerDescription || ''}
+                  onChange={(v) => updateSettings({ footerDescription: v })}
+                  multiline
+                  placeholder="אופנה מינימליסטית ואיכותית. עיצובים נצחיים שמתאימים לכל סגנון חיים."
+                />
+              </>
+            )}
             <SwitchField
               label="הצג קטגוריות"
               value={settings.footerShowCategories ?? true}

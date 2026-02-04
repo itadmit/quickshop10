@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/db';
 import { orders, orderItems, storePlugins, products, productImages, productVariants } from '@/lib/db/schema';
-import { eq, and, inArray, asc, desc } from 'drizzle-orm';
+import { eq, and, inArray, asc, desc, gte } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 // ============================================
@@ -95,6 +95,10 @@ export async function getKitchenOrders(
   config: KitchenDisplayConfig
 ): Promise<KitchenOrder[]> {
   try {
+    // רק הזמנות מ-7 הימים האחרונים כדי לא להאט את השרת
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
     // Get orders with the configured statuses (order status + financial status + fulfillment status)
     const ordersResult = await db
       .select({
@@ -114,6 +118,8 @@ export async function getKitchenOrders(
       .where(
         and(
           eq(orders.storeId, storeId),
+          // רק הזמנות מ-7 הימים האחרונים
+          gte(orders.createdAt, sevenDaysAgo),
           // סטטוס הזמנה
           inArray(orders.status, config.displayOrderStatuses as any[]),
           // סטטוס תשלום

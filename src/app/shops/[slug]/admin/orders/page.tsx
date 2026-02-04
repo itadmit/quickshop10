@@ -83,47 +83,58 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const activeOrders = allOrdersRaw.filter(o => !o.archivedAt);
   const archivedOrders = allOrdersRaw.filter(o => o.archivedAt);
   
-  // Filter by status tab - ברירת מחדל: 'paid' (שולמו)
-  const effectiveStatus = status || 'paid';
-  let filteredOrders = activeOrders;
-  
-  if (effectiveStatus === 'archived') {
-    // הזמנות מאורכבות
-    filteredOrders = archivedOrders;
-  } else if (effectiveStatus === 'all') {
-    // הכל - לא מסננים לפי סטטוס
-    filteredOrders = activeOrders;
-  } else if (effectiveStatus === 'unpaid') {
-    // הזמנות שממתינות לתשלום (pending payment)
-    filteredOrders = activeOrders.filter(o => o.financialStatus === 'pending');
-  } else if (effectiveStatus === 'paid') {
-    // הזמנות ששולמו
-    filteredOrders = activeOrders.filter(o => o.financialStatus === 'paid');
-  } else if (effectiveStatus === 'cancelled') {
-    // הזמנות שבוטלו
-    filteredOrders = activeOrders.filter(o => o.status === 'cancelled');
-  } else if (effectiveStatus === 'unfulfilled') {
-    // ממתינות למשלוח = שולמו אבל עדיין לא נשלחו
-    filteredOrders = activeOrders.filter(o => 
-      o.financialStatus === 'paid' && o.fulfillmentStatus === 'unfulfilled'
-    );
-  } else if (effectiveStatus === 'open') {
-    filteredOrders = activeOrders.filter(o => 
-      o.status !== 'cancelled' && o.status !== 'refunded' && o.fulfillmentStatus !== 'fulfilled'
-    );
-  }
-  
-  // Filter by search
+  // Filter by search FIRST - לפני סינון לפי סטטוס, כדי שהחיפוש יעבוד על כל ההזמנות
+  // אם יש חיפוש, נחפש גם בארכיון אם לא נמצאה תוצאה בהזמנות הפעילות
+  let searchFilteredOrders = activeOrders;
+  let searchFilteredArchived = archivedOrders;
   if (search) {
     const searchLower = search.toLowerCase();
-    filteredOrders = filteredOrders.filter(o => {
+    const searchFunc = (o: typeof activeOrders[0]) => {
       const fullName = `${o.customer?.firstName || ''} ${o.customer?.lastName || ''}`.toLowerCase();
       return (
         o.orderNumber.toLowerCase().includes(searchLower) ||
         fullName.includes(searchLower) ||
         o.customer?.email?.toLowerCase().includes(searchLower)
       );
-    });
+    };
+    
+    searchFilteredOrders = activeOrders.filter(searchFunc);
+    searchFilteredArchived = archivedOrders.filter(searchFunc);
+    
+    // אם לא נמצאה תוצאה בהזמנות הפעילות, נכלול גם את המאורכבות
+    if (searchFilteredOrders.length === 0 && searchFilteredArchived.length > 0) {
+      searchFilteredOrders = searchFilteredArchived;
+    }
+  }
+  
+  // Filter by status tab - ברירת מחדל: 'paid' (שולמו)
+  const effectiveStatus = status || 'paid';
+  let filteredOrders = searchFilteredOrders;
+  
+  if (effectiveStatus === 'archived') {
+    // הזמנות מאורכבות
+    filteredOrders = searchFilteredArchived;
+  } else if (effectiveStatus === 'all') {
+    // הכל - לא מסננים לפי סטטוס
+    filteredOrders = searchFilteredOrders;
+  } else if (effectiveStatus === 'unpaid') {
+    // הזמנות שממתינות לתשלום (pending payment)
+    filteredOrders = searchFilteredOrders.filter(o => o.financialStatus === 'pending');
+  } else if (effectiveStatus === 'paid') {
+    // הזמנות ששולמו
+    filteredOrders = searchFilteredOrders.filter(o => o.financialStatus === 'paid');
+  } else if (effectiveStatus === 'cancelled') {
+    // הזמנות שבוטלו
+    filteredOrders = searchFilteredOrders.filter(o => o.status === 'cancelled');
+  } else if (effectiveStatus === 'unfulfilled') {
+    // ממתינות למשלוח = שולמו אבל עדיין לא נשלחו
+    filteredOrders = searchFilteredOrders.filter(o => 
+      o.financialStatus === 'paid' && o.fulfillmentStatus === 'unfulfilled'
+    );
+  } else if (effectiveStatus === 'open') {
+    filteredOrders = searchFilteredOrders.filter(o => 
+      o.status !== 'cancelled' && o.status !== 'refunded' && o.fulfillmentStatus !== 'fulfilled'
+    );
   }
   
   // Advanced filters - item count

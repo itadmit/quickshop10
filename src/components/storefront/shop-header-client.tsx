@@ -478,9 +478,9 @@ export function ShopHeaderClient({
   const headerClasses = `
     ${isSticky ? 'sticky top-0 z-30' : 'relative'}
     ${isTransparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-sm'}
-    border-b border-gray-100
+    ${isTransparent ? 'border-transparent' : 'border-b border-gray-100'}
     transition-all duration-300
-  `;
+  `.trim().replace(/\s+/g, ' ');
 
   // Announcement bar component (shared)
   const AnnouncementBarSection = announcementEnabled && !announcementDismissed && (

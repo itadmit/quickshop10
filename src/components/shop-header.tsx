@@ -59,6 +59,7 @@ interface ShopHeaderProps {
   showWishlist?: boolean;
   showLanguageSwitcher?: boolean;
   isSticky?: boolean;
+  isTransparent?: boolean; // Header transparent (only on homepage)
   // Mobile menu settings
   mobileMenuShowImages?: boolean;
   mobileMenuImageStyle?: 'fullRow' | 'square';
@@ -88,6 +89,7 @@ export function ShopHeader({
   showWishlist = false,
   showLanguageSwitcher = false,
   isSticky = true,
+  isTransparent = false,
   mobileMenuShowImages = false,
   mobileMenuImageStyle = 'square',
   mobileMenuBgColor = '#f9fafb',
@@ -277,8 +279,14 @@ export function ShopHeader({
     </div>
   );
   
-  // Header wrapper class based on sticky setting
-  const headerClass = `${isSticky ? 'sticky top-0' : 'relative'} z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100`;
+  // Header wrapper class based on sticky setting and transparency
+  const headerClass = `
+    ${isSticky ? 'sticky top-0' : 'relative'} 
+    z-30 
+    ${isTransparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-sm'}
+    ${isTransparent ? 'border-transparent' : 'border-b border-gray-100'}
+    transition-all duration-300
+  `.trim().replace(/\s+/g, ' ');
 
   // Layout 1: Logo Right (RTL default) - לוגו בימין, תפריט במרכז, אייקונים משמאל
   if (layout === 'logo-right') {

@@ -65,6 +65,14 @@ const fulfillmentLabels: Record<string, string> = {
   fulfilled: 'נשלח',
 };
 
+const orderStatusLabels: Record<string, string> = {
+  pending: 'ממתין',
+  confirmed: 'אושר',
+  processing: 'בהכנה',
+  cancelled: 'בוטל',
+  refunded: 'הוחזר',
+};
+
 const financialLabels: Record<string, string> = {
   pending: 'ממתין',
   paid: 'שולם',
@@ -335,12 +343,46 @@ export function OrdersDataTable({
                 )}
               </span>
             )}
-            <Badge variant={order.shipmentError ? (isRetryable ? 'warning' : 'error') : getFulfillmentVariant(order.fulfillmentStatus)}>
-              {order.shipmentError 
-                ? (isRetryable ? 'ממתין לניסיון' : 'שגיאה') 
-                : fulfillmentLabels[order.fulfillmentStatus || 'unfulfilled']
-              }
-            </Badge>
+            {order.shipmentError ? (
+              <Badge variant={isRetryable ? 'warning' : 'error'}>
+                {isRetryable ? 'ממתין לניסיון' : 'שגיאה'}
+              </Badge>
+            ) : (
+              // הצג סטטוס ביצוע (status/customStatus) אם קיים, אחרת fulfillmentStatus
+              (() => {
+                // אם יש customStatus, הצג אותו
+                if (order.customStatus && customStatuses.length > 0) {
+                  const status = customStatuses.find(s => s.id === order.customStatus);
+                  if (status) {
+                    return (
+                      <span 
+                        className="px-2 py-0.5 text-xs font-medium rounded-full text-white"
+                        style={{ backgroundColor: status.color }}
+                      >
+                        {status.name}
+                      </span>
+                    );
+                  }
+                }
+                // אחרת, הצג את ה-status (מטבח)
+                if (order.status && orderStatusLabels[order.status]) {
+                  const statusVariant = order.status === 'processing' ? 'success' : 
+                                       order.status === 'cancelled' || order.status === 'refunded' ? 'error' :
+                                       order.status === 'pending' ? 'warning' : 'default';
+                  return (
+                    <Badge variant={statusVariant}>
+                      {orderStatusLabels[order.status]}
+                    </Badge>
+                  );
+                }
+                // אם אין סטטוס, הצג fulfillmentStatus
+                return (
+                  <Badge variant={getFulfillmentVariant(order.fulfillmentStatus)}>
+                    {fulfillmentLabels[order.fulfillmentStatus || 'unfulfilled']}
+                  </Badge>
+                );
+              })()
+            )}
           </div>
         );
       },

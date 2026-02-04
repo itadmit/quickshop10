@@ -42,6 +42,8 @@ interface ThemeSettings {
   announcementCountdownDate?: string;
   announcementCountdownTime?: string;
   footerShowLogo?: boolean;
+  footerLogoUrl?: string;
+  footerDescription?: string;
   footerShowCategories?: boolean;
   footerShowMenu?: boolean;
   footerShowNewsletter?: boolean;

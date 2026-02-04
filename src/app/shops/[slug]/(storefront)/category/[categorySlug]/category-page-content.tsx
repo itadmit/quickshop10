@@ -85,6 +85,7 @@ interface CategoryPageContentProps {
   isPreviewMode: boolean;
   storeName: string;
   storeSlug: string;
+  logoUrl?: string | null;
   allCategories: Array<{ id: string; name: string; slug: string }>;
   footerMenuItems: Array<{ 
     id: string; 
@@ -110,6 +111,7 @@ export function CategoryPageContent({
   isPreviewMode,
   storeName,
   storeSlug,
+  logoUrl,
   allCategories,
   footerMenuItems,
   storeSettings,
@@ -521,6 +523,7 @@ export function CategoryPageContent({
       <StoreFooter 
         storeName={storeName}
         storeSlug={storeSlug}
+        logoUrl={logoUrl}
         categories={allCategories} 
         basePath={basePath}
         settings={storeSettings}

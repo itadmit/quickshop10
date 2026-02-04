@@ -47,6 +47,8 @@ export function KitchenDisplayView({
     new Set(initialOrders.map(o => o.id))
   );
   const [newOrderIds, setNewOrderIds] = useState<string[]>([]);
+  // רשימת הזמנות שכבר טופלו (אושרו/בוטלו) - לא יופיעו שוב גם אחרי רענון
+  const [handledOrderIds, setHandledOrderIds] = useState<Set<string>>(new Set());
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -56,8 +58,11 @@ export function KitchenDisplayView({
     try {
       const freshOrders = await getKitchenOrders(storeId, config);
       
-      // Find new orders
-      const newIds = freshOrders
+      // סינון הזמנות שכבר טופלו (אושרו/בוטלו) - לא יופיעו שוב
+      const filteredOrders = freshOrders.filter(o => !handledOrderIds.has(o.id));
+      
+      // Find new orders (רק כאלה שלא טופלו)
+      const newIds = filteredOrders
         .filter(o => !processedOrderIds.has(o.id))
         .map(o => o.id);
       
@@ -71,14 +76,14 @@ export function KitchenDisplayView({
         });
       }
       
-      setOrders(freshOrders);
+      setOrders(filteredOrders);
       setLastRefresh(new Date());
     } catch (error) {
       console.error('[Kitchen Display] Error fetching orders:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [storeId, config, processedOrderIds]);
+  }, [storeId, config, processedOrderIds, handledOrderIds]);
 
   // Auto-refresh
   useEffect(() => {
@@ -94,9 +99,17 @@ export function KitchenDisplayView({
     const result = await updateOrderStatus(orderId, storeId, 'approve', config);
     
     if (!result.success) {
-      // Revert on error
+      // Revert on error - fetch orders again
       await fetchOrders();
       alert('שגיאה באישור ההזמנה');
+    } else {
+      // אחרי אישור מוצלח, ההזמנה משנה סטטוס ל-successStatus
+      // אם הסטטוס החדש לא ברשימת הסטטוסים להצגה, היא לא תופיע שוב
+      // אם הסטטוס החדש כן ברשימה, היא תופיע שוב - זה בסדר כי זה סטטוס חדש
+      // הוסף לרשימת הזמנות שכבר טופלו רק אם הסטטוס החדש לא ברשימה
+      if (!config.displayOrderStatuses.includes(config.successStatus)) {
+        setHandledOrderIds(prev => new Set(prev).add(orderId));
+      }
     }
   }, [storeId, config, fetchOrders]);
 
@@ -110,9 +123,16 @@ export function KitchenDisplayView({
     const result = await updateOrderStatus(orderId, storeId, 'cancel', config);
     
     if (!result.success) {
-      // Revert on error
+      // Revert on error - fetch orders again
       await fetchOrders();
       alert('שגיאה בביטול ההזמנה');
+    } else {
+      // אחרי ביטול מוצלח, ההזמנה משנה סטטוס ל-cancelStatus
+      // אם הסטטוס החדש לא ברשימת הסטטוסים להצגה, היא לא תופיע שוב
+      // הוסף לרשימת הזמנות שכבר טופלו רק אם הסטטוס החדש לא ברשימה
+      if (!config.displayOrderStatuses.includes(config.cancelStatus)) {
+        setHandledOrderIds(prev => new Set(prev).add(orderId));
+      }
     }
   }, [storeId, config, fetchOrders]);
 

@@ -747,6 +747,7 @@ export default async function InternalPage({ params }: InternalPageProps) {
         <StoreFooter 
           storeName={store.name}
           storeSlug={slug}
+          logoUrl={store.logoUrl}
           categories={categories} 
           basePath={basePath}
           settings={store.settings as Record<string, unknown>}

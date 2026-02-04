@@ -97,13 +97,20 @@ export async function completeDraft(
 
     // 🔒 ATOMIC: Generate order number and increment counter in one operation
     // This prevents race conditions when multiple orders are created simultaneously
+    // IMPORTANT: Returns numeric string only (no # prefix) - # is added only in UI display
     const [updatedStore] = await db
       .update(stores)
       .set({ orderCounter: sql`COALESCE(${stores.orderCounter}, 1000) + 1` })
       .where(eq(stores.id, draft.storeId))
       .returning({ orderCounter: stores.orderCounter, id: stores.id });
     
-    const orderNumber = String(updatedStore.orderCounter ?? 1001);
+    let orderNumber = String(updatedStore.orderCounter ?? 1001);
+    
+    // Safety check: ensure no # prefix (should never happen, but just in case)
+    if (orderNumber.startsWith('#')) {
+      console.error('[Draft] ERROR: Order number contains # prefix! This should not happen.');
+      orderNumber = orderNumber.replace(/^#+/, ''); // Remove any # prefixes
+    }
 
     // Create the order
     const [order] = await db

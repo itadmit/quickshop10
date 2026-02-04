@@ -22,11 +22,14 @@ interface FooterMenuItem {
 interface FooterClientProps {
   storeName: string;
   storeSlug: string;
+  logoUrl?: string | null; // Store logo URL (fallback if footerLogoUrl not set)
   categories?: Category[];
   basePath: string;
   footerMenuItems?: FooterMenuItem[];
   // Default settings from server
   defaultShowLogo?: boolean;
+  defaultLogoUrl?: string;
+  defaultDescription?: string;
   defaultShowCategories?: boolean;
   defaultShowMenu?: boolean;
   defaultShowNewsletter?: boolean;
@@ -54,10 +57,13 @@ interface FooterClientProps {
 export function FooterClient({
   storeName,
   storeSlug,
+  logoUrl,
   categories = [],
   basePath,
   footerMenuItems = [],
   defaultShowLogo = true,
+  defaultLogoUrl,
+  defaultDescription,
   defaultShowCategories = true,
   defaultShowMenu = true,
   defaultShowNewsletter = true,
@@ -78,6 +84,13 @@ export function FooterClient({
   // Get settings from preview or use defaults
   const footerShowLogo = isPreviewMode && settings.footerShowLogo !== undefined 
     ? settings.footerShowLogo : defaultShowLogo;
+  const footerLogoUrl = isPreviewMode && settings.footerLogoUrl !== undefined
+    ? settings.footerLogoUrl : (defaultLogoUrl || logoUrl);
+  const footerDescription = isPreviewMode && settings.footerDescription !== undefined
+    ? settings.footerDescription : defaultDescription;
+  
+  // Use footer logo if set, otherwise use store logo
+  const effectiveLogoUrl = footerLogoUrl || logoUrl;
   const footerShowCategories = isPreviewMode && settings.footerShowCategories !== undefined 
     ? settings.footerShowCategories : defaultShowCategories;
   const footerShowMenu = isPreviewMode && settings.footerShowMenu !== undefined 
@@ -124,10 +137,22 @@ export function FooterClient({
           {/* Column 1: Logo & Description */}
           {footerShowLogo && (
             <div data-footer-logo>
-              <h3 className="font-display text-2xl tracking-[0.2em] mb-4 uppercase">{storeName}</h3>
-              <p className="text-sm opacity-60 leading-relaxed">
-                אופנה מינימליסטית ואיכותית. עיצובים נצחיים שמתאימים לכל סגנון חיים.
-              </p>
+              {effectiveLogoUrl ? (
+                <Link href={basePath === '' ? '/' : basePath} className="block mb-4">
+                  <img 
+                    src={effectiveLogoUrl} 
+                    alt={storeName}
+                    className="h-12 w-auto object-contain"
+                  />
+                </Link>
+              ) : (
+                <h3 className="font-display text-2xl tracking-[0.2em] mb-4 uppercase">{storeName}</h3>
+              )}
+              {footerDescription && (
+                <p className="text-sm opacity-60 leading-relaxed">
+                  {footerDescription}
+                </p>
+              )}
             </div>
           )}
           
