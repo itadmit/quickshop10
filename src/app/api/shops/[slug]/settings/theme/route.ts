@@ -54,6 +54,8 @@ const VALID_SETTINGS_KEYS = [
   
   // Footer
   'footerShowLogo',
+  'footerLogoUrl',
+  'footerDescription',
   'footerShowCategories',
   'footerShowMenu',
   'footerShowNewsletter',
