@@ -87,7 +87,7 @@ export function VariantSelector({
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
   const { t } = useTranslations();
-  const { config: catalogConfig, isProductInCatalogMode } = useCatalogMode();
+  const { config: catalogConfig, isProductInCatalogMode, shouldHidePrice } = useCatalogMode();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [added, setAdded] = useState(false);
@@ -101,6 +101,9 @@ export function VariantSelector({
   const isCatalogProduct = catalogConfig?.enabled && 
     catalogConfig.hideAddToCart && 
     isProductInCatalogMode(categoryIds);
+    
+  // 🔒 Check if prices should be hidden for this product
+  const hideProductPrice = shouldHidePrice(categoryIds);
 
   // 🆕 חישוב מחיר מוזל לפי פרטי ההנחות (לא לפי אחוז כולל!)
   const calculateDiscountedPrice = useCallback((price: number): number => {
@@ -238,19 +241,21 @@ export function VariantSelector({
   return (
     <div className="space-y-6">
       {/* Price */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Final price */}
-        <span className={`text-2xl font-display ${hasAutomaticDiscount ? 'text-green-600' : ''}`}>
-          {formatPrice(displayPrice)}
-        </span>
-        
-        {/* Original price (crossed out) */}
-        {hasAnyDiscount && originalPrice > displayPrice && (
-          <span className="text-lg text-gray-400 line-through">
-            {formatPrice(originalPrice)}
+      {!hideProductPrice && (
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Final price */}
+          <span className={`text-2xl font-display ${hasAutomaticDiscount ? 'text-green-600' : ''}`}>
+            {formatPrice(displayPrice)}
           </span>
-        )}
-      </div>
+          
+          {/* Original price (crossed out) */}
+          {hasAnyDiscount && originalPrice > displayPrice && (
+            <span className="text-lg text-gray-400 line-through">
+              {formatPrice(originalPrice)}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Options */}
       {options.map((option, optIndex) => (

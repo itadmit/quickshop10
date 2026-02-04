@@ -50,7 +50,7 @@ export function ProductWithAddons({
   isBundle = false,
 }: ProductWithAddonsProps) {
   const store = useStoreOptional();
-  const { config: catalogConfig, isProductInCatalogMode } = useCatalogMode();
+  const { config: catalogConfig, isProductInCatalogMode, shouldHidePrice } = useCatalogMode();
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
   const [addonTotal, setAddonTotal] = useState(0);
   const [isValid, setIsValid] = useState(addons.every(a => !a.isRequired));
@@ -60,6 +60,9 @@ export function ProductWithAddons({
   const isCatalogProduct = catalogConfig?.enabled && 
     catalogConfig.hideAddToCart && 
     isProductInCatalogMode(categoryIds);
+    
+  // 🔒 Check if prices should be hidden for this product
+  const hideProductPrice = shouldHidePrice(categoryIds);
 
   const handleAddonsChange = useCallback((addons: SelectedAddon[], total: number) => {
     setSelectedAddons(addons);
@@ -116,7 +119,7 @@ export function ProductWithAddons({
       )}
 
       {/* Price Summary with Addons */}
-      {addonTotal > 0 && (
+      {!hideProductPrice && addonTotal > 0 && (
         <div className="mb-4 p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center justify-between text-sm text-gray-600">
             <span>מחיר מוצר:</span>
@@ -182,7 +185,7 @@ export function ProductWithAddons({
                 <path d="M20 22C20.5523 22 21 21.5523 21 21C21 20.4477 20.5523 20 20 20C19.4477 20 19 20.4477 19 21C19 21.5523 19.4477 22 20 22Z" />
                 <path d="M1 1H5L7.68 14.39C7.77 14.83 8.02 15.22 8.38 15.5C8.74 15.78 9.19 15.93 9.64 15.92H19.4C19.84 15.92 20.27 15.76 20.62 15.49C20.96 15.21 21.19 14.83 21.29 14.4L23 6H6" />
               </svg>
-              הוסף לסל{addonTotal > 0 ? ` - ${format(totalPrice)}` : ''}
+              הוסף לסל{!hideProductPrice && addonTotal > 0 ? ` - ${format(totalPrice)}` : ''}
             </span>
           )}
         </button>

@@ -147,6 +147,8 @@ interface ProductPageProps {
   } | null;
   // ❤️ Wishlist support
   showWishlist?: boolean;
+  // 🔒 Catalog mode - hide prices
+  hidePrices?: boolean;
 }
 
 // ============================================
@@ -172,6 +174,7 @@ export function ProductPage({
   categoryIds,
   storyStats,
   showWishlist = false,
+  hidePrices = false,
 }: ProductPageProps) {
   // Sort sections by sortOrder and filter active
   const activeSections = sections
@@ -358,6 +361,9 @@ export function ProductPage({
         );
         
       case 'product_price':
+        // 🔒 Hide prices if catalog mode hidePrices is enabled
+        if (hidePrices) return null;
+        
         const priceSettings = section.settings as { 
           showComparePrice?: boolean;
           priceColor?: string;

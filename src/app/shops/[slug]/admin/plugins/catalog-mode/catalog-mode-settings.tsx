@@ -19,7 +19,8 @@ import {
   Loader2,
   AlertTriangle,
   FolderTree,
-  Globe
+  Globe,
+  Tag
 } from 'lucide-react';
 
 interface CatalogModeSettingsProps {
@@ -42,6 +43,7 @@ export function CatalogModeSettings({
     hideCartButton: Boolean(initialConfig.hideCartButton ?? true),
     hideCartSidebar: Boolean(initialConfig.hideCartSidebar ?? true),
     hideAddToCart: Boolean(initialConfig.hideAddToCart ?? true),
+    hidePrices: Boolean(initialConfig.hidePrices ?? false),
     blockCheckout: Boolean(initialConfig.blockCheckout ?? true),
     showContactButton: Boolean(initialConfig.showContactButton),
     contactButtonText: String(initialConfig.contactButtonText || 'צור קשר להזמנה'),
@@ -270,6 +272,23 @@ export function CatalogModeSettings({
                   type="checkbox"
                   checked={config.hideAddToCart}
                   onChange={(e) => setConfig(prev => ({ ...prev, hideAddToCart: e.target.checked }))}
+                  className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+              </label>
+
+              {/* Hide Prices */}
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex items-center gap-3">
+                  <Tag className="w-5 h-5 text-gray-500" />
+                  <div>
+                    <span className="text-gray-900">הסתר מחירים</span>
+                    <p className="text-xs text-gray-500">הסתר את המחירים מכרטיסי מוצרים ודף מוצר</p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={config.hidePrices}
+                  onChange={(e) => setConfig(prev => ({ ...prev, hidePrices: e.target.checked }))}
                   className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
               </label>

@@ -14,6 +14,7 @@ export interface CatalogModeConfig {
   hideCartButton: boolean;
   hideCartSidebar: boolean;
   hideAddToCart: boolean;
+  hidePrices: boolean;
   blockCheckout: boolean;
   showContactButton: boolean;
   contactButtonText: string;
@@ -33,6 +34,7 @@ export async function updateCatalogModeConfig(
       hideCartButton: Boolean(config.hideCartButton ?? true),
       hideCartSidebar: Boolean(config.hideCartSidebar ?? true),
       hideAddToCart: Boolean(config.hideAddToCart ?? true),
+      hidePrices: Boolean(config.hidePrices ?? false),
       blockCheckout: Boolean(config.blockCheckout ?? true),
       showContactButton: Boolean(config.showContactButton),
       contactButtonText: String(config.contactButtonText || 'צור קשר להזמנה').trim(),

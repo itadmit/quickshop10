@@ -16,6 +16,7 @@ export interface CatalogModeConfig {
   hideCartButton: boolean;
   hideCartSidebar: boolean;
   hideAddToCart: boolean;
+  hidePrices: boolean;
   blockCheckout: boolean;
   showContactButton: boolean;
   contactButtonText: string;
@@ -30,6 +31,12 @@ interface CatalogModeContextValue {
    * @returns true אם המוצר במצב קטלוג (לא ניתן לרכישה)
    */
   isProductInCatalogMode: (productCategoryIds?: string[]) => boolean;
+  /**
+   * בודק האם להסתיר מחיר למוצר ספציפי
+   * @param productCategoryIds - רשימת ה-categoryIds של המוצר
+   * @returns true אם צריך להסתיר את המחיר
+   */
+  shouldHidePrice: (productCategoryIds?: string[]) => boolean;
   /**
    * בודק האם העגלה צריכה להיות מוסתרת
    */
@@ -47,6 +54,7 @@ const defaultConfig: CatalogModeConfig = {
   hideCartButton: true,
   hideCartSidebar: true,
   hideAddToCart: true,
+  hidePrices: false,
   blockCheckout: true,
   showContactButton: false,
   contactButtonText: 'צור קשר להזמנה',
@@ -56,6 +64,7 @@ const defaultConfig: CatalogModeConfig = {
 const CatalogModeContext = createContext<CatalogModeContextValue>({
   config: defaultConfig,
   isProductInCatalogMode: () => false,
+  shouldHidePrice: () => false,
   shouldHideCart: false,
   shouldHideCartSidebar: false,
 });
@@ -99,10 +108,20 @@ export function CatalogModeProvider({ children, config }: CatalogModeProviderPro
     );
   };
   
+  /**
+   * בודק האם להסתיר מחיר למוצר ספציפי
+   * - רק אם hidePrices מופעל והמוצר במצב קטלוג
+   */
+  const shouldHidePrice = (productCategoryIds?: string[]): boolean => {
+    if (!effectiveConfig.enabled || !effectiveConfig.hidePrices) return false;
+    return isProductInCatalogMode(productCategoryIds);
+  };
+  
   return (
     <CatalogModeContext.Provider value={{
       config: effectiveConfig,
       isProductInCatalogMode,
+      shouldHidePrice,
       shouldHideCart,
       shouldHideCartSidebar,
     }}>

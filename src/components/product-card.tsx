@@ -65,6 +65,8 @@ interface ProductCardProps {
   imageFit?: 'cover' | 'contain' | 'fill';
   // 📝 Maximum lines for product name (0 = unlimited)
   productNameLines?: number;
+  // 🔒 Catalog mode - hide prices
+  hidePrices?: boolean;
 }
 
 export function ProductCard({ 
@@ -95,6 +97,7 @@ export function ProductCard({
   imagePosition = 'center',
   imageFit = 'cover',
   productNameLines = 2,
+  hidePrices = false,
 }: ProductCardProps) {
   // Use video thumbnail (cardImage) if available, otherwise use regular image
   // If cardImage is a video URL, generate a thumbnail from it
@@ -271,14 +274,16 @@ export function ProductCard({
                 {name}
               </h3>
             </Link>
-            <div className={`flex items-center gap-3 ${cardTextAlign === 'center' ? 'justify-center' : cardTextAlign === 'right' ? 'justify-start' : 'justify-end'}`}>
-              <span className={`text-sm ${hasAutoDiscount ? 'text-green-300 font-medium' : 'text-white'}`}>
-                {format(finalPrice)}
-              </span>
-              {originalPrice && (
-                <span className="text-sm text-white/60 line-through">{format(originalPrice)}</span>
-              )}
-            </div>
+            {!hidePrices && (
+              <div className={`flex items-center gap-3 ${cardTextAlign === 'center' ? 'justify-center' : cardTextAlign === 'right' ? 'justify-start' : 'justify-end'}`}>
+                <span className={`text-sm ${hasAutoDiscount ? 'text-green-300 font-medium' : 'text-white'}`}>
+                  {format(finalPrice)}
+                </span>
+                {originalPrice && (
+                  <span className="text-sm text-white/60 line-through">{format(originalPrice)}</span>
+                )}
+              </div>
+            )}
             {/* Add to Cart for overlay - white button on dark background */}
             {showAddToCart && !outOfStock && (
               <div className="mt-3" data-add-to-cart-container>
@@ -327,14 +332,16 @@ export function ProductCard({
           </Link>
 
           {/* Price */}
-          <div className={`flex items-center gap-3 ${cardTextAlign === 'center' ? 'justify-center' : cardTextAlign === 'right' ? 'justify-start' : 'justify-end'}`}>
-            <span className={`text-sm ${outOfStock ? 'text-gray-400' : hasAutoDiscount ? 'text-green-600 font-medium' : 'text-black'}`}>
-              {format(finalPrice)}
-            </span>
-            {originalPrice && (
-              <span className="text-sm text-gray-400 line-through">{format(originalPrice)}</span>
-            )}
-          </div>
+          {!hidePrices && (
+            <div className={`flex items-center gap-3 ${cardTextAlign === 'center' ? 'justify-center' : cardTextAlign === 'right' ? 'justify-start' : 'justify-end'}`}>
+              <span className={`text-sm ${outOfStock ? 'text-gray-400' : hasAutoDiscount ? 'text-green-600 font-medium' : 'text-black'}`}>
+                {format(finalPrice)}
+              </span>
+              {originalPrice && (
+                <span className="text-sm text-gray-400 line-through">{format(originalPrice)}</span>
+              )}
+            </div>
+          )}
         
           {/* Add to Cart Button - BELOW the card (when showAddToCart is ON) */}
           {showAddToCart && !outOfStock && (

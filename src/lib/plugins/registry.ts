@@ -542,6 +542,7 @@ export const pluginRegistry: PluginDefinition[] = [
       hideCartButton: true,
       hideCartSidebar: true,
       hideAddToCart: true,
+      hidePrices: false, // הסתרת מחירים מהמוצרים
       blockCheckout: true,
       showContactButton: false,
       contactButtonText: 'צור קשר להזמנה',
@@ -557,6 +558,7 @@ export const pluginRegistry: PluginDefinition[] = [
       features: [
         'הסתרת עגלת קניות מכל האתר',
         'הסתרת כפתור הוספה לסל',
+        'הסתרת מחירים מהמוצרים',
         'חסימת דפי checkout ועגלה',
         'מצב קטלוג לפי קטגוריות',
         'כפתור צור קשר מותאם (אופציונלי)',

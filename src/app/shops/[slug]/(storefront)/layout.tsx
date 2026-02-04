@@ -286,6 +286,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     hideCartButton: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hideCartButton ?? true),
     hideCartSidebar: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hideCartSidebar ?? true),
     hideAddToCart: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hideAddToCart ?? true),
+    hidePrices: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hidePrices ?? false),
     blockCheckout: Boolean((catalogModePlugin.config as Record<string, unknown>)?.blockCheckout ?? true),
     showContactButton: Boolean((catalogModePlugin.config as Record<string, unknown>)?.showContactButton),
     contactButtonText: String((catalogModePlugin.config as Record<string, unknown>)?.contactButtonText || 'צור קשר להזמנה'),

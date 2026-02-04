@@ -12,7 +12,7 @@ import { isOutOfStock } from '@/lib/inventory';
 import { ProductReviewsSection } from '@/components/reviews/product-reviews-section';
 import { getProductPageSettings, getVisibleSections, featureIcons, type ProductPageSettings } from '@/lib/product-page-settings';
 import { getProductAutomaticDiscounts } from '@/app/actions/automatic-discount';
-import { isPluginActive } from '@/lib/plugins/loader';
+import { isPluginActive, getStorePlugin } from '@/lib/plugins/loader';
 import { db } from '@/lib/db';
 import { productStories } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
@@ -170,7 +170,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
   // In preview mode, fetch up to 8 products to allow dynamic count changes
   // Fetch more to account for out-of-stock filtering
   const maxRelatedProducts = isPreviewMode ? 16 : (pageSettings.related.count + 1) * 2;
-  const [options, variants, allProducts, categories, productCategoryIds, productAddons, footerMenuItems, productBadges] = await Promise.all([
+  const [options, variants, allProducts, categories, productCategoryIds, productAddons, footerMenuItems, productBadges, catalogModePlugin] = await Promise.all([
     product.hasVariants ? getProductOptions(product.id) : Promise.resolve([]),
     product.hasVariants ? getProductVariants(product.id) : Promise.resolve([]),
     getProductsByStore(store.id, maxRelatedProducts),
@@ -188,6 +188,8 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
       comparePrice: product.comparePrice,
       categoryId: product.categoryId,
     }),
+    // Catalog mode plugin (for hiding prices)
+    getStorePlugin(store.id, 'catalog-mode'),
   ]);
   
   // Filter out of stock products (only show products that are available)
@@ -213,6 +215,19 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
     : [];
 
   const mainImage = product.images.find(img => img.isPrimary)?.url || product.images[0]?.url;
+  
+  // 🔒 Calculate if prices should be hidden (catalog mode)
+  const catalogConfig = catalogModePlugin?.isActive ? (catalogModePlugin.config as Record<string, unknown>) : null;
+  const catalogModeEnabled = Boolean(catalogConfig?.enabled);
+  const catalogHidePrices = Boolean(catalogConfig?.hidePrices);
+  const catalogMode = (catalogConfig?.mode as 'all' | 'categories') || 'all';
+  const catalogCategoryIds = (catalogConfig?.categoryIds as string[]) || [];
+  
+  // Check if this product should have hidden prices
+  const hidePrices = catalogModeEnabled && catalogHidePrices && (
+    catalogMode === 'all' || 
+    (catalogMode === 'categories' && productCategoryIds.some(catId => catalogCategoryIds.includes(catId)))
+  );
   
   // 🆕 Calculate base price - for products with variants, use min variant price
   const minVariantPrice = variants.length > 0 
@@ -726,6 +741,7 @@ export default async function ProductPage({ params, searchParams }: ProductPageP
             categoryIds={productCategoryIds}
             storyStats={storyStats}
             showWishlist={Boolean(storeSettings.headerShowWishlist)}
+            hidePrices={hidePrices}
           />
           
           {/* Footer */}

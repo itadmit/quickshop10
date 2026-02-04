@@ -95,6 +95,7 @@ export function getThemeCssVars(mode: ThemeMode = 'dark'): Record<string, string
     '--editor-border-focus': t.border.focus,
     '--editor-border-subtle': t.border.subtle,
     '--editor-accent-blue': accent.blue,
+    '--editor-accent-blue-hover': accent.blueHover,
     '--editor-accent-green': accent.green,
     '--editor-accent-orange': accent.orange,
     '--editor-accent-red': accent.red,
