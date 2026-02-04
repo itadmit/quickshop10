@@ -1212,8 +1212,8 @@ export function ThemeEditor({
             onClick={() => setSelectedSectionId('global-settings')}
             className={`p-2 rounded-full transition-colors cursor-pointer ${
               selectedSectionId === 'global-settings' 
-                ? 'bg-[var(--editor-bg-panel)]/20 text-white' 
-                : 'bg-[var(--editor-bg-panel)]/5 hover:bg-[var(--editor-bg-panel)]/10 text-white/70 hover:text-white'
+                ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' 
+                : 'bg-[var(--editor-bg-tertiary)]/50 hover:bg-[var(--editor-bg-hover)] text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)]'
             }`}
             title="הגדרות כלליות"
           >
@@ -1226,7 +1226,7 @@ export function ThemeEditor({
         <div className="relative">
           <button
             onClick={() => setShowPageDropdown(!showPageDropdown)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--editor-bg-panel)]/5 hover:bg-[var(--editor-bg-panel)]/10 transition-colors cursor-pointer text-white"
+            className="flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--editor-bg-tertiary)]/50 hover:bg-[var(--editor-bg-hover)] transition-colors cursor-pointer text-[var(--editor-text-primary)]"
           >
               {currentPageInfo.icon === 'home' ? <HomeIcon /> : currentPageInfo.icon === 'package' ? <PackageIcon /> : currentPageInfo.icon === 'file' ? <FileIcon /> : <ClockIcon />}
             <span className="text-sm">{currentPageInfo.label}</span>
@@ -1246,9 +1246,9 @@ export function ThemeEditor({
               />
               
               {/* Dropdown Menu */}
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-[#2a2a3e] rounded-lg shadow-xl border border-white/10 overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-[var(--editor-bg-secondary)] rounded-lg shadow-xl border border-[var(--editor-border-default)] overflow-hidden z-50 max-h-[80vh] overflow-y-auto">
                 <div className="p-2">
-                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40">עמודי מערכת</p>
+                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)]">עמודי מערכת</p>
                   
                   {EDITABLE_PAGES.map((page) => (
                     <button
@@ -1262,8 +1262,8 @@ export function ThemeEditor({
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer ${
                         page.id === currentPage 
-                          ? 'bg-[var(--editor-bg-panel)]/10 text-white' 
-                          : 'text-white/70 hover:bg-[var(--editor-bg-panel)]/5 hover:text-white'
+                          ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' 
+                          : 'text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary)] hover:text-[var(--editor-text-primary)]'
                       }`}
                     >
                       {page.icon === 'home' ? (
@@ -1284,11 +1284,11 @@ export function ThemeEditor({
                 </div>
                 
                 {/* Internal Pages */}
-                <div className="border-t border-white/10 p-2">
-                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-white/40">עמודים פנימיים</p>
+                <div className="border-t border-[var(--editor-border-default)] p-2">
+                  <p className="px-3 py-2 text-[10px] uppercase tracking-wider text-[var(--editor-text-muted)]">עמודים פנימיים</p>
                   
                   {internalPages.length === 0 ? (
-                    <p className="px-3 py-2 text-xs text-white/30">אין עמודים פנימיים</p>
+                    <p className="px-3 py-2 text-xs text-[var(--editor-text-muted)]">אין עמודים פנימיים</p>
                   ) : (
                     internalPages.map((page) => {
                       const pageId = `pages/${page.slug}`;
@@ -1303,8 +1303,8 @@ export function ThemeEditor({
                           }}
                           className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer ${
                             pageId === currentPage 
-                              ? 'bg-[var(--editor-bg-panel)]/10 text-white' 
-                              : 'text-white/70 hover:bg-[var(--editor-bg-panel)]/5 hover:text-white'
+                              ? 'bg-[var(--editor-bg-hover)] text-[var(--editor-text-primary)]' 
+                              : 'text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary)] hover:text-[var(--editor-text-primary)]'
                           }`}
                         >
                           <FileIcon />
@@ -1328,7 +1328,7 @@ export function ThemeEditor({
                       setShowPageDropdown(false);
                       setShowNewPageModal(true);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-white/70 hover:bg-[var(--editor-bg-panel)]/5 hover:text-white mt-1"
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md transition-colors cursor-pointer text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary)] hover:text-[var(--editor-text-primary)] mt-1"
                   >
                     <PlusIcon />
                     <span className="text-sm">הוסף עמוד חדש</span>
@@ -1336,9 +1336,9 @@ export function ThemeEditor({
                 </div>
                 
                 {/* Store Status */}
-                <div className="border-t border-white/10 p-2">
+                <div className="border-t border-[var(--editor-border-default)] p-2">
                   <div className="px-3 py-2 flex items-center justify-between">
-                    <span className="text-xs text-white/50">מצב האתר:</span>
+                    <span className="text-xs text-[var(--editor-text-muted)]">מצב האתר:</span>
                     <span className={`text-xs font-medium ${isPublished ? 'text-green-400' : 'text-yellow-400'}`}>
                       {isPublished ? '● פתוח' : '● Coming Soon'}
                     </span>
@@ -1353,7 +1353,7 @@ export function ThemeEditor({
           {isInternalPage && currentInternalPage && (
             <button
               onClick={openPageSettings}
-              className="p-2 text-white/60 hover:text-white hover:bg-[var(--editor-bg-panel)]/10 rounded-lg transition-colors cursor-pointer"
+              className="p-2 text-[var(--editor-text-secondary)] hover:text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)] rounded-lg transition-colors cursor-pointer"
               title="הגדרות עמוד"
             >
               <SettingsIcon />
