@@ -396,6 +396,105 @@ export function PopupDisplay({ popups, storeSlug }: PopupDisplayProps) {
             )}
           </div>
         )}
+
+        {/* Combined Type - Image + Form side by side */}
+        {type === 'combined' && (
+          <div className="flex flex-col md:flex-row overflow-hidden" style={{ borderRadius: `${style.borderRadius || 0}px` }}>
+            {/* Image Side */}
+            {content.imageUrl && (
+              <div className="md:w-1/2 flex-shrink-0">
+                <img
+                  src={content.imageUrl}
+                  alt={content.imageAlt || ''}
+                  className="w-full h-full object-cover"
+                  style={{ minHeight: '200px' }}
+                />
+              </div>
+            )}
+            
+            {/* Form Side */}
+            <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-center">
+              {isSubmitted ? (
+                <div className="text-center py-8">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-lg">
+                    {content.successMessage || 'תודה! נרשמת בהצלחה'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {content.title && (
+                    <h2 
+                      className="text-xl md:text-2xl font-light mb-2 tracking-wide"
+                      style={{ fontFamily: 'var(--font-display)' }}
+                    >
+                      {content.title}
+                    </h2>
+                  )}
+                  {content.subtitle && (
+                    <p className="text-sm opacity-70 mb-4">
+                      {content.subtitle}
+                    </p>
+                  )}
+                  {content.body && (
+                    <p className="mb-4 leading-relaxed text-sm">
+                      {content.body}
+                    </p>
+                  )}
+                  <form onSubmit={handleFormSubmit} className="space-y-3">
+                    {(content.fields || [{ name: 'email', type: 'email', placeholder: 'אימייל', required: true }]).map((field) => (
+                      <div key={field.name}>
+                        {field.type === 'textarea' ? (
+                          <textarea
+                            name={field.name}
+                            placeholder={field.placeholder || field.name}
+                            required={field.required}
+                            value={formData[field.name] || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                            rows={3}
+                            className="w-full px-4 py-3 border border-gray-200 focus:border-gray-900 focus:outline-none transition-colors text-sm"
+                            style={{ 
+                              borderRadius: `${Math.min(style.borderRadius || 0, 8)}px`,
+                              backgroundColor: 'transparent',
+                            }}
+                          />
+                        ) : (
+                          <input
+                            type={field.type}
+                            name={field.name}
+                            placeholder={field.placeholder || field.name}
+                            required={field.required}
+                            value={formData[field.name] || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, [field.name]: e.target.value }))}
+                            className="w-full px-4 py-3 border border-gray-200 focus:border-gray-900 focus:outline-none transition-colors text-sm"
+                            style={{ 
+                              borderRadius: `${Math.min(style.borderRadius || 0, 8)}px`,
+                              backgroundColor: 'transparent',
+                            }}
+                          />
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 text-xs font-medium uppercase tracking-widest transition-all hover:opacity-80 disabled:opacity-50"
+                      style={{
+                        backgroundColor: style.buttonBgColor || '#000000',
+                        color: style.buttonTextColor || '#ffffff',
+                        borderRadius: `${Math.min(style.borderRadius || 0, 8)}px`,
+                      }}
+                    >
+                      {isSubmitting ? '...' : content.buttonText || 'הירשמו'}
+                    </button>
+                  </form>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
