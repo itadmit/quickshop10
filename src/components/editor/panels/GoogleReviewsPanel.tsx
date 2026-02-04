@@ -180,7 +180,6 @@ export function GoogleReviewsPanel({ section, onUpdate, onClose, onDelete, store
               <GoogleLogo size={20} />
               <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">ביקורות גוגל</h3>
             </div>
-            <ThemeToggle />
           </div>
           <div className="flex gap-1 p-1 bg-[var(--editor-bg-tertiary)] rounded-lg">
             {tabs.map((tab) => (

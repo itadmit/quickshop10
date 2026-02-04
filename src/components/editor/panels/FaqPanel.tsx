@@ -94,7 +94,6 @@ export function FaqPanel({ section, onUpdate, onClose, onDelete }: FaqPanelProps
         <div className="px-4 py-3 border-b border-[var(--editor-border-default)] bg-[var(--editor-bg-secondary)]">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">שאלות נפוצות</h3>
-            <ThemeToggle />
           </div>
           <div className="flex gap-1 p-1 bg-[var(--editor-bg-tertiary)] rounded-lg">
             {tabs.map((tab) => (

@@ -167,7 +167,6 @@ export function ProductsPanel({ section, onUpdate, onClose, onDelete, storeSlug 
               )}
               <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">מוצרים נבחרים</h3>
             </div>
-            <ThemeToggle />
           </div>
 
           {/* Tabs - Figma style */}

@@ -173,7 +173,6 @@ export function HeroPanel({ section, onUpdate, onClose, onDelete }: HeroPanelPro
               )}
               <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">באנר ראשי</h3>
             </div>
-            <ThemeToggle />
           </div>
 
           {/* Tabs */}

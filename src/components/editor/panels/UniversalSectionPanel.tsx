@@ -420,7 +420,6 @@ export function UniversalSectionPanel({
               )}
               <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">{sectionName}</h3>
             </div>
-            <ThemeToggle />
           </div>
 
           {/* Tabs */}

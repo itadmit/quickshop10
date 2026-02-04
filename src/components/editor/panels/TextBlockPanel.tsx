@@ -135,7 +135,6 @@ export function TextBlockPanel({ section, onUpdate, onClose, onDelete }: TextBlo
               )}
               <h3 className="text-sm font-medium text-[var(--editor-text-primary)]">בלוק טקסט</h3>
             </div>
-            <ThemeToggle />
           </div>
 
           {/* Tabs - Figma style */}
