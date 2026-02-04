@@ -280,8 +280,9 @@ export function ShopHeader({
   );
   
   // Header wrapper class based on sticky setting and transparency
+  // When transparent: use absolute positioning to overlay content
   const headerClass = `
-    ${isSticky ? 'sticky top-0' : 'relative'} 
+    ${isTransparent ? 'absolute top-0 left-0 right-0' : (isSticky ? 'sticky top-0' : 'relative')} 
     z-30 
     ${isTransparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-sm'}
     ${isTransparent ? 'border-transparent' : 'border-b border-gray-100'}

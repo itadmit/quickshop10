@@ -163,11 +163,12 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   const pathname = headersList.get('x-pathname') || '';
   const isCheckoutPage = pathname.includes('/checkout');
   // Check if homepage (for transparent header - only on homepage)
-  // Note: x-pathname is set BEFORE rewrite in middleware, so it's the ORIGINAL pathname
-  // For custom domain homepage: pathname is '/' or ''
-  // For platform homepage: pathname is '/' (which gets rewritten to /shops/slug)
-  // So homepage check: pathname === '/' or pathname === '' (before rewrite)
-  const isHomePage = pathname === '/' || pathname === '';
+  // Note: x-pathname is set in middleware with the ORIGINAL pathname before any rewrite
+  // For custom domain: pathname is '/' or '' (homepage)
+  // For platform domain: pathname is '/shops/slug' or '/shops/slug/' (homepage)
+  const isHomePage = isCustomDomain 
+    ? (pathname === '/' || pathname === '')
+    : (pathname === `/shops/${slug}` || pathname === `/shops/${slug}/`);
 
   // Always show header - categories/menu items are optional
   // Header contains logo, cart, search etc. which should always be visible
