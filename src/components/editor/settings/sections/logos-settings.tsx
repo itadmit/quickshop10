@@ -80,9 +80,9 @@ export function LogosContentSettings({ section, onUpdate }: LogosSettingsProps) 
     <SettingsGroup title="לוגואים">
       <div className="space-y-3">
         {logos.map((logo, index) => (
-          <div key={logo.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div key={logo.id} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">לוגו {index + 1}</span>
+              <span className="text-xs text-[var(--editor-text-muted)]">לוגו {index + 1}</span>
               <button
                 onClick={() => removeLogo(index)}
                 className="p-1 hover:bg-red-100 text-red-600 rounded"
@@ -93,7 +93,7 @@ export function LogosContentSettings({ section, onUpdate }: LogosSettingsProps) 
             {logo.url ? (
               <img src={logo.url} alt={logo.name} className="w-full h-12 object-contain rounded bg-gray-50" />
             ) : (
-              <div className="w-full h-12 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-xs">
+              <div className="w-full h-12 bg-[var(--editor-bg-secondary)] rounded flex items-center justify-center text-[var(--editor-text-muted)] text-xs">
                 אין תמונה
               </div>
             )}
@@ -101,28 +101,28 @@ export function LogosContentSettings({ section, onUpdate }: LogosSettingsProps) 
               type="text"
               value={logo.name}
               onChange={(e) => updateLogo(index, 'name', e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded px-2 py-1"
+              className="w-full text-sm border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="שם"
             />
             <input
               type="text"
               value={logo.url}
               onChange={(e) => updateLogo(index, 'url', e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+              className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="URL לוגו"
             />
             <input
               type="text"
               value={logo.link || ''}
               onChange={(e) => updateLogo(index, 'link', e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+              className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="קישור (אופציונלי)"
             />
           </div>
         ))}
         <button
           onClick={addLogo}
-          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400"
+          className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-sm text-[var(--editor-text-muted)] hover:border-[var(--editor-border-hover)]"
         >
           + הוסף לוגו
         </button>

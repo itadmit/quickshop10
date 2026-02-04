@@ -97,9 +97,9 @@ export function FeaturesContentSettings({ section, onUpdate }: FeaturesSettingsP
     <SettingsGroup title="חוזקות">
       <div className="space-y-3">
         {features.map((feature, index) => (
-          <div key={feature.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div key={feature.id} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+              <span className="text-xs text-[var(--editor-text-muted)]">חוזקה {index + 1}</span>
               <button
                 onClick={() => removeFeature(index)}
                 className="p-1 hover:bg-red-100 text-red-600 rounded"
@@ -111,11 +111,11 @@ export function FeaturesContentSettings({ section, onUpdate }: FeaturesSettingsP
             
             {/* Icon Selector */}
             <div>
-              <label className="block text-xs text-gray-500 mb-1">אייקון</label>
+              <label className="block text-xs text-[var(--editor-text-muted)] mb-1">אייקון</label>
               <select
                 value={feature.icon}
                 onChange={(e) => updateFeature(index, 'icon', e.target.value)}
-                className="w-full text-sm border border-gray-200 rounded px-2 py-1"
+                className="w-full text-sm border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               >
                 {ICON_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -127,20 +127,20 @@ export function FeaturesContentSettings({ section, onUpdate }: FeaturesSettingsP
               type="text"
               value={feature.title}
               onChange={(e) => updateFeature(index, 'title', e.target.value)}
-              className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
+              className="w-full text-sm font-medium border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="כותרת"
             />
             <textarea
               value={feature.description}
               onChange={(e) => updateFeature(index, 'description', e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded px-2 py-1 min-h-[40px]"
+              className="w-full text-sm border border-[var(--editor-border-default)] rounded px-2 py-1 min-h-[40px] bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="תיאור"
             />
           </div>
         ))}
         <button
           onClick={addFeature}
-          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600"
+          className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-sm text-[var(--editor-text-muted)] hover:border-[var(--editor-border-hover)]"
         >
           + הוסף חוזקה
         </button>

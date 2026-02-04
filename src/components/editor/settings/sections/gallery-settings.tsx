@@ -82,9 +82,9 @@ export function GalleryContentSettings({ section, onUpdate, storeInfo }: Gallery
     <SettingsGroup title="תמונות">
       <div className="space-y-3">
         {images.map((image, index) => (
-          <div key={image.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div key={image.id} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">תמונה {index + 1}</span>
+              <span className="text-xs text-[var(--editor-text-muted)]">תמונה {index + 1}</span>
               <button
                 onClick={() => removeImage(index)}
                 className="p-1 hover:bg-red-100 text-red-600 rounded"
@@ -95,7 +95,7 @@ export function GalleryContentSettings({ section, onUpdate, storeInfo }: Gallery
             {image.url ? (
               <img src={image.url} alt={image.alt} className="w-full h-20 object-cover rounded" />
             ) : (
-              <div className="w-full h-20 bg-gray-100 rounded flex items-center justify-center text-gray-400 text-sm">
+              <div className="w-full h-20 bg-[var(--editor-bg-secondary)] rounded flex items-center justify-center text-[var(--editor-text-muted)] text-sm">
                 אין תמונה
               </div>
             )}
@@ -103,21 +103,21 @@ export function GalleryContentSettings({ section, onUpdate, storeInfo }: Gallery
               type="text"
               value={image.url}
               onChange={(e) => updateImage(index, 'url', e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+              className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="URL תמונה"
             />
             <input
               type="text"
               value={image.alt || ''}
               onChange={(e) => updateImage(index, 'alt', e.target.value)}
-              className="w-full text-xs border border-gray-200 rounded px-2 py-1"
+              className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="טקסט חלופי"
             />
           </div>
         ))}
         <button
           onClick={addImage}
-          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400"
+          className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-sm text-[var(--editor-text-muted)] hover:border-[var(--editor-border-hover)]"
         >
           + הוסף תמונה
         </button>

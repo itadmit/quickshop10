@@ -76,9 +76,9 @@ export function FAQContentSettings({ section, onUpdate }: FAQSettingsProps) {
     <SettingsGroup title="שאלות ותשובות">
       <div className="space-y-3">
         {items.map((item, index) => (
-          <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div key={item.id} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">שאלה {index + 1}</span>
+              <span className="text-xs text-[var(--editor-text-muted)]">שאלה {index + 1}</span>
               <button
                 onClick={() => removeItem(index)}
                 className="p-1 hover:bg-red-100 text-red-600 rounded"
@@ -90,20 +90,20 @@ export function FAQContentSettings({ section, onUpdate }: FAQSettingsProps) {
               type="text"
               value={item.question}
               onChange={(e) => updateItem(index, 'question', e.target.value)}
-              className="w-full text-sm font-medium border border-gray-200 rounded px-2 py-1"
+              className="w-full text-sm font-medium border border-[var(--editor-border-default)] rounded px-2 py-1 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="שאלה"
             />
             <textarea
               value={item.answer}
               onChange={(e) => updateItem(index, 'answer', e.target.value)}
-              className="w-full text-sm border border-gray-200 rounded px-2 py-1 min-h-[60px]"
+              className="w-full text-sm border border-[var(--editor-border-default)] rounded px-2 py-1 min-h-[60px] bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
               placeholder="תשובה"
             />
           </div>
         ))}
         <button
           onClick={addItem}
-          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400"
+          className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-sm text-[var(--editor-text-muted)] hover:border-[var(--editor-border-hover)]"
         >
           + הוסף שאלה
         </button>

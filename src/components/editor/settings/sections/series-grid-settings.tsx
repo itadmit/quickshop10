@@ -81,9 +81,9 @@ export function SeriesGridContentSettings({ section, onUpdate, storeInfo }: Seri
     <SettingsGroup title="סדרות">
       <div className="space-y-3">
         {items.map((item, index) => (
-          <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div key={item.id} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">סדרה {index + 1}</span>
+              <span className="text-xs text-[var(--editor-text-muted)]">סדרה {index + 1}</span>
               <button
                 onClick={() => removeItem(index)}
                 className="p-1 hover:bg-red-100 text-red-600 rounded"
@@ -122,7 +122,7 @@ export function SeriesGridContentSettings({ section, onUpdate, storeInfo }: Seri
         ))}
         <button
           onClick={addItem}
-          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:border-gray-400"
+          className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-sm text-[var(--editor-text-muted)] hover:border-[var(--editor-border-hover)]"
         >
           + הוסף סדרה
         </button>

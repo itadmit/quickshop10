@@ -89,7 +89,7 @@ export function ReviewsContentSettings({ section, onUpdate }: ReviewsSettingsPro
     <SettingsGroup title="ביקורות">
       <div className="space-y-3">
         {reviews.map((review, index) => (
-          <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2">
+          <div key={index} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-500">ביקורת {index + 1}</span>
               <button
