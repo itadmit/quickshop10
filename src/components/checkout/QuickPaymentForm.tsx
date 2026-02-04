@@ -210,17 +210,29 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
     // Expose tokenize function via ref
     useImperativeHandle(ref, () => ({
       tokenize: async (data) => {
+        // In TEST MODE: Skip real tokenization and return a mock token
+        // This allows testing the full checkout flow without real card details
+        if (testMode) {
+          console.log('=== TEST MODE: Returning mock token ===');
+          console.log('Data:', JSON.stringify(data, null, 2));
+          
+          // Generate a mock token for test mode
+          const mockToken = `test_token_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+          
+          return {
+            token: mockToken,
+            cardMask: '****-****-****-4242',
+            cardType: 'visa',
+          };
+        }
+        
+        // PRODUCTION MODE: Real tokenization
         if (!instanceRef.current) {
           throw new Error('מערכת התשלום לא מוכנה');
         }
 
-        // Validate social ID - only required in production mode
-        // In test mode, use a default value if not provided
-        const effectiveSocialId = testMode && (!socialId || socialId.length < 5) 
-          ? '123456789'  // Default test value
-          : socialId;
-          
-        if (!testMode && (!socialId || socialId.length < 5)) {
+        // Validate social ID - required in production mode
+        if (!socialId || socialId.length < 5) {
           throw new Error('נא להזין תעודת זהות תקינה');
         }
 
@@ -230,12 +242,9 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
         const lastName = nameParts.slice(1).join(' ') || '';
 
         // Per documentation: tokenize with sale data
-        // socialId is a native field, passed in tokenize payload
         console.log('=== QuickPayment tokenize start ===');
         console.log('Data:', JSON.stringify(data, null, 2));
-        console.log('SocialId from state:', socialId);
-        console.log('Effective SocialId:', effectiveSocialId);
-        console.log('Test mode:', testMode);
+        console.log('SocialId:', socialId);
         console.log('Instance ready:', !!instanceRef.current);
         
         const tokenizePayload = {
@@ -243,7 +252,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
           payerLastName: lastName,
           payerEmail: data.customerEmail,
           payerPhone: data.customerPhone,
-          payerSocialId: effectiveSocialId,
+          payerSocialId: socialId,
           total: {
             label: data.productName || `הזמנה ${data.orderId}`,
             amount: {
@@ -290,7 +299,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
           cardType: undefined, // Not provided in response
         };
       },
-      isReady: () => fieldsReady && !!instanceRef.current,
+      isReady: () => testMode || (fieldsReady && !!instanceRef.current),
     }), [fieldsReady, socialId, testMode]);
 
     if (error) {

@@ -114,6 +114,31 @@ export async function POST(
       );
     }
 
+    // 🧪 TEST MODE: Handle test tokens without calling PayMe API
+    if (testMode && token.startsWith('test_token_')) {
+      console.log('=== TEST MODE: Simulating successful payment ===');
+      console.log('Test token:', token);
+      console.log('Order ID:', orderId);
+      console.log('Amount:', amount);
+      
+      // Update order status to simulate successful payment
+      await db
+        .update(orders)
+        .set({
+          financialStatus: 'paid',
+          status: 'processing',
+          paidAt: new Date(),
+        })
+        .where(eq(orders.id, orderId));
+
+      return NextResponse.json({
+        success: true,
+        transactionId: `test_sale_${Date.now()}`,
+        orderId,
+        testMode: true,
+      });
+    }
+
     // Call PayMe generate-sale API
     const apiUrl = testMode ? PAYME_API_URL.sandbox : PAYME_API_URL.production;
     

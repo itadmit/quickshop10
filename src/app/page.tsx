@@ -87,9 +87,6 @@ export const metadata: Metadata = {
   },
   alternates: {
     canonical: "https://quickshop.co.il",
-    types: {
-      'application/rss+xml': 'https://quickshop.co.il/sitemap.xml',
-    },
   },
   robots: {
     index: true,
