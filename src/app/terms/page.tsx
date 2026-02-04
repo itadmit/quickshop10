@@ -264,7 +264,7 @@ export default function TermsPage() {
             </p>
             <div className="bg-gray-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-2"><strong>קוויק שופ</strong></p>
-              <p className="text-gray-700 mb-2">אימייל: <a href="mailto:legal@quick-shop.co.il" className="text-emerald-600 hover:underline">legal@quick-shop.co.il</a></p>
+              <p className="text-gray-700 mb-2">אימייל: <a href="mailto:info@quick-shop.co.il" className="text-emerald-600 hover:underline">info@quick-shop.co.il</a></p>
               <p className="text-gray-700 mb-2">טלפון: <a href="tel:+972552554432" className="text-emerald-600 hover:underline" dir="ltr">+972-55-255-4432</a></p>
               <p className="text-gray-700">כתובת: ישראל</p>
             </div>

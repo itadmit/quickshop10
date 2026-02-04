@@ -138,7 +138,7 @@ export default function PrivacyPage() {
               <li><strong>זכות להסרת הסכמה:</strong> אתם יכולים להסיר את הסכמתכם לעיבוד מידע בכל עת</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
-              כדי לממש את זכויותיכם, אנא פנו אלינו בכתובת: <a href="mailto:privacy@quick-shop.co.il" className="text-emerald-600 hover:underline">privacy@quick-shop.co.il</a>
+              כדי לממש את זכויותיכם, אנא פנו אלינו בכתובת: <a href="mailto:info@quick-shop.co.il" className="text-emerald-600 hover:underline">info@quick-shop.co.il</a>
             </p>
           </section>
 
@@ -179,7 +179,7 @@ export default function PrivacyPage() {
             </p>
             <div className="bg-gray-50 p-6 rounded-lg">
               <p className="text-gray-700 mb-2"><strong>קוויק שופ</strong></p>
-              <p className="text-gray-700 mb-2">אימייל: <a href="mailto:privacy@quick-shop.co.il" className="text-emerald-600 hover:underline">privacy@quick-shop.co.il</a></p>
+              <p className="text-gray-700 mb-2">אימייל: <a href="mailto:info@quick-shop.co.il" className="text-emerald-600 hover:underline">info@quick-shop.co.il</a></p>
               <p className="text-gray-700 mb-2">טלפון: <a href="tel:+972552554432" className="text-emerald-600 hover:underline" dir="ltr">+972-55-255-4432</a></p>
               <p className="text-gray-700">כתובת: ישראל</p>
             </div>
