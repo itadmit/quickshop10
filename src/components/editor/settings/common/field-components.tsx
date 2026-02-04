@@ -210,8 +210,8 @@ export function ToggleField({
             onClick={() => onChange(opt)}
             className={`px-3 py-1.5 text-xs font-medium transition-colors ${
               value === opt 
-                ? 'bg-gray-900 text-white' 
-                : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
+                ? 'bg-[var(--editor-accent-blue)] text-white' 
+                : 'bg-[var(--editor-bg-panel,#fff)] text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
             }`}
           >
             {opt}
@@ -519,7 +519,7 @@ export function IconSelectField({
             className={`p-2 rounded-lg border text-center transition-colors ${
               value === opt.value
                 ? 'border-blue-500 bg-blue-50 text-blue-600'
-                : 'border-[var(--editor-border-default,#e2e8f0)] hover:border-[var(--editor-border-default,#e2e8f0)] text-gray-600'
+                : 'border-[var(--editor-border-default,#e2e8f0)] hover:border-[var(--editor-border-default,#e2e8f0)] text-[var(--editor-text-secondary)]'
             }`}
             title={opt.label}
           >
@@ -551,7 +551,7 @@ export function AlignmentField({
         <button
           onClick={() => onChange('right')}
           className={`p-2 transition-colors ${
-            value === 'right' ? 'bg-gray-900 text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
+            value === 'right' ? 'bg-[var(--editor-accent-blue)] text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
           }`}
           title="ימין"
         >
@@ -562,7 +562,7 @@ export function AlignmentField({
         <button
           onClick={() => onChange('center')}
           className={`p-2 transition-colors ${
-            value === 'center' ? 'bg-gray-900 text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
+            value === 'center' ? 'bg-[var(--editor-accent-blue)] text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
           }`}
           title="מרכז"
         >
@@ -573,7 +573,7 @@ export function AlignmentField({
         <button
           onClick={() => onChange('left')}
           className={`p-2 transition-colors ${
-            value === 'left' ? 'bg-gray-900 text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-gray-600 hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
+            value === 'left' ? 'bg-[var(--editor-accent-blue)] text-white' : 'bg-[var(--editor-bg-panel,#fff)] text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-tertiary,#f1f5f9)]'
           }`}
           title="שמאל"
         >

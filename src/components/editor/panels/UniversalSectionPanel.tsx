@@ -580,7 +580,7 @@ export function UniversalSectionPanel({
                         <button
                           onClick={() => updateSettings('parallax', !settings.parallax)}
                           className={`w-10 h-5 rounded-full transition-colors ${
-                            settings.parallax !== false ? 'bg-blue-500' : 'bg-gray-300'
+                            settings.parallax !== false ? 'bg-[var(--editor-accent-blue)]' : 'bg-[var(--editor-border-default)]'
                           }`}
                         >
                           <span
@@ -1116,7 +1116,7 @@ function SectionContentEditor({
                   />
                   {isSearchingProducts && (
                     <div className="absolute left-3 top-1/2 -translate-y-1/2">
-                      <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-500 rounded-full animate-spin" />
+                      <div className="w-4 h-4 border-2 border-[var(--editor-border-default)] border-t-[var(--editor-accent-blue)] rounded-full animate-spin" />
                     </div>
                   )}
                   
@@ -1175,7 +1175,7 @@ function SectionContentEditor({
                         <button
                           type="button"
                           onClick={() => removeProductFromSelection(product.id)}
-                          className="p-1 text-gray-400 hover:text-red-500"
+                          className="p-1 text-[var(--editor-text-muted)] hover:text-[var(--editor-accent-red)]"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1510,7 +1510,7 @@ function SectionContentEditor({
               <>
                 <button 
                   onClick={handleConnectGoogle}
-                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50"
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-[var(--editor-bg-primary)] border-2 border-[var(--editor-border-default)] rounded-lg hover:bg-[var(--editor-bg-hover)]"
                 >
                   <svg width="20" height="20" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1518,7 +1518,7 @@ function SectionContentEditor({
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                   </svg>
-                  <span className="text-sm font-medium text-gray-700">התחבר לגוגל ביזנס</span>
+                  <span className="text-sm font-medium text-[var(--editor-text-primary)]">התחבר לגוגל ביזנס</span>
                 </button>
                 <div className="p-2 bg-amber-50 border border-amber-200 rounded-lg">
                   <p className="text-[10px] text-amber-700">
@@ -1595,21 +1595,21 @@ function SectionContentEditor({
         <MiniAccordion title="חוזקות" defaultOpen={true}>
           <div className="space-y-3">
             {featuresList.map((feature, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-white">
+              <div key={index} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-primary)]">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">חוזקה {index + 1}</span>
+                  <span className="text-xs text-[var(--editor-text-muted)]">חוזקה {index + 1}</span>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => moveFeatureItem(index, 'up')}
                       disabled={index === 0}
-                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                      className="p-1 hover:bg-[var(--editor-bg-hover)] rounded disabled:opacity-30 text-xs"
                     >
                       ↑
                     </button>
                     <button
                       onClick={() => moveFeatureItem(index, 'down')}
                       disabled={index === featuresList.length - 1}
-                      className="p-1 hover:bg-gray-100 rounded disabled:opacity-30 text-xs"
+                      className="p-1 hover:bg-[var(--editor-bg-hover)] rounded disabled:opacity-30 text-xs"
                     >
                       ↓
                     </button>
@@ -1626,7 +1626,7 @@ function SectionContentEditor({
                 <select
                   value={feature.icon}
                   onChange={(e) => updateFeatureItem(index, 'icon', e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 bg-white"
+                  className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1.5 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
                 >
                   {FEATURE_ICONS.map((icon) => (
                     <option key={icon.value} value={icon.value}>
@@ -1640,7 +1640,7 @@ function SectionContentEditor({
                   type="text"
                   value={feature.title}
                   onChange={(e) => updateFeatureItem(index, 'title', e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5"
+                  className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1.5 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
                   placeholder="כותרת החוזקה"
                 />
                 
@@ -1649,14 +1649,14 @@ function SectionContentEditor({
                   type="text"
                   value={feature.description}
                   onChange={(e) => updateFeatureItem(index, 'description', e.target.value)}
-                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5"
+                  className="w-full text-xs border border-[var(--editor-border-default)] rounded px-2 py-1.5 bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
                   placeholder="תיאור קצר"
                 />
               </div>
             ))}
             <button
               onClick={addFeatureItem}
-              className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:border-gray-400 hover:text-gray-600"
+              className="w-full py-2 border-2 border-dashed border-[var(--editor-border-default)] rounded-lg text-xs text-[var(--editor-text-muted)] hover:border-[var(--editor-border-hover)] hover:text-[var(--editor-text-secondary)]"
             >
               + הוסף חוזקה
             </button>
@@ -1910,7 +1910,7 @@ function SectionContentEditor({
                 <div className="space-y-2">
                   <EditorInput label="תמונה" value={logo.imageUrl || ''} onChange={(v) => updateLogo(index, 'imageUrl', v)} placeholder="https://..." />
                   {logo.imageUrl && (
-                    <div className="h-12 bg-gray-50 rounded flex items-center justify-center">
+                    <div className="h-12 bg-[var(--editor-bg-secondary)] rounded flex items-center justify-center">
                       <img src={logo.imageUrl} alt="" className="max-h-full max-w-full object-contain" />
                     </div>
                   )}
@@ -1993,7 +1993,7 @@ function SectionContentEditor({
                 <div className="space-y-2">
                   <EditorInput label="כתובת תמונה" value={image.url || ''} onChange={(v) => updateImage(index, 'url', v)} placeholder="https://..." />
                   {image.url && (
-                    <div className="aspect-square bg-gray-50 rounded overflow-hidden">
+                    <div className="aspect-square bg-[var(--editor-bg-secondary)] rounded overflow-hidden">
                       <img src={image.url} alt="" className="w-full h-full object-cover" />
                     </div>
                   )}
@@ -2024,7 +2024,7 @@ function SectionContentEditor({
                 placeholder="https://..."
               />
               {(content.imageUrl as string) && (
-                <div className="aspect-video bg-gray-100 rounded overflow-hidden">
+                <div className="aspect-video bg-[var(--editor-bg-secondary)] rounded overflow-hidden">
                   <img src={content.imageUrl as string} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
@@ -2123,7 +2123,7 @@ function SectionContentEditor({
                 onChange={(v) => updateContent('videoUrl', v)}
                 placeholder="https://example.com/video.mp4"
               />
-              <p className="text-[10px] text-gray-400">הזן קישור ישיר לקובץ MP4</p>
+              <p className="text-[10px] text-[var(--editor-text-muted)]">הזן קישור ישיר לקובץ MP4</p>
               
               <div className="pt-2 space-y-2">
                 <EditorToggle
@@ -2202,7 +2202,7 @@ function SectionContentEditor({
                 placeholder="https://..."
               />
               {rightSide.imageUrl && (
-                <div className="aspect-video bg-gray-100 rounded overflow-hidden">
+                <div className="aspect-video bg-[var(--editor-bg-secondary)] rounded overflow-hidden">
                   <img src={rightSide.imageUrl} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
@@ -2240,7 +2240,7 @@ function SectionContentEditor({
                 placeholder="https://..."
               />
               {leftSide.imageUrl && (
-                <div className="aspect-video bg-gray-100 rounded overflow-hidden">
+                <div className="aspect-video bg-[var(--editor-bg-secondary)] rounded overflow-hidden">
                   <img src={leftSide.imageUrl} alt="" className="w-full h-full object-cover" />
                 </div>
               )}
@@ -2293,7 +2293,7 @@ function SectionContentEditor({
                     className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
                       categorySelectionMode === 'all'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
                     }`}
                   >
                     הכל
@@ -2303,7 +2303,7 @@ function SectionContentEditor({
                     className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
                       categorySelectionMode === 'manual'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
                     }`}
                   >
                     בחירה ידנית
@@ -2332,7 +2332,7 @@ function SectionContentEditor({
                             className="bg-blue-50 border border-blue-200 rounded-lg text-xs overflow-hidden"
                           >
                             <div className="flex items-center gap-2 p-2">
-                              <span className="text-gray-400 cursor-move">⋮⋮</span>
+                              <span className="text-[var(--editor-text-muted)] cursor-move">⋮⋮</span>
                               <span className="flex-1 font-medium">{cat.name}</span>
                               <div className="flex gap-1">
                                 <button
@@ -2385,7 +2385,7 @@ function SectionContentEditor({
                                 <div className="space-y-1.5">
                                   <div className="flex items-center gap-2">
                                     {categoryImages[catId] && (
-                                      <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                      <div className="w-10 h-10 rounded overflow-hidden bg-[var(--editor-bg-secondary)] flex-shrink-0">
                                         <img 
                                           src={categoryImages[catId]} 
                                           alt="" 
@@ -2399,11 +2399,11 @@ function SectionContentEditor({
                                       value={categoryImages[catId] || ''}
                                       onChange={(e) => updateCategoryImage(catId, e.target.value)}
                                       placeholder="URL תמונה..."
-                                      className="flex-1 px-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:border-blue-400 focus:outline-none"
+                                      className="flex-1 px-2 py-1.5 text-[10px] border border-[var(--editor-border-default)] rounded-md focus:border-[var(--editor-accent-blue)] focus:outline-none bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
                                     />
                                     <button
                                       onClick={() => updateCategoryImage(catId, '')}
-                                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                      className="p-1.5 text-[var(--editor-text-muted)] hover:text-[var(--editor-accent-red)] hover:bg-[var(--editor-accent-red)]/10 rounded transition-colors"
                                       title="הסר תמונה מותאמת"
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2431,7 +2431,7 @@ function SectionContentEditor({
                   )}
                   
                   {/* Available Categories */}
-                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+                  <div className="max-h-40 overflow-y-auto border border-[var(--editor-border-default)] rounded-lg">
                     {categories
                       .filter(cat => !selectedCategoryIds.includes(cat.id))
                       .map(cat => (
@@ -2440,13 +2440,13 @@ function SectionContentEditor({
                           onClick={() => {
                             updateContent('categoryIds', [...selectedCategoryIds, cat.id]);
                           }}
-                          className="w-full text-right px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                          className="w-full text-right px-3 py-2 text-xs hover:bg-[var(--editor-bg-hover)] border-b border-[var(--editor-border-subtle)] last:border-b-0 text-[var(--editor-text-primary)]"
                         >
                           + {cat.name}
                         </button>
                       ))}
                     {categories.filter(cat => !selectedCategoryIds.includes(cat.id)).length === 0 && (
-                      <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                      <div className="px-3 py-2 text-xs text-[var(--editor-text-muted)] text-center">
                         כל הקטגוריות נבחרו
                       </div>
                     )}
@@ -2526,21 +2526,21 @@ function SectionContentEditor({
             {/* Items List */}
             <div className="space-y-2">
               {featuredItems.map((item, index) => (
-                <div key={item.id} className="border border-gray-200 rounded-lg p-3 space-y-2 bg-gray-50">
+                <div key={item.id} className="border border-[var(--editor-border-default)] rounded-lg p-3 space-y-2 bg-[var(--editor-bg-secondary)]">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium">פריט {index + 1}</span>
                     <div className="flex gap-1">
                       <button
                         onClick={() => moveFeaturedItem(index, 'up')}
                         disabled={index === 0}
-                        className="p-1 hover:bg-gray-200 rounded disabled:opacity-30 text-xs"
+                        className="p-1 hover:bg-[var(--editor-bg-hover)] rounded disabled:opacity-30 text-xs"
                       >
                         ↑
                       </button>
                       <button
                         onClick={() => moveFeaturedItem(index, 'down')}
                         disabled={index === featuredItems.length - 1}
-                        className="p-1 hover:bg-gray-200 rounded disabled:opacity-30 text-xs"
+                        className="p-1 hover:bg-[var(--editor-bg-hover)] rounded disabled:opacity-30 text-xs"
                       >
                         ↓
                       </button>
@@ -2577,11 +2577,11 @@ function SectionContentEditor({
                         value={item.imageUrl || ''}
                         onChange={(e) => updateFeaturedItem(index, 'imageUrl', e.target.value)}
                         placeholder="URL תמונה"
-                        className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded"
+                        className="flex-1 px-2 py-1.5 text-xs border border-[var(--editor-border-default)] rounded bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
                       />
                     </div>
                     {item.imageUrl && (
-                      <div className="mt-2 aspect-video bg-gray-100 rounded overflow-hidden">
+                      <div className="mt-2 aspect-video bg-[var(--editor-bg-secondary)] rounded overflow-hidden">
                         <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover" />
                       </div>
                     )}
@@ -2590,7 +2590,7 @@ function SectionContentEditor({
               ))}
               
               {featuredItems.length === 0 && (
-                <p className="text-xs text-gray-400 text-center py-4">אין פריטים. לחץ להוספה.</p>
+                <p className="text-xs text-[var(--editor-text-muted)] text-center py-4">אין פריטים. לחץ להוספה.</p>
               )}
             </div>
             
@@ -2635,7 +2635,7 @@ function SectionContentEditor({
                     className={`flex-1 py-3 px-3 text-xs rounded-lg border transition-all flex flex-col items-center gap-1 ${
                       seriesStyle === 'cards'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
                     }`}
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2651,7 +2651,7 @@ function SectionContentEditor({
                     className={`flex-1 py-3 px-3 text-xs rounded-lg border transition-all flex flex-col items-center gap-1 ${
                       seriesStyle === 'overlay'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
                     }`}
                   >
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -2677,7 +2677,7 @@ function SectionContentEditor({
                     className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
                       seriesSelectionMode === 'all'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
                     }`}
                   >
                     הכל
@@ -2687,7 +2687,7 @@ function SectionContentEditor({
                     className={`flex-1 py-2 px-3 text-xs rounded-lg border transition-all ${
                       seriesSelectionMode === 'manual'
                         ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
+                        : 'border-[var(--editor-border-default)] hover:border-[var(--editor-border-hover)]'
                     }`}
                   >
                     בחירה ידנית
@@ -2716,7 +2716,7 @@ function SectionContentEditor({
                             className="bg-blue-50 border border-blue-200 rounded-lg text-xs overflow-hidden"
                           >
                             <div className="flex items-center gap-2 p-2">
-                              <span className="text-gray-400 cursor-move">⋮⋮</span>
+                              <span className="text-[var(--editor-text-muted)] cursor-move">⋮⋮</span>
                               <span className="flex-1 font-medium">{cat.name}</span>
                               <div className="flex gap-1">
                                 <button
@@ -2769,7 +2769,7 @@ function SectionContentEditor({
                                 <div className="space-y-1.5">
                                   <div className="flex items-center gap-2">
                                     {seriesImages[catId] && (
-                                      <div className="w-10 h-10 rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                      <div className="w-10 h-10 rounded overflow-hidden bg-[var(--editor-bg-secondary)] flex-shrink-0">
                                         <img 
                                           src={seriesImages[catId]} 
                                           alt="" 
@@ -2783,11 +2783,11 @@ function SectionContentEditor({
                                       value={seriesImages[catId] || ''}
                                       onChange={(e) => updateSeriesImage(catId, e.target.value)}
                                       placeholder="URL תמונה..."
-                                      className="flex-1 px-2 py-1.5 text-[10px] border border-gray-200 rounded-md focus:border-blue-400 focus:outline-none"
+                                      className="flex-1 px-2 py-1.5 text-[10px] border border-[var(--editor-border-default)] rounded-md focus:border-[var(--editor-accent-blue)] focus:outline-none bg-[var(--editor-bg-tertiary)] text-[var(--editor-text-primary)]"
                                     />
                                     <button
                                       onClick={() => updateSeriesImage(catId, '')}
-                                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                                      className="p-1.5 text-[var(--editor-text-muted)] hover:text-[var(--editor-accent-red)] hover:bg-[var(--editor-accent-red)]/10 rounded transition-colors"
                                       title="הסר תמונה מותאמת"
                                     >
                                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2815,7 +2815,7 @@ function SectionContentEditor({
                   )}
                   
                   {/* Available Categories */}
-                  <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg">
+                  <div className="max-h-40 overflow-y-auto border border-[var(--editor-border-default)] rounded-lg">
                     {categories
                       .filter(cat => !selectedSeriesIds.includes(cat.id))
                       .map(cat => (
@@ -2824,13 +2824,13 @@ function SectionContentEditor({
                           onClick={() => {
                             updateContent('categoryIds', [...selectedSeriesIds, cat.id]);
                           }}
-                          className="w-full text-right px-3 py-2 text-xs hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                          className="w-full text-right px-3 py-2 text-xs hover:bg-[var(--editor-bg-hover)] border-b border-[var(--editor-border-subtle)] last:border-b-0 text-[var(--editor-text-primary)]"
                         >
                           + {cat.name}
                         </button>
                       ))}
                     {categories.filter(cat => !selectedSeriesIds.includes(cat.id)).length === 0 && (
-                      <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                      <div className="px-3 py-2 text-xs text-[var(--editor-text-muted)] text-center">
                         כל הקטגוריות נבחרו
                       </div>
                     )}

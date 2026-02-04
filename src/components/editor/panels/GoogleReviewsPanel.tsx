@@ -226,16 +226,16 @@ export function GoogleReviewsPanel({ section, onUpdate, onClose, onDelete, store
                     <button
                       onClick={handleConnectGoogle}
                       disabled={isConnecting}
-                      className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white border-2 border-gray-200 rounded-lg hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
+                      className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-[var(--editor-bg-primary)] border-2 border-[var(--editor-border-default)] rounded-lg hover:bg-[var(--editor-bg-hover)] hover:border-[var(--editor-border-hover)] transition-all disabled:opacity-50"
                     >
                       <GoogleLogo size={24} />
-                      <span className="font-medium text-gray-700">
+                      <span className="font-medium text-[var(--editor-text-primary)]">
                         {isConnecting ? 'מתחבר...' : 'התחבר לגוגל ביזנס'}
                       </span>
                     </button>
                   )}
                   
-                  <p className="text-xs text-gray-500 leading-relaxed">
+                  <p className="text-xs text-[var(--editor-text-muted)] leading-relaxed">
                     חבר את חשבון Google Business שלך כדי למשוך ביקורות אוטומטית. 
                     אם אין לך חשבון, תוכל להוסיף ביקורות ידנית למטה.
                   </p>
