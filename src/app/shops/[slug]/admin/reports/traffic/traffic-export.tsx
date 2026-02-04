@@ -17,7 +17,7 @@ interface ExportData {
   utmMedium: Array<{ medium: string; sessions: number }>;
   utmCampaign: Array<{ campaign: string; sessions: number }>;
   utmContent: Array<{ content: string; sessions: number }>;
-  landingPages: Array<{ page: string; sessions: number }>;
+  topPages: Array<{ page: string; pageViews: number; uniqueVisitors: number }>;
   funnel: Array<{ step: string; count: number; rate: number }>;
   totals: {
     visits: number;
@@ -113,13 +113,13 @@ export function TrafficReportExport({ data, period, sourceLabels }: TrafficRepor
       lines.push('');
     }
     
-    // Landing Pages
-    if (data.landingPages.length > 0) {
-      lines.push('דפי נחיתה');
-      lines.push('דף,ביקורים');
-      data.landingPages.forEach(p => {
+    // Top Pages
+    if (data.topPages.length > 0) {
+      lines.push('עמודים מובילים');
+      lines.push('עמוד,צפיות,מבקרים');
+      data.topPages.forEach(p => {
         const page = p.page.includes(',') ? `"${p.page}"` : p.page;
-        lines.push(`${page},${p.sessions}`);
+        lines.push(`${page},${p.pageViews},${p.uniqueVisitors}`);
       });
       lines.push('');
     }

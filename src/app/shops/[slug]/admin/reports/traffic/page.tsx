@@ -4,7 +4,7 @@ import { getStoreBySlug } from '@/lib/db/queries';
 import { 
   getTrafficSources,
   getDeviceStats,
-  getLandingPages,
+  getTopPages,
   getConversionFunnel,
   getUtmStats
 } from '@/lib/actions/reports';
@@ -129,23 +129,32 @@ function DeviceStats({
   );
 }
 
-// Landing Pages Table
-function LandingPagesTable({ 
+// Top Pages Table
+function TopPagesTable({ 
   pages 
 }: { 
-  pages: Array<{ page: string; sessions: number }> 
+  pages: Array<{ page: string; pageViews: number; uniqueVisitors: number }> 
 }) {
   if (!pages.length) {
-    return <p className="text-gray-500 text-center py-12">אין נתוני דפי נחיתה</p>;
+    return <p className="text-gray-500 text-center py-12">אין נתוני עמודים</p>;
   }
 
-  const totalSessions = pages.reduce((sum, p) => sum + p.sessions, 0);
+  const totalViews = pages.reduce((sum, p) => sum + p.pageViews, 0);
 
-  const pageLabels: Record<string, string> = {
-    '/': 'דף הבית',
-    '/category/women': 'קטגוריה: נשים',
-    '/category/men': 'קטגוריה: גברים',
-    '/category/accessories': 'קטגוריה: אקססוריז',
+  // Smart page labels - detect common patterns
+  const getPageLabel = (path: string): string => {
+    if (path === '/') return 'דף הבית';
+    if (path === '/products') return 'כל המוצרים';
+    if (path === '/cart') return 'עגלת קניות';
+    if (path === '/checkout') return 'צ׳קאאוט';
+    if (path === '/wishlist') return 'רשימת משאלות';
+    if (path === '/login') return 'התחברות';
+    if (path === '/register') return 'הרשמה';
+    if (path === '/account') return 'חשבון';
+    if (path.startsWith('/category/')) return `קטגוריה: ${path.replace('/category/', '')}`;
+    if (path.startsWith('/product/')) return `מוצר: ${path.replace('/product/', '')}`;
+    if (path.startsWith('/pages/')) return `עמוד: ${path.replace('/pages/', '')}`;
+    return path;
   };
 
   return (
@@ -153,8 +162,9 @@ function LandingPagesTable({
       <table className="w-full">
         <thead>
           <tr className="border-b border-gray-200 text-right">
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">דף נחיתה</th>
-            <th className="py-3 px-4 font-medium text-gray-500 text-sm">ביקורים</th>
+            <th className="py-3 px-4 font-medium text-gray-500 text-sm">עמוד</th>
+            <th className="py-3 px-4 font-medium text-gray-500 text-sm">צפיות</th>
+            <th className="py-3 px-4 font-medium text-gray-500 text-sm">מבקרים</th>
             <th className="py-3 px-4 font-medium text-gray-500 text-sm">% מסה״כ</th>
           </tr>
         </thead>
@@ -168,20 +178,23 @@ function LandingPagesTable({
             return (
               <tr key={page.page} className="hover:bg-gray-50">
                 <td className="py-3 px-4">
-                  <span className="font-medium">{pageLabels[path] || path}</span>
-                  <span className="text-gray-400 text-sm mr-2">{path}</span>
+                  <span className="font-medium">{getPageLabel(path)}</span>
+                  {getPageLabel(path) !== path && (
+                    <span className="text-gray-400 text-sm mr-2 block">{path}</span>
+                  )}
                 </td>
-                <td className="py-3 px-4">{formatNumber(page.sessions)}</td>
+                <td className="py-3 px-4">{formatNumber(page.pageViews)}</td>
+                <td className="py-3 px-4">{formatNumber(page.uniqueVisitors)}</td>
                 <td className="py-3 px-4">
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-2 bg-gray-100 max-w-20">
                       <div 
                         className="h-full bg-green-500"
-                        style={{ width: `${totalSessions > 0 ? (page.sessions / totalSessions) * 100 : 0}%` }}
+                        style={{ width: `${totalViews > 0 ? (page.pageViews / totalViews) * 100 : 0}%` }}
                       />
                     </div>
                     <span className="text-sm text-gray-500">
-                      {totalSessions > 0 ? ((page.sessions / totalSessions) * 100).toFixed(1) : 0}%
+                      {totalViews > 0 ? ((page.pageViews / totalViews) * 100).toFixed(1) : 0}%
                     </span>
                   </div>
                 </td>
@@ -339,10 +352,10 @@ async function TrafficContent({
   const dateRange = getDateRange();
 
   // Parallel data fetching (including Redis traffic sources)
-  const [orderSources, devices, landingPages, funnel, utmStats, redisSources] = await Promise.all([
+  const [orderSources, devices, topPages, funnel, utmStats, redisSources] = await Promise.all([
     getTrafficSources(storeId, period, customRange),
     getDeviceStats(storeId, period, customRange),
-    getLandingPages(storeId, period, 10, customRange),
+    getTopPages(storeId, period, 20, customRange),
     getConversionFunnel(storeId, period, customRange),
     getUtmStats(storeId, period, customRange),
     getRedisTrafficSources(storeId, dateRange.from, dateRange.to),
@@ -367,9 +380,10 @@ async function TrafficContent({
     utmMedium: utmStats.byMedium,
     utmCampaign: utmStats.byCampaign,
     utmContent: utmStats.byContent,
-    landingPages: landingPages.map(p => ({
+    topPages: topPages.map(p => ({
       page: p.page,
-      sessions: p.sessions,
+      pageViews: p.pageViews,
+      uniqueVisitors: p.uniqueVisitors,
     })),
     funnel: funnel,
     totals: {
@@ -498,10 +512,10 @@ async function TrafficContent({
         </div>
       </div>
 
-      {/* Landing Pages */}
+      {/* Top Pages */}
       <div className="bg-white border border-gray-200 p-6 mt-8">
-        <h2 className="font-medium mb-4">דפי נחיתה מובילים</h2>
-        <LandingPagesTable pages={landingPages} />
+        <h2 className="font-medium mb-4">עמודים מובילים</h2>
+        <TopPagesTable pages={topPages} />
       </div>
     </>
   );
@@ -527,7 +541,7 @@ export default async function TrafficReportPage({
     <div>
       <ReportHeader
         title="דוח תנועה"
-        description="מקורות תנועה, UTM, מכשירים ודפי נחיתה"
+        description="מקורות תנועה, UTM, מכשירים ועמודים מובילים"
         storeSlug={slug}
         backHref={`/shops/${slug}/admin/reports`}
       />

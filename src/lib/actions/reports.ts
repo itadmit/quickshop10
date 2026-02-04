@@ -671,6 +671,40 @@ export const getLandingPages = cache(async (
   }));
 });
 
+// Top Pages - all visited pages with view counts (not just landing pages)
+export const getTopPages = cache(async (
+  storeId: string,
+  period: '7d' | '30d' | '90d' | 'custom' = '30d',
+  limit = 20,
+  customRange?: DateRange
+) => {
+  const { from, to } = getDateRange(period, customRange);
+
+  const result = await db
+    .select({
+      page: analyticsEvents.pagePath,
+      pageViews: sql<number>`COUNT(*)`,
+      uniqueVisitors: sql<number>`COUNT(DISTINCT ${analyticsEvents.sessionId})`,
+    })
+    .from(analyticsEvents)
+    .where(and(
+      eq(analyticsEvents.storeId, storeId),
+      eq(analyticsEvents.eventType, 'page_view'),
+      gte(analyticsEvents.createdAt, from),
+      lte(analyticsEvents.createdAt, to),
+      sql`${analyticsEvents.pagePath} IS NOT NULL`
+    ))
+    .groupBy(analyticsEvents.pagePath)
+    .orderBy(desc(sql`COUNT(*)`))
+    .limit(limit);
+
+  return result.map(r => ({
+    page: r.page || '/',
+    pageViews: Number(r.pageViews),
+    uniqueVisitors: Number(r.uniqueVisitors),
+  }));
+});
+
 // UTM Campaign Stats - for traffic report
 // Uses analytics_events if available, falls back to orders data
 export const getUtmStats = cache(async (
