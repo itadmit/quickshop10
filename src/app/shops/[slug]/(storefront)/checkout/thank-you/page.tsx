@@ -1193,7 +1193,7 @@ export default async function ThankYouPage({ params, searchParams }: ThankYouPag
                 
                 return (
                 <div key={item.id} className="flex gap-4">
-                  <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0 flex items-center justify-center">
+                  <div className="relative w-20 h-20 bg-gray-100 rounded-lg overflow-hidden shrink-0">
                     <ProductImage 
                       src={imageUrl}
                       alt={item.name || ''}
