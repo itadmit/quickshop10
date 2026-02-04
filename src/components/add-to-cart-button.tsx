@@ -5,6 +5,8 @@ import { useState } from 'react';
 import { tracker } from '@/lib/tracking';
 import { isOutOfStock } from '@/lib/inventory';
 import { useTranslations } from '@/lib/translations/use-translations';
+import { useCatalogMode } from '@/components/storefront/catalog-mode-provider';
+import Link from 'next/link';
 
 // Re-export for backwards compatibility
 export { isOutOfStock } from '@/lib/inventory';
@@ -68,6 +70,7 @@ export function AddToCartButton({
   const store = useStoreOptional();
   const [added, setAdded] = useState(false);
   const { t } = useTranslations();
+  const { config: catalogConfig, isProductInCatalogMode } = useCatalogMode();
   
   // Use translations from context, fall back to props, then to hardcoded Hebrew
   const addToCartText = buttonText || t.product.addToCart || 'הוסף לעגלה';
@@ -75,6 +78,34 @@ export function AddToCartButton({
   const addedText = t.product.addedToCart || 'נוסף לסל ✓';
   
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
+  
+  // 📦 Check if this product is in catalog mode (hide add to cart)
+  const isCatalogProduct = catalogConfig?.enabled && 
+    catalogConfig.hideAddToCart && 
+    isProductInCatalogMode(categoryIds);
+  
+  // If in catalog mode, show contact button or nothing
+  if (isCatalogProduct) {
+    if (catalogConfig.showContactButton && catalogConfig.contactButtonUrl) {
+      const widthClass = fullWidth ? 'w-full' : '';
+      return (
+        <Link
+          href={catalogConfig.contactButtonUrl}
+          target={catalogConfig.contactButtonUrl.startsWith('http') ? '_blank' : undefined}
+          rel={catalogConfig.contactButtonUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+          className={`
+            py-4 px-6 text-sm font-medium transition-all duration-200 text-center block
+            ${widthClass} border bg-white text-black border-black hover:bg-black hover:text-white
+            ${className}
+          `}
+        >
+          {catalogConfig.contactButtonText || 'צור קשר להזמנה'}
+        </Link>
+      );
+    }
+    // No contact button configured - hide completely
+    return null;
+  }
 
   // If store context not available, render disabled button
   if (!store) {

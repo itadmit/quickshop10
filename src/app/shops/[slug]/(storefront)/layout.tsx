@@ -8,6 +8,7 @@ import { detectLocaleWithGeo, getUITranslations } from '@/lib/translations';
 import { TranslationsProvider } from '@/lib/translations/use-translations';
 import { isRTL, getDirection } from '@/lib/translations';
 import { isPluginActive, getStoriesWithProducts, getStorePlugin, getActiveAdvisorsForFloating } from '@/lib/plugins/loader';
+import { CatalogModeProvider, type CatalogModeConfig } from '@/components/storefront/catalog-mode-provider';
 import { WhatsAppFloatButton, type WhatsAppFloatConfig } from '@/components/storefront/whatsapp-float-button';
 import { StoriesBar, type Story, type StoriesSettings } from '@/components/storefront/stories-bar';
 import { FloatingAdvisorButton } from '@/components/storefront/floating-advisor-button';
@@ -65,7 +66,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
 
   // Fetch categories, customer, plugin data, menus, and popups in parallel (server-side)
   const now = new Date();
-  const [categories, mainMenu, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns, whatsappFloatEnabled, whatsappFloatPlugin] = await Promise.all([
+  const [categories, mainMenu, customer, storiesEnabled, storiesPlugin, advisorEnabled, advisorPlugin, activeAdvisors, activePopups, wheelEnabled, scratchEnabled, activeGamificationCampaigns, whatsappFloatEnabled, whatsappFloatPlugin, catalogModePlugin] = await Promise.all([
     getCategoriesByStore(store.id),
     getMainMenuWithItems(store.id),
     getCurrentCustomer(),
@@ -98,6 +99,8 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     // WhatsApp Float plugin
     isPluginActive(store.id, 'whatsapp-float'),
     getStorePlugin(store.id, 'whatsapp-float'),
+    // Catalog Mode plugin
+    getStorePlugin(store.id, 'catalog-mode'),
   ]);
   
   // Fetch wishlist items for logged-in customers
@@ -273,6 +276,32 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     .join('\n    ');
 
   // ============================================================
+  // CATALOG MODE CONFIG
+  // Parse from plugin - must be before HeaderContent
+  // ============================================================
+  const catalogModeConfig: CatalogModeConfig | null = catalogModePlugin?.isActive ? {
+    enabled: Boolean((catalogModePlugin.config as Record<string, unknown>)?.enabled),
+    mode: ((catalogModePlugin.config as Record<string, unknown>)?.mode as 'all' | 'categories') || 'all',
+    categoryIds: ((catalogModePlugin.config as Record<string, unknown>)?.categoryIds as string[]) || [],
+    hideCartButton: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hideCartButton ?? true),
+    hideCartSidebar: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hideCartSidebar ?? true),
+    hideAddToCart: Boolean((catalogModePlugin.config as Record<string, unknown>)?.hideAddToCart ?? true),
+    blockCheckout: Boolean((catalogModePlugin.config as Record<string, unknown>)?.blockCheckout ?? true),
+    showContactButton: Boolean((catalogModePlugin.config as Record<string, unknown>)?.showContactButton),
+    contactButtonText: String((catalogModePlugin.config as Record<string, unknown>)?.contactButtonText || 'צור קשר להזמנה'),
+    contactButtonUrl: String((catalogModePlugin.config as Record<string, unknown>)?.contactButtonUrl || ''),
+  } : null;
+
+  // Check if cart should be hidden (catalog mode on all site)
+  const shouldHideCartGlobally = catalogModeConfig?.enabled && 
+    catalogModeConfig.mode === 'all' && 
+    catalogModeConfig.hideCartButton;
+  
+  const shouldHideCartSidebarGlobally = catalogModeConfig?.enabled && 
+    catalogModeConfig.mode === 'all' && 
+    catalogModeConfig.hideCartSidebar;
+
+  // ============================================================
   // PERFORMANCE ARCHITECTURE (per REQUIREMENTS.md):
   // 
   // PRODUCTION (99.9% of requests):
@@ -304,7 +333,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         defaultSticky={Boolean(storeSettings.headerSticky ?? true)}
         defaultTransparent={Boolean(storeSettings.headerTransparent)}
         defaultShowSearch={Boolean(storeSettings.headerShowSearch ?? true)}
-        defaultShowCart={Boolean(storeSettings.headerShowCart ?? true)}
+        defaultShowCart={!shouldHideCartGlobally && Boolean(storeSettings.headerShowCart ?? true)}
         defaultShowAccount={Boolean(storeSettings.headerShowAccount ?? true)}
         defaultShowWishlist={Boolean(storeSettings.headerShowWishlist)}
         defaultShowLanguageSwitcher={showLanguageSwitcher}
@@ -339,7 +368,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
         customer={customerData}
         layout={headerLayout}
         showSearch={Boolean(storeSettings.headerShowSearch ?? true)}
-        showCart={Boolean(storeSettings.headerShowCart ?? true)}
+        showCart={!shouldHideCartGlobally && Boolean(storeSettings.headerShowCart ?? true)}
         showAccount={Boolean(storeSettings.headerShowAccount ?? true)}
         showWishlist={Boolean(storeSettings.headerShowWishlist)}
         showLanguageSwitcher={showLanguageSwitcher}
@@ -412,6 +441,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             customerId={customer?.id || null}
             initialItems={wishlistItems}
           >
+          <CatalogModeProvider config={catalogModeConfig}>
           {/* 🌍 Translations Provider - wraps entire storefront */}
           {translations ? (
             <TranslationsProvider translations={translations} locale={currentLocale}>
@@ -419,12 +449,15 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
                 {showHeader && (
                   <>
                     {HeaderContent}
-                    <CartSidebar 
-                      basePath={basePath} 
-                      storeSlug={slug} 
-                      freeShippingThreshold={freeShippingThreshold}
-                      translations={translations.cart}
-                    />
+                    {/* Cart Sidebar - hide when catalog mode is active on all site */}
+                    {!shouldHideCartSidebarGlobally && (
+                      <CartSidebar 
+                        basePath={basePath} 
+                        storeSlug={slug} 
+                        freeShippingThreshold={freeShippingThreshold}
+                        translations={translations.cart}
+                      />
+                    )}
                   </>
                 )}
                 {/* Stories Bar - Renders only if plugin is active and there are stories (not on checkout) */}
@@ -516,11 +549,14 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
               {showHeader && (
                 <>
                   {HeaderContent}
-                  <CartSidebar 
-                    basePath={basePath} 
-                    storeSlug={slug} 
-                    freeShippingThreshold={freeShippingThreshold}
-                  />
+                  {/* Cart Sidebar - hide when catalog mode is active on all site */}
+                  {!shouldHideCartSidebarGlobally && (
+                    <CartSidebar 
+                      basePath={basePath} 
+                      storeSlug={slug} 
+                      freeShippingThreshold={freeShippingThreshold}
+                    />
+                  )}
                   {/* Stories Bar - Renders only if plugin is active and there are stories (not on checkout) */}
                   {!isCheckoutPage && storiesEnabled && storiesSettings && stories.length > 0 && (
                     <StoriesBar
@@ -606,6 +642,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
               )}
             </div>
           )}
+          </CatalogModeProvider>
           </WishlistProvider>
         </StoreSettingsProvider>
       </TrackingProvider>

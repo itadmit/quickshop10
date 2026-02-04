@@ -5,6 +5,8 @@ import { useStoreOptional } from '@/lib/store-context';
 import { ProductAddons, type ProductAddon, type SelectedAddon } from './product-addons';
 import { ProductWaitlistForm } from './product-waitlist-form';
 import { formatPrice } from '@/lib/format-price';
+import { useCatalogMode } from '@/components/storefront/catalog-mode-provider';
+import Link from 'next/link';
 
 interface ProductWithAddonsProps {
   productId: string;
@@ -48,10 +50,16 @@ export function ProductWithAddons({
   isBundle = false,
 }: ProductWithAddonsProps) {
   const store = useStoreOptional();
+  const { config: catalogConfig, isProductInCatalogMode } = useCatalogMode();
   const [selectedAddons, setSelectedAddons] = useState<SelectedAddon[]>([]);
   const [addonTotal, setAddonTotal] = useState(0);
   const [isValid, setIsValid] = useState(addons.every(a => !a.isRequired));
   const [isPending, setIsPending] = useState(false);
+  
+  // 📦 Check if this product is in catalog mode (hide add to cart)
+  const isCatalogProduct = catalogConfig?.enabled && 
+    catalogConfig.hideAddToCart && 
+    isProductInCatalogMode(categoryIds);
 
   const handleAddonsChange = useCallback((addons: SelectedAddon[], total: number) => {
     setSelectedAddons(addons);
@@ -125,8 +133,20 @@ export function ProductWithAddons({
         </div>
       )}
 
-      {/* Add to Cart Button or Waitlist Form */}
-      {outOfStock ? (
+      {/* Add to Cart Button, Waitlist Form, or Contact Button (catalog mode) */}
+      {isCatalogProduct ? (
+        // Catalog mode - show contact button or nothing
+        catalogConfig.showContactButton && catalogConfig.contactButtonUrl ? (
+          <Link
+            href={catalogConfig.contactButtonUrl}
+            target={catalogConfig.contactButtonUrl.startsWith('http') ? '_blank' : undefined}
+            rel={catalogConfig.contactButtonUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+            className="w-full py-4 px-6 text-white font-medium rounded-lg bg-black hover:bg-gray-800 text-center block"
+          >
+            {catalogConfig.contactButtonText || 'צור קשר להזמנה'}
+          </Link>
+        ) : null
+      ) : outOfStock ? (
         <div className="mt-4">
           <ProductWaitlistForm
             storeSlug={storeSlug}

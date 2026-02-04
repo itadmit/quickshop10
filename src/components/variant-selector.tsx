@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useStore } from '@/lib/store-context';
 import { ProductWaitlistForm } from './product-waitlist-form';
 import { useTranslations } from '@/lib/translations/use-translations';
+import { useCatalogMode } from '@/components/storefront/catalog-mode-provider';
+import Link from 'next/link';
 
 interface OptionValueMetadata {
   color?: string;      // for color type
@@ -85,6 +87,7 @@ export function VariantSelector({
 }: VariantSelectorProps) {
   const { addToCart, formatPrice } = useStore();
   const { t } = useTranslations();
+  const { config: catalogConfig, isProductInCatalogMode } = useCatalogMode();
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   const [added, setAdded] = useState(false);
@@ -93,6 +96,11 @@ export function VariantSelector({
   const addToCartLabel = buttonText || t.product.addToCart;
   const outOfStockLabel = outOfStockText || t.product.outOfStock;
   const addedLabel = t.product.addedToCart;
+  
+  // 📦 Check if this product is in catalog mode (hide add to cart)
+  const isCatalogProduct = catalogConfig?.enabled && 
+    catalogConfig.hideAddToCart && 
+    isProductInCatalogMode(categoryIds);
 
   // 🆕 חישוב מחיר מוזל לפי פרטי ההנחות (לא לפי אחוז כולל!)
   const calculateDiscountedPrice = useCallback((price: number): number => {
@@ -370,8 +378,20 @@ export function VariantSelector({
         </div>
       ))}
 
-      {/* Add to Cart or Waitlist */}
-      {isOutOfStock ? (
+      {/* Add to Cart, Waitlist, or Contact Button (catalog mode) */}
+      {isCatalogProduct ? (
+        // Catalog mode - show contact button or nothing
+        catalogConfig.showContactButton && catalogConfig.contactButtonUrl ? (
+          <Link
+            href={catalogConfig.contactButtonUrl}
+            target={catalogConfig.contactButtonUrl.startsWith('http') ? '_blank' : undefined}
+            rel={catalogConfig.contactButtonUrl.startsWith('http') ? 'noopener noreferrer' : undefined}
+            className="btn-primary w-full text-center block"
+          >
+            {catalogConfig.contactButtonText || 'צור קשר להזמנה'}
+          </Link>
+        ) : null
+      ) : isOutOfStock ? (
         <div className="mt-4">
           <ProductWaitlistForm
             storeSlug={storeSlug}

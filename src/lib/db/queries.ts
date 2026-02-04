@@ -1145,12 +1145,13 @@ export const getProductForEdit = cache(async (storeId: string, productId: string
 // Get active addons for a product (for storefront display)
 // Includes both direct product addons AND category addons
 export const getProductAddonsForStorefront = cache(async (productId: string) => {
-  // Get product to find its category
-  const product = await db
-    .select({ categoryId: products.categoryId })
-    .from(products)
-    .where(eq(products.id, productId))
-    .limit(1);
+  // Get all categories for this product (supports multiple categories)
+  const productCategoryResults = await db
+    .select({ categoryId: productCategories.categoryId })
+    .from(productCategories)
+    .where(eq(productCategories.productId, productId));
+
+  const productCategoryIds = productCategoryResults.map(r => r.categoryId);
 
   // Get product-level addon assignments
   const productAssignments = await db
@@ -1162,19 +1163,22 @@ export const getProductAddonsForStorefront = cache(async (productId: string) => 
   const productAddonIds = productAssignments.map(a => a.addonId);
   const productAddonIdSet = new Set(productAddonIds);
 
-  // Get category-level addon assignments (if product has a category)
+  // Get category-level addon assignments (from all product categories)
   let categoryAddonIds: string[] = [];
-  if (product[0]?.categoryId) {
+  if (productCategoryIds.length > 0) {
     const categoryAssignments = await db
       .select({ addonId: categoryAddonAssignments.addonId })
       .from(categoryAddonAssignments)
-      .where(eq(categoryAddonAssignments.categoryId, product[0].categoryId))
+      .where(inArray(categoryAddonAssignments.categoryId, productCategoryIds))
       .orderBy(asc(categoryAddonAssignments.sortOrder));
     
     // Filter out duplicates (product addons take priority)
     categoryAddonIds = categoryAssignments
       .map(a => a.addonId)
       .filter(id => !productAddonIdSet.has(id));
+    
+    // Remove duplicate addon IDs from multiple categories
+    categoryAddonIds = [...new Set(categoryAddonIds)];
   }
 
   // Combine all addon IDs (product first, then category)

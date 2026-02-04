@@ -6,6 +6,7 @@ import { isOutOfStock } from '@/lib/inventory';
 import { tracker } from '@/lib/tracking';
 import { QuickAddModal } from './quick-add-modal';
 import { useTranslations } from '@/lib/translations/use-translations';
+import { useCatalogMode } from '@/components/storefront/catalog-mode-provider';
 
 // ============================================
 // Product Card Add to Cart Button
@@ -55,6 +56,7 @@ export function ProductCardAddToCart({
   const [added, setAdded] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { t } = useTranslations();
+  const { config: catalogConfig, isProductInCatalogMode } = useCatalogMode();
   
   // Use translations from context (defaults to Hebrew if no Provider)
   const addToCartText = t.product.addToCart;
@@ -63,6 +65,16 @@ export function ProductCardAddToCart({
   const selectOptionsText = t.product.selectOptions || 'בחר אפשרויות';
   
   const outOfStock = isOutOfStock(trackInventory, inventory, allowBackorder);
+  
+  // 📦 Check if this product is in catalog mode (hide add to cart)
+  const isCatalogProduct = catalogConfig?.enabled && 
+    catalogConfig.hideAddToCart && 
+    isProductInCatalogMode(categoryIds);
+  
+  // If in catalog mode, hide the button completely
+  if (isCatalogProduct) {
+    return null;
+  }
 
   // If store context not available, render disabled button
   if (!store) {

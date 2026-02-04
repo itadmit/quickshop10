@@ -6,6 +6,8 @@ import { eq, and } from 'drizzle-orm';
 import { Suspense } from 'react';
 import { getUITranslations, detectLocaleWithGeo, getDirection } from '@/lib/translations';
 import type { SupportedLocale, CheckoutTranslations } from '@/lib/translations/types';
+import { getStorePlugin } from '@/lib/plugins/loader';
+import { redirect } from 'next/navigation';
 
 // Force dynamic rendering - useSearchParams needs it
 export const dynamic = 'force-dynamic';
@@ -131,6 +133,18 @@ export default async function CheckoutPage({ params }: CheckoutPageProps) {
   
   // Get store data including checkout settings
   const storeData = await getStoreDataForCheckout(slug);
+  
+  // 📦 Catalog Mode Check - block checkout if enabled
+  if (storeData?.storeId) {
+    const catalogModePlugin = await getStorePlugin(storeData.storeId, 'catalog-mode');
+    if (catalogModePlugin?.isActive) {
+      const config = catalogModePlugin.config as Record<string, unknown> | null;
+      if (config?.enabled && config?.blockCheckout && config?.mode === 'all') {
+        // Redirect to home page
+        redirect(basePath || '/');
+      }
+    }
+  }
   
   // Default settings if store not found
   const storeId = storeData?.storeId ?? '';

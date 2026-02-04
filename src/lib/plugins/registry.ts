@@ -521,6 +521,50 @@ export const pluginRegistry: PluginDefinition[] = [
       screenshots: [],
     },
   },
+
+  // ============================================
+  // 📦 CATALOG MODE - מצב קטלוג
+  // ============================================
+  {
+    slug: 'catalog-mode',
+    name: 'מצב קטלוג',
+    description: 'הפוך את החנות לקטלוג דיגיטלי ללא אפשרות קנייה - מושלם לקטלוגים, B2B או חנויות שרוצות להציג מוצרים בלבד',
+    type: 'core',
+    category: 'operations',
+    version: '1.0.0',
+    icon: 'book-open',
+    author: 'QuickShop',
+    isFree: true,
+    defaultConfig: {
+      enabled: false,
+      mode: 'all', // 'all' | 'categories'
+      categoryIds: [], // רשימת קטגוריות (אם mode === 'categories')
+      hideCartButton: true,
+      hideCartSidebar: true,
+      hideAddToCart: true,
+      blockCheckout: true,
+      showContactButton: false,
+      contactButtonText: 'צור קשר להזמנה',
+      contactButtonUrl: '',
+    },
+    metadata: {
+      menuItem: {
+        icon: 'BookOpen',
+        label: 'מצב קטלוג',
+        href: '/plugins/catalog-mode',
+        section: 'addons',
+      },
+      features: [
+        'הסתרת עגלת קניות מכל האתר',
+        'הסתרת כפתור הוספה לסל',
+        'חסימת דפי checkout ועגלה',
+        'מצב קטלוג לפי קטגוריות',
+        'כפתור צור קשר מותאם (אופציונלי)',
+        'התאמה לחנויות B2B',
+      ],
+      screenshots: [],
+    },
+  },
 ];
 
 // ============================================
