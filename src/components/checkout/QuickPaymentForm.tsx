@@ -214,8 +214,13 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
           throw new Error('מערכת התשלום לא מוכנה');
         }
 
-        // Validate social ID
-        if (!socialId || socialId.length < 5) {
+        // Validate social ID - only required in production mode
+        // In test mode, use a default value if not provided
+        const effectiveSocialId = testMode && (!socialId || socialId.length < 5) 
+          ? '123456789'  // Default test value
+          : socialId;
+          
+        if (!testMode && (!socialId || socialId.length < 5)) {
           throw new Error('נא להזין תעודת זהות תקינה');
         }
 
@@ -229,6 +234,8 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
         console.log('=== QuickPayment tokenize start ===');
         console.log('Data:', JSON.stringify(data, null, 2));
         console.log('SocialId from state:', socialId);
+        console.log('Effective SocialId:', effectiveSocialId);
+        console.log('Test mode:', testMode);
         console.log('Instance ready:', !!instanceRef.current);
         
         const tokenizePayload = {
@@ -236,7 +243,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
           payerLastName: lastName,
           payerEmail: data.customerEmail,
           payerPhone: data.customerPhone,
-          payerSocialId: socialId,
+          payerSocialId: effectiveSocialId,
           total: {
             label: data.productName || `הזמנה ${data.orderId}`,
             amount: {
@@ -284,7 +291,7 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
         };
       },
       isReady: () => fieldsReady && !!instanceRef.current,
-    }), [fieldsReady, socialId]);
+    }), [fieldsReady, socialId, testMode]);
 
     if (error) {
       return (
