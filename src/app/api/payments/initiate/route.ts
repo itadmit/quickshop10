@@ -727,19 +727,19 @@ export async function POST(request: NextRequest) {
             const itemTotal = (item.price + addonTotal) * item.quantity;
             
             return {
-              orderId: newOrder.id,
-              // Only include productId if it exists in products table
-              productId: item.productId && productNameMap.has(item.productId) 
-                ? item.productId 
-                : null,
-              // 🐛 FIX: Fallback to product name from DB if cart item has no name
-              name: item.name || (item.productId && productNameMap.get(item.productId)) || 'מוצר',
-              variantTitle: item.variantTitle || null,
-              sku: item.sku || '',
-              quantity: item.quantity,
-              price: String(item.price),
+            orderId: newOrder.id,
+            // Only include productId if it exists in products table
+            productId: item.productId && productNameMap.has(item.productId) 
+              ? item.productId 
+              : null,
+            // 🐛 FIX: Fallback to product name from DB if cart item has no name
+            name: item.name || (item.productId && productNameMap.get(item.productId)) || 'מוצר',
+            variantTitle: item.variantTitle || null,
+            sku: item.sku || '',
+            quantity: item.quantity,
+            price: String(item.price),
               total: String(itemTotal),
-              imageUrl: item.image || item.imageUrl || null,
+            imageUrl: item.image || item.imageUrl || null,
               // 🔧 FIX: Save addons and bundle components in properties
               properties: {
                 addons: item.addons || [],

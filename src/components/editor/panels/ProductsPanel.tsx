@@ -150,7 +150,6 @@ export function ProductsPanel({ section, onUpdate, onClose, onDelete, storeSlug 
   const content = section.content || {};
 
   return (
-    <EditorThemeProvider defaultMode="light">
       <div className="flex flex-col h-full bg-[var(--editor-bg-primary)]" dir="rtl">
         {/* Header */}
         <div className="px-4 py-3 border-b border-[var(--editor-border-default)] bg-[var(--editor-bg-secondary)]">
@@ -478,6 +477,5 @@ export function ProductsPanel({ section, onUpdate, onClose, onDelete, storeSlug 
           </div>
         )}
       </div>
-    </EditorThemeProvider>
   );
 }

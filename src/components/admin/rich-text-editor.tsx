@@ -231,8 +231,8 @@ export function RichTextEditor({
       title={title}
       className={`p-1.5 rounded transition-all duration-150 cursor-pointer
         ${active 
-          ? 'bg-blue-100 text-blue-600 shadow-sm' 
-          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 active:bg-gray-300'
+          ? 'bg-[var(--editor-accent-blue)]/20 text-[var(--editor-accent-blue)] shadow-sm' 
+          : 'text-[var(--editor-text-secondary)] hover:bg-[var(--editor-bg-hover)] hover:text-[var(--editor-text-primary)] active:bg-[var(--editor-bg-tertiary)]'
         }`}
     >
       {children}
@@ -240,26 +240,26 @@ export function RichTextEditor({
   );
 
   // Divider component
-  const Divider = () => <div className="w-px h-5 bg-gray-200 mx-1" />;
+  const Divider = () => <div className="w-px h-5 bg-[var(--editor-border-default)] mx-1" />;
 
   return (
     <div className="relative">
       {label && (
-        <label className="block text-sm text-gray-700 mb-1.5">{label}</label>
+        <label className="block text-sm text-[var(--editor-text-secondary)] mb-1.5">{label}</label>
       )}
       
       <div className={`border rounded-lg overflow-hidden transition-colors ${
-        isFocused ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
+        isFocused ? 'border-[var(--editor-accent-blue)] ring-1 ring-[var(--editor-accent-blue)]' : 'border-[var(--editor-border-default)]'
       }`}>
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-gray-50 border-b border-gray-200">
+        <div className="flex flex-wrap items-center gap-0.5 p-1.5 bg-[var(--editor-bg-secondary)] border-b border-[var(--editor-border-default)]">
           {/* Block Format Dropdown */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setShowBlockFormat(!showBlockFormat)}
               onMouseDown={(e) => e.preventDefault()}
-              className="flex items-center gap-1 px-2 py-1 text-sm text-gray-700 hover:bg-gray-200 active:bg-gray-300 rounded transition-colors cursor-pointer"
+              className="flex items-center gap-1 px-2 py-1 text-sm text-[var(--editor-text-primary)] hover:bg-[var(--editor-bg-hover)] active:bg-[var(--editor-bg-tertiary)] rounded transition-colors cursor-pointer"
             >
               <span>{BLOCK_FORMATS.find(f => f.value === currentBlockFormat)?.label || 'פסקה'}</span>
               <ChevronDown size={14} />
@@ -273,7 +273,7 @@ export function RichTextEditor({
                   onClick={() => setShowBlockFormat(false)}
                 />
                 {/* Dropdown */}
-                <div className="absolute top-full right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-20 min-w-[120px]">
+                <div className="absolute top-full right-0 mt-1 bg-[var(--editor-bg-primary)] border border-[var(--editor-border-default)] rounded-lg shadow-lg z-20 min-w-[120px]">
                   {BLOCK_FORMATS.map(format => (
                     <button
                       key={format.value}
@@ -336,8 +336,8 @@ export function RichTextEditor({
                   onClick={() => setShowColorPicker(false)}
                 />
                 {/* Color picker popover - Compact, opens to the left */}
-                <div className="absolute top-full left-0 mt-1 p-3 bg-white border border-gray-200 rounded-xl shadow-xl z-20 w-64">
-                  <p className="text-xs text-gray-500 mb-2 text-right font-medium">בחר צבע</p>
+                <div className="absolute top-full left-0 mt-1 p-3 bg-[var(--editor-bg-primary)] border border-[var(--editor-border-default)] rounded-xl shadow-xl z-20 w-64">
+                  <p className="text-xs text-[var(--editor-text-muted)] mb-2 text-right font-medium">בחר צבע</p>
                   <div className="grid grid-cols-6 gap-1.5">
                     {TEXT_COLORS.map(color => (
                       <button
@@ -349,7 +349,7 @@ export function RichTextEditor({
                         }}
                         onMouseDown={(e) => e.preventDefault()}
                         title={color.label}
-                        className="w-7 h-7 rounded-md border-2 border-gray-200 hover:border-blue-400 hover:scale-110 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
+                        className="w-7 h-7 rounded-md border-2 border-[var(--editor-border-default)] hover:border-[var(--editor-accent-blue)] hover:scale-110 hover:shadow-lg active:scale-95 transition-all cursor-pointer"
                         style={{ backgroundColor: color.value }}
                       />
                     ))}
@@ -453,14 +453,14 @@ export function RichTextEditor({
 
         {/* Link Input Modal */}
         {showLinkInput && (
-          <div className="absolute top-12 right-0 z-30 bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+          <div className="absolute top-12 right-0 z-30 bg-[var(--editor-bg-primary)] border border-[var(--editor-border-default)] rounded-lg shadow-lg p-3">
             <div className="flex items-center gap-2">
               <input
                 type="url"
                 value={linkUrl}
                 onChange={(e) => setLinkUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="w-48 px-2 py-1 text-sm border border-gray-200 rounded focus:outline-none focus:border-blue-500"
+                className="w-48 px-2 py-1 text-sm border border-[var(--editor-border-default)] rounded focus:outline-none focus:border-[var(--editor-accent-blue)] bg-[var(--editor-bg-primary)] text-[var(--editor-text-primary)]"
                 onKeyDown={(e) => e.key === 'Enter' && applyLink()}
                 autoFocus
               />
@@ -477,7 +477,7 @@ export function RichTextEditor({
                   setShowLinkInput(false);
                   setLinkUrl('');
                 }}
-                className="px-3 py-1 text-gray-600 text-sm hover:bg-gray-100 rounded"
+                className="px-3 py-1 text-[var(--editor-text-secondary)] text-sm hover:bg-[var(--editor-bg-hover)] rounded"
               >
                 ביטול
               </button>
@@ -490,7 +490,7 @@ export function RichTextEditor({
           <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className="w-full p-3 text-sm font-mono text-gray-700 bg-gray-50 resize-none focus:outline-none"
+            className="w-full p-3 text-sm font-mono text-[var(--editor-text-primary)] bg-[var(--editor-bg-secondary)] resize-none focus:outline-none"
             style={{ minHeight, maxHeight }}
             dir="ltr"
           />
@@ -509,8 +509,8 @@ export function RichTextEditor({
             onClick={detectBlockFormat}
             onKeyUp={detectBlockFormat}
             data-placeholder={placeholder}
-            className="w-full p-4 text-sm text-gray-700 focus:outline-none overflow-y-auto leading-relaxed
-              [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 [&:empty]:before:pointer-events-none
+            className="w-full p-4 text-sm text-[var(--editor-text-primary)] focus:outline-none overflow-y-auto leading-relaxed bg-[var(--editor-bg-primary)]
+              [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-[var(--editor-text-placeholder)] [&:empty]:before:pointer-events-none
               [&_a]:text-blue-600 [&_a]:underline [&_a]:font-medium
               [&_b]:font-bold [&_strong]:font-bold
               [&_i]:italic [&_em]:italic
@@ -524,7 +524,7 @@ export function RichTextEditor({
               [&_ol]:list-decimal [&_ol]:pr-6 [&_ol]:my-2 [&_ol]:mr-2
               [&_li]:mb-1.5 [&_li]:leading-relaxed
               [&_p]:mb-2
-              [&_hr]:my-4 [&_hr]:border-gray-300"
+              [&_hr]:my-4 [&_hr]:border-[var(--editor-border-default)]"
             style={{ minHeight, maxHeight }}
             dir="rtl"
           />
@@ -532,7 +532,7 @@ export function RichTextEditor({
       </div>
 
       {hint && (
-        <p className="text-xs text-gray-400 mt-1">{hint}</p>
+        <p className="text-xs text-[var(--editor-text-muted)] mt-1">{hint}</p>
       )}
     </div>
   );
