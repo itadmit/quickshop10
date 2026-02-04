@@ -29,6 +29,7 @@ type Order = {
   customStatus: string | null;
   createdByUserId: string | null; // CRM Plugin: מי יצר את ההזמנה
   createdByUserName?: string | null; // CRM Plugin: שם המשתמש שיצר (מאוכלס בעמוד)
+  itemsCount?: number; // מספר הפריטים בהזמנה
   customer?: {
     firstName: string | null;
     lastName: string | null;
@@ -241,22 +242,29 @@ export function OrdersDataTable({
       header: 'מס׳ הזמנה',
       width: '140px',
       render: (order) => (
-        <div className="flex items-center gap-1.5">
-          <Link 
-            href={`/shops/${storeSlug}/admin/orders/${order.id}`}
-            className="font-medium text-gray-900 hover:text-blue-600"
-            onClick={(e) => e.stopPropagation()}
-          >
-            #{order.orderNumber}
-          </Link>
-          {order.utmSource === 'manual' && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium" title="הזמנה ידנית">
-              ידני
-            </span>
-          )}
-          {order.utmSource === 'pos' && (
-            <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium" title="קופה">
-              POS
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1.5">
+            <Link 
+              href={`/shops/${storeSlug}/admin/orders/${order.id}`}
+              className="font-medium text-gray-900 hover:text-blue-600"
+              onClick={(e) => e.stopPropagation()}
+            >
+              #{order.orderNumber}
+            </Link>
+            {order.utmSource === 'manual' && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded font-medium" title="הזמנה ידנית">
+                ידני
+              </span>
+            )}
+            {order.utmSource === 'pos' && (
+              <span className="text-[10px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded font-medium" title="קופה">
+                POS
+              </span>
+            )}
+          </div>
+          {order.itemsCount !== undefined && order.itemsCount > 0 && (
+            <span className="text-xs text-gray-500">
+              {order.itemsCount} פריטים
             </span>
           )}
         </div>
@@ -297,7 +305,7 @@ export function OrdersDataTable({
     },
     {
       key: 'fulfillmentStatus',
-      header: 'משלוח',
+      header: 'סטטוס ביצוע',
       width: '140px',
       align: 'center',
       render: (order) => {
@@ -424,23 +432,7 @@ export function OrdersDataTable({
         <span className="text-gray-500">{formatDate(order.createdAt)}</span>
       ),
     },
-    // CRM Plugin: עמודת "נוצר על ידי" - רק אם showCreatedBy=true
-    ...(showCreatedBy ? [{
-      key: 'createdBy' as keyof Order,
-      header: 'נוצר ע״י',
-      width: '120px',
-      align: 'center' as const,
-      render: (order: Order) => {
-        if (!order.createdByUserId) {
-          return <span className="text-gray-400 text-xs">אתר</span>;
-        }
-        return (
-          <span className="text-gray-700 text-xs">
-            {order.createdByUserName || 'סוכן'}
-          </span>
-        );
-      },
-    }] : []),
+    // CRM Plugin: עמודת "נוצר על ידי" - הוסרה לפי בקשה
     {
       key: 'actions',
       header: 'פעולות',

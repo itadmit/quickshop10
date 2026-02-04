@@ -284,7 +284,12 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
   const crmActive = await isPluginActive(store.id, 'crm');
   
   // CRM Plugin: Get user names for orders that have createdByUserId
-  let ordersWithUserNames = paginatedOrders.map(o => ({ ...o, createdByUserName: null as string | null }));
+  // Also add itemsCount from orderMetadata
+  let ordersWithUserNames = paginatedOrders.map(o => ({ 
+    ...o, 
+    createdByUserName: null as string | null,
+    itemsCount: orderMetadata[o.id]?.itemCount || 0,
+  }));
   
   if (crmActive) {
     const userIds = paginatedOrders
@@ -303,6 +308,7 @@ export default async function OrdersPage({ params, searchParams }: OrdersPagePro
       ordersWithUserNames = paginatedOrders.map(o => ({
         ...o,
         createdByUserName: o.createdByUserId ? (userMap.get(o.createdByUserId) || 'סוכן') : null,
+        itemsCount: orderMetadata[o.id]?.itemCount || 0,
       }));
     }
   }
