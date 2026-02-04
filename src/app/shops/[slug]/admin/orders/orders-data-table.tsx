@@ -305,7 +305,7 @@ export function OrdersDataTable({
     },
     {
       key: 'fulfillmentStatus',
-      header: 'סטטוס ביצוע',
+      header: 'משלוח',
       width: '140px',
       align: 'center',
       render: (order) => {
