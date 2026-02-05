@@ -49,6 +49,9 @@ interface SeriesGridSectionProps {
     imageAspectRatio?: 'square' | 'portrait' | 'landscape' | 'auto';
     showDescriptionAlways?: boolean; // Show description always (not just on hover)
     roundedCorners?: boolean;      // Rounded corners for cards (default: true)
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath: string;
   sectionId?: string;
@@ -99,9 +102,13 @@ export function SeriesGridSection({
     }
   };
 
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+
   return (
     <section 
-      className="w-full py-20 px-4 md:px-10"
+      className={`w-full py-20 px-4 md:px-10 ${hideOnMobileClass} ${hideOnDesktopClass}`}
       style={{ backgroundColor: sectionBg }}
       data-section-id={sectionId}
       data-section-type="series_grid"

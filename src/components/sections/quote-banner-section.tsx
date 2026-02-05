@@ -33,6 +33,9 @@ interface QuoteBannerSectionProps {
     textStyle?: 'serif' | 'sans' | 'italic';
     parallax?: boolean;
     backgroundMaxWidth?: number; // רוחב מירבי לתמונת רקע עם margin auto
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   sectionId?: string;
 }
@@ -61,9 +64,13 @@ export function QuoteBannerSection({
     ? !!content.mobileVideoUrl 
     : !!content.mobileImageUrl;
 
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+
   return (
     <section 
-      className="w-full relative overflow-hidden"
+      className={`w-full relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass}`}
       data-section-id={sectionId}
       data-section-type="quote_banner"
       data-section-name="באנר ציטוט"

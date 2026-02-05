@@ -38,6 +38,9 @@ interface FeaturedItemsSectionProps {
     textColor?: string;
     hoverEffect?: 'zoom' | 'lift' | 'none';
     imageStyle?: 'rounded' | 'square' | 'circle';
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath: string;
   sectionId?: string;
@@ -99,6 +102,10 @@ export function FeaturedItemsSection({
     none: '',
   }[hoverEffect];
 
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
+
   return (
     <>
       {/* Scoped CSS for responsive grid */}
@@ -113,7 +120,7 @@ export function FeaturedItemsSection({
         }
       `}} />
       <section 
-        className="w-full py-16 px-4 md:px-10"
+        className={`w-full py-16 px-4 md:px-10 ${hideOnMobileClass} ${hideOnDesktopClass}`}
         style={{ backgroundColor: sectionBg }}
         data-section-id={sectionId}
         data-section-type="featured_items"

@@ -418,6 +418,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               loop?: boolean;
               muted?: boolean;
               controls?: boolean;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
             }}
             basePath={basePath}
             sectionId={section.id}
@@ -435,7 +437,11 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               // Legacy support
               items?: { title: string; imageUrl: string; mobileImageUrl?: string; link: string }[];
             }}
-            settings={settings as { height?: string }}
+            settings={settings as { 
+              height?: string;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+            }}
             basePath={basePath}
             sectionId={section.id}
           />
@@ -454,6 +460,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               textColor?: string;
               buttonColor?: string;
               buttonTextColor?: string;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
             }}
             sectionId={section.id}
             storeSlug={slug}
@@ -471,7 +479,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { reviews?: Array<{ id: string; author: string; rating: number; text: string; date?: string; avatar?: string; verified?: boolean }> }}
-            settings={settings as { columns?: number; showRating?: boolean; showDate?: boolean; showAvatar?: boolean; style?: 'cards' | 'minimal' | 'quotes'; backgroundColor?: string }}
+            settings={settings as { columns?: number; showRating?: boolean; showDate?: boolean; showAvatar?: boolean; style?: 'cards' | 'minimal' | 'quotes'; backgroundColor?: string; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             sectionId={section.id}
           />
         );
@@ -514,7 +522,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { imageUrl?: string; text?: string; buttonText?: string; buttonLink?: string }}
-            settings={settings as { imagePosition?: 'right' | 'left'; imageWidth?: '40%' | '50%' | '60%'; height?: string; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; overlay?: number }}
+            settings={settings as { imagePosition?: 'right' | 'left'; imageWidth?: '40%' | '50%' | '60%'; height?: string; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; overlay?: number; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             basePath={basePath}
             sectionId={section.id}
           />
@@ -527,7 +535,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { features?: Array<{ id: string; icon?: string; emoji?: string; title: string; description?: string }> }}
-            settings={settings as { columns?: number; iconStyle?: 'emoji' | 'icon' | 'none'; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; showDividers?: boolean }}
+            settings={settings as { columns?: number; iconStyle?: 'emoji' | 'icon' | 'none'; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; showDividers?: boolean; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             sectionId={section.id}
           />
         );
@@ -569,7 +577,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { buttonText?: string; buttonLink?: string; icon?: string }}
-            settings={settings as { backgroundColor?: string; textColor?: string; buttonStyle?: 'outline' | 'filled' | 'none'; size?: 'small' | 'medium' | 'large' }}
+            settings={settings as { backgroundColor?: string; textColor?: string; buttonStyle?: 'outline' | 'filled' | 'none'; size?: 'small' | 'medium' | 'large'; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             basePath={basePath}
             sectionId={section.id}
           />
@@ -582,7 +590,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { images?: Array<{ id: string; url: string; alt?: string; link?: string }> }}
-            settings={settings as { columns?: number; gap?: number; aspectRatio?: 'square' | '4:3' | '16:9' | 'auto'; layout?: 'grid' | 'masonry'; backgroundColor?: string }}
+            settings={settings as { columns?: number; gap?: number; aspectRatio?: 'square' | '4:3' | '16:9' | 'auto'; layout?: 'grid' | 'masonry'; backgroundColor?: string; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             basePath={basePath}
             sectionId={section.id}
           />
@@ -663,7 +671,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { logos?: Array<{ id: string; url: string; alt?: string; link?: string }> }}
-            settings={settings as { columns?: number; logoHeight?: number; grayscale?: boolean; backgroundColor?: string }}
+            settings={settings as { columns?: number; logoHeight?: number; grayscale?: boolean; backgroundColor?: string; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             sectionId={section.id}
           />
         );
@@ -675,7 +683,7 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             content={content as { items?: Array<{ id: string; question: string; answer: string }> }}
-            settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl'; backgroundColor?: string; style?: 'accordion' | 'cards' | 'simple' }}
+            settings={settings as { maxWidth?: 'sm' | 'md' | 'lg' | 'xl'; backgroundColor?: string; style?: 'accordion' | 'cards' | 'simple'; hideOnMobile?: boolean; hideOnDesktop?: boolean }}
             sectionId={section.id}
           />
         );
@@ -934,6 +942,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               cardBackground?: string;
               accentColor?: string;
               buttonText?: string;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
             }}
             basePath={basePath}
             sectionId={section.id}
@@ -961,6 +971,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               overlay?: number;
               textStyle?: 'serif' | 'sans' | 'italic';
               parallax?: boolean;
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
             }}
             sectionId={section.id}
           />
@@ -1057,6 +1069,8 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
               textColor?: string;
               hoverEffect?: 'zoom' | 'lift' | 'none';
               imageStyle?: 'rounded' | 'square' | 'circle';
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
             }}
             basePath={basePath}
             sectionId={section.id}
