@@ -323,12 +323,9 @@ export async function chargeWithToken(
   invoiceUrl?: string;
   error?: string;
 }> {
-  try {
-    // Calculate amounts
-    const subtotal = params.invoiceItems?.reduce((sum, item) => sum + item.price * item.quantity, 0) || (params.amount / (1 + VAT_RATE));
-    const vatAmount = params.amount - subtotal;
-
-    const response = await makePayPlusRequest<ChargeResponse>(
+  // Helper function to make charge request
+  const makeChargeRequest = async (includeCustomerUid: boolean) => {
+    return makePayPlusRequest<ChargeResponse>(
       'Transactions/Charge',
       'POST',
       {
@@ -342,7 +339,8 @@ export async function chargeWithToken(
         // Use saved token
         use_token: true,
         token: params.tokenUid,
-        ...(params.customerUid && { customer_uid: params.customerUid }),
+        // Only include customer_uid if requested
+        ...(includeCustomerUid && params.customerUid && { customer_uid: params.customerUid }),
         
         // Generate invoice
         initial_invoice: true,
@@ -353,7 +351,7 @@ export async function chargeWithToken(
           // Calculate price with VAT
           const priceWithVat = Math.round(item.price * (1 + VAT_RATE) * 100) / 100;
           return {
-          name: item.name,
+            name: item.name,
             quantity: String(item.quantity), // Must be string according to PayPlus API
             price: String(priceWithVat), // Must be string according to PayPlus API
             currency_code: 'ILS',
@@ -373,6 +371,17 @@ export async function chargeWithToken(
         more_info_1: params.description,
       }
     );
+  };
+
+  try {
+    // First attempt: try with customer_uid
+    let response = await makeChargeRequest(true);
+
+    // If customer not found, retry WITHOUT customer_uid (just use token)
+    if (response.results.description === 'can-not-find-customer' && params.customerUid) {
+      console.log('[PayPlus Billing] Customer not found, retrying without customer_uid...');
+      response = await makeChargeRequest(false);
+    }
 
     if (response.results.status !== 'success' || response.results.code !== 0) {
       return {

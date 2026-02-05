@@ -387,7 +387,7 @@ export function OrdersDataTable({
       key: 'total',
       header: 'סכום',
       width: '100px',
-      align: 'left',
+      align: 'center',
       render: (order) => (
         <span className="font-medium">₪{Number(order.total).toFixed(2)}</span>
       ),
@@ -406,9 +406,9 @@ export function OrdersDataTable({
       key: 'actions',
       header: 'פעולות',
       width: '100px',
-      align: 'left',
+      align: 'center',
       render: (order) => (
-        <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-1 justify-center" onClick={(e) => e.stopPropagation()}>
           <Link
             href={`/shops/${storeSlug}/admin/orders/${order.id}`}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

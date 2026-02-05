@@ -1,11 +1,16 @@
 /**
  * Cron Job: Transaction Fees
  * 
- * Runs every 2 weeks via QStash
+ * Runs on 1st and 15th of each month via QStash
  * Charges 0.5% transaction fees on paid orders
  * 
+ * Logic (Hybrid approach):
+ * - Runs on fixed dates (1st and 15th)
+ * - For each store, calculates period from last billing end date to now
+ * - This ensures no gaps and no double-charging
+ * 
  * URL: /api/cron/billing/transaction-fees
- * Schedule: Every 2 weeks (1st and 15th of month)
+ * Schedule: 1st and 15th of month at 03:00
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -23,46 +28,71 @@ export async function POST(request: NextRequest) {
   try {
     console.log('[Cron] Starting transaction fees billing...');
     
-    // Calculate period (last 2 weeks)
-    const periodEnd = new Date();
-    const periodStart = new Date(periodEnd);
-    periodStart.setDate(periodStart.getDate() - 14);
+    // Current billing date (now)
+    const billingDate = new Date();
     
-    // Get stores due for transaction fee billing
-    const storeIds = await getStoresDueForTransactionFees();
-    console.log(`[Cron] Found ${storeIds.length} stores due for transaction fee billing`);
+    // Get all active stores with their last billing info
+    const stores = await getStoresDueForTransactionFees();
+    console.log(`[Cron] Found ${stores.length} active stores to process`);
 
     const results: {
       storeId: string;
       success: boolean;
       amount?: number;
       invoiceNumber?: string;
+      periodStart?: string;
+      periodEnd?: string;
       error?: string;
     }[] = [];
 
     let totalBilled = 0;
     let totalAmount = 0;
 
-    for (const storeId of storeIds) {
+    for (const store of stores) {
       try {
-        const result = await chargeTransactionFees(storeId, periodStart, periodEnd);
+        // Calculate period for this store:
+        // - Start: last billing end date, or subscription activation date
+        // - End: current billing date
+        const periodStart = store.lastPeriodEnd || new Date(billingDate.getTime() - 14 * 24 * 60 * 60 * 1000); // fallback: 14 days ago
+        const periodEnd = billingDate;
+        
+        // Skip if period is too short (less than 1 day) - prevents accidental double-billing
+        const periodDays = (periodEnd.getTime() - periodStart.getTime()) / (1000 * 60 * 60 * 24);
+        if (periodDays < 1) {
+          console.log(`[Cron] Skipping store ${store.storeId} - period too short (${periodDays.toFixed(1)} days)`);
+          results.push({
+            storeId: store.storeId,
+            success: true,
+            amount: 0,
+            periodStart: periodStart.toISOString(),
+            periodEnd: periodEnd.toISOString(),
+            error: `Period too short: ${periodDays.toFixed(1)} days`,
+          });
+          continue;
+        }
+        
+        console.log(`[Cron] Processing store ${store.storeId}: ${periodStart.toISOString()} to ${periodEnd.toISOString()} (${periodDays.toFixed(1)} days)`);
+        
+        const result = await chargeTransactionFees(store.storeId, periodStart, periodEnd);
         results.push({
-          storeId,
+          storeId: store.storeId,
           success: result.success,
           amount: result.amount,
           invoiceNumber: result.invoiceNumber,
+          periodStart: periodStart.toISOString(),
+          periodEnd: periodEnd.toISOString(),
           error: result.error,
         });
         
         if (result.success && result.amount && result.amount > 0) {
           totalBilled++;
           totalAmount += result.amount;
-          console.log(`[Cron] Charged ₪${result.amount.toFixed(2)} fees for store ${storeId}`);
+          console.log(`[Cron] Charged ₪${result.amount.toFixed(2)} fees for store ${store.storeId}`);
         }
       } catch (error) {
-        console.error(`[Cron] Error charging fees for store ${storeId}:`, error);
+        console.error(`[Cron] Error charging fees for store ${store.storeId}:`, error);
         results.push({
-          storeId,
+          storeId: store.storeId,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
         });
@@ -74,13 +104,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      timestamp: new Date().toISOString(),
-      period: {
-        start: periodStart.toISOString(),
-        end: periodEnd.toISOString(),
-      },
+      timestamp: billingDate.toISOString(),
       summary: {
-        storesChecked: storeIds.length,
+        storesChecked: stores.length,
         storesBilled: totalBilled,
         totalAmount: totalAmount.toFixed(2),
         failed: failureCount,

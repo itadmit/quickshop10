@@ -472,7 +472,9 @@ export async function chargeTransactionFees(
     return { success: false, error: 'No payment method on file' };
   }
 
-  if (subscription.status !== 'active') {
+  // Allow billing for active and past_due subscriptions
+  // past_due means a previous charge failed, but we should still try to charge transaction fees
+  if (subscription.status !== 'active' && subscription.status !== 'past_due') {
     return { success: false, error: 'Subscription not active' };
   }
 
@@ -601,6 +603,15 @@ export async function chargeTransactionFees(
     invoiceId: invoice.id,
     orderIds: paidOrders.map(o => o.id),
   });
+
+  // If subscription was past_due, update back to active after successful charge
+  if (subscription.status === 'past_due') {
+    await db
+      .update(storeSubscriptions)
+      .set({ status: 'active', updatedAt: new Date() })
+      .where(eq(storeSubscriptions.id, subscription.id));
+    console.log(`[Transaction Fees] Restored subscription status to active for store ${storeId}`);
+  }
 
   return {
     success: true,
@@ -989,22 +1000,29 @@ export async function getStoresDueForRenewal(): Promise<string[]> {
 }
 
 /**
- * Get stores due for transaction fee billing (every 2 weeks)
+ * Get stores due for transaction fee billing
+ * Returns ALL active/past_due stores with their last billing date
+ * The cron will calculate the correct period for each store
+ * Note: past_due stores should also be charged (they just had a failed payment before)
  */
-export async function getStoresDueForTransactionFees(): Promise<string[]> {
-  const twoWeeksAgo = new Date();
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-
-  // Get stores with active subscriptions that haven't been billed for transaction fees recently
-  const stores = await db
-    .select({ storeId: storeSubscriptions.storeId })
+export async function getStoresDueForTransactionFees(): Promise<{
+  storeId: string;
+  lastPeriodEnd: Date | null;
+}[]> {
+  // Get all stores with active or past_due subscriptions
+  // past_due stores should also be charged - they had a previous payment failure but still need billing
+  const activeStores = await db
+    .select({ 
+      storeId: storeSubscriptions.storeId,
+      activatedAt: storeSubscriptions.currentPeriodStart, // When subscription was activated
+    })
     .from(storeSubscriptions)
-    .where(eq(storeSubscriptions.status, 'active'));
+    .where(inArray(storeSubscriptions.status, ['active', 'past_due']));
 
-  const storeIds: string[] = [];
+  const storesWithBillingInfo: { storeId: string; lastPeriodEnd: Date | null }[] = [];
 
-  for (const store of stores) {
-    // Check last transaction fee billing
+  for (const store of activeStores) {
+    // Get last transaction fee billing for this store
     const lastFee = await db
       .select({ periodEnd: storeTransactionFees.periodEnd })
       .from(storeTransactionFees)
@@ -1013,12 +1031,12 @@ export async function getStoresDueForTransactionFees(): Promise<string[]> {
       .limit(1)
       .then(rows => rows[0]);
 
-    // If never billed or last billing was more than 2 weeks ago
-    if (!lastFee || lastFee.periodEnd < twoWeeksAgo) {
-      storeIds.push(store.storeId);
-    }
+    storesWithBillingInfo.push({
+      storeId: store.storeId,
+      lastPeriodEnd: lastFee?.periodEnd || store.activatedAt || null,
+    });
   }
 
-  return storeIds;
+  return storesWithBillingInfo;
 }
 
