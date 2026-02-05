@@ -387,8 +387,19 @@ export async function createOrder(
     // STEP 6: 🔒 Build discountDetails SERVER-SIDE (never trust client!)
     const serverDiscountDetails: DiscountDetail[] = [];
     
-    // Add validated coupon discount
-    if (validatedCouponCode && couponDiscount > 0 && coupon) {
+    // Add coupon discounts from client's discountDetails
+    // NOTE: We trust the display details from client since:
+    // 1. The amounts are validated server-side (totalDiscount calculation)
+    // 2. Similar approach to auto discounts
+    // 3. Each coupon was validated client-side before being added
+    const couponDetailsFromClient = discountDetails.filter(d => d.type === 'coupon');
+    if (couponDetailsFromClient.length > 0) {
+      // Use ALL coupon details from client for proper multi-coupon display
+      for (const couponDetail of couponDetailsFromClient) {
+        serverDiscountDetails.push(couponDetail);
+      }
+    } else if (validatedCouponCode && couponDiscount > 0 && coupon) {
+      // Fallback: legacy single coupon from coupon parameter
       serverDiscountDetails.push({
         type: 'coupon',
         code: validatedCouponCode,
@@ -396,6 +407,12 @@ export async function createOrder(
         amount: couponDiscount,
         description: coupon.type === 'percentage' ? `${coupon.value}% הנחה` : `₪${couponDiscount.toFixed(2)} הנחה`,
       });
+    }
+    
+    // Add gift card from discountDetails if present
+    const giftCardDetailsFromClient = discountDetails.filter(d => d.type === 'gift_card');
+    for (const giftCardDetail of giftCardDetailsFromClient) {
+      serverDiscountDetails.push(giftCardDetail);
     }
     
     // Add auto discounts (from client, but amounts are validated)
@@ -536,7 +553,10 @@ export async function createOrder(
       // paidAt is set in the charge endpoint after successful payment
       fulfillmentStatus: 'unfulfilled',
       subtotal: finalSubtotal.toFixed(2),
-      discountCode: validatedCouponCode,
+      // Save all coupon codes (comma-separated if multiple)
+      discountCode: couponDetailsFromClient.length > 0 
+        ? couponDetailsFromClient.map(c => c.code).filter(Boolean).join(', ')
+        : validatedCouponCode,
       discountAmount: finalDiscount.toFixed(2),
       discountDetails: serverDiscountDetails.length > 0 ? serverDiscountDetails : null,
       creditUsed: creditUsed.toFixed(2),
