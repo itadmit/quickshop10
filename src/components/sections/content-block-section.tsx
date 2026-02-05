@@ -266,15 +266,16 @@ export function ContentBlockSection({
         // When contain + auto height, use transparent background (image determines look)
         backgroundColor: isImageFullWidth ? 'transparent' : (hasMedia ? undefined : backgroundColor),
         minHeight: minHeight !== null ? `${minHeight}${minHeightUnit}` : undefined,
-        paddingTop: `${paddingTop}px`,
-        paddingBottom: `${paddingBottom}px`,
+        paddingTop: isImageFullWidth ? 0 : `${paddingTop}px`,
+        paddingBottom: isImageFullWidth ? 0 : `${paddingBottom}px`,
         paddingLeft: `${paddingLeft}px`,
         paddingRight: `${paddingRight}px`,
         marginTop: settings.marginTop ? `${settings.marginTop}px` : undefined,
         marginBottom: settings.marginBottom ? `${settings.marginBottom}px` : undefined,
         zIndex: settings.zIndex,
-        display: 'flex',
-        flexDirection: 'column',
+        // Don't use flex when image determines height
+        display: isImageFullWidth ? 'block' : 'flex',
+        flexDirection: isImageFullWidth ? undefined : 'column',
       }}
     >
       {/* Scoped CSS for responsive typography */}
@@ -310,9 +311,12 @@ export function ContentBlockSection({
               <img 
                 src={content.imageUrl || settings.backgroundImage}
                 alt=""
-                className={`w-full h-auto block ${hasMobileImage ? 'hidden md:block' : ''}`}
+                className={`block ${hasMobileImage ? 'hidden md:block' : ''}`}
                 style={{ 
-                  maxWidth: settings.backgroundMaxWidth ? `${settings.backgroundMaxWidth}px` : '100%',
+                  width: '100%',
+                  height: 'auto',
+                  display: 'block',
+                  maxWidth: settings.backgroundMaxWidth ? `${settings.backgroundMaxWidth}px` : 'none',
                   margin: settings.backgroundMaxWidth ? '0 auto' : undefined,
                 }}
                 data-bg-desktop
@@ -323,7 +327,12 @@ export function ContentBlockSection({
                 <img 
                   src={content.mobileImageUrl}
                   alt=""
-                  className="w-full h-auto block md:hidden"
+                  className="block md:hidden"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                  }}
                   data-bg-mobile
                   data-bg-type="image"
                 />
