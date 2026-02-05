@@ -139,7 +139,10 @@ export function ContentBlockSection({
   // ====================================
   // Settings with Smart Defaults
   // ====================================
-  const minHeight = settings.minHeight ?? defaults.minHeight;
+  // minHeight: null/undefined means auto (no minHeight)
+  const minHeight = settings.minHeight !== undefined && settings.minHeight !== null 
+    ? settings.minHeight 
+    : null;
   const minHeightUnit = settings.minHeightUnit || defaults.minHeightUnit || 'px';
   const backgroundColor = settings.backgroundColor || defaults.backgroundColor;
   const textAlign = settings.textAlign || defaults.textAlign;
@@ -259,7 +262,7 @@ export function ContentBlockSection({
       className={`relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{
         backgroundColor: hasMedia ? undefined : backgroundColor,
-        minHeight: `${minHeight}${minHeightUnit}`,
+        minHeight: minHeight !== null ? `${minHeight}${minHeightUnit}` : undefined,
         paddingTop: `${paddingTop}px`,
         paddingBottom: `${paddingBottom}px`,
         paddingLeft: `${paddingLeft}px`,
@@ -297,56 +300,88 @@ export function ContentBlockSection({
       {/* ==================== BACKGROUND IMAGE ==================== */}
       {hasDesktopImage && !hasDesktopVideo && (
         <>
-          {/* Desktop Image */}
-          {settings.backgroundMaxWidth && settings.backgroundMaxWidth > 0 ? (
-            // With max-width: wrapper with background color + centered image
-            <div 
-              className={`absolute inset-0 ${hasMobileImage ? 'hidden md:block' : ''}`}
-              style={{ backgroundColor: backgroundColor }}
-              data-bg-desktop-wrapper
-            >
-              <div 
-                className="absolute bg-no-repeat"
+          {/* When contain + auto height: use img element so image determines height */}
+          {backgroundSize === 'contain' && minHeight === null ? (
+            <>
+              {/* Desktop Image as img element */}
+              <img 
+                src={content.imageUrl || settings.backgroundImage}
+                alt=""
+                className={`w-full h-auto object-contain ${hasMobileImage ? 'hidden md:block' : ''}`}
                 style={{ 
-                  backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
-                  backgroundSize: backgroundSize,
-                  backgroundPosition: backgroundPosition,
-                  top: 0,
-                  bottom: 0,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: '100%',
-                  maxWidth: `${settings.backgroundMaxWidth}px`,
+                  backgroundColor: backgroundColor,
+                  maxWidth: settings.backgroundMaxWidth ? `${settings.backgroundMaxWidth}px` : '100%',
+                  margin: settings.backgroundMaxWidth ? '0 auto' : undefined,
                 }}
                 data-bg-desktop
                 data-bg-type="image"
               />
-            </div>
+              {/* Mobile Image as img element */}
+              {hasMobileImage && (
+                <img 
+                  src={content.mobileImageUrl}
+                  alt=""
+                  className="w-full h-auto object-contain md:hidden"
+                  style={{ backgroundColor: backgroundColor }}
+                  data-bg-mobile
+                  data-bg-type="image"
+                />
+              )}
+            </>
           ) : (
-            // Full width (default)
-            <div 
-              className={`absolute inset-0 bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
-              style={{ 
-                backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
-                backgroundSize: backgroundSize,
-                backgroundPosition: backgroundPosition,
-              }}
-              data-bg-desktop
-              data-bg-type="image"
-            />
-          )}
-          {/* Mobile Image */}
-          {hasMobileImage && (
-            <div 
-              className="absolute inset-0 bg-no-repeat md:hidden"
-              style={{ 
-                backgroundImage: `url("${content.mobileImageUrl}")`,
-                backgroundSize: backgroundSize,
-                backgroundPosition: backgroundPosition,
-              }}
-              data-bg-mobile
-              data-bg-type="image"
-            />
+            <>
+              {/* Desktop Image as background */}
+              {settings.backgroundMaxWidth && settings.backgroundMaxWidth > 0 ? (
+                // With max-width: wrapper with background color + centered image
+                <div 
+                  className={`absolute inset-0 ${hasMobileImage ? 'hidden md:block' : ''}`}
+                  style={{ backgroundColor: backgroundColor }}
+                  data-bg-desktop-wrapper
+                >
+                  <div 
+                    className="absolute bg-no-repeat"
+                    style={{ 
+                      backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
+                      backgroundSize: backgroundSize,
+                      backgroundPosition: backgroundPosition,
+                      top: 0,
+                      bottom: 0,
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '100%',
+                      maxWidth: `${settings.backgroundMaxWidth}px`,
+                    }}
+                    data-bg-desktop
+                    data-bg-type="image"
+                  />
+                </div>
+              ) : (
+                // Full width (default)
+                <div 
+                  className={`absolute inset-0 bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
+                  style={{ 
+                    backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
+                    backgroundSize: backgroundSize,
+                    backgroundPosition: backgroundPosition,
+                  }}
+                  data-bg-desktop
+                  data-bg-type="image"
+                />
+              )}
+              {/* Mobile Image as background */}
+              {hasMobileImage && (
+                <div 
+                  className="absolute inset-0 bg-no-repeat md:hidden"
+                  style={{ 
+                    backgroundImage: `url("${content.mobileImageUrl}")`,
+                    backgroundSize: backgroundSize,
+                    backgroundPosition: backgroundPosition,
+                  }}
+                  data-bg-mobile
+                  data-bg-type="image"
+                />
+              )}
+            </>
           )}
         </>
       )}

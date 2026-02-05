@@ -446,12 +446,14 @@ export function applyCommonUpdates(
                         el.getAttribute('data-section-type') === 'split_banner';
   
   if (updates.settings?.minHeight !== undefined || updates.settings?.minHeightUnit !== undefined) {
-    const minHeightValue = updates.settings?.minHeight !== undefined 
-      ? Number(updates.settings.minHeight) 
-      : (el.dataset.minHeight ? Number(el.dataset.minHeight) : 0);
+    // minHeight can be null (auto), 0, or a positive number
+    const rawMinHeight = updates.settings?.minHeight;
+    const minHeightValue = rawMinHeight !== null && rawMinHeight !== undefined 
+      ? Number(rawMinHeight) 
+      : (el.dataset.minHeight ? Number(el.dataset.minHeight) : null);
     const minHeightUnit = (updates.settings?.minHeightUnit as string) ?? el.dataset.minHeightUnit ?? 'px';
     
-    if (minHeightValue && minHeightValue > 0) {
+    if (minHeightValue !== null && minHeightValue > 0) {
       el.style.minHeight = `${minHeightValue}${minHeightUnit}`;
       // Only change display to flex if not a grid section
       if (!isGridSection) {
@@ -461,6 +463,7 @@ export function applyCommonUpdates(
       el.dataset.minHeight = String(minHeightValue);
       el.dataset.minHeightUnit = minHeightUnit;
     } else {
+      // null or 0 = auto height
       el.style.minHeight = '';
       // Only reset display if we changed it
       if (!isGridSection) {

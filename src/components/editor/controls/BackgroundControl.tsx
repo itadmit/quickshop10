@@ -342,7 +342,8 @@ export function MinHeightControl({
   defaultValue = 0,
   defaultUnit = 'px',
 }: MinHeightControlProps & { defaultValue?: number; defaultUnit?: 'px' | 'vh' }) {
-  const minHeight = (settings.minHeight as number) ?? defaultValue;
+  // Allow null/undefined for auto height
+  const minHeight = settings.minHeight as number | null | undefined;
   const minHeightUnit = (settings.minHeightUnit as string) || defaultUnit;
 
   return (
@@ -351,9 +352,9 @@ export function MinHeightControl({
       <div className="flex gap-1.5 items-center">
         <input
           type="number"
-          value={minHeight}
-          onChange={(e) => onChange('minHeight', e.target.value ? Number(e.target.value) : defaultValue)}
-          placeholder={String(defaultValue)}
+          value={minHeight ?? ''}
+          onChange={(e) => onChange('minHeight', e.target.value ? Number(e.target.value) : null)}
+          placeholder="אוטומטי"
           className="w-16 px-2 py-1.5 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
                      rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
           dir="ltr"
