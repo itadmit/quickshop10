@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, paymentProviders, orders } from '@/lib/db/schema';
+import { stores, paymentProviders, orders, orderItems, pendingPayments } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { executePostPaymentActions, type CartItem, type OrderData } from '@/lib/orders/post-payment';
 
 const PAYME_API_URL = {
   sandbox: 'https://sandbox.payme.io/api',
@@ -57,7 +58,7 @@ export async function POST(
 
     // Get store and payment provider
     const [store] = await db
-      .select({ id: stores.id })
+      .select({ id: stores.id, name: stores.name, slug: stores.slug })
       .from(stores)
       .where(eq(stores.slug, slug))
       .limit(1);
@@ -119,9 +120,17 @@ export async function POST(
         id: orders.id,
         orderNumber: orders.orderNumber,
         total: orders.total,
+        subtotal: orders.subtotal,
+        discountAmount: orders.discountAmount,
+        shippingCost: orders.shippingCost,
         customerEmail: orders.customerEmail,
         customerName: orders.customerName,
         customerPhone: orders.customerPhone,
+        customerId: orders.customerId,
+        discountCode: orders.discountCode,
+        discountDetails: orders.discountDetails,
+        shippingAddress: orders.shippingAddress,
+        creditUsed: orders.creditUsed,
       })
       .from(orders)
       .where(eq(orders.id, orderId))
@@ -133,6 +142,21 @@ export async function POST(
         { status: 404 }
       );
     }
+    
+    // Get order items for post-payment processing
+    const items = await db
+      .select({
+        productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        variantTitle: orderItems.variantTitle,
+        name: orderItems.name,
+        quantity: orderItems.quantity,
+        price: orderItems.price,
+        sku: orderItems.sku,
+        imageUrl: orderItems.imageUrl,
+      })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, orderId));
 
     // 🧪 TEST MODE: Handle test tokens without calling PayMe API
     if (testMode && token.startsWith('test_token_')) {
@@ -141,19 +165,75 @@ export async function POST(
       console.log('Order ID:', orderId);
       console.log('Amount:', amount);
       
+      const testTransactionId = `test_sale_${Date.now()}`;
+      
       // Update order status to simulate successful payment
-      await db
+      const [updatedOrder] = await db
         .update(orders)
         .set({
           financialStatus: 'paid',
           status: 'processing',
           paidAt: new Date(),
+          paymentMethod: 'credit_card',
+          paymentDetails: {
+            provider: 'quick_payments',
+            transactionId: testTransactionId,
+            testMode: true,
+          },
         })
-        .where(eq(orders.id, orderId));
+        .where(eq(orders.id, orderId))
+        .returning();
+      
+      // 🔥 Execute post-payment actions even in test mode
+      const cartItems: CartItem[] = items.map(item => ({
+        productId: item.productId || '',
+        variantId: item.variantId || undefined,
+        variantTitle: item.variantTitle || undefined,
+        name: item.name || '',
+        quantity: item.quantity,
+        price: Number(item.price),
+        sku: item.sku || undefined,
+        image: item.imageUrl || undefined,
+      }));
+      
+      const shippingAddress = order.shippingAddress as Record<string, unknown> | null;
+      const orderData: OrderData = {
+        shipping: {
+          method: (shippingAddress?.method as string) || 'pickup',
+          cost: Number(order.shippingCost) || 0,
+          address: shippingAddress ? {
+            firstName: (shippingAddress.firstName as string) || '',
+            lastName: (shippingAddress.lastName as string) || '',
+            address: (shippingAddress.address as string) || '',
+            city: (shippingAddress.city as string) || '',
+            phone: (shippingAddress.phone as string) || '',
+          } : undefined,
+        },
+        creditUsed: Number(order.creditUsed) || 0,
+      };
+      
+      executePostPaymentActions({
+        storeId: store.id,
+        storeName: store.name,
+        storeSlug: store.slug,
+        order: {
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          total: updatedOrder.total,
+          customerEmail: updatedOrder.customerEmail,
+          customerName: updatedOrder.customerName,
+          customerId: order.customerId,
+          discountDetails: updatedOrder.discountDetails,
+        },
+        cartItems,
+        orderData,
+        discountCode: order.discountCode || undefined,
+        discountAmount: Number(order.discountAmount) || 0,
+      }).catch(err => console.error('[Quick Payment] Test mode post-payment actions failed:', err));
 
       return NextResponse.json({
         success: true,
-        transactionId: `test_sale_${Date.now()}`,
+        transactionId: testTransactionId,
         orderId,
         testMode: true,
       });
@@ -211,14 +291,76 @@ export async function POST(
       console.log('Payment successful! Sale ID:', saleResult.payme_sale_id);
       
       // Update order status
-      await db
+      const [updatedOrder] = await db
         .update(orders)
         .set({
           financialStatus: 'paid',
           status: 'processing',
           paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
+          paymentMethod: 'credit_card',
+          paymentDetails: {
+            provider: 'quick_payments',
+            transactionId: saleResult.payme_sale_id,
+            approvalNumber: saleResult.transaction_cc_auth_number || saleResult.payme_transaction_auth_number,
+            cardBrand: saleResult.payme_transaction_card_brand,
+            cardLastFour: saleResult.buyer_card_mask?.slice(-4),
+          },
         })
-        .where(eq(orders.id, orderId));
+        .where(eq(orders.id, orderId))
+        .returning();
+      
+      // 🔥 Execute post-payment actions (email, inventory, loyalty points, etc.)
+      const cartItems: CartItem[] = items.map(item => ({
+        productId: item.productId || '',
+        variantId: item.variantId || undefined,
+        variantTitle: item.variantTitle || undefined,
+        name: item.name || '',
+        quantity: item.quantity,
+        price: Number(item.price),
+        sku: item.sku || undefined,
+        image: item.imageUrl || undefined,
+      }));
+      
+      const shippingAddress = order.shippingAddress as Record<string, unknown> | null;
+      const orderData: OrderData = {
+        shipping: {
+          method: (shippingAddress?.method as string) || 'pickup',
+          cost: Number(order.shippingCost) || 0,
+          address: shippingAddress ? {
+            firstName: (shippingAddress.firstName as string) || '',
+            lastName: (shippingAddress.lastName as string) || '',
+            address: (shippingAddress.address as string) || '',
+            city: (shippingAddress.city as string) || '',
+            phone: (shippingAddress.phone as string) || '',
+          } : undefined,
+        },
+        creditUsed: Number(order.creditUsed) || 0,
+      };
+      
+      // Fire and forget - don't block the response
+      executePostPaymentActions({
+        storeId: store.id,
+        storeName: store.name,
+        storeSlug: store.slug,
+        order: {
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          total: updatedOrder.total,
+          customerEmail: updatedOrder.customerEmail,
+          customerName: updatedOrder.customerName,
+          customerId: order.customerId,
+          discountDetails: updatedOrder.discountDetails,
+        },
+        cartItems,
+        orderData,
+        discountCode: order.discountCode || undefined,
+        discountAmount: Number(order.discountAmount) || 0,
+        paymentInfo: {
+          lastFour: saleResult.buyer_card_mask?.slice(-4),
+          brand: saleResult.payme_transaction_card_brand,
+          approvalNum: saleResult.transaction_cc_auth_number || saleResult.payme_transaction_auth_number,
+        },
+      }).catch(err => console.error('[Quick Payment] Post-payment actions failed:', err));
 
       return NextResponse.json({
         success: true,
@@ -252,14 +394,75 @@ export async function POST(
     // Check if payment might still be processing
     if (saleResult.status_code === 0 || saleResult.payme_status === 'success') {
       // Update order status
-      await db
+      const [updatedOrder] = await db
         .update(orders)
         .set({
           financialStatus: 'paid',
           status: 'processing',
           paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
+          paymentMethod: 'credit_card',
+          paymentDetails: {
+            provider: 'quick_payments',
+            transactionId: saleResult.payme_sale_id,
+            approvalNumber: saleResult.transaction_cc_auth_number || saleResult.payme_transaction_auth_number,
+            cardBrand: saleResult.payme_transaction_card_brand,
+            cardLastFour: saleResult.buyer_card_mask?.slice(-4),
+          },
         })
-        .where(eq(orders.id, orderId));
+        .where(eq(orders.id, orderId))
+        .returning();
+      
+      // 🔥 Execute post-payment actions (fallback success case)
+      const cartItems: CartItem[] = items.map(item => ({
+        productId: item.productId || '',
+        variantId: item.variantId || undefined,
+        variantTitle: item.variantTitle || undefined,
+        name: item.name || '',
+        quantity: item.quantity,
+        price: Number(item.price),
+        sku: item.sku || undefined,
+        image: item.imageUrl || undefined,
+      }));
+      
+      const shippingAddress = order.shippingAddress as Record<string, unknown> | null;
+      const orderData: OrderData = {
+        shipping: {
+          method: (shippingAddress?.method as string) || 'pickup',
+          cost: Number(order.shippingCost) || 0,
+          address: shippingAddress ? {
+            firstName: (shippingAddress.firstName as string) || '',
+            lastName: (shippingAddress.lastName as string) || '',
+            address: (shippingAddress.address as string) || '',
+            city: (shippingAddress.city as string) || '',
+            phone: (shippingAddress.phone as string) || '',
+          } : undefined,
+        },
+        creditUsed: Number(order.creditUsed) || 0,
+      };
+      
+      executePostPaymentActions({
+        storeId: store.id,
+        storeName: store.name,
+        storeSlug: store.slug,
+        order: {
+          id: updatedOrder.id,
+          orderNumber: updatedOrder.orderNumber,
+          total: updatedOrder.total,
+          customerEmail: updatedOrder.customerEmail,
+          customerName: updatedOrder.customerName,
+          customerId: order.customerId,
+          discountDetails: updatedOrder.discountDetails,
+        },
+        cartItems,
+        orderData,
+        discountCode: order.discountCode || undefined,
+        discountAmount: Number(order.discountAmount) || 0,
+        paymentInfo: {
+          lastFour: saleResult.buyer_card_mask?.slice(-4),
+          brand: saleResult.payme_transaction_card_brand,
+          approvalNum: saleResult.transaction_cc_auth_number || saleResult.payme_transaction_auth_number,
+        },
+      }).catch(err => console.error('[Quick Payment] Fallback post-payment actions failed:', err));
 
       return NextResponse.json({
         success: true,
