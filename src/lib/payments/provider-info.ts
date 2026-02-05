@@ -64,8 +64,7 @@ export const PROVIDER_INFO: Record<PaymentProviderType, PaymentProviderInfo> = {
     },
     requiredCredentials: [
       { key: 'sellerPaymeId', label: 'Seller ID (MPL)', labelHe: 'מזהה סוחר (MPL)', type: 'text', required: true },
-      { key: 'sellerPublicKey', label: 'Public Key', labelHe: 'מפתח ציבורי', type: 'text', required: true },
-      { key: 'sellerSecret', label: 'Secret Key', labelHe: 'מפתח סודי', type: 'password', required: false },
+      // Public key and secret are optional - platform uses shared PAYME_PUBLIC_KEY from env
     ],
   },
   paypal: {

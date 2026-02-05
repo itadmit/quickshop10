@@ -532,8 +532,8 @@ export async function createOrder(
       customerId,
       orderNumber,
       status: 'pending',
-      financialStatus: 'paid', // Simulated payment
-      paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
+      financialStatus: 'pending', // Will be updated to 'paid' after successful payment
+      // paidAt is set in the charge endpoint after successful payment
       fulfillmentStatus: 'unfulfilled',
       subtotal: finalSubtotal.toFixed(2),
       discountCode: validatedCouponCode,

@@ -56,12 +56,22 @@ export async function GET(
       );
     }
     
-    const credentials = providerConfig.credentials as Record<string, string>;
     const settings = providerConfig.settings as Record<string, unknown>;
+    
+    // Use platform's shared PayMe public key from environment
+    // Each store only provides their seller ID (MPL), the platform provides the API key
+    const platformPublicKey = process.env.PAYME_PUBLIC_KEY;
+    
+    if (!platformPublicKey) {
+      return NextResponse.json(
+        { error: 'Payment provider not configured' },
+        { status: 500 }
+      );
+    }
     
     // Only return public information - never return secrets
     return NextResponse.json({
-      publicKey: credentials.sellerPublicKey,
+      publicKey: platformPublicKey,
       testMode: providerConfig.testMode,
       maxInstallments: settings.maxInstallments ?? 12,
       language: settings.language ?? 'he',

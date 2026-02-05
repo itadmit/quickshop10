@@ -121,9 +121,12 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
     )
     .limit(1);
 
-  const quickPaymentConfig = quickPaymentProvider ? {
+  // Use platform's shared PayMe public key from environment
+  const platformPublicKey = process.env.PAYME_PUBLIC_KEY;
+  
+  const quickPaymentConfig = quickPaymentProvider && platformPublicKey ? {
     enabled: true,
-    publicKey: (quickPaymentProvider.credentials as Record<string, string>)?.publicKey,
+    publicKey: platformPublicKey,
     testMode: quickPaymentProvider.testMode ?? false,
   } : {
     enabled: false,

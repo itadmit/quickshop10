@@ -97,13 +97,12 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
     // Build QuickPayments config if it's the active provider
     let quickPaymentsConfig: { publicKey: string; testMode: boolean } | null = null;
     if (activeProvider?.provider === 'quick_payments') {
-      const creds = activeProvider.credentials as Record<string, string> | null;
-      // Try sellerPublicKey first, fallback to sellerPaymeId (MPL)
-      // The API key for PayMe.create() might be the MPL ID, not the public key UUID
-      const publicKey = creds?.sellerPublicKey || creds?.sellerPaymeId;
-      if (publicKey) {
+      // Use platform's shared PayMe public key from environment
+      // Each store only provides their seller ID (MPL), the platform provides the API key
+      const platformPublicKey = process.env.PAYME_PUBLIC_KEY;
+      if (platformPublicKey) {
         quickPaymentsConfig = {
-          publicKey,
+          publicKey: platformPublicKey,
           testMode: activeProvider.testMode ?? true,
         };
       }

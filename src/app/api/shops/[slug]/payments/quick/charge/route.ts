@@ -84,12 +84,22 @@ export async function POST(
     
     // Field names from provider-info.ts
     const sellerId = credentials.sellerPaymeId;
-    const sellerSecret = credentials.sellerSecret;
+    
+    // Platform-level PayMe keys from environment
+    const platformSecretKey = process.env.PAYME_SECRET_KEY;
 
     if (!sellerId) {
       return NextResponse.json(
-        { error: 'הגדרות ספק תשלום חסרות' },
+        { error: 'הגדרות ספק תשלום חסרות - חסר Seller ID' },
         { status: 400 }
+      );
+    }
+    
+    if (!platformSecretKey) {
+      console.error('[Quick Payment] Missing PAYME_SECRET_KEY environment variable');
+      return NextResponse.json(
+        { error: 'הגדרות מערכת חסרות' },
+        { status: 500 }
       );
     }
 
@@ -144,6 +154,7 @@ export async function POST(
     
     // Build the request payload - only include URLs if we have a valid base URL
     const salePayload: Record<string, unknown> = {
+      payme_client_key: platformSecretKey, // Platform partner key
       seller_payme_id: sellerId,
       sale_price: Math.round(amount * 100), // Convert to agorot
       currency,
@@ -171,6 +182,7 @@ export async function POST(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'PayMe-Partner-Key': platformSecretKey, // Platform partner authentication
       },
       body: JSON.stringify(salePayload),
     });
