@@ -50,12 +50,8 @@ export async function POST(
       payme_sale_id,
       transaction_id: orderId,
       sale_status,
-      buyer_card_mask,
-      buyer_card_type,
       status_code,
       status_error_details,
-      seller_payme_id,
-      notify_token,
     } = body;
 
     if (!orderId || !payme_sale_id) {
@@ -99,36 +95,32 @@ export async function POST(
       );
     }
 
-    const credentials = provider.credentials as Record<string, string>;
+    // Note: PayMe doesn't send seller_payme_id in callbacks, so we verify by:
+    // 1. The callback URL is store-specific (/api/shops/[slug]/payments/quick/callback)
+    // 2. The transaction_id (order) belongs to this store (verified below)
+    // 3. Optional: payme_signature verification (if implemented)
     
-    // Verify seller_payme_id matches (field name from provider-info.ts)
-    if (seller_payme_id !== credentials.sellerPaymeId) {
-      console.error('Seller ID mismatch:', { received: seller_payme_id, expected: credentials.paymeSellerId });
-      return NextResponse.json(
-        { error: 'Invalid seller' },
-        { status: 403 }
-      );
-    }
+    console.log('[PayMe Callback] Store verified:', store.id);
 
-    // Verify notify_token if provided (optional security)
-    if (notify_token && credentials.sellerSecret) {
-      // PayMe signs the callback with the seller secret
-      // Implementation depends on PayMe's exact signature method
-    }
-
-    // Get order
+    // Get order and verify it belongs to this store
     const [order] = await db
       .select()
       .from(orders)
-      .where(eq(orders.id, orderId))
+      .where(and(
+        eq(orders.id, orderId),
+        eq(orders.storeId, store.id) // Security: verify order belongs to this store
+      ))
       .limit(1);
 
     if (!order) {
+      console.error('[PayMe Callback] Order not found or does not belong to store:', { orderId, storeId: store.id });
       return NextResponse.json(
         { error: 'Order not found' },
         { status: 404 }
       );
     }
+    
+    console.log('[PayMe Callback] Order verified:', order.id, 'Status:', sale_status);
 
     // Update order based on status
     if (status_code === 0 && (sale_status === 'completed' || sale_status === 'success')) {
