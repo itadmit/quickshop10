@@ -7,15 +7,16 @@ import crypto from 'crypto';
 interface PayMeCallback {
   payme_sale_id: string;
   transaction_id: string; // Our order ID
-  sale_status: string;
-  sale_price: number;
+  sale_status: string; // 'completed' | 'success' | 'failure'
+  sale_price: string | number; // Form data sends as string
   currency: string;
   buyer_card_mask?: string;
   buyer_card_type?: string;
-  status_code: number;
+  status_code: string | number; // Form data sends as string! '0' = success
   status_error_details?: string;
-  seller_payme_id: string;
+  seller_payme_id?: string; // PayMe doesn't always send this in callbacks
   notify_token?: string;
+  notify_type?: string; // 'sale-complete' etc.
 }
 
 export async function POST(
