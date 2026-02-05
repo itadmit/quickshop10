@@ -684,6 +684,19 @@ export function UniversalSectionPanel({
                         max={64}
                         suffix="px"
                       />
+                      
+                      {/* התאמת תמונה - לגלריה בלבד */}
+                      {sectionType === 'gallery' && (
+                        <EditorSelect
+                          label="התאמת תמונה"
+                          value={(settings.imageFit as string) || 'cover'}
+                          options={[
+                            { value: 'cover', label: 'כיסוי מלא (חותך)' },
+                            { value: 'contain', label: 'הצג הכל' },
+                          ]}
+                          onChange={(v) => updateSettings('imageFit', v)}
+                        />
+                      )}
                     </div>
                   </MiniAccordion>
                 )}

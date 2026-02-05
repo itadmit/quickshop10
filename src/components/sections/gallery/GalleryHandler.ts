@@ -58,6 +58,17 @@ export function handleGalleryUpdate(element: Element, updates: Partial<Section>)
       grid.style.gap = `${updates.settings.gap}px`;
     }
   }
+
+  // Image fit update
+  if (updates.settings?.imageFit !== undefined) {
+    const images = el.querySelectorAll('[data-gallery-image]') as NodeListOf<HTMLElement>;
+    const imageFit = updates.settings.imageFit as string;
+    images.forEach(img => {
+      img.classList.remove('object-cover', 'object-contain');
+      img.classList.add(imageFit === 'contain' ? 'object-contain' : 'object-cover');
+      img.setAttribute('data-image-fit', imageFit);
+    });
+  }
 }
 
 function createImageElement(image: GalleryImage, index: number): HTMLElement {

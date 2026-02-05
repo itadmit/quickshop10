@@ -23,6 +23,7 @@ interface GallerySectionProps {
     aspectRatio?: 'square' | '4:3' | '16:9' | 'auto';
     layout?: 'grid' | 'masonry';
     backgroundColor?: string;
+    imageFit?: 'cover' | 'contain';
     // Visibility
     hideOnMobile?: boolean;
     hideOnDesktop?: boolean;
@@ -43,6 +44,7 @@ export function GallerySection({
   const mobileColumns = settings.mobileColumns || 2;
   const gap = settings.gap || 4;
   const aspectRatio = settings.aspectRatio || 'square';
+  const imageFit = settings.imageFit || 'cover';
   const images = content.images || [];
 
   // Dynamic grid classes
@@ -128,8 +130,9 @@ export function GallerySection({
                   <img 
                     src={image.url} 
                     alt={image.alt || ''} 
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${imageFit === 'contain' ? 'object-contain' : 'object-cover'}`}
                     data-gallery-image
+                    data-image-fit={imageFit}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center" data-gallery-placeholder>
