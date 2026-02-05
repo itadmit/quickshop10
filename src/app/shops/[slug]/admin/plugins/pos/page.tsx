@@ -121,16 +121,48 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
     )
     .limit(1);
 
-  // Use platform's shared PayMe public key from environment
-  const platformPublicKey = process.env.PAYME_PUBLIC_KEY;
+  // Fetch seller's public key from PayMe API if quick payments is enabled
+  let quickPaymentConfig: { enabled: boolean; publicKey?: string; testMode?: boolean } = { enabled: false };
   
-  const quickPaymentConfig = quickPaymentProvider && platformPublicKey ? {
-    enabled: true,
-    publicKey: platformPublicKey,
-    testMode: quickPaymentProvider.testMode ?? false,
-  } : {
-    enabled: false,
-  };
+  if (quickPaymentProvider) {
+    const credentials = quickPaymentProvider.credentials as Record<string, string>;
+    const sellerMPL = credentials?.sellerPaymeId;
+    const testMode = quickPaymentProvider.testMode ?? false;
+    const clientKey = process.env.PAYME_CLIENT_KEY;
+    
+    if (sellerMPL && clientKey) {
+      try {
+        const apiUrl = testMode 
+          ? 'https://sandbox.payme.io/api' 
+          : 'https://ng.payme.io/api';
+        
+        const response = await fetch(`${apiUrl}/sellers/${sellerMPL}/public-keys`, {
+          method: 'GET',
+          headers: {
+            'PayMe-Partner-Key': clientKey,
+            'Content-Type': 'application/json',
+          },
+          cache: 'force-cache', // Cache the response
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const publicKey = data.items?.find((item: { is_active?: boolean; uuid?: string }) => item.is_active)?.uuid 
+            || data.items?.[0]?.uuid;
+          
+          if (publicKey) {
+            quickPaymentConfig = {
+              enabled: true,
+              publicKey,
+              testMode,
+            };
+          }
+        }
+      } catch (error) {
+        console.error('[POS] Error fetching PayMe public key:', error);
+      }
+    }
+  }
 
   // Get current user for CRM tracking (who created the order)
   const currentUser = await getCurrentUser();

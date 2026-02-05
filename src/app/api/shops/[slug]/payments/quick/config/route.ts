@@ -56,26 +56,73 @@ export async function GET(
       );
     }
     
+    const credentials = providerConfig.credentials as Record<string, string>;
     const settings = providerConfig.settings as Record<string, unknown>;
+    const sellerMPL = credentials?.sellerPaymeId;
+    const testMode = providerConfig.testMode ?? true;
     
-    // Use platform's shared PayMe public key from environment
-    // Each store only provides their seller ID (MPL), the platform provides the API key
-    const platformPublicKey = process.env.PAYME_PUBLIC_KEY;
+    if (!sellerMPL) {
+      return NextResponse.json(
+        { error: 'Seller ID not configured' },
+        { status: 400 }
+      );
+    }
     
-    if (!platformPublicKey) {
+    // Fetch seller's public key from PayMe API
+    const clientKey = process.env.PAYME_CLIENT_KEY;
+    if (!clientKey) {
       return NextResponse.json(
         { error: 'Payment provider not configured' },
         { status: 500 }
       );
     }
     
-    // Only return public information - never return secrets
-    return NextResponse.json({
-      publicKey: platformPublicKey,
-      testMode: providerConfig.testMode,
-      maxInstallments: settings.maxInstallments ?? 12,
-      language: settings.language ?? 'he',
-    });
+    const apiUrl = testMode 
+      ? 'https://sandbox.payme.io/api' 
+      : 'https://ng.payme.io/api';
+    
+    try {
+      const response = await fetch(`${apiUrl}/sellers/${sellerMPL}/public-keys`, {
+        method: 'GET',
+        headers: {
+          'PayMe-Partner-Key': clientKey,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        console.error('[Quick Config] Failed to fetch public key:', response.status);
+        return NextResponse.json(
+          { error: 'Failed to get payment configuration' },
+          { status: 500 }
+        );
+      }
+      
+      const data = await response.json();
+      const publicKey = data.items?.find((item: { is_active?: boolean; uuid?: string }) => item.is_active)?.uuid 
+        || data.items?.[0]?.uuid;
+      
+      if (!publicKey) {
+        return NextResponse.json(
+          { error: 'Seller public key not found' },
+          { status: 404 }
+        );
+      }
+      
+      // Only return public information - never return secrets
+      return NextResponse.json({
+        publicKey,
+        testMode,
+        maxInstallments: settings.maxInstallments ?? 12,
+        language: settings.language ?? 'he',
+      });
+    } catch (error) {
+      console.error('[Quick Config] Error fetching public key:', error);
+      return NextResponse.json(
+        { error: 'Failed to get payment configuration' },
+        { status: 500 }
+      );
+    }
     
   } catch (error) {
     console.error('[Quick Payments Config] Error:', error);

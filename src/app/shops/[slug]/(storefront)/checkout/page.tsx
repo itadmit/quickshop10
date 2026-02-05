@@ -12,6 +12,69 @@ import { redirect } from 'next/navigation';
 // Force dynamic rendering - useSearchParams needs it
 export const dynamic = 'force-dynamic';
 
+// Cache for seller public keys (in-memory, resets on deploy)
+const sellerPublicKeyCache = new Map<string, { key: string; timestamp: number }>();
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Fetch seller's public key from PayMe API
+ * The public key is needed for PayMe.create() in the frontend
+ */
+async function getSellerPublicKey(sellerMPL: string, testMode: boolean): Promise<string | null> {
+  try {
+    // Check cache first
+    const cached = sellerPublicKeyCache.get(sellerMPL);
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.key;
+    }
+    
+    const clientKey = process.env.PAYME_CLIENT_KEY;
+    if (!clientKey) {
+      console.error('[PayMe] Missing PAYME_CLIENT_KEY environment variable');
+      return null;
+    }
+    
+    const apiUrl = testMode 
+      ? 'https://sandbox.payme.io/api' 
+      : 'https://ng.payme.io/api';
+    
+    console.log(`[PayMe] Fetching public key for seller: ${sellerMPL}`);
+    
+    const response = await fetch(`${apiUrl}/sellers/${sellerMPL}/public-keys`, {
+      method: 'GET',
+      headers: {
+        'PayMe-Partner-Key': clientKey,
+        'Content-Type': 'application/json',
+      },
+    });
+    
+    if (!response.ok) {
+      console.error(`[PayMe] Failed to fetch public key: ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    console.log('[PayMe] Public key response:', JSON.stringify(data, null, 2));
+    
+    // Get the first active public key
+    const publicKey = data.items?.find((item: { is_active?: boolean; uuid?: string }) => item.is_active)?.uuid 
+      || data.items?.[0]?.uuid;
+    
+    if (publicKey) {
+      // Cache the result
+      sellerPublicKeyCache.set(sellerMPL, { key: publicKey, timestamp: Date.now() });
+      console.log(`[PayMe] Got public key for seller: ${publicKey}`);
+      return publicKey;
+    }
+    
+    console.error('[PayMe] No public key found in response');
+    return null;
+  } catch (error) {
+    console.error('[PayMe] Error fetching seller public key:', error);
+    return null;
+  }
+}
+
 export const metadata = {
   title: 'צ\'ק אאוט',
   description: 'השלמת הרכישה',
@@ -97,14 +160,19 @@ async function getStoreDataForCheckout(storeSlug: string): Promise<{
     // Build QuickPayments config if it's the active provider
     let quickPaymentsConfig: { publicKey: string; testMode: boolean } | null = null;
     if (activeProvider?.provider === 'quick_payments') {
-      // Use platform's shared PayMe public key from environment
-      // Each store only provides their seller ID (MPL), the platform provides the API key
-      const platformPublicKey = process.env.PAYME_PUBLIC_KEY;
-      if (platformPublicKey) {
-        quickPaymentsConfig = {
-          publicKey: platformPublicKey,
-          testMode: activeProvider.testMode ?? true,
-        };
+      const creds = activeProvider.credentials as Record<string, string> | null;
+      const sellerMPL = creds?.sellerPaymeId;
+      
+      if (sellerMPL) {
+        // Fetch the seller's public key from PayMe API
+        const sellerPublicKey = await getSellerPublicKey(sellerMPL, activeProvider.testMode ?? true);
+        
+        if (sellerPublicKey) {
+          quickPaymentsConfig = {
+            publicKey: sellerPublicKey,
+            testMode: activeProvider.testMode ?? true,
+          };
+        }
       }
     }
     

@@ -86,7 +86,7 @@ export async function POST(
     const sellerId = credentials.sellerPaymeId;
     
     // Platform-level PayMe keys from environment
-    const platformSecretKey = process.env.PAYME_SECRET_KEY;
+    const clientKey = process.env.PAYME_CLIENT_KEY;
 
     if (!sellerId) {
       return NextResponse.json(
@@ -95,8 +95,8 @@ export async function POST(
       );
     }
     
-    if (!platformSecretKey) {
-      console.error('[Quick Payment] Missing PAYME_SECRET_KEY environment variable');
+    if (!clientKey) {
+      console.error('[Quick Payment] Missing PAYME_CLIENT_KEY environment variable');
       return NextResponse.json(
         { error: 'הגדרות מערכת חסרות' },
         { status: 500 }
@@ -154,7 +154,7 @@ export async function POST(
     
     // Build the request payload - only include URLs if we have a valid base URL
     const salePayload: Record<string, unknown> = {
-      payme_client_key: platformSecretKey, // Platform partner key
+      payme_client_key: clientKey, // Platform/marketplace key
       seller_payme_id: sellerId,
       sale_price: Math.round(amount * 100), // Convert to agorot
       currency,
@@ -182,7 +182,7 @@ export async function POST(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'PayMe-Partner-Key': platformSecretKey, // Platform partner authentication
+        'PayMe-Partner-Key': clientKey, // Platform/marketplace authentication
       },
       body: JSON.stringify(salePayload),
     });
