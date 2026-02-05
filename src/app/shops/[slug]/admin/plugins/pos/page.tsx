@@ -134,7 +134,7 @@ export default async function POSPage({ params, searchParams }: POSPageProps) {
       try {
         const apiUrl = testMode 
           ? 'https://sandbox.payme.io/api' 
-          : 'https://ng.payme.io/api';
+          : 'https://live.payme.io/api';
         
         const response = await fetch(`${apiUrl}/sellers/${sellerMPL}/public-keys`, {
           method: 'GET',

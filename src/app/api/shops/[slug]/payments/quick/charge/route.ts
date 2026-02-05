@@ -5,7 +5,7 @@ import { eq, and } from 'drizzle-orm';
 
 const PAYME_API_URL = {
   sandbox: 'https://sandbox.payme.io/api',
-  production: 'https://ng.payme.io/api',
+  production: 'https://live.payme.io/api',
 };
 
 interface ChargeRequest {

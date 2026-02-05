@@ -43,7 +43,7 @@ async function getSellerPublicKey(sellerMPL: string, testMode: boolean): Promise
     
     const apiUrl = testMode 
       ? 'https://sandbox.payme.io/api' 
-      : 'https://ng.payme.io/api';
+      : 'https://live.payme.io/api';
     
     const fullUrl = `${apiUrl}/sellers/${sellerMPL}/public-keys`;
     console.log('[PayMe] Full URL:', fullUrl);

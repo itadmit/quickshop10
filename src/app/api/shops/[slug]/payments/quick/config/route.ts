@@ -79,7 +79,7 @@ export async function GET(
     
     const apiUrl = testMode 
       ? 'https://sandbox.payme.io/api' 
-      : 'https://ng.payme.io/api';
+      : 'https://live.payme.io/api';
     
     try {
       const response = await fetch(`${apiUrl}/sellers/${sellerMPL}/public-keys`, {
