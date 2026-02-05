@@ -75,6 +75,8 @@ export function QuoteBannerSection({
       data-section-type="quote_banner"
       data-section-name="באנר ציטוט"
       data-media-type={mediaType}
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       {/* ==================== IMAGE BACKGROUNDS ==================== */}
       {/* Desktop Image - always rendered, hidden when video selected */}

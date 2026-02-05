@@ -113,6 +113,8 @@ export function SeriesGridSection({
       data-section-id={sectionId}
       data-section-type="series_grid"
       data-section-name="גריד סדרות"
+      {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+      {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
     >
       <div className="max-w-[1440px] mx-auto">
         {/* Section Header */}

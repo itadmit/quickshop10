@@ -125,6 +125,8 @@ export function FeaturedItemsSection({
         data-section-id={sectionId}
         data-section-type="featured_items"
         data-section-name="פריטים מובילים"
+        {...(settings.hideOnMobile && { 'data-hide-on-mobile': 'true' })}
+        {...(settings.hideOnDesktop && { 'data-hide-on-desktop': 'true' })}
       >
         <div className="max-w-[1200px] mx-auto">
           {/* Section Header - always rendered for live editor */}

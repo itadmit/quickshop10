@@ -1,5 +1,23 @@
 @import "tailwindcss";
 
+/* ====================================
+ * Section Visibility (Hide on Mobile/Desktop)
+ * ==================================== */
+
+/* Hide on Mobile/Tablet (< 768px) */
+@media (max-width: 767px) {
+  [data-hide-on-mobile="true"] {
+    display: none !important;
+  }
+}
+
+/* Hide on Desktop (>= 768px) */
+@media (min-width: 768px) {
+  [data-hide-on-desktop="true"] {
+    display: none !important;
+  }
+}
+
 :root {
   --font-display: 'Noto Sans Hebrew', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-sans: 'Assistant', -apple-system, BlinkMacSystemFont, sans-serif;

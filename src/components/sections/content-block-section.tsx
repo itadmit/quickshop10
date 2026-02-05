@@ -260,8 +260,8 @@ export function ContentBlockSection({
       data-section-id={sectionId}
       data-section-type="content_block"
       data-section-name="בלוק תוכן"
-      data-hide-on-mobile={settings.hideOnMobile || false}
-      data-hide-on-desktop={settings.hideOnDesktop || false}
+      data-hide-on-mobile={settings.hideOnMobile ? 'true' : undefined}
+      data-hide-on-desktop={settings.hideOnDesktop ? 'true' : undefined}
       data-image-mode={isImageFullWidth ? 'img' : 'div'}
       data-background-size={backgroundSize}
       data-min-height={minHeight === null ? '0' : String(minHeight)}
