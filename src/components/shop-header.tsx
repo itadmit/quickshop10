@@ -292,7 +292,7 @@ export function ShopHeader({
   // Layout 1: Logo Right (RTL default) - לוגו בימין, תפריט במרכז, אייקונים משמאל
   if (layout === 'logo-right') {
     return (
-      <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
+      <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר" data-transparent={String(isTransparent)}>
         <div className="max-w-[1800px] mx-auto px-2 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
             {/* Right: Mobile Menu + Search (mobile) + Logo */}

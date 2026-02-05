@@ -169,6 +169,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
   const isHomePage = isCustomDomain 
     ? (pathname === '/' || pathname === '')
     : (pathname === `/shops/${slug}` || pathname === `/shops/${slug}/`);
+  
 
   // Always show header - categories/menu items are optional
   // Header contains logo, cart, search etc. which should always be visible
@@ -454,7 +455,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           {/* 🌍 Translations Provider - wraps entire storefront */}
           {translations ? (
             <TranslationsProvider translations={translations} locale={currentLocale}>
-              <div dir={direction}>
+              <div dir={direction} className="relative">
                 {showHeader && (
                   <>
                     {HeaderContent}
@@ -554,7 +555,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             </TranslationsProvider>
           ) : (
             // Fallback: No translations (Hebrew only store)
-            <div dir="rtl">
+            <div dir="rtl" className="relative">
               {showHeader && (
                 <>
                   {HeaderContent}
