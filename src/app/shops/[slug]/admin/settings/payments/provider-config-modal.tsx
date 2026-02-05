@@ -177,20 +177,24 @@ export function ProviderConfigModal({
                 dir="ltr"
                 className={`
                   relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 cursor-pointer
-                  ${testMode ? 'bg-yellow-500' : 'bg-green-500'}
+                  ${testMode ? 'bg-amber-500' : 'bg-green-500'}
                 `}
               >
                 <span
                   className={`
                     inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform
-                    ${testMode ? 'translate-x-1' : 'translate-x-6'}
+                    ${testMode ? 'translate-x-6' : 'translate-x-1'}
                   `}
                 />
               </button>
               <div>
-                <div className="font-medium text-gray-900">מצב בדיקות</div>
+                <div className="font-medium text-gray-900">
+                  {testMode ? 'מצב בדיקות' : 'מצב Production'}
+                </div>
                 <p className="text-sm text-gray-500">
-                  {testMode ? 'תשלומים לא יחויבו באמת' : 'תשלומים אמיתיים פעילים'}
+                  {testMode 
+                    ? '🧪 תשלומים לא יחויבו באמת (Sandbox)' 
+                    : '✅ תשלומים אמיתיים פעילים'}
                 </p>
               </div>
             </div>
