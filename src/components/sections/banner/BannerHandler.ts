@@ -179,3 +179,8 @@ export function handleBannerUpdate(el: HTMLElement, updates: BannerUpdates): voi
     }
   }
 }
+
+// Export handler function for section-system
+export function handler(element: Element, updates: Record<string, unknown>) {
+  handleBannerUpdate(element as HTMLElement, updates as BannerUpdates);
+}
