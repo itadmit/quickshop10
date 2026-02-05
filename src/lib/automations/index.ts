@@ -50,6 +50,11 @@ const EVENT_TO_TRIGGER_MAP: Record<string, string> = {
   // cart.abandoned is triggered by cron job, not by event
 };
 
+// Cache for stores with no active automations (avoids unnecessary DB queries)
+// Key: storeId, Value: timestamp when we last checked
+const noAutomationsCache = new Map<string, number>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
 // CRM actions that require the CRM plugin
 const CRM_ACTIONS = ['crm.create_task', 'crm.add_note'];
 
@@ -107,6 +112,13 @@ async function processAutomationsInternal(event: EventData): Promise<void> {
     return;
   }
 
+  // Check cache - if we recently found no automations for this store, skip DB query
+  const cachedTime = noAutomationsCache.get(event.storeId);
+  if (cachedTime && Date.now() - cachedTime < CACHE_TTL) {
+    // Skip - we know this store has no active automations
+    return;
+  }
+
   try {
     // Find active automations for this trigger
     const matchingAutomations = await db
@@ -119,8 +131,13 @@ async function processAutomationsInternal(event: EventData): Promise<void> {
       ));
 
     if (matchingAutomations.length === 0) {
+      // Cache that this store has no automations (for 5 min)
+      noAutomationsCache.set(event.storeId, Date.now());
       return;
     }
+    
+    // Clear cache since we found automations
+    noAutomationsCache.delete(event.storeId);
 
     // Check if store has CRM plugin enabled (for CRM actions)
     const store = await db
@@ -729,6 +746,16 @@ async function executeAddCrmNote(
   }).returning();
 
   return { noteAdded: true, noteId: note.id };
+}
+
+// ============ CACHE MANAGEMENT ============
+
+/**
+ * Clear the "no automations" cache for a store
+ * Call this when automations are created/updated/deleted
+ */
+export function invalidateAutomationsCache(storeId: string): void {
+  noAutomationsCache.delete(storeId);
 }
 
 // ============ BUILT-IN AUTOMATIONS ============

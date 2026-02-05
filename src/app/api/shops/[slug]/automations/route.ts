@@ -8,8 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { automations, stores } from '@/lib/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
+import { invalidateAutomationsCache } from '@/lib/automations';
 
 interface RouteParams {
   params: Promise<{ slug: string }>;
@@ -125,6 +126,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       isActive,
       isBuiltIn: false,
     }).returning();
+
+    // Invalidate cache so new automation will be picked up
+    invalidateAutomationsCache(store[0].id);
 
     return NextResponse.json({ automation }, { status: 201 });
   } catch (error) {

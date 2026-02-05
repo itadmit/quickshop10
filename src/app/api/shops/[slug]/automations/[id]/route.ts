@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { automations, automationRuns, stores } from '@/lib/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { auth } from '@/lib/auth';
+import { invalidateAutomationsCache } from '@/lib/automations';
 
 interface RouteParams {
   params: Promise<{ slug: string; id: string }>;
@@ -139,6 +140,9 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       .where(eq(automations.id, id))
       .returning();
 
+    // Invalidate cache so changes will be picked up
+    invalidateAutomationsCache(store[0].id);
+
     return NextResponse.json({ automation: updated });
   } catch (error) {
     console.error('[Automations API] Error:', error);
@@ -195,6 +199,9 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
     // Delete automation (runs will cascade delete)
     await db.delete(automations).where(eq(automations.id, id));
+
+    // Invalidate cache
+    invalidateAutomationsCache(store[0].id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
