@@ -564,12 +564,14 @@ export function applyCommonUpdates(
 
   if (updates.settings?.backgroundSize !== undefined) {
     const bgSize = updates.settings.backgroundSize as string;
-    el.style.backgroundSize = bgSize;
+    // Convert 'width' to '100% auto' for CSS
+    const cssSize = bgSize === 'width' ? '100% auto' : bgSize;
+    el.style.backgroundSize = cssSize;
     // Also apply to background elements inside content_block sections
     const bgDesktop = el.querySelector('[data-bg-desktop]') as HTMLElement;
     const bgMobile = el.querySelector('[data-bg-mobile]') as HTMLElement;
-    if (bgDesktop) bgDesktop.style.backgroundSize = bgSize;
-    if (bgMobile) bgMobile.style.backgroundSize = bgSize;
+    if (bgDesktop) bgDesktop.style.backgroundSize = cssSize;
+    if (bgMobile) bgMobile.style.backgroundSize = cssSize;
   }
 
   if (updates.settings?.backgroundPosition !== undefined) {

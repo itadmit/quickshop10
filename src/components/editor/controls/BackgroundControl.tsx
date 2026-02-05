@@ -221,6 +221,7 @@ export function FullBackgroundControl({
             options={[
               { value: 'cover', label: 'כיסוי מלא' },
               { value: 'contain', label: 'הצג הכל' },
+              { value: 'width', label: 'רוחב מלא (ללא חיתוך)' },
               { value: 'auto', label: 'גודל מקורי' },
             ]}
             onChange={(v) => onChange('backgroundSize', v)}

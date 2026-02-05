@@ -184,8 +184,8 @@ export function ContentBlockSection({
   const backgroundPosition = settings.backgroundPosition || 'center';
 
   // Spacing - more padding for text-only
-  // When contain + auto height, no padding (image takes full width)
-  const isImageFullWidth = backgroundSize === 'contain' && (settings.minHeight === null || settings.minHeight === undefined);
+  // When contain/width + auto height, no padding (image takes full width)
+  const isImageFullWidth = (backgroundSize === 'contain' || backgroundSize === 'width') && (settings.minHeight === null || settings.minHeight === undefined);
   const paddingTop = settings.paddingTop ?? (hasMedia ? 0 : 64);
   const paddingBottom = settings.paddingBottom ?? (hasMedia ? 80 : 64);
   const paddingLeft = settings.paddingLeft ?? (isImageFullWidth ? 0 : 24);
@@ -303,8 +303,8 @@ export function ContentBlockSection({
       {/* ==================== BACKGROUND IMAGE ==================== */}
       {hasDesktopImage && !hasDesktopVideo && (
         <>
-          {/* When contain + auto height: use img element so image determines height */}
-          {backgroundSize === 'contain' && minHeight === null ? (
+          {/* When width/contain + auto height: use img element so image determines height */}
+          {(backgroundSize === 'contain' || backgroundSize === 'width') && minHeight === null ? (
             <>
               {/* Desktop Image as img element - full width, height auto */}
               <img 
@@ -343,7 +343,7 @@ export function ContentBlockSection({
                     className="absolute bg-no-repeat"
                     style={{ 
                       backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
-                      backgroundSize: backgroundSize,
+                      backgroundSize: backgroundSize === 'width' ? '100% auto' : backgroundSize,
                       backgroundPosition: backgroundPosition,
                       top: 0,
                       bottom: 0,
@@ -362,7 +362,7 @@ export function ContentBlockSection({
                   className={`absolute inset-0 bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
                   style={{ 
                     backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
-                    backgroundSize: backgroundSize,
+                    backgroundSize: backgroundSize === 'width' ? '100% auto' : backgroundSize,
                     backgroundPosition: backgroundPosition,
                   }}
                   data-bg-desktop
@@ -375,7 +375,7 @@ export function ContentBlockSection({
                   className="absolute inset-0 bg-no-repeat md:hidden"
                   style={{ 
                     backgroundImage: `url("${content.mobileImageUrl}")`,
-                    backgroundSize: backgroundSize,
+                    backgroundSize: backgroundSize === 'width' ? '100% auto' : backgroundSize,
                     backgroundPosition: backgroundPosition,
                   }}
                   data-bg-mobile
