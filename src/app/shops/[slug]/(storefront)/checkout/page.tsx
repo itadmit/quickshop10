@@ -25,12 +25,19 @@ async function getSellerPublicKey(sellerMPL: string, testMode: boolean): Promise
     // Check cache first
     const cached = sellerPublicKeyCache.get(sellerMPL);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      console.log(`[PayMe] Using cached public key for seller: ${sellerMPL}`);
       return cached.key;
     }
     
     const clientKey = process.env.PAYME_CLIENT_KEY;
+    console.log('[PayMe] ============ FETCHING PUBLIC KEY ============');
+    console.log('[PayMe] Seller MPL:', sellerMPL);
+    console.log('[PayMe] Test Mode:', testMode);
+    console.log('[PayMe] Client Key exists:', !!clientKey);
+    console.log('[PayMe] Client Key value:', clientKey?.substring(0, 10) + '...');
+    
     if (!clientKey) {
-      console.error('[PayMe] Missing PAYME_CLIENT_KEY environment variable');
+      console.error('[PayMe] ❌ Missing PAYME_CLIENT_KEY environment variable');
       return null;
     }
     
@@ -38,9 +45,10 @@ async function getSellerPublicKey(sellerMPL: string, testMode: boolean): Promise
       ? 'https://sandbox.payme.io/api' 
       : 'https://ng.payme.io/api';
     
-    console.log(`[PayMe] Fetching public key for seller: ${sellerMPL}`);
+    const fullUrl = `${apiUrl}/sellers/${sellerMPL}/public-keys`;
+    console.log('[PayMe] Full URL:', fullUrl);
     
-    const response = await fetch(`${apiUrl}/sellers/${sellerMPL}/public-keys`, {
+    const response = await fetch(fullUrl, {
       method: 'GET',
       headers: {
         'PayMe-Partner-Key': clientKey,
@@ -48,13 +56,19 @@ async function getSellerPublicKey(sellerMPL: string, testMode: boolean): Promise
       },
     });
     
+    console.log('[PayMe] Response status:', response.status);
+    console.log('[PayMe] Response ok:', response.ok);
+    
+    const responseText = await response.text();
+    console.log('[PayMe] Response body:', responseText);
+    
     if (!response.ok) {
-      console.error(`[PayMe] Failed to fetch public key: ${response.status}`);
+      console.error(`[PayMe] ❌ Failed to fetch public key: ${response.status}`);
+      console.error('[PayMe] Response:', responseText);
       return null;
     }
     
-    const data = await response.json();
-    console.log('[PayMe] Public key response:', JSON.stringify(data, null, 2));
+    const data = JSON.parse(responseText);
     
     // Get the first active public key
     const publicKey = data.items?.find((item: { is_active?: boolean; uuid?: string }) => item.is_active)?.uuid 
@@ -63,14 +77,15 @@ async function getSellerPublicKey(sellerMPL: string, testMode: boolean): Promise
     if (publicKey) {
       // Cache the result
       sellerPublicKeyCache.set(sellerMPL, { key: publicKey, timestamp: Date.now() });
-      console.log(`[PayMe] Got public key for seller: ${publicKey}`);
+      console.log(`[PayMe] ✅ Got public key for seller: ${publicKey}`);
       return publicKey;
     }
     
-    console.error('[PayMe] No public key found in response');
+    console.error('[PayMe] ❌ No public key found in response items');
+    console.error('[PayMe] Response data:', JSON.stringify(data, null, 2));
     return null;
   } catch (error) {
-    console.error('[PayMe] Error fetching seller public key:', error);
+    console.error('[PayMe] ❌ Error fetching seller public key:', error);
     return null;
   }
 }
