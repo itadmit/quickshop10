@@ -331,7 +331,13 @@ export default async function InternalPage({ params }: InternalPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             categories={categoriesToShow}
-            settings={settings as { columns?: number; gap?: number; textAlign?: 'right' | 'center' | 'left' }}
+            settings={settings as { 
+              columns?: number; 
+              gap?: number; 
+              textAlign?: 'right' | 'center' | 'left';
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+            }}
             basePath={basePath}
             sectionId={section.id}
             selectedCategoryIds={isPreviewMode ? categoryIds : undefined}

@@ -16,6 +16,9 @@ interface CategoriesSectionProps {
     columns?: number;
     gap?: number;
     textAlign?: 'right' | 'center' | 'left';
+    // Visibility
+    hideOnMobile?: boolean;
+    hideOnDesktop?: boolean;
   };
   basePath: string;
   selectedCategoryIds?: string[]; // For preview mode filtering
@@ -28,6 +31,10 @@ export function CategoriesSection({ title, subtitle, categories, settings, baseP
   // Spacing: if subtitle exists, title gets mb-4, subtitle gets mb-20
   // If only title exists, title gets mb-20
   const titleMargin = title ? (subtitle ? 'mb-4' : 'mb-20') : 'hidden';
+  
+  // Visibility classes
+  const hideOnMobileClass = settings.hideOnMobile ? 'max-md:hidden' : '';
+  const hideOnDesktopClass = settings.hideOnDesktop ? 'md:hidden' : '';
 
   // Determine if category should be hidden (preview mode only)
   const shouldHideCategory = (categoryId: string) => {
@@ -37,11 +44,13 @@ export function CategoriesSection({ title, subtitle, categories, settings, baseP
 
   return (
     <section 
-      className="py-20 px-6 bg-white"
+      className={`py-20 px-6 bg-white ${hideOnMobileClass} ${hideOnDesktopClass}`.trim()}
       data-section-id={sectionId}
       data-section-type="categories"
       data-section-name="רשימת קטגוריות"
       data-selected-categories={selectedCategoryIds?.join(',') || ''}
+      data-hide-on-mobile={settings.hideOnMobile ? 'true' : undefined}
+      data-hide-on-desktop={settings.hideOnDesktop ? 'true' : undefined}
     >
       <div className="max-w-7xl mx-auto">
         {/* Title & Subtitle - always rendered for live editor updates */}

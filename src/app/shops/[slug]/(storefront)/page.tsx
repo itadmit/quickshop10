@@ -275,7 +275,13 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             title={section.title}
             subtitle={section.subtitle}
             categories={categoriesWithCustomImages}
-            settings={settings as { columns?: number; gap?: number; textAlign?: 'right' | 'center' | 'left' }}
+            settings={settings as { 
+              columns?: number; 
+              gap?: number; 
+              textAlign?: 'right' | 'center' | 'left';
+              hideOnMobile?: boolean;
+              hideOnDesktop?: boolean;
+            }}
             basePath={basePath}
             sectionId={section.id}
             selectedCategoryIds={isPreviewMode ? catCategoryIds : undefined}
