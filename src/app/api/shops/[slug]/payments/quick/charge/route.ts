@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, paymentProviders, orders, orderItems, pendingPayments } from '@/lib/db/schema';
+import { stores, paymentProviders, orders, orderItems } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { executePostPaymentActions, type CartItem, type OrderData } from '@/lib/orders/post-payment';
 
@@ -122,7 +122,7 @@ export async function POST(
         total: orders.total,
         subtotal: orders.subtotal,
         discountAmount: orders.discountAmount,
-        shippingCost: orders.shippingCost,
+        shippingAmount: orders.shippingAmount,
         customerEmail: orders.customerEmail,
         customerName: orders.customerName,
         customerPhone: orders.customerPhone,
@@ -147,7 +147,6 @@ export async function POST(
     const items = await db
       .select({
         productId: orderItems.productId,
-        variantId: orderItems.variantId,
         variantTitle: orderItems.variantTitle,
         name: orderItems.name,
         quantity: orderItems.quantity,
@@ -187,7 +186,6 @@ export async function POST(
       // 🔥 Execute post-payment actions even in test mode
       const cartItems: CartItem[] = items.map(item => ({
         productId: item.productId || '',
-        variantId: item.variantId || undefined,
         variantTitle: item.variantTitle || undefined,
         name: item.name || '',
         quantity: item.quantity,
@@ -200,7 +198,7 @@ export async function POST(
       const orderData: OrderData = {
         shipping: {
           method: (shippingAddress?.method as string) || 'pickup',
-          cost: Number(order.shippingCost) || 0,
+          cost: Number(order.shippingAmount) || 0,
           address: shippingAddress ? {
             firstName: (shippingAddress.firstName as string) || '',
             lastName: (shippingAddress.lastName as string) || '',
@@ -312,7 +310,6 @@ export async function POST(
       // 🔥 Execute post-payment actions (email, inventory, loyalty points, etc.)
       const cartItems: CartItem[] = items.map(item => ({
         productId: item.productId || '',
-        variantId: item.variantId || undefined,
         variantTitle: item.variantTitle || undefined,
         name: item.name || '',
         quantity: item.quantity,
@@ -325,7 +322,7 @@ export async function POST(
       const orderData: OrderData = {
         shipping: {
           method: (shippingAddress?.method as string) || 'pickup',
-          cost: Number(order.shippingCost) || 0,
+          cost: Number(order.shippingAmount) || 0,
           address: shippingAddress ? {
             firstName: (shippingAddress.firstName as string) || '',
             lastName: (shippingAddress.lastName as string) || '',
@@ -415,7 +412,6 @@ export async function POST(
       // 🔥 Execute post-payment actions (fallback success case)
       const cartItems: CartItem[] = items.map(item => ({
         productId: item.productId || '',
-        variantId: item.variantId || undefined,
         variantTitle: item.variantTitle || undefined,
         name: item.name || '',
         quantity: item.quantity,
@@ -428,7 +424,7 @@ export async function POST(
       const orderData: OrderData = {
         shipping: {
           method: (shippingAddress?.method as string) || 'pickup',
-          cost: Number(order.shippingCost) || 0,
+          cost: Number(order.shippingAmount) || 0,
           address: shippingAddress ? {
             firstName: (shippingAddress.firstName as string) || '',
             lastName: (shippingAddress.lastName as string) || '',
