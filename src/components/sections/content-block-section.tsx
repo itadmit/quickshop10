@@ -182,6 +182,10 @@ export function ContentBlockSection({
   const sectionWidth = settings.sectionWidth || 'full';
   const contentWidth = settings.contentWidth || 1200;
 
+  // Background Image Settings
+  const backgroundSize = settings.backgroundSize || 'cover';
+  const backgroundPosition = settings.backgroundPosition || 'center';
+
   // ====================================
   // Media Detection (for rendering)
   // ====================================
@@ -302,9 +306,11 @@ export function ContentBlockSection({
               data-bg-desktop-wrapper
             >
               <div 
-                className="absolute bg-cover bg-center bg-no-repeat"
+                className="absolute bg-no-repeat"
                 style={{ 
                   backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
+                  backgroundSize: backgroundSize,
+                  backgroundPosition: backgroundPosition,
                   top: 0,
                   bottom: 0,
                   left: '50%',
@@ -319,8 +325,12 @@ export function ContentBlockSection({
           ) : (
             // Full width (default)
             <div 
-              className={`absolute inset-0 bg-cover bg-center bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
-              style={{ backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")` }}
+              className={`absolute inset-0 bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`}
+              style={{ 
+                backgroundImage: `url("${content.imageUrl || settings.backgroundImage}")`,
+                backgroundSize: backgroundSize,
+                backgroundPosition: backgroundPosition,
+              }}
               data-bg-desktop
               data-bg-type="image"
             />
@@ -328,8 +338,12 @@ export function ContentBlockSection({
           {/* Mobile Image */}
           {hasMobileImage && (
             <div 
-              className="absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden"
-              style={{ backgroundImage: `url("${content.mobileImageUrl}")` }}
+              className="absolute inset-0 bg-no-repeat md:hidden"
+              style={{ 
+                backgroundImage: `url("${content.mobileImageUrl}")`,
+                backgroundSize: backgroundSize,
+                backgroundPosition: backgroundPosition,
+              }}
               data-bg-mobile
               data-bg-type="image"
             />

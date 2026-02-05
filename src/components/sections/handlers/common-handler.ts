@@ -560,11 +560,23 @@ export function applyCommonUpdates(
   }
 
   if (updates.settings?.backgroundSize !== undefined) {
-    el.style.backgroundSize = updates.settings.backgroundSize as string;
+    const bgSize = updates.settings.backgroundSize as string;
+    el.style.backgroundSize = bgSize;
+    // Also apply to background elements inside content_block sections
+    const bgDesktop = el.querySelector('[data-bg-desktop]') as HTMLElement;
+    const bgMobile = el.querySelector('[data-bg-mobile]') as HTMLElement;
+    if (bgDesktop) bgDesktop.style.backgroundSize = bgSize;
+    if (bgMobile) bgMobile.style.backgroundSize = bgSize;
   }
 
   if (updates.settings?.backgroundPosition !== undefined) {
-    el.style.backgroundPosition = updates.settings.backgroundPosition as string;
+    const bgPosition = updates.settings.backgroundPosition as string;
+    el.style.backgroundPosition = bgPosition;
+    // Also apply to background elements inside content_block sections
+    const bgDesktop = el.querySelector('[data-bg-desktop]') as HTMLElement;
+    const bgMobile = el.querySelector('[data-bg-mobile]') as HTMLElement;
+    if (bgDesktop) bgDesktop.style.backgroundPosition = bgPosition;
+    if (bgMobile) bgMobile.style.backgroundPosition = bgPosition;
   }
 
   // Background Max Width - for image background with margin auto centering
