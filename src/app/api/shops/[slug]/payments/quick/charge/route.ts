@@ -45,6 +45,16 @@ export async function POST(
       );
     }
 
+    // PayMe minimum amount is 5.00 ILS (500 agorot)
+    const PAYME_MIN_AMOUNT = 5;
+    if (amount < PAYME_MIN_AMOUNT) {
+      console.log(`[Quick Payment] Amount ${amount} is below minimum ${PAYME_MIN_AMOUNT}`);
+      return NextResponse.json(
+        { error: `סכום ההזמנה קטן מדי - מינימום לתשלום הוא ₪${PAYME_MIN_AMOUNT}` },
+        { status: 400 }
+      );
+    }
+
     // Get store and payment provider
     const [store] = await db
       .select({ id: stores.id })
@@ -296,6 +306,7 @@ function mapPayMeError(code: number, details?: string): string {
     10: 'נדרש אימות 3D Secure',
     11: 'אימות 3D Secure נכשל',
     100: 'שגיאת מערכת - נא לנסות שוב',
+    352: 'סכום ההזמנה קטן מדי - מינימום לתשלום הוא ₪5',
   };
 
   return errorMap[code] || details || 'שגיאה בביצוע התשלום';
