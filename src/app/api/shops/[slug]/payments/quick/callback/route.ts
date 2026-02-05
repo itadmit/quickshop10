@@ -24,9 +24,27 @@ export async function POST(
 ) {
   try {
     const { slug } = await params;
-    const body: PayMeCallback = await request.json();
+    
+    // PayMe sends callbacks as x-www-form-urlencoded, not JSON
+    const contentType = request.headers.get('content-type') || '';
+    let body: PayMeCallback;
+    
+    if (contentType.includes('application/x-www-form-urlencoded')) {
+      const formData = await request.formData();
+      body = Object.fromEntries(formData.entries()) as unknown as PayMeCallback;
+    } else if (contentType.includes('application/json')) {
+      body = await request.json();
+    } else {
+      // Try to parse as form data first, fallback to text parsing
+      const text = await request.text();
+      console.log('[PayMe Callback] Raw body:', text);
+      
+      // Parse URL-encoded format: key1=value1&key2=value2
+      const parsed = new URLSearchParams(text);
+      body = Object.fromEntries(parsed.entries()) as unknown as PayMeCallback;
+    }
 
-    console.log('PayMe callback received:', { slug, ...body });
+    console.log('[PayMe Callback] Received:', { slug, ...body });
 
     const {
       payme_sale_id,
