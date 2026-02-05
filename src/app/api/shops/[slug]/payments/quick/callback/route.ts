@@ -120,32 +120,45 @@ export async function POST(
       );
     }
     
-    console.log('[PayMe Callback] Order verified:', order.id, 'Status:', sale_status);
+    console.log('[PayMe Callback] Order verified:', order.id, 'Sale status:', sale_status, 'Status code:', status_code);
+
+    // Convert status_code to number (form data sends strings)
+    const statusCodeNum = Number(status_code);
+    const isSuccess = statusCodeNum === 0 && (sale_status === 'completed' || sale_status === 'success');
+    
+    console.log('[PayMe Callback] Payment result:', { statusCodeNum, sale_status, isSuccess });
 
     // Update order based on status
-    if (status_code === 0 && (sale_status === 'completed' || sale_status === 'success')) {
-      // Payment successful
-      await db
-        .update(orders)
-        .set({
-          financialStatus: 'paid',
-          status: 'processing',
-          paidAt: new Date(), // 🔥 חשוב! לחיוב עמלות
-        })
-        .where(eq(orders.id, orderId));
-
-      console.log('Order updated to paid:', orderId);
+    if (isSuccess) {
+      // Payment successful - order should already be paid from charge endpoint
+      // This is a backup/confirmation
+      if (order.financialStatus !== 'paid') {
+        await db
+          .update(orders)
+          .set({
+            financialStatus: 'paid',
+            status: 'processing',
+            paidAt: new Date(),
+          })
+          .where(eq(orders.id, orderId));
+        console.log('[PayMe Callback] Order updated to paid:', orderId);
+      } else {
+        console.log('[PayMe Callback] Order already paid, skipping update:', orderId);
+      }
     } else {
-      // Payment failed
-      await db
-        .update(orders)
-        .set({
-          financialStatus: 'pending', // Keep as pending, not failed
-          status: 'cancelled',
-        })
-        .where(eq(orders.id, orderId));
-
-      console.log('Order marked as failed:', orderId, status_error_details);
+      // Payment failed - only update if not already paid
+      if (order.financialStatus !== 'paid') {
+        await db
+          .update(orders)
+          .set({
+            financialStatus: 'pending',
+            status: 'cancelled',
+          })
+          .where(eq(orders.id, orderId));
+        console.log('[PayMe Callback] Order marked as failed:', orderId, status_error_details);
+      } else {
+        console.log('[PayMe Callback] Order already paid, ignoring failure callback:', orderId);
+      }
     }
 
     return NextResponse.json({ success: true });

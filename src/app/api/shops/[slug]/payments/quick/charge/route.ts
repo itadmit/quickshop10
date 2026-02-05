@@ -156,6 +156,9 @@ export async function POST(
       })
       .from(orderItems)
       .where(eq(orderItems.orderId, orderId));
+    
+    console.log('[Quick Payment] Order items fetched:', items.length, 'items');
+    console.log('[Quick Payment] Customer email:', order.customerEmail);
 
     // 🧪 TEST MODE: Handle test tokens without calling PayMe API
     if (testMode && token.startsWith('test_token_')) {
