@@ -176,10 +176,12 @@ export function ContentBlockSection({
   const buttonBorderRadius = settings.buttonBorderRadius ?? 0;
   
   // Spacing - more padding for text-only
+  // When contain + auto height, no padding (image takes full width)
+  const isImageFullWidth = backgroundSize === 'contain' && (settings.minHeight === null || settings.minHeight === undefined);
   const paddingTop = settings.paddingTop ?? (hasMedia ? 0 : 64);
   const paddingBottom = settings.paddingBottom ?? (hasMedia ? 80 : 64);
-  const paddingLeft = settings.paddingLeft ?? 24;
-  const paddingRight = settings.paddingRight ?? 24;
+  const paddingLeft = settings.paddingLeft ?? (isImageFullWidth ? 0 : 24);
+  const paddingRight = settings.paddingRight ?? (isImageFullWidth ? 0 : 24);
   
   // Content Width
   const sectionWidth = settings.sectionWidth || 'full';
@@ -261,7 +263,8 @@ export function ContentBlockSection({
       data-hide-on-desktop={settings.hideOnDesktop || false}
       className={`relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{
-        backgroundColor: hasMedia ? undefined : backgroundColor,
+        // When contain + auto height, use transparent background (image determines look)
+        backgroundColor: isImageFullWidth ? 'transparent' : (hasMedia ? undefined : backgroundColor),
         minHeight: minHeight !== null ? `${minHeight}${minHeightUnit}` : undefined,
         paddingTop: `${paddingTop}px`,
         paddingBottom: `${paddingBottom}px`,
@@ -303,13 +306,12 @@ export function ContentBlockSection({
           {/* When contain + auto height: use img element so image determines height */}
           {backgroundSize === 'contain' && minHeight === null ? (
             <>
-              {/* Desktop Image as img element */}
+              {/* Desktop Image as img element - full width, height auto */}
               <img 
                 src={content.imageUrl || settings.backgroundImage}
                 alt=""
-                className={`w-full h-auto object-contain ${hasMobileImage ? 'hidden md:block' : ''}`}
+                className={`w-full h-auto block ${hasMobileImage ? 'hidden md:block' : ''}`}
                 style={{ 
-                  backgroundColor: backgroundColor,
                   maxWidth: settings.backgroundMaxWidth ? `${settings.backgroundMaxWidth}px` : '100%',
                   margin: settings.backgroundMaxWidth ? '0 auto' : undefined,
                 }}
@@ -321,8 +323,7 @@ export function ContentBlockSection({
                 <img 
                   src={content.mobileImageUrl}
                   alt=""
-                  className="w-full h-auto object-contain md:hidden"
-                  style={{ backgroundColor: backgroundColor }}
+                  className="w-full h-auto block md:hidden"
                   data-bg-mobile
                   data-bg-type="image"
                 />
