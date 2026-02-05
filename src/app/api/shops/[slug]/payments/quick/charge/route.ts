@@ -199,14 +199,14 @@ export async function POST(
         shipping: {
           method: (shippingAddress?.method as string) || 'pickup',
           cost: Number(order.shippingAmount) || 0,
-          address: shippingAddress ? {
-            firstName: (shippingAddress.firstName as string) || '',
-            lastName: (shippingAddress.lastName as string) || '',
-            address: (shippingAddress.address as string) || '',
-            city: (shippingAddress.city as string) || '',
-            phone: (shippingAddress.phone as string) || '',
-          } : undefined,
         },
+        shippingAddress: shippingAddress ? {
+          firstName: (shippingAddress.firstName as string) || '',
+          lastName: (shippingAddress.lastName as string) || '',
+          address: (shippingAddress.address as string) || '',
+          city: (shippingAddress.city as string) || '',
+          phone: (shippingAddress.phone as string) || '',
+        } : undefined,
         creditUsed: Number(order.creditUsed) || 0,
       };
       
@@ -323,14 +323,14 @@ export async function POST(
         shipping: {
           method: (shippingAddress?.method as string) || 'pickup',
           cost: Number(order.shippingAmount) || 0,
-          address: shippingAddress ? {
-            firstName: (shippingAddress.firstName as string) || '',
-            lastName: (shippingAddress.lastName as string) || '',
-            address: (shippingAddress.address as string) || '',
-            city: (shippingAddress.city as string) || '',
-            phone: (shippingAddress.phone as string) || '',
-          } : undefined,
         },
+        shippingAddress: shippingAddress ? {
+          firstName: (shippingAddress.firstName as string) || '',
+          lastName: (shippingAddress.lastName as string) || '',
+          address: (shippingAddress.address as string) || '',
+          city: (shippingAddress.city as string) || '',
+          phone: (shippingAddress.phone as string) || '',
+        } : undefined,
         creditUsed: Number(order.creditUsed) || 0,
       };
       
@@ -425,14 +425,14 @@ export async function POST(
         shipping: {
           method: (shippingAddress?.method as string) || 'pickup',
           cost: Number(order.shippingAmount) || 0,
-          address: shippingAddress ? {
-            firstName: (shippingAddress.firstName as string) || '',
-            lastName: (shippingAddress.lastName as string) || '',
-            address: (shippingAddress.address as string) || '',
-            city: (shippingAddress.city as string) || '',
-            phone: (shippingAddress.phone as string) || '',
-          } : undefined,
         },
+        shippingAddress: shippingAddress ? {
+          firstName: (shippingAddress.firstName as string) || '',
+          lastName: (shippingAddress.lastName as string) || '',
+          address: (shippingAddress.address as string) || '',
+          city: (shippingAddress.city as string) || '',
+          phone: (shippingAddress.phone as string) || '',
+        } : undefined,
         creditUsed: Number(order.creditUsed) || 0,
       };
       
