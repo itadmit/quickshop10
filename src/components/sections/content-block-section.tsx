@@ -175,14 +175,6 @@ export function ContentBlockSection({
   const buttonBorderWidth = settings.buttonBorderWidth ?? (buttonStyle === 'outline' ? 2 : 0);
   const buttonBorderRadius = settings.buttonBorderRadius ?? 0;
   
-  // Spacing - more padding for text-only
-  // When contain + auto height, no padding (image takes full width)
-  const isImageFullWidth = backgroundSize === 'contain' && (settings.minHeight === null || settings.minHeight === undefined);
-  const paddingTop = settings.paddingTop ?? (hasMedia ? 0 : 64);
-  const paddingBottom = settings.paddingBottom ?? (hasMedia ? 80 : 64);
-  const paddingLeft = settings.paddingLeft ?? (isImageFullWidth ? 0 : 24);
-  const paddingRight = settings.paddingRight ?? (isImageFullWidth ? 0 : 24);
-  
   // Content Width
   const sectionWidth = settings.sectionWidth || 'full';
   const contentWidth = settings.contentWidth || 1200;
@@ -190,6 +182,14 @@ export function ContentBlockSection({
   // Background Image Settings
   const backgroundSize = settings.backgroundSize || 'cover';
   const backgroundPosition = settings.backgroundPosition || 'center';
+
+  // Spacing - more padding for text-only
+  // When contain + auto height, no padding (image takes full width)
+  const isImageFullWidth = backgroundSize === 'contain' && (settings.minHeight === null || settings.minHeight === undefined);
+  const paddingTop = settings.paddingTop ?? (hasMedia ? 0 : 64);
+  const paddingBottom = settings.paddingBottom ?? (hasMedia ? 80 : 64);
+  const paddingLeft = settings.paddingLeft ?? (isImageFullWidth ? 0 : 24);
+  const paddingRight = settings.paddingRight ?? (isImageFullWidth ? 0 : 24);
 
   // ====================================
   // Media Detection (for rendering)
