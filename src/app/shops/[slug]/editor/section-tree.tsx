@@ -21,7 +21,9 @@ import {
   Layers,
   Quote,
   Grid3X3,
-  Crown
+  Crown,
+  Monitor,
+  Smartphone
 } from 'lucide-react';
 import { useEditorThemeOptional } from '@/components/editor/ui';
 
@@ -1016,16 +1018,22 @@ function SectionItem({
         {label}
       </span>
 
-      {/* Visibility badges */}
+      {/* Visibility badges - icons with diagonal strike */}
       <div className="flex items-center gap-1">
         {hideOnMobile && (
-          <span className="px-1 py-0.5 text-[9px] bg-[var(--editor-accent-orange)]/20 text-[var(--editor-accent-orange)] rounded" title="מוסתר במובייל">
-            📱
+          <span className="relative flex items-center justify-center w-4 h-4 opacity-50" title="מוסתר במובייל">
+            <Smartphone className="w-3 h-3" />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-[14px] h-[1.5px] bg-current rotate-45 rounded-full" />
+            </span>
           </span>
         )}
         {hideOnDesktop && (
-          <span className="px-1 py-0.5 text-[9px] bg-[var(--editor-accent-purple)]/20 text-[var(--editor-accent-purple)] rounded" title="מוסתר במחשב">
-            🖥️
+          <span className="relative flex items-center justify-center w-4 h-4 opacity-50" title="מוסתר במחשב">
+            <Monitor className="w-3 h-3" />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-[14px] h-[1.5px] bg-current rotate-45 rounded-full" />
+            </span>
           </span>
         )}
       </div>
