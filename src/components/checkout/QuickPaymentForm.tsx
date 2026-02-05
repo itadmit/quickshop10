@@ -107,6 +107,13 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
     const cardExpiryRef = useRef<HTMLDivElement>(null);
     const cardCvcRef = useRef<HTMLDivElement>(null);
     const mountedRef = useRef(false);
+    
+    // 🔍 Debug logging
+    console.log('=== QuickPaymentForm INIT ===');
+    console.log('Public Key:', publicKey);
+    console.log('Public Key length:', publicKey?.length);
+    console.log('Test Mode:', testMode);
+    console.log('============================');
 
     // Load PayMe SDK dynamically (official CDN)
     useEffect(() => {
@@ -138,11 +145,18 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
 
       const initPayMe = async () => {
         try {
+          console.log('=== PayMe.create() CALLING ===');
+          console.log('publicKey:', publicKey);
+          console.log('testMode:', testMode);
+          
           // Create PayMe instance (returns Promise per documentation)
           const instance = await window.PayMe!.create(publicKey, { 
             testMode,
             language: 'he' // Hebrew for RTL
           });
+          
+          console.log('=== PayMe.create() SUCCESS ===');
+          console.log('Instance created:', !!instance);
           
           instanceRef.current = instance;
 
@@ -198,7 +212,16 @@ export const QuickPaymentForm = forwardRef<QuickPaymentFormRef, QuickPaymentForm
           setFieldsReady(true);
           setIsLoading(false);
         } catch (err) {
-          console.error('PayMe init error:', err);
+          console.error('=== PayMe.create() FAILED ===');
+          console.error('Error:', err);
+          console.error('Error type:', typeof err);
+          if (err && typeof err === 'object') {
+            console.error('Error keys:', Object.keys(err));
+            console.error('Error JSON:', JSON.stringify(err, null, 2));
+          }
+          console.error('publicKey was:', publicKey);
+          console.error('testMode was:', testMode);
+          console.error('=============================');
           setError('שגיאה באתחול מערכת התשלום');
           setIsLoading(false);
         }
