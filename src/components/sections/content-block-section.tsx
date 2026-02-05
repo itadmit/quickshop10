@@ -139,9 +139,10 @@ export function ContentBlockSection({
   // ====================================
   // Settings with Smart Defaults
   // ====================================
-  // minHeight: null/undefined means auto (no minHeight)
-  const minHeight = settings.minHeight !== undefined && settings.minHeight !== null 
-    ? settings.minHeight 
+  // minHeight: null/undefined/0 means auto (no minHeight)
+  const rawMinHeight = settings.minHeight;
+  const minHeight = (rawMinHeight !== undefined && rawMinHeight !== null && rawMinHeight !== 0) 
+    ? rawMinHeight 
     : null;
   const minHeightUnit = settings.minHeightUnit || defaults.minHeightUnit || 'px';
   const backgroundColor = settings.backgroundColor || defaults.backgroundColor;
