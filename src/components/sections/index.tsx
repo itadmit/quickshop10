@@ -1,6 +1,9 @@
 // בלוק תוכן - מחליף את hero, text_block, hero_premium
 export { ContentBlockSection } from './content-block-section';
 
+// באנר תמונה פשוט
+export { BannerSection } from './banner-section';
+
 // סקשנים נוספים
 export { CategoriesSection } from './categories-section';
 export { ProductsSection } from './products-section';

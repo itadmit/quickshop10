@@ -103,6 +103,7 @@ const SECTION_NAMES: Record<string, string> = {
   logos: 'לוגואים',
   gallery: 'גלריה',
   image_text: 'תמונה וטקסט',
+  banner: 'באנר תמונה לחיץ',
   banner_small: 'באנר קטן',
   video_banner: 'באנר וידאו',
   quote_banner: 'באנר ציטוט',
@@ -114,7 +115,7 @@ const SECTION_NAMES: Record<string, string> = {
 };
 
 // Sections that should NOT show title/subtitle editors
-const SECTIONS_WITHOUT_TITLES = ['custom'];
+const SECTIONS_WITHOUT_TITLES = ['custom', 'banner'];
 
 // content_block - סקשן אחד, אותן הגדרות
 // מה שריק בתוכן פשוט לא מוצג
@@ -232,6 +233,12 @@ const DESIGN_CONFIG: Record<string, DesignConfig> = {
     titleDefaults: { size: 32, sizeMobile: 24, weight: 'light', color: '#000000' },
     subtitleDefaults: { size: 16, sizeMobile: 14, weight: 'normal', color: '#6b7280' },
     textDefaults: { size: 16, sizeMobile: 14, color: '#374151' },
+    paddingDefaults: { top: 0, bottom: 0, left: 0, right: 0 },
+  },
+  banner: {
+    // באנר תמונה פשוט - ללא כותרות, ללא כפתור
+    titleDefaults: { size: 0, sizeMobile: 0, weight: 'normal', color: 'transparent' },
+    subtitleDefaults: { size: 0, sizeMobile: 0, weight: 'normal', color: 'transparent' },
     paddingDefaults: { top: 0, bottom: 0, left: 0, right: 0 },
   },
   banner_small: {
@@ -512,38 +519,43 @@ export function UniversalSectionPanel({
                         onChange={updateSettings}
                       />
                       
-                      <MinHeightControl
-                        settings={section.settings}
-                        onChange={updateSettings}
-                        defaultValue={
-                          // For hero/video_banner/split_banner with media - 90vh (split_banner default 70vh), for text_block - 400px
-                          (section.type === 'hero' || section.type === 'hero_premium' || section.type === 'hero_slider' || section.type === 'video_banner') 
-                            ? 90
-                            : section.type === 'split_banner'
-                              ? 70
-                              : (section.type === 'content_block' || section.type === 'text_block')
-                                ? ((section.content?.imageUrl || section.content?.videoUrl) ? 90 : 400)
-                                : 0
-                        }
-                        defaultUnit={
-                          // VH for full-screen banner-like sections, PX for others
-                          ['hero', 'hero_premium', 'hero_slider', 'video_banner', 'split_banner', 'content_block', 'text_block'].includes(section.type) && 
-                          (section.type !== 'content_block' && section.type !== 'text_block' || section.content?.imageUrl || section.content?.videoUrl)
-                            ? 'vh'
-                            : 'px'
-                        }
-                      />
-                      
-                      <VerticalAlignControl
-                        settings={section.settings}
-                        onChange={updateSettings}
-                      />
-                      
-                      <AlignmentControl
-                        settings={section.settings}
-                        onChange={updateSettings}
-                        label="יישור טקסט"
-                      />
+                      {/* MinHeight - לא רלוונטי לבאנר (גובה אוטומטי לפי תמונה) */}
+                      {section.type !== 'banner' && (
+                        <>
+                          <MinHeightControl
+                            settings={section.settings}
+                            onChange={updateSettings}
+                            defaultValue={
+                              // For hero/video_banner/split_banner with media - 90vh (split_banner default 70vh), for text_block - 400px
+                              (section.type === 'hero' || section.type === 'hero_premium' || section.type === 'hero_slider' || section.type === 'video_banner') 
+                                ? 90
+                                : section.type === 'split_banner'
+                                  ? 70
+                                  : (section.type === 'content_block' || section.type === 'text_block')
+                                    ? ((section.content?.imageUrl || section.content?.videoUrl) ? 90 : 400)
+                                    : 0
+                            }
+                            defaultUnit={
+                              // VH for full-screen banner-like sections, PX for others
+                              ['hero', 'hero_premium', 'hero_slider', 'video_banner', 'split_banner', 'content_block', 'text_block'].includes(section.type) && 
+                              (section.type !== 'content_block' && section.type !== 'text_block' || section.content?.imageUrl || section.content?.videoUrl)
+                                ? 'vh'
+                                : 'px'
+                            }
+                          />
+                          
+                          <VerticalAlignControl
+                            settings={section.settings}
+                            onChange={updateSettings}
+                          />
+                          
+                          <AlignmentControl
+                            settings={section.settings}
+                            onChange={updateSettings}
+                            label="יישור טקסט"
+                          />
+                        </>
+                      )}
                     
                     {/* מיקום תמונה - רק ל-image_text */}
                     {section.type === 'image_text' && (
@@ -590,6 +602,52 @@ export function UniversalSectionPanel({
                     )}
                   </div>
                 </MiniAccordion>
+                )}
+
+                {/* הגדרות תמונה - רק לבאנר */}
+                {section.type === 'banner' && (
+                  <MiniAccordion title="הגדרות תמונה" defaultOpen={true}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-xs text-[var(--editor-text-secondary)] mb-2">רוחב מירבי (px)</label>
+                        <input
+                          type="number"
+                          value={(settings.maxWidth as number) || ''}
+                          onChange={(e) => updateSettings('maxWidth', e.target.value ? Number(e.target.value) : 0)}
+                          placeholder="ללא הגבלה (100%)"
+                          className="w-full px-3 py-2 text-xs bg-[var(--editor-bg-tertiary)] border border-[var(--editor-border-default)] 
+                                     rounded text-[var(--editor-text-primary)] focus:border-[var(--editor-border-focus)] outline-none"
+                          dir="ltr"
+                          min={0}
+                        />
+                        <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">
+                          השאר ריק לרוחב מלא. הגדר ערך למרכוז התמונה.
+                        </p>
+                      </div>
+
+                      <EditorSlider
+                        label="עיגול פינות"
+                        value={(settings.borderRadius as number) || 0}
+                        onChange={(v) => updateSettings('borderRadius', v)}
+                        min={0}
+                        max={48}
+                        suffix="px"
+                      />
+
+                      <EditorSelect
+                        label="צל"
+                        value={(settings.shadow as string) || 'none'}
+                        options={[
+                          { value: 'none', label: 'ללא צל' },
+                          { value: 'sm', label: 'קטן' },
+                          { value: 'md', label: 'בינוני' },
+                          { value: 'lg', label: 'גדול' },
+                          { value: 'xl', label: 'גדול מאוד' },
+                        ]}
+                        onChange={(v) => updateSettings('shadow', v)}
+                      />
+                    </div>
+                  </MiniAccordion>
                 )}
 
                 {/* גריד/סליידר - רק לסקשנים עם גריד */}
@@ -701,8 +759,8 @@ export function UniversalSectionPanel({
                   </MiniAccordion>
                 )}
 
-                {/* רקע - לא רלוונטי לסליידר הירו, באנר מפוצל, תמונה+טקסט ו-custom */}
-                {section.type !== 'hero_slider' && section.type !== 'split_banner' && section.type !== 'image_text' && section.type !== 'custom' && (
+                {/* רקע - לא רלוונטי לסליידר הירו, באנר מפוצל, תמונה+טקסט, באנר ו-custom */}
+                {section.type !== 'hero_slider' && section.type !== 'split_banner' && section.type !== 'image_text' && section.type !== 'banner' && section.type !== 'custom' && (
                   <MiniAccordion title="רקע" defaultOpen={false}>
                     <FullBackgroundControl
                       settings={{
@@ -1027,6 +1085,67 @@ function SectionContentEditor({
         </>
       );
 
+    // ==========================================
+    // באנר - תמונה בלבד עם לינק אופציונלי
+    // ==========================================
+    case 'banner':
+      return (
+        <>
+          {/* תמונות */}
+          <MiniAccordion title="תמונות" defaultOpen={true}>
+            <div className="space-y-4">
+              <div>
+                <EditorInput
+                  label="תמונה - מחשב"
+                  value={(content.imageUrl as string) || ''}
+                  onChange={(v) => updateContent('imageUrl', v)}
+                  placeholder="https://example.com/image.jpg"
+                />
+                <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">מומלץ: רוחב 1920px ומעלה</p>
+              </div>
+              
+              <div>
+                <EditorInput
+                  label="תמונה - מובייל (אופציונלי)"
+                  value={(content.mobileImageUrl as string) || ''}
+                  onChange={(v) => updateContent('mobileImageUrl', v)}
+                  placeholder="https://example.com/mobile.jpg"
+                />
+                <p className="text-[10px] text-[var(--editor-text-muted)] mt-1">מומלץ: רוחב 768px. אם ריק, תוצג תמונת המחשב</p>
+              </div>
+
+              <EditorInput
+                label="טקסט חלופי (ALT)"
+                value={(content.altText as string) || ''}
+                onChange={(v) => updateContent('altText', v)}
+                placeholder="תיאור התמונה לנגישות"
+              />
+            </div>
+          </MiniAccordion>
+
+          {/* קישור */}
+          <MiniAccordion title="קישור" defaultOpen={false}>
+            <div className="space-y-3">
+              <EditorInput
+                label="קישור (URL)"
+                value={(content.linkUrl as string) || ''}
+                onChange={(v) => updateContent('linkUrl', v)}
+                placeholder="/products או https://..."
+              />
+              
+              <EditorSelect
+                label="פתיחה ב..."
+                value={(content.linkTarget as string) || '_self'}
+                options={[
+                  { value: '_self', label: 'אותו חלון' },
+                  { value: '_blank', label: 'חלון חדש' },
+                ]}
+                onChange={(v) => updateContent('linkTarget', v)}
+              />
+            </div>
+          </MiniAccordion>
+        </>
+      );
 
     // ==========================================
     // מוצרים נבחרים (גריד או סליידר)

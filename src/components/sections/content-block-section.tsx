@@ -262,6 +262,9 @@ export function ContentBlockSection({
       data-section-name="בלוק תוכן"
       data-hide-on-mobile={settings.hideOnMobile || false}
       data-hide-on-desktop={settings.hideOnDesktop || false}
+      data-image-mode={isImageFullWidth ? 'img' : 'div'}
+      data-background-size={backgroundSize}
+      data-min-height={minHeight === null ? '0' : String(minHeight)}
       className={`relative overflow-hidden ${hideOnMobileClass} ${hideOnDesktopClass} ${settings.customClass || ''}`.trim()}
       style={{
         // When contain + auto height, use transparent background (image determines look)
@@ -322,6 +325,7 @@ export function ContentBlockSection({
                 }}
                 data-bg-desktop
                 data-bg-type="image"
+                data-image-url={content.imageUrl || settings.backgroundImage}
               />
               {/* Mobile Image as img element */}
               {hasMobileImage && (
@@ -336,6 +340,7 @@ export function ContentBlockSection({
                   }}
                   data-bg-mobile
                   data-bg-type="image"
+                  data-image-url={content.mobileImageUrl}
                 />
               )}
             </>
@@ -364,6 +369,7 @@ export function ContentBlockSection({
                     }}
                     data-bg-desktop
                     data-bg-type="image"
+                    data-image-url={content.imageUrl || settings.backgroundImage}
                   />
                 </div>
               ) : (
@@ -377,6 +383,7 @@ export function ContentBlockSection({
                   }}
                   data-bg-desktop
                   data-bg-type="image"
+                  data-image-url={content.imageUrl || settings.backgroundImage}
                 />
               )}
               {/* Mobile Image as background */}
@@ -390,6 +397,7 @@ export function ContentBlockSection({
                   }}
                   data-bg-mobile
                   data-bg-type="image"
+                  data-image-url={content.mobileImageUrl}
                 />
               )}
             </>
@@ -441,7 +449,7 @@ export function ContentBlockSection({
 
       {/* ==================== CONTENT ==================== */}
       <div 
-        className={`relative z-10 flex-1 flex flex-col ${textAlignClass} ${verticalAlignClass}`}
+        className={`${isImageFullWidth ? 'absolute inset-0' : 'relative'} z-10 flex-1 flex flex-col ${textAlignClass} ${verticalAlignClass}`}
         data-content-container
       >
         <div 

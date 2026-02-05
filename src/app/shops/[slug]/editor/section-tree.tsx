@@ -77,6 +77,7 @@ const sectionTypes: Array<{ type: string; label: string; icon: SectionIconCompon
   { type: 'split_banner', label: 'באנר מפוצל', icon: LayoutGrid, category: 'באנרים' },
   { type: 'banner_small', label: 'באנר קטן', icon: Megaphone, category: 'באנרים' },
   { type: 'quote_banner', label: 'באנר ציטוט', icon: Quote, category: 'באנרים' },
+  { type: 'banner', label: 'באנר תמונה לחיץ', icon: Image, category: 'באנרים' },
   // תוכן
   { type: 'content_slider', label: 'סליידר תוכן', icon: Layers, category: 'תוכן' },
   { type: 'image_text', label: 'תמונה + טקסט', icon: Image, category: 'תוכן' },

@@ -6,14 +6,232 @@
 import { Section } from '../types';
 import { applyCommonUpdates } from '../handlers/common-handler';
 
+/**
+ * Check if section should use img mode (image determines height)
+ * When backgroundSize is 'width' or 'contain' AND minHeight is null/0/empty
+ */
+function shouldUseImgMode(el: HTMLElement, updates: Partial<Section>): boolean {
+  const backgroundSize = (updates.settings?.backgroundSize as string) ?? 
+                         el.dataset.backgroundSize ?? 'cover';
+  
+  // Check minHeight - supports updates, dataset ('0' = auto), or default (null = auto)
+  let minHeight: number | null;
+  if (updates.settings?.minHeight !== undefined) {
+    minHeight = updates.settings.minHeight as number | null;
+  } else if (el.dataset.minHeight) {
+    const dsValue = Number(el.dataset.minHeight);
+    minHeight = dsValue === 0 ? null : dsValue;
+  } else {
+    minHeight = null; // Default is auto
+  }
+  
+  const isAutoHeight = minHeight === null || minHeight === 0;
+  const isWidthMode = backgroundSize === 'width' || backgroundSize === 'contain';
+  
+  return isWidthMode && isAutoHeight;
+}
+
+/**
+ * Get image URL from element (supports both img and div backgrounds)
+ */
+function getImageUrl(el: HTMLElement | null): string {
+  if (!el) return '';
+  // Try data-image-url first
+  const dataUrl = el.getAttribute('data-image-url');
+  if (dataUrl) return dataUrl;
+  // Try img src
+  if (el.tagName === 'IMG') return (el as HTMLImageElement).src || '';
+  // Try background-image
+  const bgImage = el.style.backgroundImage;
+  if (bgImage) {
+    const match = bgImage.match(/url\(["']?(.+?)["']?\)/);
+    return match ? match[1] : '';
+  }
+  return '';
+}
+
+/**
+ * Convert between div-background mode and img mode
+ * img mode: image determines section height
+ * div mode: section has fixed/min height, image as background
+ */
+function updateImageMode(el: HTMLElement, updates: Partial<Section>): void {
+  const sectionId = el.getAttribute('data-section-id');
+  const useImgMode = shouldUseImgMode(el, updates);
+  const currentMode = el.dataset.imageMode || 'div';
+  
+  // Only proceed if mode changed or we have relevant updates
+  const hasRelevantUpdate = updates.settings?.backgroundSize !== undefined || 
+                            updates.settings?.minHeight !== undefined ||
+                            updates.content?.imageUrl !== undefined ||
+                            updates.content?.mobileImageUrl !== undefined;
+  
+  if (!hasRelevantUpdate && currentMode === (useImgMode ? 'img' : 'div')) {
+    return;
+  }
+  
+  // Get current image URLs
+  const desktopEl = el.querySelector('[data-bg-desktop]') as HTMLElement;
+  const mobileEl = el.querySelector('[data-bg-mobile]') as HTMLElement;
+  const desktopImgUrl = (updates.content?.imageUrl as string) ?? getImageUrl(desktopEl);
+  const mobileImgUrl = (updates.content?.mobileImageUrl as string) ?? getImageUrl(mobileEl);
+  const hasMobileImage = !!mobileImgUrl;
+  
+  if (useImgMode && desktopImgUrl) {
+    // Switch to IMG mode
+    el.dataset.imageMode = 'img';
+    
+    // Remove old div elements
+    const oldDesktopDiv = el.querySelector('[data-bg-desktop]:not(img)') as HTMLElement;
+    const oldMobileDiv = el.querySelector('[data-bg-mobile]:not(img)') as HTMLElement;
+    const oldWrapper = el.querySelector('[data-bg-desktop-wrapper]') as HTMLElement;
+    if (oldDesktopDiv) oldDesktopDiv.remove();
+    if (oldMobileDiv) oldMobileDiv.remove();
+    if (oldWrapper) oldWrapper.remove();
+    
+    // Check if img elements already exist
+    let desktopImg = el.querySelector('img[data-bg-desktop]') as HTMLImageElement;
+    let mobileImg = el.querySelector('img[data-bg-mobile]') as HTMLImageElement;
+    
+    // Create desktop img if doesn't exist
+    if (!desktopImg) {
+      desktopImg = document.createElement('img');
+      desktopImg.setAttribute('data-bg-desktop', '');
+      desktopImg.setAttribute('data-bg-type', 'image');
+      desktopImg.alt = '';
+      el.insertBefore(desktopImg, el.firstChild);
+    }
+    
+    // Style desktop img
+    desktopImg.src = desktopImgUrl;
+    desktopImg.setAttribute('data-image-url', desktopImgUrl);
+    desktopImg.style.cssText = 'width: 100%; height: auto; display: block;';
+    desktopImg.className = hasMobileImage ? 'hidden md:block' : 'block';
+    
+    // Handle mobile img
+    if (hasMobileImage) {
+      if (!mobileImg) {
+        mobileImg = document.createElement('img');
+        mobileImg.setAttribute('data-bg-mobile', '');
+        mobileImg.setAttribute('data-bg-type', 'image');
+        mobileImg.alt = '';
+        desktopImg.insertAdjacentElement('afterend', mobileImg);
+      }
+      mobileImg.src = mobileImgUrl;
+      mobileImg.setAttribute('data-image-url', mobileImgUrl);
+      mobileImg.style.cssText = 'width: 100%; height: auto; display: block;';
+      mobileImg.className = 'block md:hidden';
+    } else if (mobileImg) {
+      mobileImg.remove();
+    }
+    
+    // Update section layout for img mode
+    el.style.display = 'block';
+    el.style.minHeight = '';
+    el.style.flexDirection = '';
+    el.style.paddingTop = '0';
+    el.style.paddingBottom = '0';
+    
+    // Update content container to overlay on image
+    const contentContainer = el.querySelector('[data-content-container]') as HTMLElement;
+    if (contentContainer) {
+      contentContainer.classList.add('absolute', 'inset-0');
+      contentContainer.classList.remove('relative');
+      contentContainer.style.position = 'absolute';
+    }
+    
+    // Inject responsive style
+    if (sectionId && hasMobileImage) {
+      let styleEl = document.getElementById(`img-mode-style-${sectionId}`);
+      if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = `img-mode-style-${sectionId}`;
+        document.head.appendChild(styleEl);
+      }
+      styleEl.textContent = `
+        @media (min-width: 768px) {
+          [data-section-id="${sectionId}"] img[data-bg-mobile] { display: none !important; }
+        }
+        @media (max-width: 767px) {
+          [data-section-id="${sectionId}"] img[data-bg-desktop] { display: none !important; }
+        }
+      `;
+    }
+  } else if (!useImgMode && currentMode === 'img') {
+    // Switch back to DIV mode
+    el.dataset.imageMode = 'div';
+    
+    // Remove img elements
+    const desktopImg = el.querySelector('img[data-bg-desktop]') as HTMLImageElement;
+    const mobileImg = el.querySelector('img[data-bg-mobile]') as HTMLImageElement;
+    if (desktopImg) desktopImg.remove();
+    if (mobileImg) mobileImg.remove();
+    
+    // Remove img-mode style
+    if (sectionId) {
+      const styleEl = document.getElementById(`img-mode-style-${sectionId}`);
+      if (styleEl) styleEl.remove();
+    }
+    
+    // Create desktop div background
+    if (desktopImgUrl) {
+      const bgDiv = document.createElement('div');
+      bgDiv.className = `absolute inset-0 bg-cover bg-center bg-no-repeat ${hasMobileImage ? 'hidden md:block' : ''}`;
+      bgDiv.setAttribute('data-bg-desktop', '');
+      bgDiv.setAttribute('data-bg-type', 'image');
+      bgDiv.setAttribute('data-image-url', desktopImgUrl);
+      bgDiv.style.backgroundImage = `url("${desktopImgUrl}")`;
+      el.insertBefore(bgDiv, el.firstChild);
+    }
+    
+    // Create mobile div background
+    if (hasMobileImage) {
+      const mobileBgDiv = document.createElement('div');
+      mobileBgDiv.className = 'absolute inset-0 bg-cover bg-center bg-no-repeat md:hidden';
+      mobileBgDiv.setAttribute('data-bg-mobile', '');
+      mobileBgDiv.setAttribute('data-bg-type', 'image');
+      mobileBgDiv.setAttribute('data-image-url', mobileImgUrl);
+      mobileBgDiv.style.backgroundImage = `url("${mobileImgUrl}")`;
+      el.insertBefore(mobileBgDiv, el.firstChild);
+    }
+    
+    // Update content container back to relative
+    const contentContainer = el.querySelector('[data-content-container]') as HTMLElement;
+    if (contentContainer) {
+      contentContainer.classList.remove('absolute', 'inset-0');
+      contentContainer.classList.add('relative');
+      contentContainer.style.position = '';
+    }
+  }
+}
+
 export function handleContentBlockUpdate(
   element: Element,
   updates: Partial<Section>
 ): void {
   const el = element as HTMLElement;
+  
+  // Store backgroundSize in dataset BEFORE common updates (for mode detection)
+  if (updates.settings?.backgroundSize !== undefined) {
+    el.dataset.backgroundSize = updates.settings.backgroundSize as string;
+  }
 
   // Apply common updates first (background, spacing, visibility, etc.)
   applyCommonUpdates(el, updates);
+  
+  // Store minHeight in dataset AFTER common updates (common-handler deletes it for null/0)
+  // We need to track '0' specifically for img mode detection
+  if (updates.settings?.minHeight !== undefined) {
+    const minHeight = updates.settings.minHeight;
+    if (minHeight === null || minHeight === 0) {
+      el.dataset.minHeight = '0'; // Use '0' to indicate auto
+    } else {
+      el.dataset.minHeight = String(minHeight);
+    }
+  }
+  
+  // Handle image mode switching (img vs div background)
+  updateImageMode(el, updates);
 
   // ====================================
   // Content Updates
@@ -73,12 +291,15 @@ export function handleContentBlockUpdate(
   }
 
   // ====================================
-  // Media Updates
+  // Media Updates (handled by updateImageMode for img mode)
+  // For div mode, we handle here
   // ====================================
+  
+  const currentImageMode = el.dataset.imageMode || 'div';
 
-  // Desktop Image
-  if (updates.content?.imageUrl !== undefined) {
-    let imgEl = el.querySelector('[data-bg-desktop][data-bg-type="image"]') as HTMLElement;
+  // Desktop Image - only handle in div mode (img mode handled by updateImageMode)
+  if (updates.content?.imageUrl !== undefined && currentImageMode === 'div') {
+    let imgEl = el.querySelector('[data-bg-desktop][data-bg-type="image"]:not(img)') as HTMLElement;
     const mobileImgEl = el.querySelector('[data-bg-mobile][data-bg-type="image"]') as HTMLElement;
     const sectionId = el.getAttribute('data-section-id');
     
@@ -107,15 +328,16 @@ export function handleContentBlockUpdate(
         }
       }
       imgEl.style.backgroundImage = `url("${updates.content.imageUrl}")`;
+      imgEl.setAttribute('data-image-url', updates.content.imageUrl as string);
       imgEl.style.display = '';
     } else if (imgEl) {
       imgEl.style.display = 'none';
     }
   }
 
-  // Mobile Image
-  if (updates.content?.mobileImageUrl !== undefined) {
-    let imgEl = el.querySelector('[data-bg-mobile][data-bg-type="image"]') as HTMLElement;
+  // Mobile Image - only handle in div mode
+  if (updates.content?.mobileImageUrl !== undefined && currentImageMode === 'div') {
+    let imgEl = el.querySelector('[data-bg-mobile][data-bg-type="image"]:not(img)') as HTMLElement;
     const desktopImgEl = el.querySelector('[data-bg-desktop][data-bg-type="image"]') as HTMLElement;
     const sectionId = el.getAttribute('data-section-id');
     
@@ -155,6 +377,7 @@ export function handleContentBlockUpdate(
         }
       }
       imgEl.style.backgroundImage = `url("${updates.content.mobileImageUrl}")`;
+      imgEl.setAttribute('data-image-url', updates.content.mobileImageUrl as string);
       imgEl.style.display = '';
     } else {
       // Remove mobile image
@@ -165,6 +388,24 @@ export function handleContentBlockUpdate(
       if (sectionId) {
         const styleEl = document.getElementById(`mobile-image-style-${sectionId}`);
         if (styleEl) styleEl.remove();
+      }
+    }
+  }
+  
+  // Handle image updates in img mode
+  if (currentImageMode === 'img') {
+    if (updates.content?.imageUrl !== undefined) {
+      const desktopImg = el.querySelector('img[data-bg-desktop]') as HTMLImageElement;
+      if (desktopImg && updates.content.imageUrl) {
+        desktopImg.src = updates.content.imageUrl as string;
+        desktopImg.setAttribute('data-image-url', updates.content.imageUrl as string);
+      }
+    }
+    if (updates.content?.mobileImageUrl !== undefined) {
+      const mobileImg = el.querySelector('img[data-bg-mobile]') as HTMLImageElement;
+      if (mobileImg && updates.content.mobileImageUrl) {
+        mobileImg.src = updates.content.mobileImageUrl as string;
+        mobileImg.setAttribute('data-image-url', updates.content.mobileImageUrl as string);
       }
     }
   }

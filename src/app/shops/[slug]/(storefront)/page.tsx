@@ -1,6 +1,7 @@
 import { getStoreBySlug, getFeaturedProducts, getProductsByStore, getCategoriesByStore, getPageSectionsCached, getPageSections, getProductsByCategory, getProductsByIds, getFooterMenuItems, getProductsBadgesForCards } from '@/lib/db/queries';
 import { 
   ContentBlockSection,
+  BannerSection,
   CategoriesSection, 
   ProductsSection,
   ProductsSliderSection,
@@ -522,6 +523,36 @@ export default async function ShopHomePage({ params }: ShopPageProps) {
             content={content as { features?: Array<{ id: string; icon?: string; emoji?: string; title: string; description?: string }> }}
             settings={settings as { columns?: number; iconStyle?: 'emoji' | 'icon' | 'none'; backgroundColor?: string; textAlign?: 'right' | 'center' | 'left'; showDividers?: boolean }}
             sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'banner':
+        // באנר תמונה פשוט - תמונה בלבד עם לינק אופציונלי
+        sectionElement = (
+          <BannerSection
+            id={section.id}
+            content={content as { 
+              imageUrl?: string; 
+              mobileImageUrl?: string; 
+              linkUrl?: string; 
+              linkTarget?: '_self' | '_blank';
+              altText?: string;
+            }}
+            settings={settings as { 
+              sectionWidth?: 'full' | 'boxed';
+              maxWidth?: number;
+              paddingTop?: number;
+              paddingBottom?: number;
+              marginTop?: number;
+              marginBottom?: number;
+              backgroundColor?: string;
+              borderRadius?: number;
+              shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+              hideOnDesktop?: boolean;
+              hideOnMobile?: boolean;
+            }}
+            isActive={section.isActive}
           />
         );
         break;

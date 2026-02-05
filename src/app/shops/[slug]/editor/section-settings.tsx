@@ -799,7 +799,7 @@ export function SectionSettings({ section, onUpdate, onRemove, themeSettings, on
   const UNIVERSAL_PANEL_SECTIONS = [
     'content_block', 'text_block', 'hero', 'hero_premium', 'hero_slider',
     'content_slider', 'reviews', 'features', 'faq', 'newsletter', 'contact', 
-    'logos', 'gallery', 'image_text', 'banner_small', 
+    'logos', 'gallery', 'image_text', 'banner', 'banner_small', 
     'video_banner', 'split_banner', 'products', 'products_slider',
     'categories', 'featured_items', 'series_grid', 'custom'
   ];

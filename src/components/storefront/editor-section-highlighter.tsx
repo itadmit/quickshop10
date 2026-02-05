@@ -2738,11 +2738,46 @@ export function EditorSectionHighlighter() {
             `;
             break;
 
+          case 'banner':
+            // באנר תמונה לחיץ - תמונה בלבד, גובה לפי התמונה
+            const bannerImageUrl = content?.imageUrl || '';
+            const bannerMobileImageUrl = content?.mobileImageUrl || '';
+            const bannerLinkUrl = content?.linkUrl || '';
+            const bannerAltText = content?.altText || 'באנר';
+            placeholder.className = 'w-full';
+            placeholder.style.backgroundColor = settings?.backgroundColor || 'transparent';
+            
+            if (!bannerImageUrl && !bannerMobileImageUrl) {
+              // אין תמונה - מציג placeholder
+              html = `
+                <div class="w-full flex items-center justify-center py-20 bg-gray-100" data-banner-placeholder>
+                  <p class="text-gray-400 text-sm">הוסף תמונה לבאנר</p>
+                </div>
+              `;
+            } else {
+              // יש תמונה - מציג את התמונה כ-img (לא רקע)
+              const imgStyle = `width: 100%; height: auto; display: block;${settings?.borderRadius ? ` border-radius: ${settings.borderRadius}px;` : ''}`;
+              const imgHtml = `
+                <img 
+                  src="${bannerImageUrl}" 
+                  alt="${bannerAltText}" 
+                  style="${imgStyle}"
+                  data-banner-image
+                />
+              `;
+              
+              if (bannerLinkUrl) {
+                html = `<a href="${bannerLinkUrl}" class="block w-full" data-banner-link>${imgHtml}</a>`;
+              } else {
+                html = imgHtml;
+              }
+            }
+            break;
+
           case 'hero':
           case 'hero_premium':
           case 'content_block':
           case 'text_block':
-          case 'banner':
             // All content block types use the same structure
             const hasContentBlockImage = !!(content?.imageUrl || content?.mobileImageUrl || content?.videoUrl);
             const contentBlockBgColor = hasContentBlockImage ? '#000' : '#ffffff';

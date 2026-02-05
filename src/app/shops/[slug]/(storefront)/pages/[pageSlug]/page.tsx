@@ -4,6 +4,7 @@ import { pages } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { 
   ContentBlockSection,
+  BannerSection,
   ProductsSection,
   ProductsSliderSection,
   CategoriesSection,
@@ -506,6 +507,36 @@ export default async function InternalPage({ params }: InternalPageProps) {
             content={content as { reviews?: Array<{ id: string; author: string; rating: number; text: string; date?: string; avatar?: string; verified?: boolean }> }}
             settings={settings as { columns?: number; showRating?: boolean; showDate?: boolean; showAvatar?: boolean; style?: 'cards' | 'minimal' | 'quotes'; backgroundColor?: string }}
             sectionId={section.id}
+          />
+        );
+        break;
+
+      case 'banner':
+        // באנר תמונה פשוט - תמונה בלבד עם לינק אופציונלי
+        sectionElement = (
+          <BannerSection
+            id={section.id}
+            content={content as { 
+              imageUrl?: string; 
+              mobileImageUrl?: string; 
+              linkUrl?: string; 
+              linkTarget?: '_self' | '_blank';
+              altText?: string;
+            }}
+            settings={settings as { 
+              sectionWidth?: 'full' | 'boxed';
+              maxWidth?: number;
+              paddingTop?: number;
+              paddingBottom?: number;
+              marginTop?: number;
+              marginBottom?: number;
+              backgroundColor?: string;
+              borderRadius?: number;
+              shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl';
+              hideOnDesktop?: boolean;
+              hideOnMobile?: boolean;
+            }}
+            isActive={section.isActive}
           />
         );
         break;

@@ -14,6 +14,7 @@ import { handler as contactHandler } from '../contact';
 import { handler as logosHandler } from '../logos';
 import { handler as galleryHandler } from '../gallery';
 import { handler as imageTextHandler } from '../image-text';
+import { handler as bannerHandler } from '../banner';
 import { handler as bannerSmallHandler } from '../banner-small';
 import { handler as videoBannerHandler } from '../video-banner';
 import { handler as splitBannerHandler } from '../split-banner';
@@ -47,6 +48,7 @@ export const sectionHandlers: SectionHandlers = {
   logos: logosHandler,
   gallery: galleryHandler,
   image_text: imageTextHandler,
+  banner: bannerHandler,
   banner_small: bannerSmallHandler,
   video_banner: videoBannerHandler,
   split_banner: splitBannerHandler,
