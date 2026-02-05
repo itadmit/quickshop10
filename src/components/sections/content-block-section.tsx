@@ -185,7 +185,7 @@ export function ContentBlockSection({
 
   // Spacing - more padding for text-only
   // When contain/width + auto height, no padding (image takes full width)
-  const isImageFullWidth = (backgroundSize === 'contain' || backgroundSize === 'width') && (settings.minHeight === null || settings.minHeight === undefined);
+  const isImageFullWidth = (backgroundSize === 'contain' || backgroundSize === 'width') && minHeight === null;
   const paddingTop = settings.paddingTop ?? (hasMedia ? 0 : 64);
   const paddingBottom = settings.paddingBottom ?? (hasMedia ? 80 : 64);
   const paddingLeft = settings.paddingLeft ?? (isImageFullWidth ? 0 : 24);
