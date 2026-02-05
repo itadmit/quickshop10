@@ -425,3 +425,59 @@ input:focus, textarea:focus, select:focus {
 .animate-slideRight {
   animation: slideRight var(--animation-duration, 0.6s) ease-out forwards;
 }
+
+/* =====================================================
+ * Transparent Header Support
+ * תמיכה בדר שקוף - התוכן עולה מאחורי הדר
+ * ===================================================== */
+
+/* When header is transparent, main content overlaps behind it */
+.transparent-header-content {
+  margin-top: -5rem; /* Pull content up behind header - approximately header height */
+}
+
+/* Desktop: Account for navigation row below header */
+@media (min-width: 1024px) {
+  .transparent-header-content {
+    margin-top: -8rem; /* Header + nav row */
+  }
+}
+
+/* Transparent header - white text/icons for visibility on dark backgrounds */
+header.fixed.bg-transparent {
+  color: white;
+}
+
+header.fixed.bg-transparent a,
+header.fixed.bg-transparent button,
+header.fixed.bg-transparent span,
+header.fixed.bg-transparent svg {
+  color: white !important;
+  stroke: white !important;
+}
+
+header.fixed.bg-transparent .text-gray-600,
+header.fixed.bg-transparent .text-gray-700,
+header.fixed.bg-transparent .text-gray-800,
+header.fixed.bg-transparent .text-gray-900,
+header.fixed.bg-transparent .text-black {
+  color: white !important;
+}
+
+/* Dropdown menus inside transparent header should keep normal colors */
+header.fixed.bg-transparent nav > div > div.bg-white,
+header.fixed.bg-transparent nav > div > div.bg-white a,
+header.fixed.bg-transparent nav > div > div.bg-white span {
+  color: #4b5563 !important;
+  stroke: currentColor !important;
+}
+
+header.fixed.bg-transparent nav > div > div.bg-white a:hover {
+  color: #111827 !important;
+}
+
+/* User avatar circle when logged in - white background on transparent header */
+header.fixed.bg-transparent .rounded-full.bg-black {
+  background-color: white !important;
+  color: black !important;
+}

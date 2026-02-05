@@ -170,6 +170,9 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
     ? (pathname === '/' || pathname === '')
     : (pathname === `/shops/${slug}` || pathname === `/shops/${slug}/`);
   
+  // Check if header is transparent (only on homepage when enabled)
+  const isTransparentHeader = isHomePage && Boolean((store.settings as Record<string, unknown>)?.headerTransparent);
+  
 
   // Always show header - categories/menu items are optional
   // Header contains logo, cart, search etc. which should always be visible
@@ -455,7 +458,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
           {/* 🌍 Translations Provider - wraps entire storefront */}
           {translations ? (
             <TranslationsProvider translations={translations} locale={currentLocale}>
-              <div dir={direction} className="relative">
+              <div dir={direction}>
                 {showHeader && (
                   <>
                     {HeaderContent}
@@ -480,7 +483,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
                     basePath={basePath}
                   />
                 )}
-                <main>{children}</main>
+                <main className={isTransparentHeader ? 'transparent-header-content' : ''}>{children}</main>
                 
                 {/* Floating Advisor Button - Renders only if plugin is active and has advisors (not on checkout) */}
                 {!isCheckoutPage && advisorEnabled && activeAdvisors.length > 0 && (
@@ -555,7 +558,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
             </TranslationsProvider>
           ) : (
             // Fallback: No translations (Hebrew only store)
-            <div dir="rtl" className="relative">
+            <div dir="rtl">
               {showHeader && (
                 <>
                   {HeaderContent}
@@ -579,7 +582,7 @@ export default async function StorefrontLayout({ children, params }: StorefrontL
                   )}
                 </>
               )}
-              <main>{children}</main>
+              <main className={isTransparentHeader ? 'transparent-header-content' : ''}>{children}</main>
               
               {/* Floating Advisor Button - Renders only if plugin is active and has advisors (not on checkout) */}
               {!isCheckoutPage && advisorEnabled && activeAdvisors.length > 0 && (

@@ -280,19 +280,14 @@ export function ShopHeader({
   );
   
   // Header wrapper class based on sticky setting and transparency
-  // When transparent: use absolute positioning to overlay content
-  const headerClass = `
-    ${isTransparent ? 'absolute top-0 left-0 right-0' : (isSticky ? 'sticky top-0' : 'relative')} 
-    z-30 
-    ${isTransparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-sm'}
-    ${isTransparent ? 'border-transparent' : 'border-b border-gray-100'}
-    transition-all duration-300
-  `.trim().replace(/\s+/g, ' ');
+  const headerClass = isTransparent
+    ? 'fixed top-0 left-0 right-0 z-30 bg-transparent'
+    : `${isSticky ? 'sticky top-0' : 'relative'} z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100`;
 
   // Layout 1: Logo Right (RTL default) - לוגו בימין, תפריט במרכז, אייקונים משמאל
   if (layout === 'logo-right') {
     return (
-      <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר" data-transparent={String(isTransparent)}>
+      <header className={headerClass} data-section-id="header" data-section-type="header" data-section-name="הדר">
         <div className="max-w-[1800px] mx-auto px-2 sm:px-6 lg:px-12">
           <div className="flex items-center justify-between h-16 sm:h-20" dir={direction}>
             {/* Right: Mobile Menu + Search (mobile) + Logo */}
@@ -413,7 +408,7 @@ export function ShopHeader({
         </div>
 
         {/* Bottom row: Navigation (desktop only) */}
-        <div className="hidden lg:flex justify-center border-t border-gray-100 py-3">
+        <div className="hidden lg:flex justify-center py-3">
           <Navigation />
         </div>
       </div>

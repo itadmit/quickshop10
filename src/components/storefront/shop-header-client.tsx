@@ -475,13 +475,9 @@ export function ShopHeaderClient({
   );
 
   // Header wrapper classes
-  // When transparent: use absolute positioning to overlay content
-  const headerClasses = `
-    ${isTransparent ? 'absolute top-0 left-0 right-0 z-30' : (isSticky ? 'sticky top-0 z-30' : 'relative')}
-    ${isTransparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-sm'}
-    ${isTransparent ? 'border-transparent' : 'border-b border-gray-100'}
-    transition-all duration-300
-  `.trim().replace(/\s+/g, ' ');
+  const headerClasses = isTransparent
+    ? 'fixed top-0 left-0 right-0 z-30 bg-transparent'
+    : `${isSticky ? 'sticky top-0' : 'relative'} z-30 bg-white/95 backdrop-blur-sm border-b border-gray-100`;
 
   // Announcement bar component (shared)
   const AnnouncementBarSection = announcementEnabled && !announcementDismissed && (
@@ -607,7 +603,7 @@ export function ShopHeaderClient({
             </div>
           </div>
           {/* Bottom row: Navigation (desktop only) */}
-          <div className="hidden lg:flex justify-center border-t border-gray-100 py-3">
+          <div className="hidden lg:flex justify-center py-3">
             <Navigation />
           </div>
         </div>
