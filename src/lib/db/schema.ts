@@ -263,6 +263,10 @@ export const stores = pgTable('stores', {
     isDefault?: boolean;
   }>>().default([]),
   
+  // Mobile App Config: JSON object for mobile app home screen builder
+  // Stores theme, typography, homeSections, tabBar, productDisplay as single JSON
+  mobileAppConfig: jsonb('mobile_app_config'),
+  
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [

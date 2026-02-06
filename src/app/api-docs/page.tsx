@@ -126,6 +126,8 @@ const storefrontEndpoints = [
     color: "bg-cyan-500",
     items: [
       { method: "GET", path: "/api/storefront/{slug}/config", desc: "הגדרות חנות (שם, לוגו, צבעים, מטבע)" },
+      { method: "GET", path: "/api/storefront/{slug}/app-config", desc: "הגדרות אפליקציית מובייל (JSON)" },
+      { method: "PUT", path: "/api/storefront/{slug}/app-config", desc: "שמירת הגדרות מובייל (Admin)" },
     ]
   },
   {

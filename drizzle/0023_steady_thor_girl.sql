@@ -1,0 +1,1 @@
+ALTER TABLE "stores" ADD COLUMN "mobile_app_config" jsonb;

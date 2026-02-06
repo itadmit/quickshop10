@@ -162,6 +162,13 @@
       "when": 1770373091979,
       "tag": "0022_old_inertia",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1770381668662,
+      "tag": "0023_steady_thor_girl",
+      "breakpoints": true
     }
   ]
 }
