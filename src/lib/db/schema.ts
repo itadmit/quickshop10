@@ -828,6 +828,12 @@ export const customers = pgTable('customers', {
   lastLoginAt: timestamp('last_login_at'),
   // CRM Plugin: Customer tags (array of tag IDs from store.crmTags)
   tags: jsonb('tags').$type<string[]>().default([]),
+  // Mobile push notification preferences
+  notificationPreferences: jsonb('notification_preferences').$type<{
+    orderUpdates?: boolean;
+    promotions?: boolean;
+    backInStock?: boolean;
+  }>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 }, (table) => [
@@ -877,6 +883,25 @@ export const customerCreditTransactions = pgTable('customer_credit_transactions'
 }, (table) => [
   index('idx_credit_transactions_customer').on(table.customerId),
   index('idx_credit_transactions_store').on(table.storeId),
+]);
+
+// ============ CUSTOMER DEVICES (PUSH NOTIFICATIONS) ============
+
+// Customer devices for push notifications (mobile app)
+export const customerDevices = pgTable('customer_devices', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  customerId: uuid('customer_id').references(() => customers.id, { onDelete: 'cascade' }).notNull(),
+  deviceToken: varchar('device_token', { length: 500 }).notNull(), // Expo push token
+  platform: varchar('platform', { length: 10 }).notNull(), // 'ios' or 'android'
+  deviceId: varchar('device_id', { length: 255 }).notNull(), // Unique device identifier
+  isActive: boolean('is_active').default(true).notNull(),
+  lastSeenAt: timestamp('last_seen_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => [
+  index('idx_customer_devices_customer').on(table.customerId),
+  uniqueIndex('idx_customer_devices_device_id').on(table.deviceId),
+  index('idx_customer_devices_active').on(table.customerId, table.isActive),
 ]);
 
 // ============ WISHLIST ============

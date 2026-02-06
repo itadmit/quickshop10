@@ -143,7 +143,7 @@ export async function POST(
       );
     }
     
-    // Get order items for post-payment processing
+    // Get order items for post-payment processing (including properties for addons)
     const items = await db
       .select({
         productId: orderItems.productId,
@@ -153,6 +153,7 @@ export async function POST(
         price: orderItems.price,
         sku: orderItems.sku,
         imageUrl: orderItems.imageUrl,
+        properties: orderItems.properties,
       })
       .from(orderItems)
       .where(eq(orderItems.orderId, orderId));
@@ -187,15 +188,22 @@ export async function POST(
         .returning();
       
       // 🔥 Execute post-payment actions even in test mode
-      const cartItems: CartItem[] = items.map(item => ({
-        productId: item.productId || '',
-        variantTitle: item.variantTitle || undefined,
-        name: item.name || '',
-        quantity: item.quantity,
-        price: Number(item.price),
-        sku: item.sku || undefined,
-        image: item.imageUrl || undefined,
-      }));
+      const cartItems: CartItem[] = items.map(item => {
+        const props = item.properties as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number; bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}> } | null;
+        return {
+          productId: item.productId || '',
+          variantTitle: item.variantTitle || undefined,
+          name: item.name || '',
+          quantity: item.quantity,
+          price: Number(item.price),
+          sku: item.sku || undefined,
+          image: item.imageUrl || undefined,
+          imageUrl: item.imageUrl || undefined,
+          addons: props?.addons || undefined,
+          addonTotal: props?.addonTotal || undefined,
+          bundleComponents: props?.bundleComponents || undefined,
+        };
+      });
       
       const shippingAddress = order.shippingAddress as Record<string, unknown> | null;
       const orderData: OrderData = {
@@ -311,15 +319,22 @@ export async function POST(
         .returning();
       
       // 🔥 Execute post-payment actions (email, inventory, loyalty points, etc.)
-      const cartItems: CartItem[] = items.map(item => ({
-        productId: item.productId || '',
-        variantTitle: item.variantTitle || undefined,
-        name: item.name || '',
-        quantity: item.quantity,
-        price: Number(item.price),
-        sku: item.sku || undefined,
-        image: item.imageUrl || undefined,
-      }));
+      const cartItems: CartItem[] = items.map(item => {
+        const props = item.properties as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number; bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}> } | null;
+        return {
+          productId: item.productId || '',
+          variantTitle: item.variantTitle || undefined,
+          name: item.name || '',
+          quantity: item.quantity,
+          price: Number(item.price),
+          sku: item.sku || undefined,
+          image: item.imageUrl || undefined,
+          imageUrl: item.imageUrl || undefined,
+          addons: props?.addons || undefined,
+          addonTotal: props?.addonTotal || undefined,
+          bundleComponents: props?.bundleComponents || undefined,
+        };
+      });
       
       const shippingAddress = order.shippingAddress as Record<string, unknown> | null;
       const orderData: OrderData = {
@@ -413,15 +428,22 @@ export async function POST(
         .returning();
       
       // 🔥 Execute post-payment actions (fallback success case)
-      const cartItems: CartItem[] = items.map(item => ({
-        productId: item.productId || '',
-        variantTitle: item.variantTitle || undefined,
-        name: item.name || '',
-        quantity: item.quantity,
-        price: Number(item.price),
-        sku: item.sku || undefined,
-        image: item.imageUrl || undefined,
-      }));
+      const cartItems: CartItem[] = items.map(item => {
+        const props = item.properties as { addons?: Array<{addonId: string; name: string; value: string; displayValue: string; priceAdjustment: number}>; addonTotal?: number; bundleComponents?: Array<{name: string; variantTitle?: string; quantity: number}> } | null;
+        return {
+          productId: item.productId || '',
+          variantTitle: item.variantTitle || undefined,
+          name: item.name || '',
+          quantity: item.quantity,
+          price: Number(item.price),
+          sku: item.sku || undefined,
+          image: item.imageUrl || undefined,
+          imageUrl: item.imageUrl || undefined,
+          addons: props?.addons || undefined,
+          addonTotal: props?.addonTotal || undefined,
+          bundleComponents: props?.bundleComponents || undefined,
+        };
+      });
       
       const shippingAddress = order.shippingAddress as Record<string, unknown> | null;
       const orderData: OrderData = {

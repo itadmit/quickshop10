@@ -6,6 +6,7 @@ import { Badge } from '@/components/admin/ui';
 import { OrderDetailActions, FulfillButton } from '@/components/admin/order-detail-actions';
 import { calculateItemDiscounts, type OrderItemWithDiscount } from '@/lib/order-item-discount';
 import { CustomStatusSelector, CustomStatusBadge } from '@/components/admin/custom-status-selector';
+import { OrderItemImage } from './order-item-image';
 
 interface OrderPageProps {
   params: Promise<{ slug: string; id: string }>;
@@ -128,9 +129,9 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-xl font-bold text-gray-900">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">
             #{order.orderNumber}
           </h1>
           <Badge 
@@ -150,7 +151,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {/* Custom Status Selector - only show if store has custom statuses */}
           {customStatuses.length > 0 && (
             <CustomStatusSelector
@@ -172,8 +173,8 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       </div>
 
       {/* Subtitle */}
-      <div className="flex items-center gap-2">
-        <p className="text-sm text-gray-500">
+      <div className="flex items-center gap-2 flex-wrap">
+        <p className="text-xs sm:text-sm text-gray-500">
           {formatDate(new Date(order.createdAt!))} מ-{
             order.utmSource === 'manual' ? 'הזמנה ידנית' :
             order.utmSource === 'pos' ? 'קופה (POS)' :
@@ -193,12 +194,12 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-12 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column - Order Details */}
-        <div className="col-span-8 space-y-4">
+        <div className="lg:col-span-8 space-y-4">
           {/* Fulfillment Card */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${order.fulfillmentStatus === 'fulfilled' ? 'bg-gray-400' : 'bg-yellow-400'}`}></span>
                 <h3 className="text-sm font-semibold text-gray-900">
@@ -215,79 +216,42 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
             
             <div className="divide-y divide-gray-50">
               {itemsWithDiscounts.map((item) => (
-                <div key={item.id} className="px-4 py-3 flex items-center gap-4">
-                  {/* Image */}
-                  <div className="w-10 h-10 bg-gray-50 rounded shrink-0 overflow-hidden border border-gray-100">
-                    {item.imageUrl ? (
-                      <img 
-                        src={item.imageUrl} 
-                        alt={item.name} 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                          <circle cx="8.5" cy="8.5" r="1.5"/>
-                          <polyline points="21 15 16 10 5 21"/>
-                        </svg>
-                      </div>
-                    )}
-                  </div>
+                <div key={item.id} className="px-3 sm:px-4 py-3">
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    {/* Image + Name + Details with lightbox */}
+                    <OrderItemImage 
+                      imageUrl={item.imageUrl} 
+                      name={item.name}
+                      variantTitle={item.variantTitle}
+                      sku={item.sku}
+                      addons={(() => {
+                        const props = item.properties as { addons?: Array<{name: string; value?: string; displayValue?: string; priceAdjustment: number}> } | null;
+                        return props?.addons && Array.isArray(props.addons) && props.addons.length > 0 ? props.addons : undefined;
+                      })()}
+                    />
 
-                  {/* Details */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-blue-600 hover:underline cursor-pointer">{item.name}</p>
-                    {item.variantTitle && (
-                      <p className="text-xs text-gray-500 mt-0.5">{item.variantTitle}</p>
-                    )}
-                    {item.sku && (
-                      <p className="text-xs text-gray-400 mt-0.5">מק״ט: {item.sku}</p>
-                    )}
-                    {/* Display addons if present */}
-                    {(() => {
-                      const props = item.properties as { addons?: Array<{name: string; value?: string; displayValue?: string; priceAdjustment: number}>; addonTotal?: number } | null;
-                      if (props?.addons && Array.isArray(props.addons) && props.addons.length > 0) {
-                        return (
-                          <div className="mt-1.5 space-y-0.5 text-xs bg-gray-50 p-1.5 rounded">
-                            {props.addons.map((addon, i) => {
-                              const displayValue = String(addon.displayValue || addon.value || '');
-                              return (
-                                <div key={i} className="flex items-center gap-2 text-gray-600">
-                                  <span>{addon.name}:</span>
-                                  <span className="text-gray-800">{displayValue}</span>
-                                  {addon.priceAdjustment > 0 && (
-                                    <span className="text-green-600">(+₪{addon.priceAdjustment.toFixed(2)})</span>
-                                  )}
-                                </div>
-                              );
-                            })}
+                    {/* Price & Quantity - with discount indication */}
+                    <div className="text-left flex items-center gap-2 sm:gap-6 shrink-0">
+                      <div className="hidden sm:block">
+                        {item.hasDiscount ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-xs text-gray-400 line-through">₪{Number(item.price).toFixed(2)}</span>
+                            <span className="text-sm text-emerald-600 font-medium">₪{item.discountedPrice?.toFixed(2)}</span>
                           </div>
-                        );
-                      }
-                      return null;
-                    })()}
-                  </div>
-
-                  {/* Price & Quantity - with discount indication */}
-                  <div className="text-left flex items-center gap-6">
-                    {item.hasDiscount ? (
-                      <div className="flex flex-col items-end">
-                        <span className="text-xs text-gray-400 line-through">₪{Number(item.price).toFixed(2)}</span>
-                        <span className="text-sm text-emerald-600 font-medium">₪{item.discountedPrice?.toFixed(2)}</span>
+                        ) : (
+                          <span className="text-sm text-gray-500">₪{Number(item.price).toFixed(2)}</span>
+                        )}
                       </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">₪{Number(item.price).toFixed(2)}</span>
-                    )}
-                    <span className="text-sm text-gray-500">×{item.quantity}</span>
-                    {item.hasDiscount ? (
-                      <div className="flex flex-col items-end w-20">
-                        <span className="text-xs text-gray-400 line-through">₪{Number(item.total).toFixed(2)}</span>
-                        <span className="text-sm font-medium text-emerald-600">₪{item.discountedTotal?.toFixed(2)}</span>
-                      </div>
-                    ) : (
-                      <span className="text-sm font-medium text-gray-900 w-20 text-left">₪{Number(item.total).toFixed(2)}</span>
-                    )}
+                      <span className="text-xs sm:text-sm text-gray-500">×{item.quantity}</span>
+                      {item.hasDiscount ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-xs text-gray-400 line-through hidden sm:block">₪{Number(item.total).toFixed(2)}</span>
+                          <span className="text-xs sm:text-sm font-medium text-emerald-600">₪{item.discountedTotal?.toFixed(2)}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs sm:text-sm font-medium text-gray-900 text-left">₪{Number(item.total).toFixed(2)}</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -296,7 +260,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
           {/* Payment Card */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-0">
               <div className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${order.financialStatus === 'paid' ? 'bg-gray-400' : 'bg-yellow-400'}`}></span>
                 <h3 className="text-sm font-semibold text-gray-900">
@@ -313,7 +277,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                 } | null;
                 if (paymentDetails?.cardLastFour || order.paymentMethod) {
                   return (
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 sm:mr-0 mr-4">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                         <rect x="1" y="4" width="22" height="16" rx="2"/>
                         <line x1="1" y1="10" x2="23" y2="10"/>
@@ -330,21 +294,21 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               })()}
             </div>
             
-            <div className="px-4 py-3 space-y-2.5 text-sm">
-              <div className="flex justify-between">
+            <div className="px-3 sm:px-4 py-3 space-y-2.5 text-sm">
+              <div className="flex justify-between gap-2">
                 <span className="text-gray-600">סכום לפני הנחות</span>
-                <span className="text-gray-600">{order.items.length} פריטים</span>
-                <span className="text-gray-900">₪{Number(order.subtotal).toFixed(2)}</span>
+                <span className="text-gray-600 hidden sm:inline">{order.items.length} פריטים</span>
+                <span className="text-gray-900 font-medium sm:font-normal">₪{Number(order.subtotal).toFixed(2)}</span>
               </div>
               
               {/* Detailed discount breakdown */}
               {(order.discountDetails as Array<{type: string; code?: string; name: string; description?: string; amount: number}> | null)?.map((discount, idx) => (
-                <div key={idx} className={`flex justify-between ${
+                <div key={idx} className={`flex justify-between gap-2 ${
                   discount.type === 'gift_card' ? 'text-purple-600' : 
                   discount.type === 'credit' ? 'text-blue-600' : 
                   discount.type === 'loyalty_tier' ? 'text-violet-600' : 'text-emerald-600'
                 }`}>
-                  <span className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1 sm:gap-1.5 min-w-0 flex-1 truncate">
                     {discount.type === 'coupon' && (
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
@@ -430,10 +394,10 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
           {/* Timeline */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900">ציר זמן</h3>
             </div>
-            <div className="px-4 py-3">
+            <div className="px-3 sm:px-4 py-3">
               <div className="space-y-3">
                 {order.status === 'cancelled' && (
                   <div className="flex gap-3 items-start">
@@ -504,7 +468,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
         </div>
 
         {/* Right Column - Customer & Shipping */}
-        <div className="col-span-4 space-y-4">
+        <div className="lg:col-span-4 space-y-4">
           {/* Shipment Error Alert */}
           {order.shipmentError && (
             <div className={`rounded-lg border overflow-hidden ${
@@ -513,7 +477,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                 ? 'bg-amber-50 border-amber-200'
                 : 'bg-red-50 border-red-200'
             }`}>
-              <div className="px-4 py-3 flex items-start gap-3">
+              <div className="px-3 sm:px-4 py-3 flex items-start gap-2 sm:gap-3">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 mt-0.5 ${
                   ['fetch failed', 'timeout', 'network'].some(e => order.shipmentError?.toLowerCase().includes(e))
                     ? 'text-amber-500'
@@ -595,7 +559,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
           {/* Shipments Info */}
           {orderShipments.length > 0 && (
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-2">
+              <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-green-500">
                   <rect x="1" y="3" width="15" height="13" rx="2"/>
                   <path d="M16 8h4l3 3v5a2 2 0 01-2 2h-1"/>
@@ -608,7 +572,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
               </div>
               <div className="divide-y divide-gray-100">
                 {orderShipments.map((shipment, index) => (
-                  <div key={shipment.id} className="px-4 py-3 space-y-3">
+                  <div key={shipment.id} className="px-3 sm:px-4 py-3 space-y-3">
                     {orderShipments.length > 1 && (
                       <div className="flex items-center gap-2 mb-2">
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
@@ -669,13 +633,13 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
           {/* Notes */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">הערות</h3>
               <button className="text-xs font-medium text-gray-500 hover:text-gray-700 cursor-pointer">
                 ערוך
               </button>
             </div>
-            <div className="px-4 py-3">
+            <div className="px-3 sm:px-4 py-3">
               {order.note ? (
                 <p className="text-sm text-gray-700">{order.note}</p>
               ) : (
@@ -686,10 +650,10 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
           {/* Customer Card */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100">
               <h3 className="text-sm font-semibold text-gray-900">לקוח</h3>
             </div>
-            <div className="px-4 py-3 space-y-3">
+            <div className="px-3 sm:px-4 py-3 space-y-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-medium text-gray-500">
                   {order.customer?.firstName?.[0]}{order.customer?.lastName?.[0]}
@@ -707,7 +671,7 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
                 <div className="space-y-1.5">
                   <a 
                     href={`mailto:${order.customer?.email}`}
-                    className="text-sm text-blue-600 hover:underline block"
+                    className="text-sm text-blue-600 hover:underline block break-all"
                   >
                     {order.customer?.email}
                   </a>
@@ -751,10 +715,10 @@ export default async function OrderDetailsPage({ params }: OrderPageProps) {
 
           {/* Tags */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-3 sm:px-4 py-3 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-gray-900">תגיות</h3>
             </div>
-            <div className="px-4 py-3">
+            <div className="px-3 sm:px-4 py-3">
               <button className="text-sm text-gray-400 hover:text-gray-600 flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -610,13 +610,13 @@ async function sendConfirmationEmail(params: PostPaymentParams): Promise<void> {
   const creditUsed = orderData.creditUsed || 0;
   
   // Calculate per-item discounts for email display
-  const discountDetails = order.discountDetails as Array<{
+  const discountDetails = (order.discountDetails as Array<{
     type: 'coupon' | 'auto' | 'gift_card' | 'credit' | 'member' | 'loyalty_tier';
     code?: string;
     name: string;
     description?: string;
     amount: number;
-  }> | undefined;
+  }> | null | undefined) ?? undefined;
   
   const itemsWithDiscounts = await calculateItemDiscounts(
     storeId,

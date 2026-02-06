@@ -13,6 +13,17 @@ type CartItem = {
   price: number;
   quantity: number;
   variantTitle?: string;
+  sku?: string;
+  image?: string;
+  imageUrl?: string;
+  addons?: Array<{
+    addonId: string;
+    name: string;
+    value: string;
+    displayValue: string;
+    priceAdjustment: number;
+  }>;
+  addonTotal?: number;
   // 🎁 Gift card virtual product
   isGiftCard?: boolean;
   giftCardDetails?: {
@@ -21,6 +32,13 @@ type CartItem = {
     senderName?: string;
     message?: string;
   };
+  // 📦 Bundle support
+  isBundle?: boolean;
+  bundleComponents?: Array<{
+    name: string;
+    variantTitle?: string;
+    quantity: number;
+  }>;
 };
 
 type CustomerInfo = {
@@ -682,15 +700,27 @@ export async function createOrder(
         console.log(`Extracted productId: ${actualProductId} from ${item.productId}`);
       }
       
+      // Calculate item total including addons
+      const addonTotal = item.addonTotal || 0;
+      const itemTotal = (item.price + addonTotal) * item.quantity;
+      
       await db.insert(orderItems).values({
         orderId: order.id,
         productId: actualProductId,
         variantTitle: item.variantTitle || null,
+        sku: item.sku || '',
         // 🐛 FIX: Fallback to product name from DB if cart item has no name
         name: item.name || productNameMap.get(actualProductId) || 'מוצר',
         quantity: item.quantity,
         price: item.price.toFixed(2),
-        total: (item.price * item.quantity).toFixed(2),
+        total: itemTotal.toFixed(2),
+        imageUrl: item.image || item.imageUrl || null,
+        // Store addons and bundle components in properties field
+        properties: {
+          addons: item.addons || [],
+          addonTotal: addonTotal,
+          bundleComponents: item.bundleComponents || [],
+        },
       });
 
       // 5. Update inventory (decrement stock)

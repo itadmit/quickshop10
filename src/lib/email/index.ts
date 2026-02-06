@@ -233,7 +233,7 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     subtotal,
     shippingAmount,
     discountAmount,
-    discountDetails = [],
+    discountDetails: rawDiscountDetails,
     creditUsed = 0,
     total,
     shippingAddress,
@@ -242,6 +242,9 @@ export async function sendOrderConfirmationEmail(data: OrderConfirmationData) {
     paymentInfo,
     freeShippingReason,
   } = data;
+
+  // Safety: discountDetails might be null (from JSONB), default only covers undefined
+  const discountDetails = rawDiscountDetails ?? [];
 
   const baseUrl = getAppUrl();
   if (!baseUrl) {

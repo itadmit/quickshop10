@@ -16,20 +16,53 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, phone, acceptsMarketing } = body;
+    const { firstName, lastName, phone, acceptsMarketing, defaultAddress } = body;
+
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date(),
+    };
+
+    // Update basic fields
+    if (firstName !== undefined) {
+      updateData.firstName = firstName?.trim() || null;
+    }
+    if (lastName !== undefined) {
+      updateData.lastName = lastName?.trim() || null;
+    }
+    if (phone !== undefined) {
+      updateData.phone = phone?.trim() || null;
+    }
+    if (acceptsMarketing !== undefined) {
+      updateData.acceptsMarketing = acceptsMarketing || false;
+    }
+
+    // Update default address (jsonb field)
+    if (defaultAddress !== undefined) {
+      // Validate address structure
+      if (defaultAddress && typeof defaultAddress === 'object') {
+        const address = defaultAddress as Record<string, unknown>;
+        updateData.defaultAddress = {
+          address: address.address || null,
+          city: address.city || null,
+          zipCode: address.zipCode || null,
+          country: address.country || 'IL', // Default to Israel
+          state: address.state || null,
+        };
+      } else {
+        updateData.defaultAddress = null;
+      }
+    }
 
     await db
       .update(customers)
-      .set({
-        firstName: firstName?.trim() || null,
-        lastName: lastName?.trim() || null,
-        phone: phone?.trim() || null,
-        acceptsMarketing: acceptsMarketing || false,
-        updatedAt: new Date(),
-      })
+      .set(updateData)
       .where(eq(customers.id, customer.id));
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ 
+      success: true,
+      message: 'הפרטים עודכנו בהצלחה'
+    });
   } catch (error) {
     console.error('Update customer error:', error);
     return NextResponse.json(

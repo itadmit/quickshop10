@@ -830,6 +830,46 @@ export const getOrderDetails = cache(async (storeId: string, orderId: string) =>
       : Promise.resolve(null)
   ]);
 
+  // Fetch product images for items missing imageUrl
+  const itemsMissingImage = items.filter(item => !item.imageUrl && item.productId);
+  if (itemsMissingImage.length > 0) {
+    const productIds = [...new Set(itemsMissingImage.map(item => item.productId!))];
+    const images = await db
+      .select({ productId: productImages.productId, url: productImages.url })
+      .from(productImages)
+      .where(and(
+        inArray(productImages.productId, productIds),
+        eq(productImages.isPrimary, true)
+      ));
+    
+    // Fallback: if no primary image, get first image by sort order
+    const missingProductIds = productIds.filter(pid => !images.some(img => img.productId === pid));
+    if (missingProductIds.length > 0) {
+      const fallbackImages = await db
+        .select({ productId: productImages.productId, url: productImages.url })
+        .from(productImages)
+        .where(inArray(productImages.productId, missingProductIds))
+        .orderBy(asc(productImages.sortOrder));
+      
+      // Only take first image per product
+      const seen = new Set<string>();
+      for (const img of fallbackImages) {
+        if (!seen.has(img.productId)) {
+          seen.add(img.productId);
+          images.push(img);
+        }
+      }
+    }
+    
+    const imageMap = new Map(images.map(img => [img.productId, img.url]));
+    
+    for (const item of items) {
+      if (!item.imageUrl && item.productId && imageMap.has(item.productId)) {
+        (item as typeof item & { imageUrl: string | null }).imageUrl = imageMap.get(item.productId)!;
+      }
+    }
+  }
+
   return { ...order, items, customer };
 });
 
