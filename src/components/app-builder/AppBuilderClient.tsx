@@ -6,8 +6,8 @@
  */
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Save, RefreshCw, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Save, RefreshCw, ArrowRight, ClipboardCheck } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeEditor } from './ThemeEditor';
 import { SectionList } from './SectionList';
@@ -174,6 +174,21 @@ export function AppBuilderClient({ storeSlug, storeId }: AppBuilderClientProps) 
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
   const [editingSectionId, setEditingSectionId] = useState<string | null>(null);
+  const [showChecklist, setShowChecklist] = useState(false);
+  const checklistRef = useRef<HTMLDivElement>(null);
+
+  // Close checklist on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (checklistRef.current && !checklistRef.current.contains(e.target as Node)) {
+        setShowChecklist(false);
+      }
+    }
+    if (showChecklist) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showChecklist]);
 
   // Load config from API on mount
   useEffect(() => {
@@ -272,7 +287,7 @@ export function AppBuilderClient({ storeSlug, storeId }: AppBuilderClientProps) 
   // ─── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div style={styles.app}>
+    <div style={styles.app} dir="ltr">
       {/* Scoped styles for scrollbar + spin animation */}
       <style>{`
         .app-builder-scrollable::-webkit-scrollbar { width: 4px; }
@@ -302,8 +317,8 @@ export function AppBuilderClient({ storeSlug, storeId }: AppBuilderClientProps) 
             href={`/shops/${storeSlug}/admin`}
             style={styles.backLink}
           >
-            <ArrowRight size={16} />
-            <span>חזרה לניהול</span>
+            <ArrowRight size={16} style={{ transform: 'scaleX(-1)' }} />
+            <span>Back</span>
           </Link>
           <h1 style={styles.logo}>APP BUILDER</h1>
         </div>
@@ -316,6 +331,81 @@ export function AppBuilderClient({ storeSlug, storeId }: AppBuilderClientProps) 
               {message}
             </span>
           )}
+
+          {/* Publish Checklist Button */}
+          <div ref={checklistRef} style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowChecklist(!showChecklist)}
+              style={{
+                ...styles.checklistBtn,
+                backgroundColor: showChecklist ? '#f0f0f0' : 'transparent',
+              }}
+              title="Publish Checklist"
+            >
+              <ClipboardCheck size={16} />
+            </button>
+
+            {/* Checklist Dropdown */}
+            {showChecklist && (
+              <div style={styles.checklistDropdown}>
+                <h3 style={styles.checklistTitle}>📋 Publish Checklist</h3>
+                <p style={styles.checklistSubtitle}>Complete these steps to publish your app</p>
+
+                <div style={styles.checklistSection}>
+                  <h4 style={styles.checklistSectionTitle}>1. DESIGN YOUR APP</h4>
+                  <ul style={styles.checklistList}>
+                    <li>Customize theme colors & typography</li>
+                    <li>Add & arrange home screen sections</li>
+                    <li>Upload hero banner & editorial images</li>
+                    <li>Configure categories strip</li>
+                    <li>Set product display (grid, ratio, badges)</li>
+                    <li>Choose tab bar style & labels</li>
+                    <li>Click <strong>Save</strong> when done</li>
+                  </ul>
+                </div>
+
+                <div style={styles.checklistSection}>
+                  <h4 style={styles.checklistSectionTitle}>2. CONFIGURE THE PROJECT</h4>
+                  <ul style={styles.checklistList}>
+                    <li>Clone the mobile app template</li>
+                    <li>Set <code style={styles.code}>EXPO_PUBLIC_API_URL</code> in <code style={styles.code}>.env</code></li>
+                    <li>Set <code style={styles.code}>EXPO_PUBLIC_STORE_SLUG</code> to the store slug</li>
+                    <li>Update <code style={styles.code}>app.json</code>: app name, slug</li>
+                    <li>Set unique <code style={styles.code}>bundleIdentifier</code> (iOS)</li>
+                    <li>Set unique <code style={styles.code}>package</code> (Android)</li>
+                  </ul>
+                </div>
+
+                <div style={styles.checklistSection}>
+                  <h4 style={styles.checklistSectionTitle}>3. BRANDING ASSETS</h4>
+                  <ul style={styles.checklistList}>
+                    <li>Replace <code style={styles.code}>icon.png</code> (1024×1024)</li>
+                    <li>Replace <code style={styles.code}>splash.png</code> (1284×2778)</li>
+                    <li>Replace <code style={styles.code}>adaptive-icon.png</code> (Android)</li>
+                    <li>Update <code style={styles.code}>favicon.png</code> for web</li>
+                  </ul>
+                </div>
+
+                <div style={styles.checklistSection}>
+                  <h4 style={styles.checklistSectionTitle}>4. BUILD & PUBLISH</h4>
+                  <ul style={styles.checklistList}>
+                    <li>Run <code style={styles.code}>eas build --platform ios</code></li>
+                    <li>Run <code style={styles.code}>eas build --platform android</code></li>
+                    <li>Submit to App Store via <code style={styles.code}>eas submit -p ios</code></li>
+                    <li>Submit to Play Store via <code style={styles.code}>eas submit -p android</code></li>
+                    <li>Wait for review & approval ✅</li>
+                  </ul>
+                </div>
+
+                <div style={styles.checklistFooter}>
+                  <strong>Env Example:</strong>
+                  <pre style={styles.codeBlock}>{`EXPO_PUBLIC_API_URL=https://my-quickshop.com/
+EXPO_PUBLIC_STORE_SLUG=${storeSlug}`}</pre>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button onClick={handleSave} disabled={saving || loading} style={styles.saveBtn}>
             {saving ? <RefreshCw size={14} className="app-builder-spin" /> : <Save size={14} />}
             <span>{saving ? 'Saving...' : 'Save'}</span>
@@ -615,5 +705,88 @@ const styles: Record<string, React.CSSProperties> = {
     border: '1px solid #ddd',
     fontSize: 13,
     boxSizing: 'border-box' as const,
+  },
+  checklistBtn: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 34,
+    height: 34,
+    border: '1px solid #e5e5e5',
+    borderRadius: 6,
+    cursor: 'pointer',
+    color: '#555',
+    transition: 'background 0.15s',
+  },
+  checklistDropdown: {
+    position: 'absolute' as const,
+    top: 42,
+    right: 0,
+    width: 380,
+    maxHeight: '75vh',
+    overflowY: 'auto' as const,
+    backgroundColor: '#fff',
+    border: '1px solid #e0e0e0',
+    borderRadius: 10,
+    boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+    padding: '20px 24px',
+    zIndex: 100,
+  },
+  checklistTitle: {
+    fontSize: 16,
+    fontWeight: 700,
+    margin: '0 0 4px 0',
+    color: '#111',
+  },
+  checklistSubtitle: {
+    fontSize: 12,
+    color: '#888',
+    margin: '0 0 18px 0',
+  },
+  checklistSection: {
+    marginBottom: 18,
+  },
+  checklistSectionTitle: {
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: 1.5,
+    color: '#333',
+    margin: '0 0 8px 0',
+    paddingBottom: 6,
+    borderBottom: '1px solid #f0f0f0',
+  },
+  checklistList: {
+    margin: 0,
+    paddingLeft: 18,
+    fontSize: 13,
+    lineHeight: 1.8,
+    color: '#444',
+    listStyleType: 'disc' as const,
+  },
+  code: {
+    backgroundColor: '#f5f5f5',
+    padding: '1px 5px',
+    borderRadius: 3,
+    fontSize: 11,
+    fontFamily: 'monospace',
+    color: '#c7254e',
+  },
+  checklistFooter: {
+    marginTop: 16,
+    paddingTop: 14,
+    borderTop: '1px solid #eee',
+    fontSize: 12,
+    color: '#555',
+  },
+  codeBlock: {
+    backgroundColor: '#1e1e1e',
+    color: '#d4d4d4',
+    padding: '10px 14px',
+    borderRadius: 6,
+    fontSize: 11,
+    fontFamily: 'monospace',
+    marginTop: 8,
+    overflowX: 'auto' as const,
+    whiteSpace: 'pre' as const,
   },
 };
