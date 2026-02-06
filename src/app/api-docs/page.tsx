@@ -19,14 +19,19 @@ import {
   LayersIcon,
   BracesIcon,
   CheckCircleIcon,
-  ZapIcon
+  ZapIcon,
+  SmartphoneIcon,
+  GlobeIcon,
+  HeartIcon,
+  MapPinIcon,
+  StarIcon
 } from "@/components/admin/icons"
 
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "API Documentation | QuickShop",
-  description: "תיעוד מלא של QuickShop Public API v1 - REST API למפתחים חיצוניים לאינטגרציה עם חנויות QuickShop",
+  description: "תיעוד מלא של QuickShop API v1.1 - REST API למפתחים, כולל Storefront API ו-Mobile API לאינטגרציה עם חנויות QuickShop",
 }
 
 const endpoints = [
@@ -114,6 +119,75 @@ const endpoints = [
   },
 ]
 
+const storefrontEndpoints = [
+  {
+    category: "Storefront Config",
+    icon: GlobeIcon,
+    color: "bg-cyan-500",
+    items: [
+      { method: "GET", path: "/api/storefront/{slug}/config", desc: "הגדרות חנות (שם, לוגו, צבעים, מטבע)" },
+    ]
+  },
+  {
+    category: "Storefront Products",
+    icon: PackageIcon,
+    color: "bg-emerald-500",
+    items: [
+      { method: "GET", path: "/api/storefront/{slug}/products", desc: "קטלוג מוצרים (פילטר, מיון, דפדוף)" },
+      { method: "GET", path: "/api/storefront/{slug}/products/{productSlug}", desc: "פרטי מוצר + וריאנטים + תמונות" },
+    ]
+  },
+  {
+    category: "Storefront Categories",
+    icon: LayersIcon,
+    color: "bg-teal-500",
+    items: [
+      { method: "GET", path: "/api/storefront/{slug}/categories", desc: "רשימת קטגוריות (עם ספירת מוצרים)" },
+    ]
+  },
+  {
+    category: "Customer Orders",
+    icon: ShoppingCartIcon,
+    color: "bg-blue-500",
+    items: [
+      { method: "GET", path: "/api/customer/orders", desc: "היסטוריית הזמנות הלקוח" },
+      { method: "GET", path: "/api/customer/orders/{orderNumber}", desc: "פרטי הזמנה + מעקב משלוח" },
+    ]
+  },
+  {
+    category: "Customer Profile",
+    icon: UsersIcon,
+    color: "bg-purple-500",
+    items: [
+      { method: "PUT", path: "/api/customer/update", desc: "עדכון פרופיל לקוח" },
+      { method: "GET", path: "/api/customer/addresses", desc: "רשימת כתובות" },
+      { method: "POST", path: "/api/customer/addresses", desc: "הוספת כתובת" },
+      { method: "DELETE", path: "/api/customer/addresses", desc: "מחיקת כתובת" },
+    ]
+  },
+  {
+    category: "Wishlist",
+    icon: HeartIcon,
+    color: "bg-rose-500",
+    items: [
+      { method: "GET", path: "/api/customer/wishlist", desc: "רשימת המשאלות" },
+      { method: "POST", path: "/api/customer/wishlist", desc: "הוספה לרשימה" },
+      { method: "PUT", path: "/api/customer/wishlist", desc: "Toggle (הוסף/הסר)" },
+      { method: "GET", path: "/api/customer/wishlist/{productId}", desc: "בדיקה אם מוצר ברשימה" },
+    ]
+  },
+  {
+    category: "Mobile Devices",
+    icon: SmartphoneIcon,
+    color: "bg-violet-500",
+    items: [
+      { method: "POST", path: "/api/mobile/device/register", desc: "רישום מכשיר לפוש נוטיפיקציות" },
+      { method: "GET", path: "/api/mobile/notifications/preferences", desc: "העדפות התראות" },
+      { method: "PUT", path: "/api/mobile/notifications/preferences", desc: "עדכון העדפות התראות" },
+    ]
+  },
+]
+
 const scopes = [
   { scope: "orders:read", desc: "צפייה בהזמנות", active: true },
   { scope: "orders:write", desc: "עדכון הזמנות", active: true },
@@ -127,6 +201,10 @@ const scopes = [
   { scope: "analytics:read", desc: "צפייה באנליטיקס", active: true },
   { scope: "webhooks:read", desc: "צפייה בוובהוקים", active: true },
   { scope: "webhooks:write", desc: "ניהול וובהוקים", active: true },
+  { scope: "storefront:read", desc: "גישה ל-Storefront API (מוצרים, קטגוריות, הגדרות)", active: true },
+  { scope: "customer:read", desc: "גישה לנתוני לקוח (הזמנות, כתובות, משאלות)", active: true },
+  { scope: "customer:write", desc: "עדכון פרופיל ומשאלות", active: true },
+  { scope: "mobile:write", desc: "רישום מכשירים והתראות", active: true },
 ]
 
 const errorCodes = [
@@ -152,7 +230,7 @@ export default function ApiDocsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             <Badge className="mb-6 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-4 py-1.5 text-sm font-mono">
-              API v1.0
+              API v1.1
             </Badge>
             
             <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-[1.1] tracking-tight">
@@ -163,7 +241,7 @@ export default function ApiDocsPage() {
             <p className="text-xl text-gray-400 mb-10 leading-relaxed max-w-2xl mx-auto">
               REST API מלא לאינטגרציה עם חנויות QuickShop.
               <br />
-              <strong className="text-white">הזמנות, מוצרים, מלאי ולקוחות - הכל בגישת API.</strong>
+              <strong className="text-white">הזמנות, מוצרים, מלאי, לקוחות, Storefront ומובייל - הכל בגישת API.</strong>
             </p>
 
             <div className="bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 max-w-2xl mx-auto border border-slate-800">
@@ -325,8 +403,70 @@ export default function ApiDocsPage() {
         </div>
       </section>
 
-      {/* Code Examples */}
+      {/* Storefront & Mobile Endpoints */}
       <section className="py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <Badge className="mb-4 bg-violet-500/20 text-violet-300 border border-violet-500/30 px-4 py-1.5 text-sm font-mono">
+              NEW
+            </Badge>
+            <h2 className="text-3xl font-bold">Storefront & Mobile API</h2>
+            <p className="text-gray-400 mt-3 max-w-2xl mx-auto">
+              Endpoints ציבוריים לפרונט חנות ואפליקציית מובייל. אימות לקוח באמצעות Customer Session.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {storefrontEndpoints.map((category) => (
+              <div key={category.category} className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div className="flex items-center gap-3 p-5 border-b border-slate-800">
+                  <div className={`w-10 h-10 ${category.color} rounded-xl flex items-center justify-center`}>
+                    <category.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold">{category.category}</h3>
+                </div>
+                <div className="divide-y divide-slate-800">
+                  {category.items.map((item, i) => (
+                    <div key={i} className="flex items-center gap-3 p-4 hover:bg-slate-800/50 transition-colors">
+                      <span className={`text-xs font-bold px-2 py-1 rounded shrink-0 ${
+                        item.method === 'GET' ? 'bg-emerald-500/20 text-emerald-400' : 
+                        item.method === 'POST' ? 'bg-blue-500/20 text-blue-400' :
+                        item.method === 'PUT' ? 'bg-amber-500/20 text-amber-400' :
+                        item.method === 'PATCH' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-red-500/20 text-red-400'
+                      }`}>
+                        {item.method}
+                      </span>
+                      <code className="text-sm font-mono text-gray-300 flex-1 truncate">{item.path}</code>
+                      <span className="text-sm text-gray-500 shrink-0">{item.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Mobile Auth Note */}
+          <div className="mt-8 max-w-3xl mx-auto bg-slate-900/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-800">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 bg-violet-500/20 rounded-xl flex items-center justify-center shrink-0">
+                <SmartphoneIcon className="w-5 h-5 text-violet-400" />
+              </div>
+              <div>
+                <h4 className="font-bold text-white mb-2">אימות לקוחות במובייל</h4>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  ה-Storefront API משתמש ב-Customer Session (OTP via Email) לאימות לקוחות. 
+                  Endpoints ציבוריים כמו <code className="text-cyan-400">config</code>, <code className="text-cyan-400">products</code> ו-<code className="text-cyan-400">categories</code> לא דורשים אימות. 
+                  Endpoints של לקוח (<code className="text-purple-400">customer/*</code>) דורשים session token.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Code Examples */}
+      <section className="py-20 bg-slate-900/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold mb-10 text-center">דוגמאות קוד</h2>
           
@@ -465,6 +605,83 @@ const response = await fetch('https://my-quickshop.com/api/v1/products', {
               <br />
               🎥 וידאו (<code className="text-emerald-400">media_type: &quot;video&quot;</code>) נשמר כ-URL כפי שהוא - שלחו URL מ-Cloudinary או מקור אחר.
             </p>
+          </div>
+
+          {/* Storefront API Example */}
+          <div className="mt-10 max-w-5xl mx-auto">
+            <h3 className="text-xl font-semibold mb-4 text-center">שליפת מוצרים מה-Storefront</h3>
+            <div className="grid lg:grid-cols-2 gap-6">
+              <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
+                  <SmartphoneIcon className="w-4 h-4 text-violet-400" />
+                  <span className="text-sm font-mono text-gray-400">React Native / Expo</span>
+                </div>
+                <pre className="p-6 overflow-x-auto text-sm" dir="ltr">
+                  <code className="text-gray-300">
+{`const STORE = 'my-store';
+const BASE = 'https://my-quickshop.com/api';
+
+// שליפת הגדרות חנות
+const config = await fetch(
+  \`\${BASE}/storefront/\${STORE}/config\`
+).then(r => r.json());
+
+// שליפת מוצרים עם פילטרים
+const products = await fetch(
+  \`\${BASE}/storefront/\${STORE}/products?` +
+  `page=1&limit=20&sort=newest\`
+).then(r => r.json());
+
+// שליפת מוצר בודד
+const product = await fetch(
+  \`\${BASE}/storefront/\${STORE}/products/my-product\`
+).then(r => r.json());`}
+                  </code>
+                </pre>
+              </div>
+
+              <div className="bg-slate-900 rounded-2xl border border-slate-800 overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 bg-slate-800/50 border-b border-slate-700">
+                  <HeartIcon className="w-4 h-4 text-rose-400" />
+                  <span className="text-sm font-mono text-gray-400">Customer API (עם Session)</span>
+                </div>
+                <pre className="p-6 overflow-x-auto text-sm" dir="ltr">
+                  <code className="text-gray-300">
+{`// הוספה לרשימת משאלות
+await fetch('/api/customer/wishlist', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Cookie': sessionCookie,
+  },
+  body: JSON.stringify({
+    productId: 'prod_xxx'
+  }),
+});
+
+// שליפת הזמנות לקוח
+const orders = await fetch(
+  '/api/customer/orders?page=1&limit=10',
+  { headers: { 'Cookie': sessionCookie } }
+).then(r => r.json());
+
+// עדכון פרופיל
+await fetch('/api/customer/update', {
+  method: 'PUT',
+  headers: {
+    'Content-Type': 'application/json',
+    'Cookie': sessionCookie,
+  },
+  body: JSON.stringify({
+    firstName: 'דניאל',
+    lastName: 'כהן',
+    phone: '0501234567',
+  }),
+});`}
+                  </code>
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
       </section>
