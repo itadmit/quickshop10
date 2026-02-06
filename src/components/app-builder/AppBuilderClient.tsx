@@ -285,6 +285,16 @@ export function AppBuilderClient({ storeSlug, storeId }: AppBuilderClientProps) 
         }
       `}</style>
 
+      {/* Coming Soon Banner */}
+      <div style={styles.comingSoonBanner} dir="rtl">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span>בקרוב נשיק שירות אפליקציות חדש, השירות בתשלום נוסף — יש לפנות למחלקת המכירות שלנו</span>
+      </div>
+
       {/* Top Bar */}
       <header style={styles.topBar}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -470,6 +480,19 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'fixed',
     inset: 0,
     zIndex: 50,
+  },
+  comingSoonBanner: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    padding: '10px 24px',
+    backgroundColor: '#FFF8E1',
+    borderBottom: '1px solid #FFE082',
+    color: '#6D4C00',
+    fontSize: 13,
+    fontWeight: 500,
+    flexShrink: 0,
   },
   topBar: {
     display: 'flex',

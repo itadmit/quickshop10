@@ -345,6 +345,7 @@ const contentMenuItems: MenuItem[] = [
   {
     label: 'אפליקציה',
     href: '/app-builder',
+    textBadge: 'בקרוב',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
@@ -713,7 +714,11 @@ function MenuSection({
               </span>
               <span className="flex-1">{item.label}</span>
               {item.textBadge && (
-                <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-emerald-100 text-emerald-700">
+                <span className={`px-1.5 py-0.5 text-[10px] font-medium rounded ${
+                  item.textBadge === 'בקרוב' 
+                    ? 'bg-pink-100 text-pink-700' 
+                    : 'bg-emerald-100 text-emerald-700'
+                }`}>
                   {item.textBadge}
                 </span>
               )}
