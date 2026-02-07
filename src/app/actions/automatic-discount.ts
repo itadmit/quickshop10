@@ -423,16 +423,17 @@ export async function getProductsAutomaticDiscounts(
 
   if (discounts.length === 0) return result;
 
-  // 2. אם חלק מהמוצרים חסרים categoryIds, נביא אותם מה-DB
-  const productsNeedingCategories = products.filter(p => !p.categoryIds);
-  let productCategoryMap = new Map<string, string[]>();
+  // 2. 🔒 ALWAYS fetch ALL categories from DB for accurate exclusion checks
+  // Even if categoryIds is provided (e.g. from category page), it may be partial
+  // (only the current category, not all categories the product belongs to)
+  const productCategoryMap = new Map<string, string[]>();
+  const allProductIds = products.map(p => p.id);
   
-  if (productsNeedingCategories.length > 0) {
-    const productIds = productsNeedingCategories.map(p => p.id);
+  if (allProductIds.length > 0) {
     const categoriesData = await db
       .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
       .from(productCategories)
-      .where(inArray(productCategories.productId, productIds));
+      .where(inArray(productCategories.productId, allProductIds));
     
     for (const pc of categoriesData) {
       if (!productCategoryMap.has(pc.productId)) {
@@ -447,7 +448,10 @@ export async function getProductsAutomaticDiscounts(
     const price = Number(product.price) || 0;
     if (price <= 0) continue;
     
-    const categoryIds = product.categoryIds || productCategoryMap.get(product.id) || [];
+    // 🔒 Merge provided categoryIds with DB categories for complete coverage
+    const dbCategories = productCategoryMap.get(product.id) || [];
+    const providedCategories = product.categoryIds || [];
+    const categoryIds = [...new Set([...dbCategories, ...providedCategories])];
     const appliedNames: string[] = [];
     let currentPrice = price;
     let hasNonStackable = false;

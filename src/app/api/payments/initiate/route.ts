@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, productVariants, contacts, discounts } from '@/lib/db/schema';
+import { stores, pendingPayments, paymentTransactions, orders, orderItems, customers, products, productVariants, contacts, discounts, productCategories } from '@/lib/db/schema';
 import { eq, and, sql, inArray, or, lte, gte, isNull } from 'drizzle-orm';
 import { isOutOfStock } from '@/lib/inventory';
 import { getConfiguredProvider, getDefaultProvider } from '@/lib/payments';
@@ -608,10 +608,74 @@ export async function POST(request: NextRequest) {
       }
       
       // Calculate discount based on validated coupon
+      // 🔒 CRITICAL: Respect product/category exclusions when calculating discount
+      let matchingSubtotal = subtotal;
+      
+      const excludeProductIds = (dbCoupon.excludeProductIds as string[]) || [];
+      const excludeCategoryIds = (dbCoupon.excludeCategoryIds as string[]) || [];
+      const couponAppliesTo = dbCoupon.appliesTo || 'all';
+      const couponProductIds = (dbCoupon.productIds as string[]) || [];
+      const couponCategoryIds = (dbCoupon.categoryIds as string[]) || [];
+      
+      const hasExclusions = excludeProductIds.length > 0 || excludeCategoryIds.length > 0;
+      const needsFiltering = hasExclusions || (couponAppliesTo !== 'all' && couponAppliesTo !== 'member');
+      
+      if (needsFiltering) {
+        // Fetch product categories for cart items to check category exclusions
+        const cartProductIds = cartItemsForOrder
+          .map(i => i.productId)
+          .filter((id): id is string => !!id);
+        
+        const productCategoryMap = new Map<string, string[]>();
+        
+        if (cartProductIds.length > 0 && (excludeCategoryIds.length > 0 || couponAppliesTo === 'category')) {
+          const pcData = await db
+            .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
+            .from(productCategories)
+            .where(inArray(productCategories.productId, cartProductIds));
+          
+          for (const pc of pcData) {
+            if (!productCategoryMap.has(pc.productId)) {
+              productCategoryMap.set(pc.productId, []);
+            }
+            productCategoryMap.get(pc.productId)!.push(pc.categoryId);
+          }
+        }
+        
+        // Calculate matching subtotal - only items that pass all filters
+        matchingSubtotal = cartItemsForOrder.reduce((sum, item) => {
+          if (!item.productId) return sum;
+          
+          // Check product exclusion
+          if (excludeProductIds.includes(item.productId)) return sum;
+          
+          // Check category exclusion
+          const itemCatIds = productCategoryMap.get(item.productId) || [];
+          if (itemCatIds.some(catId => excludeCategoryIds.includes(catId))) return sum;
+          
+          // Check appliesTo filter
+          if (couponAppliesTo === 'product') {
+            if (!couponProductIds.includes(item.productId)) return sum;
+          } else if (couponAppliesTo === 'category') {
+            if (!itemCatIds.some(catId => couponCategoryIds.includes(catId))) return sum;
+          }
+          
+          return sum + (item.price * item.quantity);
+        }, 0);
+        
+        console.log('[Payment Initiate] Discount exclusion filtering:', {
+          originalSubtotal: subtotal,
+          matchingSubtotal,
+          excludeProductIds: excludeProductIds.length,
+          excludeCategoryIds: excludeCategoryIds.length,
+          appliesTo: couponAppliesTo,
+        });
+      }
+      
       if (dbCoupon.type === 'percentage') {
-        validatedDiscountAmount = (subtotal * Number(dbCoupon.value)) / 100;
+        validatedDiscountAmount = Math.round((matchingSubtotal * Number(dbCoupon.value)) / 100 * 100) / 100;
       } else if (dbCoupon.type === 'fixed_amount') {
-        validatedDiscountAmount = Math.min(Number(dbCoupon.value), subtotal);
+        validatedDiscountAmount = Math.min(Number(dbCoupon.value), matchingSubtotal);
       }
       
       validatedDiscountCode = dbCoupon.code;

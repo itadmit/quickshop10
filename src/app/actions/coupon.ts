@@ -275,6 +275,14 @@ export async function validateCoupon(
     const matchingItems = cartItems.filter(doesItemMatch);
     const totalMatchingQty = matchingItems.reduce((sum, item) => sum + item.quantity, 0);
 
+    // 🔒 בדיקה: אם אין פריטים מתאימים בסל (כולם מוחרגים), הקופון לא תקף
+    if (matchingItems.length === 0) {
+      return { 
+        success: false, 
+        error: 'הקופון לא חל על המוצרים שבסל הקניות' 
+      };
+    }
+
     // בדיקת תנאים לפי סוג ההנחה
     switch (discount.type) {
       case 'buy_x_pay_y':

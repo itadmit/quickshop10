@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/lib/db';
-import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions, contacts } from '@/lib/db/schema';
+import { orders, orderItems, customers, stores, products, productVariants, customerCreditTransactions, discounts, automaticDiscounts, giftCards, giftCardTransactions, contacts, productCategories } from '@/lib/db/schema';
 import { loyaltyMembers, loyaltyTiers, loyaltyPrograms } from '@/lib/db/schema-loyalty';
 import { eq, and, sql, gte, lte, gt, or, isNull, desc, inArray } from 'drizzle-orm';
 import { emitOrderCreated, emitLowStock } from '@/lib/events';
@@ -327,10 +327,74 @@ export async function createOrder(
             
             if (usageOk) {
               // Apply coupon to amount AFTER automatic discounts ⚠️ IMPORTANT
+              // 🔒 CRITICAL: Respect product/category exclusions when calculating discount
+              let matchingAmount = afterAutoDiscounts;
+              
+              const excludeProductIds = (dbCoupon.excludeProductIds as string[]) || [];
+              const excludeCategoryIds = (dbCoupon.excludeCategoryIds as string[]) || [];
+              const couponAppliesTo = dbCoupon.appliesTo || 'all';
+              const couponProductIds = (dbCoupon.productIds as string[]) || [];
+              const couponCategoryIds = (dbCoupon.categoryIds as string[]) || [];
+              
+              const hasExclusions = excludeProductIds.length > 0 || excludeCategoryIds.length > 0;
+              const needsFiltering = hasExclusions || (couponAppliesTo !== 'all' && couponAppliesTo !== 'member');
+              
+              if (needsFiltering) {
+                // Fetch product categories for cart items
+                const cartProductIds = cart
+                  .map(i => i.productId)
+                  .filter((id): id is string => !!id);
+                
+                const productCategoryMap = new Map<string, string[]>();
+                
+                if (cartProductIds.length > 0 && (excludeCategoryIds.length > 0 || couponAppliesTo === 'category')) {
+                  const pcData = await db
+                    .select({ productId: productCategories.productId, categoryId: productCategories.categoryId })
+                    .from(productCategories)
+                    .where(inArray(productCategories.productId, cartProductIds));
+                  
+                  for (const pc of pcData) {
+                    if (!productCategoryMap.has(pc.productId)) {
+                      productCategoryMap.set(pc.productId, []);
+                    }
+                    productCategoryMap.get(pc.productId)!.push(pc.categoryId);
+                  }
+                }
+                
+                // Calculate matching amount - only items that pass all filters
+                matchingAmount = cart.reduce((sum, item) => {
+                  if (!item.productId) return sum;
+                  
+                  // Check product exclusion
+                  if (excludeProductIds.includes(item.productId)) return sum;
+                  
+                  // Check category exclusion
+                  const itemCatIds = productCategoryMap.get(item.productId) || [];
+                  if (itemCatIds.some(catId => excludeCategoryIds.includes(catId))) return sum;
+                  
+                  // Check appliesTo filter
+                  if (couponAppliesTo === 'product') {
+                    if (!couponProductIds.includes(item.productId)) return sum;
+                  } else if (couponAppliesTo === 'category') {
+                    if (!itemCatIds.some(catId => couponCategoryIds.includes(catId))) return sum;
+                  }
+                  
+                  return sum + (item.price * item.quantity);
+                }, 0);
+                
+                console.log('[Order] Discount exclusion filtering:', {
+                  afterAutoDiscounts,
+                  matchingAmount,
+                  excludeProductIds: excludeProductIds.length,
+                  excludeCategoryIds: excludeCategoryIds.length,
+                  appliesTo: couponAppliesTo,
+                });
+              }
+              
               if (dbCoupon.type === 'percentage') {
-                couponDiscount = (afterAutoDiscounts * Number(dbCoupon.value)) / 100;
+                couponDiscount = Math.round((matchingAmount * Number(dbCoupon.value)) / 100 * 100) / 100;
               } else if (dbCoupon.type === 'fixed_amount') {
-                couponDiscount = Math.min(Number(dbCoupon.value), afterAutoDiscounts);
+                couponDiscount = Math.min(Number(dbCoupon.value), matchingAmount);
               }
               validatedCouponCode = dbCoupon.code;
             }
